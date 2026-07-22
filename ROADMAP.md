@@ -106,7 +106,7 @@ The **active phase** is the first phase with any unchecked box.
       (asserts the `PK` ZIP magic), proving the toolchain end-to-end
 
 ### Phase 1 — Foundations (seam, model, diagnostics)
-- [ ] Restructure into the `src/` package map (ADR-008)
+- [x] Restructure into the `src/` package map (ADR-008)
 - [ ] `diag`: source spans + subdomain error types
 - [ ] The **emitter seam** (ADR-002): a trait `model → bytes`, plus a minimal
       `mbtexcel` implementation (new workbook, one sheet, string/number cell,
@@ -281,6 +281,15 @@ clear, acyclic boundaries.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-23** — **Phase 1 started: `src/` layout (ADR-008).** Moved the flat
+  `moon new` scaffold under `src/` and set `source = "src"` in `moon.mod`, so the
+  §4 package map (`diag`, `units`, `yaml`, `model`, `loader`, `resolve`, `emit`,
+  and the `cmd/main` CLI) has a home as those packages land. The scaffold package
+  and its Phase-0 backend smoke test now live at `src/`; the CLI entry moved to
+  `src/cmd/main`. Run it with `moon run src/cmd/main` (AGENTS.md §5 updated).
+  Renames preserved history; no `.mbti` drift; the full native validation loop
+  (`check`/`test`/`fmt`/`info`/`build`) stays green.
 
 - **2026-07-23** — **Phase 0 complete.** Scaffolded `t-ujiie-g/yxl` from
   `moon new`, set `preferred_target = native`, and established the project

@@ -20,6 +20,11 @@ keywords = [ "yaml", "excel", "xlsx", "spreadsheet", "cli", "compiler" ]
 
 preferred_target = "native"
 
+// Packages live under src/ (ADR-008): diag, units, yaml, model, loader,
+// resolve, emit, and the cli entry at cmd/main.
+
+source = "src"
+
 description = "A YAML-driven Excel (.xlsx) compiler and CLI — manage spreadsheets as version-controllable YAML with reuse/dedup, built on bobzhang/mbtexcel."
 
 import {

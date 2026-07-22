@@ -104,7 +104,7 @@ in `ROADMAP.md` if it affects a roadmap item.
 |---|---|
 | Type check | `moon check` (`--deny-warn` when refactoring) |
 | Build (native CLI) | `moon build --target native` |
-| Run the CLI | `moon run cmd/main --target native -- <args>` |
+| Run the CLI | `moon run src/cmd/main --target native -- <args>` |
 | Test | `moon test` |
 | Single test | `moon test --filter "<glob>"` |
 | Update snapshots | `moon test --update` |
