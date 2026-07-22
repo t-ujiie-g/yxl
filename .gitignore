@@ -1,0 +1,9 @@
+.DS_Store
+_build/
+target/
+target
+examples/*/out/
+.mooncakes/
+.moonagent/
+.claude/*.local.json
+*.coverage

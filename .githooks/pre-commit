@@ -1,0 +1,4 @@
+#!/bin/sh
+
+moon check
+moon fmt

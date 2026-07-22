@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install MoonBit
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+
+      - name: Update registry index
+        run: moon update
+
+      - name: Type check (deny warnings)
+        run: moon check --deny-warn
+
+      - name: Format check
+        run: moon fmt --check
+
+      - name: Interface drift (.mbti)
+        run: |
+          moon info
+          git diff --exit-code
+
+      # The product target is native (ADR-003): the CLI reads/writes files on
+      # disk. Test and build on native.
+      - name: Test (native)
+        run: moon test --target native
+
+      - name: Build CLI (native)
+        run: moon build --target native

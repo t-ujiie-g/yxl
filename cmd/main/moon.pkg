@@ -1,0 +1,5 @@
+// import {
+//   "t-ujiie-g/yxl" @lib,
+// }
+
+pkgtype(kind: "executable")
