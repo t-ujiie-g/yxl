@@ -21,7 +21,10 @@ pub fn load(
   file~ : String,
 ) -> @model.Workbook raise @diag.SchemaError {
   let root = expect_map(document, file~, context="the top level")
-  let workbook = @model.Workbook::new(date_system=read_date_system(root, file~))
+  let workbook = @model.Workbook::new(
+    date_system=read_date_system(root, file~),
+    default_font?=read_default_font(root, file~),
+  )
   let mut seen_sheets = false
   for entry in root {
     let (key, value) = entry
@@ -31,10 +34,11 @@ pub fn load(
         load_sheets(value, workbook, file~)
       }
       "date1904" => () // consumed by read_date_system
+      "default_font" => () // consumed by read_default_font
       _ =>
         raise schema_error(
           file~,
-          "unknown top-level key '\{key}' (expected 'sheets' or 'date1904')",
+          "unknown top-level key '\{key}' (expected 'sheets', 'date1904', or 'default_font')",
         )
     }
   }
@@ -62,6 +66,22 @@ fn read_date_system(
     }
   }
   Date1900
+}
+
+///|
+/// The optional top-level `default_font: <name>` sets the workbook default font
+/// face; its absence keeps the backend default.
+fn read_default_font(
+  root : Array[(String, @yaml.Node)],
+  file~ : String,
+) -> String? raise @diag.SchemaError {
+  for entry in root {
+    let (key, value) = entry
+    if key == "default_font" {
+      return Some(expect_string(value, file~, context="'default_font'"))
+    }
+  }
+  None
 }
 
 ///|
@@ -94,15 +114,19 @@ fn load_sheet(
   let entries = expect_map(node, file~, context="a sheet")
   let mut name = None
   let mut cells = None
+  let mut columns = None
+  let mut rows = None
   for entry in entries {
     let (key, value) = entry
     match key {
       "name" => name = Some(expect_string(value, file~, context="sheet 'name'"))
       "cells" => cells = Some(value)
+      "columns" => columns = Some(value)
+      "rows" => rows = Some(value)
       _ =>
         raise schema_error(
           file~,
-          "unknown key '\{key}' in sheet (expected 'name' or 'cells')",
+          "unknown key '\{key}' in sheet (expected 'name', 'cells', 'columns', or 'rows')",
         )
     }
   }
@@ -110,6 +134,12 @@ fn load_sheet(
     raise schema_error(file~, "a sheet is missing required key 'name'")
   }
   let sheet = workbook.add_sheet(sheet_name)
+  if columns is Some(columns_node) {
+    load_columns(columns_node, sheet, file~)
+  }
+  if rows is Some(rows_node) {
+    load_rows(rows_node, sheet, file~)
+  }
   if cells is Some(cells_node) {
     load_cells(cells_node, sheet, file~)
   }
@@ -157,6 +187,18 @@ fn expect_string(
   match node {
     @yaml.Str(text) => text
     _ => raise schema_error(file~, "\{context} must be text")
+  }
+}
+
+///|
+fn expect_seq(
+  node : @yaml.Node,
+  file~ : String,
+  context~ : String,
+) -> Array[@yaml.Node] raise @diag.SchemaError {
+  match node {
+    @yaml.Seq(items) => items
+    _ => raise schema_error(file~, "\{context} must be a sequence")
   }
 }
 

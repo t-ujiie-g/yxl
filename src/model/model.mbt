@@ -38,11 +38,25 @@ pub(all) struct Cell {
 } derive(Eq, Debug)
 
 ///|
-/// One worksheet: a name plus the cells written to it, kept in insertion order.
-/// Turning this order into the final workbook layout is the emitter's job.
+/// A default style applied to an inclusive span of columns or rows — the cells
+/// in that band that set no style of their own inherit it. `first`/`last` are
+/// 1-based and inclusive (a single column/row has `first == last`). Whether the
+/// band is columns or rows is determined by which `Sheet` list holds it.
+pub(all) struct AxisStyle {
+  first : Int
+  last : Int
+  style : Style
+} derive(Eq, Debug)
+
+///|
+/// One worksheet: a name, the cells written to it (kept in insertion order), and
+/// any default styles for whole columns or rows. Turning these into the final
+/// workbook layout is the emitter's job.
 pub(all) struct Sheet {
   name : String
   cells : Array[Cell]
+  column_styles : Array[AxisStyle]
+  row_styles : Array[AxisStyle]
 } derive(Eq, Debug)
 
 ///|
@@ -52,12 +66,19 @@ pub(all) struct Sheet {
 pub(all) struct Workbook {
   sheets : Array[Sheet]
   date_system : @units.DateSystem
+  /// The workbook's default font face name (`None` keeps the backend default).
+  /// Only the name is a workbook-level default; size/color/etc. are per-style.
+  default_font : String?
 } derive(Eq, Debug)
 
 ///|
-/// A new, empty workbook. Defaults to the 1900 date system.
-pub fn Workbook::new(date_system? : @units.DateSystem = Date1900) -> Workbook {
-  { sheets: [], date_system }
+/// A new, empty workbook. Defaults to the 1900 date system and the backend's
+/// default font.
+pub fn Workbook::new(
+  date_system? : @units.DateSystem = Date1900,
+  default_font? : String,
+) -> Workbook {
+  { sheets: [], date_system, default_font }
 }
 
 ///|
@@ -73,7 +94,29 @@ pub fn Workbook::add_sheet(self : Workbook, name : String) -> Sheet {
 ///|
 /// A new, empty sheet with the given name.
 pub fn Sheet::new(name : String) -> Sheet {
-  { name, cells: [] }
+  { name, cells: [], column_styles: [], row_styles: [] }
+}
+
+///|
+/// Give an inclusive span of columns (1-based) a default style.
+pub fn Sheet::set_column_style(
+  self : Sheet,
+  first~ : Int,
+  last~ : Int,
+  style : Style,
+) -> Unit {
+  self.column_styles.push({ first, last, style })
+}
+
+///|
+/// Give an inclusive span of rows (1-based) a default style.
+pub fn Sheet::set_row_style(
+  self : Sheet,
+  first~ : Int,
+  last~ : Int,
+  style : Style,
+) -> Unit {
+  self.row_styles.push({ first, last, style })
 }
 
 ///|

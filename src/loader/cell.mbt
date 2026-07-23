@@ -126,7 +126,15 @@ fn load_expanded_cell(
       }
     }
   }
-  (value, combine_style(style_node, number_format, file~, reference~))
+  (
+    value,
+    combine_style(
+      style_node,
+      number_format,
+      file~,
+      context="cell '\{reference}'",
+    ),
+  )
 }
 
 ///|
@@ -182,7 +190,14 @@ fn load_rich_run(
                 context="cell '\{reference}' rich text run 'text'",
               ),
             )
-          "font" => font = Some(load_font(node, file~, reference~))
+          "font" =>
+            font = Some(
+              load_font(
+                node,
+                file~,
+                context="cell '\{reference}' rich text run",
+              ),
+            )
           _ =>
             raise schema_error(
               file~,
@@ -207,17 +222,18 @@ fn load_rich_run(
 }
 
 ///|
-/// Fold a cell's `style:` mapping and `format:` number-format shorthand into one
+/// Fold a `style:` mapping and a `format:` number-format shorthand into one
 /// model style. The `format:` code sets the style's number format. An entirely
-/// empty result becomes `None`, leaving the cell on the default style.
+/// empty result becomes `None`, leaving the owner on the default style. Shared
+/// by cell, column, and row styles (`context` names the owner in diagnostics).
 fn combine_style(
   style_node : @yaml.Node?,
   number_format : String?,
   file~ : String,
-  reference~ : String,
+  context~ : String,
 ) -> @model.Style? raise @diag.SchemaError {
   let base = match style_node {
-    Some(node) => load_style(node, file~, reference~)
+    Some(node) => load_style(node, file~, context~)
     None => @model.Style::empty()
   }
   let combined = match number_format {

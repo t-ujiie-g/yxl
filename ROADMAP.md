@@ -143,7 +143,7 @@ The **active phase** is the first phase with any unchecked box.
 - [x] Number format as part of a style
 - [x] Style **reuse** → a single interned style id per distinct style
 - [x] Rich text: mixed fonts/colours within a single cell (`set_cell_rich_text`)
-- [ ] Column/row default styles and the workbook default font
+- [x] Column/row default styles and the workbook default font
       (`set_col_style` / `set_row_style` / `set_default_font`)
 
 ### Phase 5 — Reuse / dedup engine ("compression") — the differentiator
@@ -380,6 +380,23 @@ swap touches one file.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-24** — **Phase 4 complete: column/row default styles + workbook
+  default font.** A sheet may carry `columns:` and `rows:` — sequences of bands,
+  each `{ at: <selector>, style?, format? }` — that apply a default style to a
+  whole column/row band; `at` is a column label or range (`B`, `D-F`) or a row
+  number or range (`1`, `2-4`). A top-level `default_font: <name>` sets the
+  workbook default font face. Band styles share the cell style-id cache, so a
+  column style equal to a cell style reuses one `cellXfs` id (ADR-004) — verified
+  by re-opening and comparing the cell's, columns', and row's style ids. Added an
+  `AxisStyle` model type + `Sheet::set_column_style`/`set_row_style`, a
+  `Workbook.default_font`, and `@units.parse_column`; wired the emitter to
+  `set_col_style`/`set_row_style`/`set_default_font`. The style parser now takes
+  a `context` label so cell, column, and row diagnostics all read naturally.
+  (Bands are a **sequence** rather than a selector-keyed mapping because the YAML
+  parser rejects bare integer keys, and row selectors are integers.) **Phase 4
+  (styling) is done; the active phase is Phase 5 (reuse / dedup engine).**
+  73 tests green.
 
 - **2026-07-24** — **Phase 4: rich text.** A cell may hold a `rich:` run list
   instead of a single value — `{ rich: ["Plain ", { text: "bold red", font: {

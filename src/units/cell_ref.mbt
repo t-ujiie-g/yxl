@@ -48,6 +48,23 @@ pub fn CellRef::parse_a1(text : String) -> CellRef? {
 }
 
 ///|
+/// Parse a bare column label into its 1-based index: `A` -> 1, `Z` -> 26,
+/// `AA` -> 27. Returns `None` for anything that is not one-or-more `A`..`Z`
+/// letters (e.g. `""`, `A1`, `a`). Uses the same bijective base-26 as `to_a1`.
+pub fn parse_column(text : String) -> Int? {
+  let chars = text.to_array()
+  if chars.is_empty() {
+    return None
+  }
+  let mut col = 0
+  for ch in chars {
+    guard ch is ('A'..='Z') else { return None }
+    col = col * 26 + (ch.to_int() - 65 + 1)
+  }
+  Some(col)
+}
+
+///|
 /// Render as an A1-style reference: (1, 1) -> `A1`, (27, 10) -> `AA10`. The
 /// column uses Excel's bijective base-26 encoding (A..Z, AA..AZ, ...).
 pub fn CellRef::to_a1(self : CellRef) -> String {

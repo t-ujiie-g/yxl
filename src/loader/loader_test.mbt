@@ -199,13 +199,18 @@ test "load builds sheets and typed cells from a minimal spec" {
       #|        { pos: { col: 3, row: 1 }, value: Bool(true), style: None },
       #|        { pos: { col: 4, row: 1 }, value: Number(3.5), style: None },
       #|      ],
+      #|      column_styles: [],
+      #|      row_styles: [],
       #|    },
       #|    {
       #|      name: "Second",
       #|      cells: [{ pos: { col: 1, row: 1 }, value: Text("42"), style: None }],
+      #|      column_styles: [],
+      #|      row_styles: [],
       #|    },
       #|  ],
       #|  date_system: Date1900,
+      #|  default_font: None,
       #|}
     ),
   )
@@ -405,6 +410,72 @@ test "load rejects rich text combined with a value, and an empty run list" {
 }
 
 ///|
+test "load parses column/row default styles and the workbook default font" {
+  let workbook = load_ok(
+    (
+      #|default_font: Calibri
+      #|sheets:
+      #|  - name: S
+      #|    columns:
+      #|      - at: B
+      #|        style: { font: { bold: true } }
+      #|      - at: D-F
+      #|        format: "0.00"
+      #|    rows:
+      #|      - at: 1
+      #|        style: { fill: "DDDDDD" }
+      #|      - at: 2-3
+      #|        style: { align: { horizontal: right } }
+      #|
+    ),
+  )
+  assert_eq(workbook.default_font, Some("Calibri"))
+  let sheet = workbook.sheets[0]
+  // Column B is bold; D-F share one number-format band.
+  assert_eq(sheet.column_styles.length(), 2)
+  assert_eq(sheet.column_styles[0].first, 2)
+  assert_eq(sheet.column_styles[0].last, 2)
+  assert_eq(sheet.column_styles[0].style.font.unwrap().bold, Some(true))
+  assert_eq(sheet.column_styles[1].first, 4)
+  assert_eq(sheet.column_styles[1].last, 6)
+  assert_eq(sheet.column_styles[1].style.number_format, Some("0.00"))
+  // Row 1 filled; rows 2-3 right-aligned as one band.
+  assert_eq(sheet.row_styles.length(), 2)
+  assert_eq((sheet.row_styles[0].first, sheet.row_styles[0].last), (1, 1))
+  assert_eq((sheet.row_styles[1].first, sheet.row_styles[1].last), (2, 3))
+  assert_eq(sheet.row_styles[1].style.align.unwrap().horizontal, Some(Right))
+}
+
+///|
+test "load rejects invalid column/row selectors and a missing 'at', and keeps empty bands out" {
+  assert_eq(
+    schema_message(
+      "sheets:\n  - name: S\n    columns:\n      - at: A1\n        style: { font: { bold: true } }\n",
+    ),
+    Some("spec.yaml: 'A1' is not a valid column"),
+  )
+  assert_eq(
+    schema_message(
+      "sheets:\n  - name: S\n    columns:\n      - at: F-D\n        format: \"0\"\n",
+    ),
+    Some("spec.yaml: column range 'F-D' is reversed"),
+  )
+  assert_eq(
+    schema_message(
+      "sheets:\n  - name: S\n    rows:\n      - at: 0\n        format: \"0\"\n",
+    ),
+    Some("spec.yaml: '0' is not a valid row"),
+  )
+  assert_eq(
+    schema_message("sheets:\n  - name: S\n    rows:\n      - format: \"0\"\n"),
+    Some("spec.yaml: a row entry is missing required key 'at'"),
+  )
+  // An empty band spec adds no style rather than erroring.
+  let workbook = load_ok("sheets:\n  - name: S\n    columns:\n      - at: B\n")
+  assert_eq(workbook.sheets[0].column_styles.length(), 0)
+}
+
+///|
 test "load rejects an expanded cell missing its value" {
   assert_eq(
     schema_message(
@@ -431,7 +502,7 @@ test "load rejects an unknown top-level key" {
   assert_eq(
     schema_message("sheetz:\n  - name: S\n"),
     Some(
-      "spec.yaml: unknown top-level key 'sheetz' (expected 'sheets' or 'date1904')",
+      "spec.yaml: unknown top-level key 'sheetz' (expected 'sheets', 'date1904', or 'default_font')",
     ),
   )
 }
@@ -441,7 +512,7 @@ test "load requires the sheets key" {
   assert_eq(
     schema_message("title: report\n"),
     Some(
-      "spec.yaml: unknown top-level key 'title' (expected 'sheets' or 'date1904')",
+      "spec.yaml: unknown top-level key 'title' (expected 'sheets', 'date1904', or 'default_font')",
     ),
   )
   assert_eq(
@@ -486,6 +557,8 @@ test "load rejects duplicate sheet names" {
 test "load rejects an unknown key inside a sheet" {
   assert_eq(
     schema_message("sheets:\n  - name: S\n    color: red\n"),
-    Some("spec.yaml: unknown key 'color' in sheet (expected 'name' or 'cells')"),
+    Some(
+      "spec.yaml: unknown key 'color' in sheet (expected 'name', 'cells', 'columns', or 'rows')",
+    ),
   )
 }

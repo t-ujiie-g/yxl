@@ -49,9 +49,26 @@ fn build_workbook(wb : @model.Workbook) -> Bytes raise @xlsx.XlsxError {
       Some(@xlsx.WorkbookPropsOptions::with_values(date_1904=true)),
     )
   }
+  if wb.default_font is Some(name) {
+    backend.set_default_font(name)
+  }
   let style_ids : Map[@model.Style, Int] = Map([])
   for sheet in wb.sheets {
     backend.new_sheet(sheet.name) |> ignore
+    // Whole-column / whole-row default styles share the cell style cache, so a
+    // column style equal to a cell style reuses the same id (ADR-004).
+    for band in sheet.column_styles {
+      let style_id = intern_style(backend, style_ids, band.style)
+      for col in band.first..<=band.last {
+        backend.set_col_style(sheet.name, col, style_id)
+      }
+    }
+    for band in sheet.row_styles {
+      let style_id = intern_style(backend, style_ids, band.style)
+      for row in band.first..<=band.last {
+        backend.set_row_style(sheet.name, row, style_id)
+      }
+    }
     for cell in sheet.cells {
       let reference = cell.pos.to_a1()
       match cell.value {

@@ -115,6 +115,39 @@ test "a full style round-trips its attributes and identical styles share one id"
 }
 
 ///|
+test "column/row default styles emit and share the cell style cache; default font applies" {
+  let wb = @model.Workbook::new(default_font="Arial")
+  let sheet = wb.add_sheet("S")
+  let bold : @model.Style = {
+    ..@model.Style::empty(),
+    font: Some({
+      bold: Some(true),
+      italic: None,
+      underline: None,
+      strike: None,
+      size: None,
+      name: None,
+      color: None,
+    }),
+  }
+  // A bold cell, then the same bold look as a whole-column and whole-row band.
+  sheet.set(@units.CellRef::new(col=1, row=1), Text("x"), style=bold)
+  sheet.set_column_style(first=2, last=3, bold)
+  sheet.set_row_style(first=5, last=5, bold)
+  let reopened = @xlsx.read(@emit.to_bytes(wb)[:])
+
+  // The workbook default font took effect.
+  assert_eq(reopened.get_default_font(), "Arial")
+
+  // Interning (ADR-004): the cell, the columns, and the row all reuse one id.
+  let id = reopened.get_cell_style("S", "A1")
+  assert_true(id is Some(_) && id != Some(0))
+  assert_eq(reopened.get_col_style("S", 2), id)
+  assert_eq(reopened.get_col_style("S", 3), id)
+  assert_eq(reopened.get_row_style("S", 5), id)
+}
+
+///|
 test "a date cell serializes to its Excel serial under the workbook's system" {
   let date = @units.DateTime::{
     year: 1900,
