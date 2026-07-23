@@ -40,7 +40,13 @@ write code.
 - **Formula evaluation.** `yxl` *emits* formulas; Excel computes them on open.
   No built-in calculation engine.
 - **Macros / VBA.** Out of scope (can be passed through verbatim at most).
-- **Rendering / printing / a GUI.** Text in, `.xlsx` out.
+- **Rendering / printing / a GUI.** Text in, `.xlsx` out. (Print *settings* —
+  page setup, margins, print area, headers/footers — are still emittable config;
+  `yxl` just never renders or prints anything itself.)
+- **Imperative editing.** A spec declares the *final* grid; there are no
+  insert/delete/move/duplicate operations for rows, columns, or cells (that is
+  `mbtexcel`'s editing API — `yxl` emits the end state directly). Sheet order,
+  visibility, and the active sheet are still declarative and in scope.
 - **Being a general xlsx library.** That is `mbtexcel`; `yxl` depends on it.
 - **xlsx → YAML round-tripping.** Reverse import is a post-v1 stretch (§8 Q5),
   not a v1 promise.
@@ -136,6 +142,9 @@ The **active phase** is the first phase with any unchecked box.
 - [ ] Named styles: font (bold/italic/size/name/color), fill, border, alignment
 - [ ] Number format as part of a style
 - [ ] Style **reuse** → a single interned style id per distinct style
+- [ ] Rich text: mixed fonts/colours within a single cell (`set_cell_rich_text`)
+- [ ] Column/row default styles and the workbook default font
+      (`set_col_style` / `set_row_style` / `set_default_font`)
 
 ### Phase 5 — Reuse / dedup engine ("compression") — the differentiator
 - [ ] Named definitions for values, formulas, and styles (declare once)
@@ -146,8 +155,14 @@ The **active phase** is the first phase with any unchecked box.
 
 ### Phase 6 — Layout & structure
 - [ ] Merged cells, column widths, row heights
-- [ ] Multiple sheets: order, active sheet, visibility (hidden/very-hidden)
+- [ ] Column/row visibility (hide/show) and **outline grouping** — collapsible
+      row/column groups via outline levels (`set_{col,row}_outline_level`)
+- [ ] Multiple sheets: order, active sheet, sheet visibility
+      (hidden/very-hidden)
 - [ ] Freeze / split panes, gridlines, tab color
+- [ ] Page setup for print: orientation, margins, scaling, print area,
+      headers/footers, page breaks (`set_page_layout` / `set_page_margins` /
+      `set_header_footer` / `insert_page_break`)
 
 ### Phase 7 — Modular specs
 - [ ] Includes / data–format separation (`!include`, external data files)
@@ -160,9 +175,18 @@ The **active phase** is the first phase with any unchecked box.
 - [ ] Stable exit codes; native binary packaging + install docs
 
 ### Phase 9 — Richer Excel features (leverage mbtexcel, additive)
-- [ ] Charts, images, tables
+- [ ] Charts, images, **Excel tables** (structured tables / ListObjects,
+      `add_table`)
+- [ ] **Pivot tables** (`add_pivot_table`) — the heaviest item here (source data,
+      cache, field layout); may land late or as a stretch
 - [ ] Data validation, conditional formatting, hyperlinks, comments
-- [ ] Sheet / workbook protection
+- [ ] Auto filter (`set_auto_filter`)
+- [ ] Sheet / workbook protection, incl. password-based encryption
+      (`protect_sheet` / `write_with_password`)
+- [ ] Workbook metadata: document properties (title/author/company/custom) and
+      calculation mode (`set_core_properties` / `set_calc_props`)
+- [ ] Further additive extras as demand warrants: sparklines, shapes, form
+      controls, slicers, sheet backgrounds, duration cells
 
 ### Phase 10 — Performance & scale (and stretch: reverse import)
 - [ ] Large-spec performance; streaming where `mbtexcel` supports it
@@ -356,6 +380,19 @@ swap touches one file.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-23** — **Roadmap tidy: scope audited against the backend, gaps
+  captured.** Cross-checked the full `mbtexcel` surface against the phases and
+  slotted the missing features in: **Phase 4** — rich text, column/row default
+  styles, default font; **Phase 6** — column/row hide-show, outline grouping,
+  and page setup for print (orientation/margins/print area/headers-footers/page
+  breaks); **Phase 9** — Excel tables vs. pivot tables (split out; pivots flagged
+  heaviest), auto filter, password encryption, document properties + calc mode,
+  and a catch-all for niche extras (sparklines, shapes, form controls, slicers,
+  sheet backgrounds, duration cells). Sharpened §2 non-goals: print *settings*
+  are emittable (only rendering/printing is out), and **imperative editing**
+  (insert/delete/move rows/cols) is a non-goal — a spec declares the final grid.
+  No code change.
 
 - **2026-07-23** — **Refactor pass (whole tree).** Split the 416-line `loader.mbt`
   at its natural seam: structural loading (workbook/sheets/cells + the shared
