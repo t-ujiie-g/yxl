@@ -19,7 +19,7 @@ pub fn load(
   file~ : String,
 ) -> @model.Workbook raise @diag.SchemaError {
   let root = expect_map(document, file~, context="the top level")
-  let workbook = @model.Workbook::new()
+  let workbook = @model.Workbook::new(date_system=read_date_system(root, file~))
   let mut seen_sheets = false
   for entry in root {
     let (key, value) = entry
@@ -28,10 +28,11 @@ pub fn load(
         seen_sheets = true
         load_sheets(value, workbook, file~)
       }
+      "date1904" => () // consumed by read_date_system
       _ =>
         raise schema_error(
           file~,
-          "unknown top-level key '\{key}' (expected 'sheets')",
+          "unknown top-level key '\{key}' (expected 'sheets' or 'date1904')",
         )
     }
   }
@@ -39,6 +40,26 @@ pub fn load(
     raise schema_error(file~, "missing required key 'sheets'")
   }
   workbook
+}
+
+///|
+/// The optional top-level `date1904: true` selects the 1904 date system; its
+/// absence (or `false`) keeps the 1900 default.
+fn read_date_system(
+  root : Array[(String, @yaml.Node)],
+  file~ : String,
+) -> @units.DateSystem raise @diag.SchemaError {
+  for entry in root {
+    let (key, value) = entry
+    if key == "date1904" {
+      return if expect_bool(value, file~, context="'date1904'") {
+        Date1904
+      } else {
+        Date1900
+      }
+    }
+  }
+  Date1900
 }
 
 ///|
@@ -115,8 +136,9 @@ fn load_cells(
 
 ///|
 /// A cell is either a scalar shorthand (`A1: 42`) or an expanded mapping with a
-/// required `value` and an optional number `format` (`A1: { value: 0.5, format:
-/// "0.00%" }`).
+/// required `value`, an optional `type` (currently `date`), and an optional
+/// number `format` — e.g. `A1: { value: 0.5, format: "0.00%" }` or
+/// `B1: { value: "2026-07-23", type: date }`.
 fn load_cell(
   node : @yaml.Node,
   file~ : String,
@@ -134,12 +156,17 @@ fn load_expanded_cell(
   file~ : String,
   reference~ : String,
 ) -> (@model.CellValue, String?) raise @diag.SchemaError {
-  let mut value = None
+  let mut value_node = None
+  let mut type_ = None
   let mut format = None
   for entry in entries {
     let (key, node) = entry
     match key {
-      "value" => value = Some(scalar_value(node, file~, reference~))
+      "value" => value_node = Some(node)
+      "type" =>
+        type_ = Some(
+          expect_string(node, file~, context="cell '\{reference}' type"),
+        )
       "format" =>
         format = Some(
           expect_string(node, file~, context="cell '\{reference}' format"),
@@ -147,17 +174,57 @@ fn load_expanded_cell(
       _ =>
         raise schema_error(
           file~,
-          "unknown key '\{key}' in cell '\{reference}' (expected 'value' or 'format')",
+          "unknown key '\{key}' in cell '\{reference}' (expected 'value', 'type', or 'format')",
         )
     }
   }
-  guard value is Some(value) else {
+  guard value_node is Some(value_node) else {
     raise schema_error(
       file~,
       "cell '\{reference}' is missing required key 'value'",
     )
   }
-  (value, format)
+  match type_ {
+    None => (scalar_value(value_node, file~, reference~), format)
+    Some("date") => load_date_cell(value_node, format, file~, reference~)
+    Some(other) =>
+      raise schema_error(
+        file~,
+        "unknown type '\{other}' for cell '\{reference}' (expected 'date')",
+      )
+  }
+}
+
+///|
+/// A `type: date` cell: parse the string value as a date/time and, unless the
+/// spec gives a `format`, default to a date or date-time display format.
+fn load_date_cell(
+  value_node : @yaml.Node,
+  format : String?,
+  file~ : String,
+  reference~ : String,
+) -> (@model.CellValue, String?) raise @diag.SchemaError {
+  let text = expect_string(
+    value_node,
+    file~,
+    context="date value for '\{reference}'",
+  )
+  guard @units.DateTime::parse(text) is Some(datetime) else {
+    raise schema_error(
+      file~,
+      "cell '\{reference}' is not a valid date: '\{text}'",
+    )
+  }
+  let format = match format {
+    Some(format) => format
+    None =>
+      if datetime.has_time() {
+        "yyyy-mm-dd hh:mm:ss"
+      } else {
+        "yyyy-mm-dd"
+      }
+  }
+  (@model.Date(datetime), Some(format))
 }
 
 ///|
@@ -202,6 +269,18 @@ fn expect_string(
   match node {
     @yaml.Str(text) => text
     _ => raise schema_error(file~, "\{context} must be text")
+  }
+}
+
+///|
+fn expect_bool(
+  node : @yaml.Node,
+  file~ : String,
+  context~ : String,
+) -> Bool raise @diag.SchemaError {
+  match node {
+    @yaml.Bool(flag) => flag
+    _ => raise schema_error(file~, "\{context} must be true or false")
   }
 }
 

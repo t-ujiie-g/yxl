@@ -11,6 +11,69 @@ fn schema_message(source : String) -> String? raise {
 }
 
 ///|
+/// Parse then load a spec expected to be valid.
+fn load_ok(source : String) -> @model.Workbook raise {
+  @loader.load(@yaml.parse(source, file="spec.yaml"), file="spec.yaml")
+}
+
+///|
+test "load parses a `type: date` cell with a default date format" {
+  let workbook = load_ok(
+    "sheets:\n  - name: S\n    cells:\n      A1: { value: \"2026-07-23\", type: date }\n",
+  )
+  let cell = workbook.sheets[0].cells[0]
+  assert_eq(
+    cell.value,
+    @model.Date(@units.DateTime::{
+      year: 2026,
+      month: 7,
+      day: 23,
+      hour: 0,
+      minute: 0,
+      second: 0,
+    }),
+  )
+  assert_eq(cell.format, Some("yyyy-mm-dd"))
+}
+
+///|
+test "a date-time value defaults to a date-time format, and format overrides" {
+  let datetime = load_ok(
+    "sheets:\n  - name: S\n    cells:\n      A1: { value: \"2026-07-23 14:30:00\", type: date }\n",
+  )
+  assert_eq(datetime.sheets[0].cells[0].format, Some("yyyy-mm-dd hh:mm:ss"))
+  let custom = load_ok(
+    "sheets:\n  - name: S\n    cells:\n      A1: { value: \"2026-07-23\", type: date, format: \"mmm d\" }\n",
+  )
+  assert_eq(custom.sheets[0].cells[0].format, Some("mmm d"))
+}
+
+///|
+test "the date1904 top-level key selects the 1904 date system" {
+  assert_eq(
+    load_ok("sheets:\n  - name: S\ndate1904: true\n").date_system,
+    Date1904,
+  )
+  assert_eq(load_ok("sheets:\n  - name: S\n").date_system, Date1900)
+}
+
+///|
+test "load rejects invalid dates and unknown cell types" {
+  assert_eq(
+    schema_message(
+      "sheets:\n  - name: S\n    cells:\n      A1: { value: \"2026-13-01\", type: date }\n",
+    ),
+    Some("spec.yaml: cell 'A1' is not a valid date: '2026-13-01'"),
+  )
+  assert_eq(
+    schema_message(
+      "sheets:\n  - name: S\n    cells:\n      A1: { value: 1, type: money }\n",
+    ),
+    Some("spec.yaml: unknown type 'money' for cell 'A1' (expected 'date')"),
+  )
+}
+
+///|
 test "load builds sheets and typed cells from a minimal spec" {
   let source =
     #|sheets:
@@ -47,6 +110,7 @@ test "load builds sheets and typed cells from a minimal spec" {
       #|      cells: [{ pos: { col: 1, row: 1 }, value: Text("42"), format: None }],
       #|    },
       #|  ],
+      #|  date_system: Date1900,
       #|}
     ),
   )
@@ -90,7 +154,7 @@ test "load rejects an unknown key in an expanded cell" {
       "sheets:\n  - name: S\n    cells:\n      A1: { value: 1, color: red }\n",
     ),
     Some(
-      "spec.yaml: unknown key 'color' in cell 'A1' (expected 'value' or 'format')",
+      "spec.yaml: unknown key 'color' in cell 'A1' (expected 'value', 'type', or 'format')",
     ),
   )
 }
@@ -99,7 +163,9 @@ test "load rejects an unknown key in an expanded cell" {
 test "load rejects an unknown top-level key" {
   assert_eq(
     schema_message("sheetz:\n  - name: S\n"),
-    Some("spec.yaml: unknown top-level key 'sheetz' (expected 'sheets')"),
+    Some(
+      "spec.yaml: unknown top-level key 'sheetz' (expected 'sheets' or 'date1904')",
+    ),
   )
 }
 
@@ -107,7 +173,9 @@ test "load rejects an unknown top-level key" {
 test "load requires the sheets key" {
   assert_eq(
     schema_message("title: report\n"),
-    Some("spec.yaml: unknown top-level key 'title' (expected 'sheets')"),
+    Some(
+      "spec.yaml: unknown top-level key 'title' (expected 'sheets' or 'date1904')",
+    ),
   )
   assert_eq(
     schema_message("{}\n"),

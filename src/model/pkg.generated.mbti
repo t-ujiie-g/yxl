@@ -21,6 +21,7 @@ pub(all) enum CellValue {
   Text(String)
   Number(Double)
   Bool(Bool)
+  Date(@units.DateTime)
 } derive(Eq, @debug.Debug)
 
 pub(all) struct Sheet {
@@ -32,9 +33,10 @@ pub fn Sheet::set(Self, @units.CellRef, CellValue, format? : String) -> Unit
 
 pub(all) struct Workbook {
   sheets : Array[Sheet]
+  date_system : @units.DateSystem
 } derive(Eq, @debug.Debug)
 pub fn Workbook::add_sheet(Self, String) -> Sheet
-pub fn Workbook::new() -> Self
+pub fn Workbook::new(date_system? : @units.DateSystem) -> Self
 
 // Type aliases
 

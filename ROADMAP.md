@@ -125,7 +125,8 @@ The **active phase** is the first phase with any unchecked box.
 ### Phase 3 — Rich cell values
 - [x] Number formats (built-in + custom): the expanded cell form
       `{ value:, format: }`; equal format codes intern to one style id (ADR-004)
-- [ ] Dates / date-times (with a date system)
+- [x] Dates / date-times (with a date system): `{ value:, type: date }`, the 1900
+      (default) and 1904 systems via top-level `date1904`, serial conversion in `units`
 - [ ] Formulas (emit `<f>`; Excel computes on open) with optional cached value
 - [ ] Booleans, error literals, explicit typing
 
@@ -353,6 +354,17 @@ swap touches one file.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-23** — **Phase 3: dates / date-times (with a date system).** A cell
+  typed `date` — `A1: { value: "2026-07-23", type: date }` (or with a time,
+  `"2026-07-23 14:30:00"`) — compiles to an Excel serial with a sensible default
+  date/date-time format, overridable via `format`. The workbook's date system is
+  selectable with a top-level `date1904: true` (default is the 1900 system). All
+  the calendar math lives in `units` (`DateTime`, `DateSystem`, `to_serial`),
+  pure and independently tested against known serials, including Excel's 1900
+  leap-year bug (1900-03-01 → 61, skipping the phantom serial 60); the emitter
+  sets the backend's 1904 flag to match. Verified end to end: `2026-07-23
+  14:30:00` → serial `46226.604…`, and a date round-trips back to `2000-01-01`.
 
 - **2026-07-23** — **Phase 3: number formats (built-in + custom).** A cell may now
   be written in an **expanded form** — `A1: { value: 0.5, format: "0.00%" }` —

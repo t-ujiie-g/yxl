@@ -46,6 +46,13 @@ pub fn to_bytes(wb : @model.Workbook) -> Bytes raise @diag.EmitError {
 /// many times compiles to a single style id, not N copies (ADR-004).
 fn build_workbook(wb : @model.Workbook) -> Bytes raise @xlsx.XlsxError {
   let backend = @xlsx.Workbook::new()
+  // Excel stores dates as serials relative to the workbook's epoch, so the
+  // backend's flag must match the serials we compute (@units date system).
+  if wb.date_system is Date1904 {
+    backend.set_workbook_props(
+      Some(@xlsx.WorkbookPropsOptions::with_values(date_1904=true)),
+    )
+  }
   let style_ids : Map[String, Int] = Map([])
   for sheet in wb.sheets {
     backend.new_sheet(sheet.name) |> ignore
@@ -55,6 +62,8 @@ fn build_workbook(wb : @model.Workbook) -> Bytes raise @xlsx.XlsxError {
         Text(text) => @xlsx.CellValue::String(text)
         Number(number) => @xlsx.CellValue::Numeric(number)
         Bool(flag) => @xlsx.CellValue::Bool(flag)
+        Date(datetime) =>
+          @xlsx.CellValue::Numeric(datetime.to_serial(wb.date_system))
       }
       backend.set_cell_value(sheet.name, reference, value)
       if cell.format is Some(format) {

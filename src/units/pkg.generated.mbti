@@ -18,6 +18,23 @@ pub fn CellRef::new(col~ : Int, row~ : Int) -> Self
 pub fn CellRef::parse_a1(String) -> Self?
 pub fn CellRef::to_a1(Self) -> String
 
+pub(all) enum DateSystem {
+  Date1900
+  Date1904
+} derive(Eq, @debug.Debug)
+
+pub(all) struct DateTime {
+  year : Int
+  month : Int
+  day : Int
+  hour : Int
+  minute : Int
+  second : Int
+} derive(Eq, @debug.Debug)
+pub fn DateTime::has_time(Self) -> Bool
+pub fn DateTime::parse(String) -> Self?
+pub fn DateTime::to_serial(Self, DateSystem) -> Double
+
 // Type aliases
 
 // Traits

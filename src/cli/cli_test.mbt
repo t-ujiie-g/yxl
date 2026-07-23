@@ -113,6 +113,21 @@ test "golden: an expanded cell's number format survives to the workbook" {
 }
 
 ///|
+test "golden: a typed date compiles to an Excel serial with a date format" {
+  let source =
+    #|sheets:
+    #|  - name: S
+    #|    cells:
+    #|      A1: { value: "2000-01-01", type: date }
+    #|
+  let reopened = @xlsx.read(@cli.compile(source, file="spec.yaml")[:])
+  // The raw value is the 1900-system serial for 2000-01-01.
+  assert_eq(reopened.get_cell_value("S", "A1", raw=true), Some("36526"))
+  // And the default date format renders it back as the date.
+  assert_eq(reopened.get_cell_value("S", "A1", raw=false), Some("2000-01-01"))
+}
+
+///|
 test "compile surfaces a schema error carrying the file name" {
   let caught = try {
     @cli.compile("title: x\n", file="spec.yaml") |> ignore
@@ -122,6 +137,8 @@ test "compile surfaces a schema error carrying the file name" {
   }
   assert_eq(
     caught,
-    Some("spec.yaml: unknown top-level key 'title' (expected 'sheets')"),
+    Some(
+      "spec.yaml: unknown top-level key 'title' (expected 'sheets' or 'date1904')",
+    ),
   )
 }

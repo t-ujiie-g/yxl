@@ -1,10 +1,13 @@
 ///|
-/// A cell's value in the minimal model: text, a number, or a boolean. Richer
-/// kinds (dates, formulas, error literals) arrive later.
+/// A cell's value in the minimal model: text, a number, a boolean, or a
+/// date/time. A `Date` is stored as civil components; the emitter renders it to
+/// an Excel serial using the workbook's date system. Richer kinds (formulas,
+/// error literals) arrive later.
 pub(all) enum CellValue {
   Text(String)
   Number(Double)
   Bool(Bool)
+  Date(@units.DateTime)
 } derive(Eq, Debug)
 
 ///|
@@ -26,16 +29,18 @@ pub(all) struct Sheet {
 } derive(Eq, Debug)
 
 ///|
-/// A workbook: an ordered list of sheets. This is the entire input to the
-/// emitter seam (`model -> bytes`, ADR-002).
+/// A workbook: an ordered list of sheets plus the date system that governs how
+/// dates serialize. This is the entire input to the emitter seam (`model ->
+/// bytes`, ADR-002).
 pub(all) struct Workbook {
   sheets : Array[Sheet]
+  date_system : @units.DateSystem
 } derive(Eq, Debug)
 
 ///|
-/// A new, empty workbook.
-pub fn Workbook::new() -> Workbook {
-  { sheets: [] }
+/// A new, empty workbook. Defaults to the 1900 date system.
+pub fn Workbook::new(date_system? : @units.DateSystem = Date1900) -> Workbook {
+  { sheets: [], date_system }
 }
 
 ///|

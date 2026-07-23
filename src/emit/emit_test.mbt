@@ -63,6 +63,31 @@ test "number formats are applied, and equal formats share one style id" {
 }
 
 ///|
+test "a date cell serializes to its Excel serial under the workbook's system" {
+  let date = @units.DateTime::{
+    year: 1900,
+    month: 1,
+    day: 1,
+    hour: 0,
+    minute: 0,
+    second: 0,
+  }
+  // 1900 system: 1900-01-01 is serial 1.
+  let wb1900 = @model.Workbook::new()
+  wb1900.add_sheet("S").set(@units.CellRef::new(col=1, row=1), Date(date))
+  let r1900 = @xlsx.read(@emit.to_bytes(wb1900)[:])
+  assert_eq(r1900.get_cell_value("S", "A1", raw=true), Some("1"))
+
+  // 1904 system: 1900-01-01 is 1460 real days before the 1904 epoch. (The
+  // familiar "1462" offset between the systems only holds after Feb 1900, once
+  // the 1900 leap-year bug applies.) The backend computes the same serial.
+  let wb1904 = @model.Workbook::new(date_system=Date1904)
+  wb1904.add_sheet("S").set(@units.CellRef::new(col=1, row=1), Date(date))
+  let r1904 = @xlsx.read(@emit.to_bytes(wb1904)[:])
+  assert_eq(r1904.get_cell_value("S", "A1", raw=true), Some("-1460"))
+}
+
+///|
 test "a backend failure surfaces as an EmitError, not a backend error" {
   // Two sheets with the same name make the backend reject the second one; the
   // seam must translate that into the pipeline's own error type.
