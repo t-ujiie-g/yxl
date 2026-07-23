@@ -127,7 +127,8 @@ The **active phase** is the first phase with any unchecked box.
       `{ value:, format: }`; equal format codes intern to one style id (ADR-004)
 - [x] Dates / date-times (with a date system): `{ value:, type: date }`, the 1900
       (default) and 1904 systems via top-level `date1904`, serial conversion in `units`
-- [ ] Formulas (emit `<f>`; Excel computes on open) with optional cached value
+- [x] Formulas (emit `<f>`; Excel computes on open) with optional cached value:
+      `{ formula: "SUM(A1:A2)", value: <cached> }` (a leading `=` is accepted)
 - [ ] Booleans, error literals, explicit typing
 
 ### Phase 4 — Styling
@@ -354,6 +355,14 @@ swap touches one file.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-23** — **Phase 3: formulas.** A cell may carry a `formula` —
+  `C1: { formula: "=SUM(B2:B3)", value: 1650 }` — which compiles to an Excel
+  `<f>` the app recomputes on open; the optional `value` is the cached result
+  shown until then, and a leading `=` is accepted and stripped. Added a
+  `Formula` case to the model, wired the emitter to the backend's
+  `set_cell_formula`, and had the loader reject combining `formula` with `type`.
+  Verified end to end: `=SUM(B2:B3)` emits `<c><f>SUM(B2:B3)</f><v>1650</v></c>`.
 
 - **2026-07-23** — **Phase 3: dates / date-times (with a date system).** A cell
   typed `date` — `A1: { value: "2026-07-23", type: date }` (or with a time,

@@ -135,10 +135,10 @@ fn load_cells(
 }
 
 ///|
-/// A cell is either a scalar shorthand (`A1: 42`) or an expanded mapping with a
-/// required `value`, an optional `type` (currently `date`), and an optional
-/// number `format` — e.g. `A1: { value: 0.5, format: "0.00%" }` or
-/// `B1: { value: "2026-07-23", type: date }`.
+/// A cell is either a scalar shorthand (`A1: 42`) or an expanded mapping with an
+/// optional `type` (currently `date`), `format`, and either a `value` or a
+/// `formula` — e.g. `A1: { value: 0.5, format: "0.00%" }`,
+/// `B1: { value: "2026-07-23", type: date }`, or `C1: { formula: "SUM(A1:A2)" }`.
 fn load_cell(
   node : @yaml.Node,
   file~ : String,
@@ -159,6 +159,7 @@ fn load_expanded_cell(
   let mut value_node = None
   let mut type_ = None
   let mut format = None
+  let mut formula = None
   for entry in entries {
     let (key, node) = entry
     match key {
@@ -171,27 +172,59 @@ fn load_expanded_cell(
         format = Some(
           expect_string(node, file~, context="cell '\{reference}' format"),
         )
+      "formula" =>
+        formula = Some(
+          expect_string(node, file~, context="cell '\{reference}' formula"),
+        )
       _ =>
         raise schema_error(
           file~,
-          "unknown key '\{key}' in cell '\{reference}' (expected 'value', 'type', or 'format')",
+          "unknown key '\{key}' in cell '\{reference}' (expected 'value', 'formula', 'type', or 'format')",
         )
     }
   }
-  guard value_node is Some(value_node) else {
-    raise schema_error(
-      file~,
-      "cell '\{reference}' is missing required key 'value'",
-    )
+  match formula {
+    Some(formula) => {
+      guard type_ is None else {
+        raise schema_error(
+          file~,
+          "cell '\{reference}' cannot combine 'formula' and 'type'",
+        )
+      }
+      // A formula's `value` is its optional cached result.
+      let cached = match value_node {
+        Some(node) => Some(scalar_value(node, file~, reference~))
+        None => None
+      }
+      (@model.Formula(formula=strip_leading_equals(formula), cached~), format)
+    }
+    None => {
+      guard value_node is Some(value_node) else {
+        raise schema_error(
+          file~,
+          "cell '\{reference}' needs a 'value' or a 'formula'",
+        )
+      }
+      match type_ {
+        None => (scalar_value(value_node, file~, reference~), format)
+        Some("date") => load_date_cell(value_node, format, file~, reference~)
+        Some(other) =>
+          raise schema_error(
+            file~,
+            "unknown type '\{other}' for cell '\{reference}' (expected 'date')",
+          )
+      }
+    }
   }
-  match type_ {
-    None => (scalar_value(value_node, file~, reference~), format)
-    Some("date") => load_date_cell(value_node, format, file~, reference~)
-    Some(other) =>
-      raise schema_error(
-        file~,
-        "unknown type '\{other}' for cell '\{reference}' (expected 'date')",
-      )
+}
+
+///|
+/// Excel stores formulas without the leading `=`; accept a spec that writes one.
+fn strip_leading_equals(formula : String) -> String {
+  if formula.has_prefix("=") {
+    formula[1:].to_owned()
+  } else {
+    formula
   }
 }
 

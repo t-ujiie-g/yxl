@@ -8,6 +8,9 @@ pub(all) enum CellValue {
   Number(Double)
   Bool(Bool)
   Date(@units.DateTime)
+  /// A formula Excel recomputes on open (stored without a leading `=`), with an
+  /// optional cached result (a scalar value) shown until then.
+  Formula(formula~ : String, cached~ : CellValue?)
 } derive(Eq, Debug)
 
 ///|

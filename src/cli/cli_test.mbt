@@ -128,6 +128,21 @@ test "golden: a typed date compiles to an Excel serial with a date format" {
 }
 
 ///|
+test "golden: a formula cell round-trips as an <f> with its cached value" {
+  let source =
+    #|sheets:
+    #|  - name: S
+    #|    cells:
+    #|      A1: 3
+    #|      B1: 4
+    #|      C1: { formula: "=A1+B1", value: 7 }
+    #|
+  let reopened = @xlsx.read(@cli.compile(source, file="spec.yaml")[:])
+  assert_eq(reopened.get_cell_formula("S", "C1"), Some("A1+B1"))
+  assert_eq(reopened.get_cell_value("S", "C1", raw=true), Some("7"))
+}
+
+///|
 test "compile surfaces a schema error carrying the file name" {
   let caught = try {
     @cli.compile("title: x\n", file="spec.yaml") |> ignore

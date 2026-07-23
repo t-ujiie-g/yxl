@@ -74,6 +74,34 @@ test "load rejects invalid dates and unknown cell types" {
 }
 
 ///|
+test "load parses a formula cell, stripping a leading '=', with a cached value" {
+  let plain = load_ok(
+    "sheets:\n  - name: S\n    cells:\n      A1: { formula: \"=SUM(B1:B2)\" }\n",
+  )
+  assert_eq(
+    plain.sheets[0].cells[0].value,
+    @model.Formula(formula="SUM(B1:B2)", cached=None),
+  )
+  let cached = load_ok(
+    "sheets:\n  - name: S\n    cells:\n      A1: { formula: \"B1*2\", value: 84 }\n",
+  )
+  assert_eq(
+    cached.sheets[0].cells[0].value,
+    @model.Formula(formula="B1*2", cached=Some(@model.Number(84.0))),
+  )
+}
+
+///|
+test "load rejects combining a formula with a type" {
+  assert_eq(
+    schema_message(
+      "sheets:\n  - name: S\n    cells:\n      A1: { formula: \"A2\", type: date }\n",
+    ),
+    Some("spec.yaml: cell 'A1' cannot combine 'formula' and 'type'"),
+  )
+}
+
+///|
 test "load builds sheets and typed cells from a minimal spec" {
   let source =
     #|sheets:
@@ -143,7 +171,7 @@ test "load rejects an expanded cell missing its value" {
     schema_message(
       "sheets:\n  - name: S\n    cells:\n      A1: { format: \"0%\" }\n",
     ),
-    Some("spec.yaml: cell 'A1' is missing required key 'value'"),
+    Some("spec.yaml: cell 'A1' needs a 'value' or a 'formula'"),
   )
 }
 
@@ -154,7 +182,7 @@ test "load rejects an unknown key in an expanded cell" {
       "sheets:\n  - name: S\n    cells:\n      A1: { value: 1, color: red }\n",
     ),
     Some(
-      "spec.yaml: unknown key 'color' in cell 'A1' (expected 'value', 'type', or 'format')",
+      "spec.yaml: unknown key 'color' in cell 'A1' (expected 'value', 'formula', 'type', or 'format')",
     ),
   )
 }

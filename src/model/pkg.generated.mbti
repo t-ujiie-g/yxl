@@ -22,6 +22,7 @@ pub(all) enum CellValue {
   Number(Double)
   Bool(Bool)
   Date(@units.DateTime)
+  Formula(formula~ : String, cached~ : CellValue?)
 } derive(Eq, @debug.Debug)
 
 pub(all) struct Sheet {

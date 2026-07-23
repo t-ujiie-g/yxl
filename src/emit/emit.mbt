@@ -58,14 +58,26 @@ fn build_workbook(wb : @model.Workbook) -> Bytes raise @xlsx.XlsxError {
     backend.new_sheet(sheet.name) |> ignore
     for cell in sheet.cells {
       let reference = cell.pos.to_a1()
-      let value = match cell.value {
-        Text(text) => @xlsx.CellValue::String(text)
-        Number(number) => @xlsx.CellValue::Numeric(number)
-        Bool(flag) => @xlsx.CellValue::Bool(flag)
+      match cell.value {
+        Text(text) =>
+          backend.set_cell_value(sheet.name, reference, String(text))
+        Number(number) =>
+          backend.set_cell_value(sheet.name, reference, Numeric(number))
+        Bool(flag) => backend.set_cell_value(sheet.name, reference, Bool(flag))
         Date(datetime) =>
-          @xlsx.CellValue::Numeric(datetime.to_serial(wb.date_system))
+          backend.set_cell_value(
+            sheet.name,
+            reference,
+            Numeric(datetime.to_serial(wb.date_system)),
+          )
+        Formula(formula~, cached~) =>
+          backend.set_cell_formula(
+            sheet.name,
+            reference,
+            formula,
+            value?=cached.map(value => render_cached(value, wb.date_system)),
+          )
       }
-      backend.set_cell_value(sheet.name, reference, value)
       if cell.format is Some(format) {
         let style_id = match style_ids.get(format) {
           Some(id) => id
@@ -80,4 +92,20 @@ fn build_workbook(wb : @model.Workbook) -> Bytes raise @xlsx.XlsxError {
     }
   }
   @xlsx.write(backend)
+}
+
+///|
+/// Render a formula's cached result as the string the backend stores in `<v>`.
+/// Only scalar caches occur in practice; a date renders to its serial.
+fn render_cached(
+  value : @model.CellValue,
+  date_system : @units.DateSystem,
+) -> String {
+  match value {
+    Text(text) => text
+    Number(number) => number.to_string()
+    Bool(flag) => if flag { "TRUE" } else { "FALSE" }
+    Date(datetime) => datetime.to_serial(date_system).to_string()
+    Formula(..) => ""
+  }
 }

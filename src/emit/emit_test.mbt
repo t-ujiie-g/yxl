@@ -88,6 +88,29 @@ test "a date cell serializes to its Excel serial under the workbook's system" {
 }
 
 ///|
+test "a formula cell emits its formula and optional cached value" {
+  let wb = @model.Workbook::new()
+  let sheet = wb.add_sheet("S")
+  sheet.set(@units.CellRef::new(col=1, row=1), Number(3.0))
+  sheet.set(@units.CellRef::new(col=2, row=1), Number(4.0))
+  // A1+B1 with a cached result of 7.
+  sheet.set(
+    @units.CellRef::new(col=3, row=1),
+    Formula(formula="A1+B1", cached=Some(Number(7.0))),
+  )
+  // A formula without a cached value.
+  sheet.set(
+    @units.CellRef::new(col=4, row=1),
+    Formula(formula="A1*B1", cached=None),
+  )
+  let reopened = @xlsx.read(@emit.to_bytes(wb)[:])
+  assert_eq(reopened.get_cell_formula("S", "C1"), Some("A1+B1"))
+  assert_eq(reopened.get_cell_formula("S", "D1"), Some("A1*B1"))
+  // The cached value is stored and read back raw.
+  assert_eq(reopened.get_cell_value("S", "C1", raw=true), Some("7"))
+}
+
+///|
 test "a backend failure surfaces as an EmitError, not a backend error" {
   // Two sheets with the same name make the backend reject the second one; the
   // seam must translate that into the pipeline's own error type.
