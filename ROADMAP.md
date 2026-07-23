@@ -108,10 +108,11 @@ The **active phase** is the first phase with any unchecked box.
 ### Phase 1 — Foundations (seam, model, diagnostics)
 - [x] Restructure into the `src/` package map (ADR-008)
 - [x] `diag`: source spans + subdomain error types
-- [ ] The **emitter seam** (ADR-002): a trait `model → bytes`, plus a minimal
+- [x] The **emitter seam** (ADR-002): a trait `model → bytes`, plus a minimal
       `mbtexcel` implementation (new workbook, one sheet, string/number cell,
       write)
-- [ ] Minimal `model`: workbook / sheet / cell / value
+- [x] Minimal `model`: workbook / sheet / cell / value
+- [x] `units`: type-safe `CellRef` (needed by the model; §4 package)
 - [ ] Pick the YAML parser (§8 Q1) — record the decision as an ADR
 
 ### Phase 2 — YAML → a sheet of values (walking skeleton)
@@ -281,6 +282,19 @@ clear, acyclic boundaries.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-23** — **Phase 1: emitter seam + minimal model + `units`.** Added the
+  first end-to-end `model → bytes` path. `units` holds the type-safe `CellRef`
+  (1-based col/row, bijective base-26 `to_a1`, e.g. col 703 → `AAA`), keeping
+  cell refs off bare strings (AGENTS §7). `model` is the shared IR — `Workbook` /
+  `Sheet` / `Cell` / `CellValue` (`Text` | `Number`) with a small mutable builder
+  (`Workbook::new`/`add_sheet`, `Sheet::set`) whose returned sheet shares
+  workbook storage; it imports only `units`, never the backend. `emit` defines
+  the `Emitter` seam (`model → bytes`, ADR-002) with the sole `bobzhang/mbtexcel`
+  implementation (`MbtexcelEmitter`) behind it and a `to_bytes` convenience;
+  backend `XlsxError`s are translated to `@diag.EmitError` so the backend never
+  leaks past the seam. A golden round-trip test compiles a model to real `.xlsx`
+  bytes and re-opens them with the backend reader to assert the cells survived.
 
 - **2026-07-23** — **Phase 1: `diag` package (source spans + subdomain
   errors).** Added `src/diag`, the lowest package (core-only), with `Pos`

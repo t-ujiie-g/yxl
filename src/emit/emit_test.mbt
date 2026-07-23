@@ -1,0 +1,50 @@
+///|
+/// Golden / round-trip test at the compile boundary (AGENTS §6): a model
+/// compiles to `.xlsx` bytes, and re-opening those bytes with the backend's
+/// reader yields the cells the model declared.
+test "to_bytes round-trips a model through real .xlsx bytes" {
+  let wb = @model.Workbook::new()
+  let sheet = wb.add_sheet("Sheet1")
+  sheet.set(@units.CellRef::new(col=1, row=1), Text("yxl"))
+  sheet.set(@units.CellRef::new(col=2, row=1), Number(42.0))
+  sheet.set(@units.CellRef::new(col=1, row=2), Text("second row"))
+  let bytes = @emit.to_bytes(wb)
+
+  // A valid .xlsx is a non-empty ZIP: check the local-file-header magic.
+  assert_true(bytes.length() > 0)
+  assert_eq(bytes[0], b'P')
+  assert_eq(bytes[1], b'K')
+
+  // Re-open and confirm the declared cells survived the round trip.
+  let reopened = @xlsx.read(bytes[:])
+  assert_eq(reopened.get_cell("Sheet1", "A1"), Some("yxl"))
+  assert_eq(reopened.get_cell("Sheet1", "B1"), Some("42"))
+  assert_eq(reopened.get_cell("Sheet1", "A2"), Some("second row"))
+}
+
+///|
+test "MbtexcelEmitter emits every sheet in order" {
+  let wb = @model.Workbook::new()
+  wb.add_sheet("First").set(@units.CellRef::new(col=1, row=1), Text("a"))
+  wb.add_sheet("Second").set(@units.CellRef::new(col=1, row=1), Text("b"))
+  let bytes = @emit.MbtexcelEmitter::new().emit(wb)
+  let reopened = @xlsx.read(bytes[:])
+  assert_eq(reopened.get_cell("First", "A1"), Some("a"))
+  assert_eq(reopened.get_cell("Second", "A1"), Some("b"))
+}
+
+///|
+test "a backend failure surfaces as an EmitError, not a backend error" {
+  // Two sheets with the same name make the backend reject the second one; the
+  // seam must translate that into the pipeline's own error type.
+  let wb = @model.Workbook::new()
+  wb.add_sheet("Dup") |> ignore
+  wb.add_sheet("Dup") |> ignore
+  let caught = try {
+    @emit.to_bytes(wb) |> ignore
+    None
+  } catch {
+    @diag.EmitError(d) => Some(d.render())
+  }
+  assert_true(caught is Some(_))
+}

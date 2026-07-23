@@ -1,0 +1,6 @@
+// The typed intermediate representation the whole pipeline shares. It depends
+// only on `units` (type-safe values) — never on the Excel backend, which lives
+// behind the emitter seam (ADR-002).
+import {
+  "t-ujiie-g/yxl/units",
+}

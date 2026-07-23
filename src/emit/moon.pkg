@@ -1,0 +1,9 @@
+// The emitter: model -> .xlsx bytes. This is the ONLY package that imports the
+// Excel backend (`bobzhang/mbtexcel`); it lives behind the `Emitter` seam so the
+// rest of the pipeline never calls the backend directly (ADR-002).
+import {
+  "t-ujiie-g/yxl/model",
+  "t-ujiie-g/yxl/units",
+  "t-ujiie-g/yxl/diag",
+  "bobzhang/mbtexcel/xlsx",
+}

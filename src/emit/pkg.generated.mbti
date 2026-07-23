@@ -1,0 +1,26 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "t-ujiie-g/yxl/emit"
+
+import {
+  "t-ujiie-g/yxl/diag",
+  "t-ujiie-g/yxl/model",
+}
+
+// Values
+pub fn to_bytes(@model.Workbook) -> Bytes raise @diag.EmitError
+
+// Errors
+
+// Types and methods
+pub struct MbtexcelEmitter {
+}
+pub fn MbtexcelEmitter::new() -> Self
+pub impl Emitter for MbtexcelEmitter
+
+// Type aliases
+
+// Traits
+pub trait Emitter {
+  fn emit(Self, @model.Workbook) -> Bytes raise @diag.EmitError
+}
+

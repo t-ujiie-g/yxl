@@ -1,0 +1,40 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "t-ujiie-g/yxl/model"
+
+import {
+  "moonbitlang/core/debug",
+  "t-ujiie-g/yxl/units",
+}
+
+// Values
+
+// Errors
+
+// Types and methods
+pub(all) struct Cell {
+  pos : @units.CellRef
+  value : CellValue
+} derive(Eq, @debug.Debug)
+
+pub(all) enum CellValue {
+  Text(String)
+  Number(Double)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Sheet {
+  name : String
+  cells : Array[Cell]
+} derive(Eq, @debug.Debug)
+pub fn Sheet::new(String) -> Self
+pub fn Sheet::set(Self, @units.CellRef, CellValue) -> Unit
+
+pub(all) struct Workbook {
+  sheets : Array[Sheet]
+} derive(Eq, @debug.Debug)
+pub fn Workbook::add_sheet(Self, String) -> Sheet
+pub fn Workbook::new() -> Self
+
+// Type aliases
+
+// Traits
+
