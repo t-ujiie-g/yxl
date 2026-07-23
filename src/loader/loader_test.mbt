@@ -69,7 +69,9 @@ test "load rejects invalid dates and unknown cell types" {
     schema_message(
       "sheets:\n  - name: S\n    cells:\n      A1: { value: 1, type: money }\n",
     ),
-    Some("spec.yaml: unknown type 'money' for cell 'A1' (expected 'date')"),
+    Some(
+      "spec.yaml: unknown type 'money' for cell 'A1' (expected 'text', 'number', 'bool', 'date', or 'error')",
+    ),
   )
 }
 
@@ -98,6 +100,57 @@ test "load rejects combining a formula with a type" {
       "sheets:\n  - name: S\n    cells:\n      A1: { formula: \"A2\", type: date }\n",
     ),
     Some("spec.yaml: cell 'A1' cannot combine 'formula' and 'type'"),
+  )
+}
+
+///|
+test "explicit typing coerces values to the declared type" {
+  let workbook = load_ok(
+    (
+      #|sheets:
+      #|  - name: S
+      #|    cells:
+      #|      A1: { value: 42, type: text }
+      #|      A2: { value: "42", type: number }
+      #|      A3: { value: "true", type: bool }
+      #|      A4: { value: true, type: text }
+      #|
+    ),
+  )
+  let cells = workbook.sheets[0].cells
+  assert_eq(cells[0].value, @model.Text("42"))
+  assert_eq(cells[1].value, @model.Number(42.0))
+  assert_eq(cells[2].value, @model.Bool(true))
+  assert_eq(cells[3].value, @model.Text("true"))
+}
+
+///|
+test "an error literal is validated against the known Excel errors" {
+  let workbook = load_ok(
+    "sheets:\n  - name: S\n    cells:\n      A1: { value: \"#DIV/0!\", type: error }\n",
+  )
+  assert_eq(workbook.sheets[0].cells[0].value, @model.Error("#DIV/0!"))
+}
+
+///|
+test "load rejects bad coercions and unknown error literals" {
+  assert_eq(
+    schema_message(
+      "sheets:\n  - name: S\n    cells:\n      A1: { value: \"abc\", type: number }\n",
+    ),
+    Some("spec.yaml: cell 'A1' value is not a number: 'abc'"),
+  )
+  assert_eq(
+    schema_message(
+      "sheets:\n  - name: S\n    cells:\n      A1: { value: \"yes\", type: bool }\n",
+    ),
+    Some("spec.yaml: cell 'A1' value is not a boolean (true or false)"),
+  )
+  assert_eq(
+    schema_message(
+      "sheets:\n  - name: S\n    cells:\n      A1: { value: \"#OOPS\", type: error }\n",
+    ),
+    Some("spec.yaml: cell 'A1' is not a valid Excel error literal: '#OOPS'"),
   )
 }
 

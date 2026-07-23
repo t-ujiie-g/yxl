@@ -205,15 +205,22 @@ fn load_expanded_cell(
           "cell '\{reference}' needs a 'value' or a 'formula'",
         )
       }
-      match type_ {
-        None => (scalar_value(value_node, file~, reference~), format)
-        Some("date") => load_date_cell(value_node, format, file~, reference~)
+      let value = match type_ {
+        None => scalar_value(value_node, file~, reference~)
+        Some("text") => @model.Text(coerce_text(value_node, file~, reference~))
+        Some("number") =>
+          @model.Number(coerce_number(value_node, file~, reference~))
+        Some("bool") => @model.Bool(coerce_bool(value_node, file~, reference~))
+        Some("error") => error_literal(value_node, file~, reference~)
+        Some("date") =>
+          return load_date_cell(value_node, format, file~, reference~)
         Some(other) =>
           raise schema_error(
             file~,
-            "unknown type '\{other}' for cell '\{reference}' (expected 'date')",
+            "unknown type '\{other}' for cell '\{reference}' (expected 'text', 'number', 'bool', 'date', or 'error')",
           )
       }
+      (value, format)
     }
   }
 }
@@ -258,6 +265,92 @@ fn load_date_cell(
       }
   }
   (@model.Date(datetime), Some(format))
+}
+
+///|
+/// The Excel error literals a `type: error` cell may hold.
+let excel_errors : Array[String] = [
+  "#DIV/0!", "#N/A", "#NAME?", "#NULL!", "#NUM!", "#REF!", "#VALUE!", "#SPILL!",
+  "#CALC!", "#GETTING_DATA",
+]
+
+///|
+/// `type: error`: the value must be one of the known Excel error literals.
+fn error_literal(
+  node : @yaml.Node,
+  file~ : String,
+  reference~ : String,
+) -> @model.CellValue raise @diag.SchemaError {
+  let text = expect_string(
+    node,
+    file~,
+    context="error value for '\{reference}'",
+  )
+  guard excel_errors.contains(text) else {
+    raise schema_error(
+      file~,
+      "cell '\{reference}' is not a valid Excel error literal: '\{text}'",
+    )
+  }
+  @model.Error(text)
+}
+
+///|
+/// `type: text`: render any scalar as its text form.
+fn coerce_text(
+  node : @yaml.Node,
+  file~ : String,
+  reference~ : String,
+) -> String raise @diag.SchemaError {
+  match node {
+    @yaml.Str(text) => text
+    @yaml.Int(number) => number.to_string()
+    @yaml.Float(number) => number.to_string()
+    @yaml.Bool(flag) => if flag { "true" } else { "false" }
+    @yaml.Null | @yaml.Seq(_) | @yaml.Map(_) =>
+      raise schema_error(file~, "cell '\{reference}' value cannot be text")
+  }
+}
+
+///|
+/// `type: number`: accept a number, or a string that parses as one.
+fn coerce_number(
+  node : @yaml.Node,
+  file~ : String,
+  reference~ : String,
+) -> Double raise @diag.SchemaError {
+  match node {
+    @yaml.Int(number) => number.to_double()
+    @yaml.Float(number) => number
+    @yaml.Str(text) =>
+      @string.parse_double(text) catch {
+        _ =>
+          raise schema_error(
+            file~,
+            "cell '\{reference}' value is not a number: '\{text}'",
+          )
+      }
+    _ => raise schema_error(file~, "cell '\{reference}' value is not a number")
+  }
+}
+
+///|
+/// `type: bool`: accept a boolean, or the strings `true`/`false`.
+fn coerce_bool(
+  node : @yaml.Node,
+  file~ : String,
+  reference~ : String,
+) -> Bool raise @diag.SchemaError {
+  match node {
+    @yaml.Bool(flag) => flag
+    @yaml.Str("true") => true
+    @yaml.Str("false") => false
+    _ =>
+      raise schema_error(
+        file~,
+        "cell '\{reference}' value is not a boolean (true or false)",
+      )
+  }
 }
 
 ///|

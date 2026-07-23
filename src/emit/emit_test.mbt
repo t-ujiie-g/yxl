@@ -111,6 +111,14 @@ test "a formula cell emits its formula and optional cached value" {
 }
 
 ///|
+test "an error literal round-trips as the error text" {
+  let wb = @model.Workbook::new()
+  wb.add_sheet("S").set(@units.CellRef::new(col=1, row=1), Error("#DIV/0!"))
+  let reopened = @xlsx.read(@emit.to_bytes(wb)[:])
+  assert_eq(reopened.get_cell_value("S", "A1", raw=true), Some("#DIV/0!"))
+}
+
+///|
 test "a backend failure surfaces as an EmitError, not a backend error" {
   // Two sheets with the same name make the backend reject the second one; the
   // seam must translate that into the pipeline's own error type.

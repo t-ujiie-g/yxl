@@ -70,6 +70,8 @@ fn build_workbook(wb : @model.Workbook) -> Bytes raise @xlsx.XlsxError {
             reference,
             Numeric(datetime.to_serial(wb.date_system)),
           )
+        Error(text) =>
+          backend.set_cell_value(sheet.name, reference, Error(text))
         Formula(formula~, cached~) =>
           backend.set_cell_formula(
             sheet.name,
@@ -106,6 +108,7 @@ fn render_cached(
     Number(number) => number.to_string()
     Bool(flag) => if flag { "TRUE" } else { "FALSE" }
     Date(datetime) => datetime.to_serial(date_system).to_string()
+    Error(text) => text
     Formula(..) => ""
   }
 }

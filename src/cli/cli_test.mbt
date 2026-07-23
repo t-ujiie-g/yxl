@@ -143,6 +143,24 @@ test "golden: a formula cell round-trips as an <f> with its cached value" {
 }
 
 ///|
+test "golden: explicit typing coerces the stored type, and errors survive" {
+  let source =
+    #|sheets:
+    #|  - name: S
+    #|    cells:
+    #|      A1: { value: 42, type: text }
+    #|      A2: { value: "42", type: number }
+    #|      A3: { value: "#N/A", type: error }
+    #|
+  let reopened = @xlsx.read(@cli.compile(source, file="spec.yaml")[:])
+  // `type: text` on a number stores a string cell; `type: number` on a string
+  // stores a numeric cell.
+  assert_true(reopened.get_cell_value_raw("S", "A1") is Some(String("42")))
+  assert_true(reopened.get_cell_value_raw("S", "A2") is Some(Numeric(42.0)))
+  assert_eq(reopened.get_cell_value("S", "A3", raw=true), Some("#N/A"))
+}
+
+///|
 test "compile surfaces a schema error carrying the file name" {
   let caught = try {
     @cli.compile("title: x\n", file="spec.yaml") |> ignore

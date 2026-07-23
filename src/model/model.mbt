@@ -8,6 +8,8 @@ pub(all) enum CellValue {
   Number(Double)
   Bool(Bool)
   Date(@units.DateTime)
+  /// An Excel error literal, e.g. `#DIV/0!` or `#N/A`.
+  Error(String)
   /// A formula Excel recomputes on open (stored without a leading `=`), with an
   /// optional cached result (a scalar value) shown until then.
   Formula(formula~ : String, cached~ : CellValue?)

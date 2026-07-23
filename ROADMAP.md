@@ -129,7 +129,8 @@ The **active phase** is the first phase with any unchecked box.
       (default) and 1904 systems via top-level `date1904`, serial conversion in `units`
 - [x] Formulas (emit `<f>`; Excel computes on open) with optional cached value:
       `{ formula: "SUM(A1:A2)", value: <cached> }` (a leading `=` is accepted)
-- [ ] Booleans, error literals, explicit typing
+- [x] Booleans (Phase 2), error literals (`type: error`, validated), and explicit
+      typing (`type: text | number | bool` coercion)
 
 ### Phase 4 — Styling
 - [ ] Named styles: font (bold/italic/size/name/color), fill, border, alignment
@@ -355,6 +356,16 @@ swap touches one file.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-23** — **Phase 3 complete: error literals + explicit typing.** `type`
+  now covers `text`/`number`/`bool`/`date`/`error`. Explicit typing coerces the
+  value to the declared type — `{ value: 42, type: text }` stores a string cell,
+  `{ value: "42", type: number }` parses a numeric one, `{ value: "true", type:
+  bool }` a boolean — with a diagnostic when the value can't convert. `type:
+  error` holds an Excel error literal (`#DIV/0!`, `#N/A`, `#REF!`, …) validated
+  against the known set. Added `CellValue::Error` and routed it through the
+  emitter. **Phase 3 (rich cell values) is done; the active phase is Phase 4
+  (styling).**
 
 - **2026-07-23** — **Phase 3: formulas.** A cell may carry a `formula` —
   `C1: { formula: "=SUM(B2:B3)", value: 1650 }` — which compiles to an Excel

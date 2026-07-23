@@ -6,6 +6,7 @@ import {
   "t-ujiie-g/yxl/model",
   "t-ujiie-g/yxl/units",
   "t-ujiie-g/yxl/diag",
+  "moonbitlang/core/string",
 }
 
 // `debug_inspect` renders the workbook model (which derives `Debug`) in tests.
