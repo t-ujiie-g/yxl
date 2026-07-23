@@ -142,7 +142,7 @@ The **active phase** is the first phase with any unchecked box.
 - [x] Named styles: font (bold/italic/size/name/color), fill, border, alignment
 - [x] Number format as part of a style
 - [x] Style **reuse** → a single interned style id per distinct style
-- [ ] Rich text: mixed fonts/colours within a single cell (`set_cell_rich_text`)
+- [x] Rich text: mixed fonts/colours within a single cell (`set_cell_rich_text`)
 - [ ] Column/row default styles and the workbook default font
       (`set_col_style` / `set_row_style` / `set_default_font`)
 
@@ -380,6 +380,18 @@ swap touches one file.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-24** — **Phase 4: rich text.** A cell may hold a `rich:` run list
+  instead of a single value — `{ rich: ["Plain ", { text: "bold red", font: {
+  bold: true, color: "FF0000" } }] }` — compiling to Excel's inline rich text,
+  each run carrying its own optional font (the same `font` shape as a cell
+  style). A rich-text cell may still take a cell `style` (alignment, fill,
+  borders). Added `CellValue::RichText([RichRun])` and a `RichRun { text, font }`
+  model type, wired the emitter to `set_cell_rich_text`, and had the loader
+  reject `rich` combined with `value`/`formula`/`type` and an empty run list.
+  Round-trip verified: runs and per-run fonts survive re-opening (the backend
+  stores colors as ARGB). Only Phase 4 item 5 (column/row default styles + the
+  workbook default font) remains. 70 tests green.
 
 - **2026-07-24** — **Phase 4: cell styles (font, fill, border, alignment) with
   interning.** A cell may carry a `style:` mapping —

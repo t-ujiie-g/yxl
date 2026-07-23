@@ -75,6 +75,12 @@ fn build_workbook(wb : @model.Workbook) -> Bytes raise @xlsx.XlsxError {
             formula,
             value?=cached.map(value => render_cached(value, wb.date_system)),
           )
+        RichText(runs) =>
+          backend.set_cell_rich_text(
+            sheet.name,
+            reference,
+            runs.map(build_rich_run)[:],
+          )
       }
       if cell.style is Some(style) {
         let style_id = intern_style(backend, style_ids, style)
@@ -230,6 +236,38 @@ fn render_cached(
     Bool(flag) => if flag { "TRUE" } else { "FALSE" }
     Date(datetime) => datetime.to_serial(date_system).to_string()
     Error(text) => text
-    Formula(..) => ""
+    Formula(..) | RichText(_) => ""
+  }
+}
+
+///|
+/// A model rich-text run as the backend's `RichTextRun`.
+fn build_rich_run(run : @model.RichRun) -> @xlsx.RichTextRun {
+  { text: run.text, font: run.font.map(build_rich_font) }
+}
+
+///|
+/// A model font as the backend's `RichTextFont` (a per-run font). The backend's
+/// toggles are non-optional, so an unset toggle becomes `false`.
+fn build_rich_font(font : @model.Font) -> @xlsx.RichTextFont {
+  {
+    bold: font.bold.unwrap_or(false),
+    italic: font.italic.unwrap_or(false),
+    strike: font.strike.unwrap_or(false),
+    outline: false,
+    shadow: false,
+    condense: false,
+    extended: false,
+    underline: font.underline.map(on => if on { "single" } else { "none" }),
+    size: font.size,
+    color: font.color.map(color => color.hex()),
+    color_theme: None,
+    color_indexed: None,
+    color_tint: None,
+    charset: None,
+    family_number: None,
+    scheme: None,
+    vert_align: None,
+    family: font.name,
   }
 }

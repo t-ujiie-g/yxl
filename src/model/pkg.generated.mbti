@@ -52,6 +52,7 @@ pub(all) enum CellValue {
   Date(@units.DateTime)
   Error(String)
   Formula(formula~ : String, cached~ : CellValue?)
+  RichText(Array[RichRun])
 } derive(Eq, @debug.Debug)
 
 pub(all) struct Fill {
@@ -75,6 +76,11 @@ pub(all) enum HAlign {
   Fill
   Justify
   Distributed
+} derive(Eq, Hash, @debug.Debug)
+
+pub(all) struct RichRun {
+  text : String
+  font : Font?
 } derive(Eq, Hash, @debug.Debug)
 
 pub(all) struct Sheet {

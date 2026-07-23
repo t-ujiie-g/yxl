@@ -340,6 +340,71 @@ test "load rejects invalid style attributes" {
 }
 
 ///|
+test "load parses a rich-text cell of plain and fonted runs" {
+  let workbook = load_ok(
+    (
+      #|sheets:
+      #|  - name: S
+      #|    cells:
+      #|      A1:
+      #|        rich:
+      #|          - "Plain "
+      #|          - { text: "bold red", font: { bold: true, color: "FF0000" } }
+      #|        style:
+      #|          align: { wrap: true }
+      #|
+    ),
+  )
+  let cell = workbook.sheets[0].cells[0]
+  assert_eq(
+    cell.value,
+    @model.RichText([
+      { text: "Plain ", font: None },
+      {
+        text: "bold red",
+        font: Some({
+          bold: Some(true),
+          italic: None,
+          underline: None,
+          strike: None,
+          size: None,
+          name: None,
+          color: @units.Color::parse("FF0000"),
+        }),
+      },
+    ]),
+  )
+  // A rich-text cell may still carry a cell style (here, wrapping).
+  assert_eq(
+    cell.style,
+    Some(@model.Style::{
+      ..@model.Style::empty(),
+      align: Some({ horizontal: None, vertical: None, wrap: Some(true) }),
+    }),
+  )
+}
+
+///|
+test "load rejects rich text combined with a value, and an empty run list" {
+  assert_eq(
+    schema_message(
+      "sheets:\n  - name: S\n    cells:\n      A1: { rich: [\"a\"], value: 1 }\n",
+    ),
+    Some("spec.yaml: cell 'A1' cannot combine 'rich' and 'value'"),
+  )
+  assert_eq(
+    schema_message("sheets:\n  - name: S\n    cells:\n      A1: { rich: [] }\n"),
+    Some("spec.yaml: cell 'A1' rich text needs at least one run"),
+  )
+  assert_eq(
+    schema_message(
+      "sheets:\n  - name: S\n    cells:\n      A1: { rich: [{ font: { bold: true } }] }\n",
+    ),
+    Some("spec.yaml: cell 'A1' rich text run needs a 'text'"),
+  )
+}
+
+///|
 test "load rejects an expanded cell missing its value" {
   assert_eq(
     schema_message(
@@ -356,7 +421,7 @@ test "load rejects an unknown key in an expanded cell" {
       "sheets:\n  - name: S\n    cells:\n      A1: { value: 1, color: red }\n",
     ),
     Some(
-      "spec.yaml: unknown key 'color' in cell 'A1' (expected 'value', 'formula', 'type', 'format', or 'style')",
+      "spec.yaml: unknown key 'color' in cell 'A1' (expected 'value', 'formula', 'rich', 'type', 'format', or 'style')",
     ),
   )
 }

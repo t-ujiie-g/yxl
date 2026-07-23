@@ -13,7 +13,18 @@ pub(all) enum CellValue {
   /// A formula Excel recomputes on open (stored without a leading `=`), with an
   /// optional cached result (a scalar value) shown until then.
   Formula(formula~ : String, cached~ : CellValue?)
+  /// A single string built from runs, each with its own optional font — Excel's
+  /// inline rich text. Ordered; at least one run.
+  RichText(Array[RichRun])
 } derive(Eq, Debug)
+
+///|
+/// One run of rich text: a piece of text and the font it is drawn in (`None`
+/// inherits the cell's font). Runs concatenate into the cell's string.
+pub(all) struct RichRun {
+  text : String
+  font : Font?
+} derive(Eq, Hash, Debug)
 
 ///|
 /// A single populated cell: where it sits, what it holds, and an optional style

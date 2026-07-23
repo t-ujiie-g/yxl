@@ -163,6 +163,39 @@ test "a formula cell emits its formula and optional cached value" {
 }
 
 ///|
+test "a rich-text cell round-trips its runs and per-run fonts" {
+  let wb = @model.Workbook::new()
+  let sheet = wb.add_sheet("S")
+  let bold_red : @model.Font = {
+    bold: Some(true),
+    italic: None,
+    underline: None,
+    strike: None,
+    size: None,
+    name: None,
+    color: @units.Color::parse("FF0000"),
+  }
+  sheet.set(
+    @units.CellRef::new(col=1, row=1),
+    RichText([
+      { text: "Plain ", font: None },
+      { text: "bold red", font: Some(bold_red) },
+    ]),
+  )
+  let reopened = @xlsx.read(@emit.to_bytes(wb)[:])
+  // The concatenated text is what a plain read yields.
+  assert_eq(reopened.get_cell("S", "A1"), Some("Plain bold red"))
+  // The runs survive with their fonts.
+  let runs = reopened.get_cell_rich_text("S", "A1").unwrap()
+  assert_eq(runs.length(), 2)
+  assert_eq(runs[0].text, "Plain ")
+  assert_eq(runs[1].text, "bold red")
+  assert_eq(runs[1].font.unwrap().bold, true)
+  // The backend stores colors as ARGB, prepending an opaque alpha.
+  assert_eq(runs[1].font.unwrap().color, Some("FFFF0000"))
+}
+
+///|
 test "an error literal round-trips as the error text" {
   let wb = @model.Workbook::new()
   wb.add_sheet("S").set(@units.CellRef::new(col=1, row=1), Error("#DIV/0!"))

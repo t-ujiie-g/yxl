@@ -7,9 +7,11 @@
 
 ///|
 /// A cell is either a scalar shorthand (`A1: 42`) or an expanded mapping with an
-/// optional `type` (currently `date`), `format`, `style`, and either a `value`
-/// or a `formula` — e.g. `A1: { value: 0.5, format: "0.00%" }`,
-/// `B1: { value: "2026-07-23", type: date }`, or `C1: { formula: "SUM(A1:A2)" }`.
+/// optional `type` (currently `date`), `format`, `style`, and a value source: a
+/// `value`, a `formula`, or a `rich` run list — e.g.
+/// `A1: { value: 0.5, format: "0.00%" }`, `B1: { value: "2026-07-23", type: date
+/// }`, `C1: { formula: "SUM(A1:A2)" }`, or `D1: { rich: ["a ", { text: b, font:
+/// { bold: true } }] }`.
 fn load_cell(
   node : @yaml.Node,
   file~ : String,
@@ -32,6 +34,7 @@ fn load_expanded_cell(
   let mut format = None
   let mut formula = None
   let mut style_node = None
+  let mut rich_node = None
   for entry in entries {
     let (key, node) = entry
     match key {
@@ -49,54 +52,158 @@ fn load_expanded_cell(
           expect_string(node, file~, context="cell '\{reference}' formula"),
         )
       "style" => style_node = Some(node)
+      "rich" => rich_node = Some(node)
       _ =>
         raise schema_error(
           file~,
-          "unknown key '\{key}' in cell '\{reference}' (expected 'value', 'formula', 'type', 'format', or 'style')",
+          "unknown key '\{key}' in cell '\{reference}' (expected 'value', 'formula', 'rich', 'type', 'format', or 'style')",
         )
     }
   }
-  let (value, number_format) = match formula {
-    Some(formula) => {
-      guard type_ is None else {
-        raise schema_error(
-          file~,
-          "cell '\{reference}' cannot combine 'formula' and 'type'",
-        )
-      }
-      // A formula's `value` is its optional cached result.
-      let cached = match value_node {
-        Some(node) => Some(scalar_value(node, file~, reference~))
-        None => None
-      }
-      (@model.Formula(formula=strip_leading_equals(formula), cached~), format)
+  let (value, number_format) = if rich_node is Some(rich) {
+    guard formula is None else {
+      raise schema_error(
+        file~,
+        "cell '\{reference}' cannot combine 'rich' and 'formula'",
+      )
     }
-    None => {
-      guard value_node is Some(value_node) else {
-        raise schema_error(
-          file~,
-          "cell '\{reference}' needs a 'value' or a 'formula'",
-        )
-      }
-      match type_ {
-        None => (scalar_value(value_node, file~, reference~), format)
-        Some("text") =>
-          (@model.Text(coerce_text(value_node, file~, reference~)), format)
-        Some("number") =>
-          (@model.Number(coerce_number(value_node, file~, reference~)), format)
-        Some("bool") =>
-          (@model.Bool(coerce_bool(value_node, file~, reference~)), format)
-        Some("error") => (error_literal(value_node, file~, reference~), format)
-        Some("date") => load_date_cell(value_node, format, file~, reference~)
-        Some(other) =>
+    guard value_node is None else {
+      raise schema_error(
+        file~,
+        "cell '\{reference}' cannot combine 'rich' and 'value'",
+      )
+    }
+    guard type_ is None else {
+      raise schema_error(
+        file~,
+        "cell '\{reference}' cannot combine 'rich' and 'type'",
+      )
+    }
+    (load_rich_text(rich, file~, reference~), format)
+  } else {
+    match formula {
+      Some(formula) => {
+        guard type_ is None else {
           raise schema_error(
             file~,
-            "unknown type '\{other}' for cell '\{reference}' (expected 'text', 'number', 'bool', 'date', or 'error')",
+            "cell '\{reference}' cannot combine 'formula' and 'type'",
           )
+        }
+        // A formula's `value` is its optional cached result.
+        let cached = match value_node {
+          Some(node) => Some(scalar_value(node, file~, reference~))
+          None => None
+        }
+        (@model.Formula(formula=strip_leading_equals(formula), cached~), format)
+      }
+      None => {
+        guard value_node is Some(value_node) else {
+          raise schema_error(
+            file~,
+            "cell '\{reference}' needs a 'value' or a 'formula'",
+          )
+        }
+        match type_ {
+          None => (scalar_value(value_node, file~, reference~), format)
+          Some("text") =>
+            (@model.Text(coerce_text(value_node, file~, reference~)), format)
+          Some("number") =>
+            (
+              @model.Number(coerce_number(value_node, file~, reference~)),
+              format,
+            )
+          Some("bool") =>
+            (@model.Bool(coerce_bool(value_node, file~, reference~)), format)
+          Some("error") =>
+            (error_literal(value_node, file~, reference~), format)
+          Some("date") => load_date_cell(value_node, format, file~, reference~)
+          Some(other) =>
+            raise schema_error(
+              file~,
+              "unknown type '\{other}' for cell '\{reference}' (expected 'text', 'number', 'bool', 'date', or 'error')",
+            )
+        }
       }
     }
   }
   (value, combine_style(style_node, number_format, file~, reference~))
+}
+
+///|
+/// Parse a cell's `rich:` sequence into a rich-text value: an ordered list of
+/// runs, each a plain string or a `{ text, font }` mapping. Needs at least one
+/// run.
+fn load_rich_text(
+  node : @yaml.Node,
+  file~ : String,
+  reference~ : String,
+) -> @model.CellValue raise @diag.SchemaError {
+  let items = match node {
+    @yaml.Seq(items) => items
+    _ =>
+      raise schema_error(
+        file~,
+        "cell '\{reference}' rich text must be a sequence of runs",
+      )
+  }
+  guard !items.is_empty() else {
+    raise schema_error(
+      file~,
+      "cell '\{reference}' rich text needs at least one run",
+    )
+  }
+  let runs = []
+  for item in items {
+    runs.push(load_rich_run(item, file~, reference~))
+  }
+  @model.RichText(runs)
+}
+
+///|
+/// One rich-text run: a plain string (no font) or a `{ text, font }` mapping.
+fn load_rich_run(
+  node : @yaml.Node,
+  file~ : String,
+  reference~ : String,
+) -> @model.RichRun raise @diag.SchemaError {
+  match node {
+    @yaml.Str(text) => { text, font: None }
+    @yaml.Map(entries) => {
+      let mut text = None
+      let mut font = None
+      for entry in entries {
+        let (key, node) = entry
+        match key {
+          "text" =>
+            text = Some(
+              expect_string(
+                node,
+                file~,
+                context="cell '\{reference}' rich text run 'text'",
+              ),
+            )
+          "font" => font = Some(load_font(node, file~, reference~))
+          _ =>
+            raise schema_error(
+              file~,
+              "unknown key '\{key}' in cell '\{reference}' rich text run (expected 'text' or 'font')",
+            )
+        }
+      }
+      guard text is Some(text) else {
+        raise schema_error(
+          file~,
+          "cell '\{reference}' rich text run needs a 'text'",
+        )
+      }
+      { text, font }
+    }
+    _ =>
+      raise schema_error(
+        file~,
+        "cell '\{reference}' rich text run must be text or a mapping",
+      )
+  }
 }
 
 ///|
