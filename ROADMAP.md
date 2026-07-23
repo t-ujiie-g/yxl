@@ -123,7 +123,9 @@ The **active phase** is the first phase with any unchecked box.
 - [x] Golden test: spec → bytes → re-open → assert cells
 
 ### Phase 3 — Rich cell values
-- [ ] Dates / date-times (with a date system), number formats (built-in + custom)
+- [x] Number formats (built-in + custom): the expanded cell form
+      `{ value:, format: }`; equal format codes intern to one style id (ADR-004)
+- [ ] Dates / date-times (with a date system)
 - [ ] Formulas (emit `<f>`; Excel computes on open) with optional cached value
 - [ ] Booleans, error literals, explicit typing
 
@@ -351,6 +353,17 @@ swap touches one file.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-23** — **Phase 3: number formats (built-in + custom).** A cell may now
+  be written in an **expanded form** — `A1: { value: 0.5, format: "0.00%" }` —
+  alongside the scalar shorthand; `format` is any Excel number-format code (a
+  built-in code like `0.00` or a custom one like `#,##0.00`). The model's `Cell`
+  gained an optional `format`, and the emitter **interns** formats: each distinct
+  code becomes one style id reused by every cell that names it, the first
+  instance of the reuse machinery (ADR-004). Verified end to end — the format is
+  applied on read-back (`0.5` → `50.00%`) and equal codes share one style id.
+  Split the roadmap item: dates/date-times (a formatted number + a date system)
+  are the next Phase 3 step.
 
 - **2026-07-23** — **Refactor pass (whole tree).** Removed the vestigial root
   `t-ujiie-g/yxl` package — the `moon new` stub and the Phase-0 backend smoke

@@ -36,18 +36,61 @@ test "load builds sheets and typed cells from a minimal spec" {
       #|    {
       #|      name: "Sheet1",
       #|      cells: [
-      #|        { pos: { col: 1, row: 1 }, value: Text("hello") },
-      #|        { pos: { col: 2, row: 1 }, value: Number(42) },
-      #|        { pos: { col: 3, row: 1 }, value: Bool(true) },
-      #|        { pos: { col: 4, row: 1 }, value: Number(3.5) },
+      #|        { pos: { col: 1, row: 1 }, value: Text("hello"), format: None },
+      #|        { pos: { col: 2, row: 1 }, value: Number(42), format: None },
+      #|        { pos: { col: 3, row: 1 }, value: Bool(true), format: None },
+      #|        { pos: { col: 4, row: 1 }, value: Number(3.5), format: None },
       #|      ],
       #|    },
       #|    {
       #|      name: "Second",
-      #|      cells: [{ pos: { col: 1, row: 1 }, value: Text("42") }],
+      #|      cells: [{ pos: { col: 1, row: 1 }, value: Text("42"), format: None }],
       #|    },
       #|  ],
       #|}
+    ),
+  )
+}
+
+///|
+test "load accepts the expanded cell form with a number format" {
+  let source =
+    #|sheets:
+    #|  - name: S
+    #|    cells:
+    #|      A1: { value: 0.5, format: "0.00%" }
+    #|      B1: 42
+    #|
+  let workbook = @loader.load(
+    @yaml.parse(source, file="spec.yaml"),
+    file="spec.yaml",
+  )
+  let cells = workbook.sheets[0].cells
+  assert_eq(cells[0].value, @model.Number(0.5))
+  assert_eq(cells[0].format, Some("0.00%"))
+  // A plain scalar cell keeps the General format.
+  assert_eq(cells[1].value, @model.Number(42.0))
+  assert_eq(cells[1].format, None)
+}
+
+///|
+test "load rejects an expanded cell missing its value" {
+  assert_eq(
+    schema_message(
+      "sheets:\n  - name: S\n    cells:\n      A1: { format: \"0%\" }\n",
+    ),
+    Some("spec.yaml: cell 'A1' is missing required key 'value'"),
+  )
+}
+
+///|
+test "load rejects an unknown key in an expanded cell" {
+  assert_eq(
+    schema_message(
+      "sheets:\n  - name: S\n    cells:\n      A1: { value: 1, color: red }\n",
+    ),
+    Some(
+      "spec.yaml: unknown key 'color' in cell 'A1' (expected 'value' or 'format')",
     ),
   )
 }

@@ -8,10 +8,13 @@ pub(all) enum CellValue {
 } derive(Eq, Debug)
 
 ///|
-/// A single populated cell: where it sits and what it holds.
+/// A single populated cell: where it sits, what it holds, and an optional Excel
+/// number-format code (e.g. `"#,##0.00"`, `"0%"`). `None` means the General
+/// format. Equal format codes compile to a single shared style id (ADR-004).
 pub(all) struct Cell {
   pos : @units.CellRef
   value : CellValue
+  format : String?
 } derive(Eq, Debug)
 
 ///|
@@ -52,11 +55,13 @@ pub fn Sheet::new(name : String) -> Sheet {
 }
 
 ///|
-/// Write a value at a cell reference, appending it to the sheet's cells.
+/// Write a value at a cell reference, appending it to the sheet's cells. Pass
+/// `format=` to attach a number-format code.
 pub fn Sheet::set(
   self : Sheet,
   pos : @units.CellRef,
   value : CellValue,
+  format? : String,
 ) -> Unit {
-  self.cells.push({ pos, value })
+  self.cells.push({ pos, value, format })
 }

@@ -37,6 +37,32 @@ test "MbtexcelEmitter emits every sheet in order" {
 }
 
 ///|
+test "number formats are applied, and equal formats share one style id" {
+  let wb = @model.Workbook::new()
+  let sheet = wb.add_sheet("S")
+  sheet.set(@units.CellRef::new(col=1, row=1), Number(0.5), format="0.00%")
+  sheet.set(@units.CellRef::new(col=2, row=1), Number(0.25), format="0.00%")
+  sheet.set(
+    @units.CellRef::new(col=3, row=1),
+    Number(1234.5),
+    format="#,##0.00",
+  )
+  sheet.set(@units.CellRef::new(col=4, row=1), Number(7.0))
+  let reopened = @xlsx.read(@emit.to_bytes(wb)[:])
+
+  // The format is really applied: the formatted read-back reflects it.
+  assert_eq(reopened.get_cell_value("S", "A1", raw=false), Some("50.00%"))
+  assert_eq(reopened.get_cell_value("S", "C1", raw=false), Some("1,234.50"))
+
+  // Interning (ADR-004): equal format codes compile to one shared style id,
+  // distinct codes to distinct ids, and an unformatted cell to the default.
+  let percent = reopened.get_cell_style("S", "A1")
+  assert_eq(reopened.get_cell_style("S", "B1"), percent)
+  assert_not_eq(reopened.get_cell_style("S", "C1"), percent)
+  assert_eq(reopened.get_cell_style("S", "D1"), Some(0))
+}
+
+///|
 test "a backend failure surfaces as an EmitError, not a backend error" {
   // Two sheets with the same name make the backend reject the second one; the
   // seam must translate that into the pipeline's own error type.

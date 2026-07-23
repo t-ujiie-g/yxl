@@ -40,17 +40,34 @@ pub fn to_bytes(wb : @model.Workbook) -> Bytes raise @diag.EmitError {
 ///|
 /// Drive the backend: one sheet per model sheet, one cell per model cell, then
 /// serialize. Raises the backend's own error; the seam boundary wraps it.
+///
+/// Number-format codes are interned: each distinct code is registered as a style
+/// exactly once and reused across every cell that names it, so a format declared
+/// many times compiles to a single style id, not N copies (ADR-004).
 fn build_workbook(wb : @model.Workbook) -> Bytes raise @xlsx.XlsxError {
   let backend = @xlsx.Workbook::new()
+  let style_ids : Map[String, Int] = Map([])
   for sheet in wb.sheets {
     backend.new_sheet(sheet.name) |> ignore
     for cell in sheet.cells {
+      let reference = cell.pos.to_a1()
       let value = match cell.value {
         Text(text) => @xlsx.CellValue::String(text)
         Number(number) => @xlsx.CellValue::Numeric(number)
         Bool(flag) => @xlsx.CellValue::Bool(flag)
       }
-      backend.set_cell_value(sheet.name, cell.pos.to_a1(), value)
+      backend.set_cell_value(sheet.name, reference, value)
+      if cell.format is Some(format) {
+        let style_id = match style_ids.get(format) {
+          Some(id) => id
+          None => {
+            let id = backend.add_style(@xlsx.Style::number_format(format))
+            style_ids[format] = id
+            id
+          }
+        }
+        backend.set_cell_style(sheet.name, reference, style_id)
+      }
     }
   }
   @xlsx.write(backend)

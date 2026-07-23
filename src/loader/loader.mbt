@@ -102,20 +102,68 @@ fn load_cells(
   let entries = expect_map(node, file~, context="'cells'")
   for entry in entries {
     let (reference, value_node) = entry
-    let cell = match @units.CellRef::parse_a1(reference) {
-      Some(cell) => cell
-      None =>
-        raise schema_error(
-          file~,
-          "'\{reference}' is not a valid A1 cell reference",
-        )
+    guard @units.CellRef::parse_a1(reference) is Some(cell) else {
+      raise schema_error(
+        file~,
+        "'\{reference}' is not a valid A1 cell reference",
+      )
     }
-    sheet.set(cell, to_cell_value(value_node, file~, reference~))
+    let (value, format) = load_cell(value_node, file~, reference~)
+    sheet.set(cell, value, format?)
   }
 }
 
 ///|
-fn to_cell_value(
+/// A cell is either a scalar shorthand (`A1: 42`) or an expanded mapping with a
+/// required `value` and an optional number `format` (`A1: { value: 0.5, format:
+/// "0.00%" }`).
+fn load_cell(
+  node : @yaml.Node,
+  file~ : String,
+  reference~ : String,
+) -> (@model.CellValue, String?) raise @diag.SchemaError {
+  match node {
+    @yaml.Map(entries) => load_expanded_cell(entries, file~, reference~)
+    scalar => (scalar_value(scalar, file~, reference~), None)
+  }
+}
+
+///|
+fn load_expanded_cell(
+  entries : Array[(String, @yaml.Node)],
+  file~ : String,
+  reference~ : String,
+) -> (@model.CellValue, String?) raise @diag.SchemaError {
+  let mut value = None
+  let mut format = None
+  for entry in entries {
+    let (key, node) = entry
+    match key {
+      "value" => value = Some(scalar_value(node, file~, reference~))
+      "format" =>
+        format = Some(
+          expect_string(node, file~, context="cell '\{reference}' format"),
+        )
+      _ =>
+        raise schema_error(
+          file~,
+          "unknown key '\{key}' in cell '\{reference}' (expected 'value' or 'format')",
+        )
+    }
+  }
+  guard value is Some(value) else {
+    raise schema_error(
+      file~,
+      "cell '\{reference}' is missing required key 'value'",
+    )
+  }
+  (value, format)
+}
+
+///|
+/// Interpret a scalar node as a cell value. A non-scalar here (a nested sequence
+/// or mapping in a `value:`) is an error.
+fn scalar_value(
   node : @yaml.Node,
   file~ : String,
   reference~ : String,

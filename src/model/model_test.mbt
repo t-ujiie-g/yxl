@@ -8,7 +8,7 @@ test "add_sheet appends a sheet whose edits are visible in the workbook" {
   let wb = @model.Workbook::new()
   let sheet = wb.add_sheet("Sheet1")
   sheet.set(@units.CellRef::new(col=1, row=1), Text("yxl"))
-  sheet.set(@units.CellRef::new(col=2, row=1), Number(42.0))
+  sheet.set(@units.CellRef::new(col=2, row=1), Number(42.0), format="0.00")
   // The returned sheet shares the workbook's storage: edits land in the workbook.
   assert_eq(wb.sheets.length(), 1)
   assert_eq(wb.sheets[0].name, "Sheet1")
@@ -16,8 +16,10 @@ test "add_sheet appends a sheet whose edits are visible in the workbook" {
   assert_eq(wb.sheets[0].cells[0], {
     pos: @units.CellRef::new(col=1, row=1),
     value: Text("yxl"),
+    format: None,
   })
   assert_eq(wb.sheets[0].cells[1].value, Number(42.0))
+  assert_eq(wb.sheets[0].cells[1].format, Some("0.00"))
 }
 
 ///|

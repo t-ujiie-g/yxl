@@ -101,6 +101,18 @@ test "golden: a spec round-trips through .xlsx to the declared cells" {
 }
 
 ///|
+test "golden: an expanded cell's number format survives to the workbook" {
+  let source =
+    #|sheets:
+    #|  - name: S
+    #|    cells:
+    #|      A1: { value: 0.5, format: "0.00%" }
+    #|
+  let reopened = @xlsx.read(@cli.compile(source, file="spec.yaml")[:])
+  assert_eq(reopened.get_cell_value("S", "A1", raw=false), Some("50.00%"))
+}
+
+///|
 test "compile surfaces a schema error carrying the file name" {
   let caught = try {
     @cli.compile("title: x\n", file="spec.yaml") |> ignore

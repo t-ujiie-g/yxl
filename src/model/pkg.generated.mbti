@@ -14,6 +14,7 @@ import {
 pub(all) struct Cell {
   pos : @units.CellRef
   value : CellValue
+  format : String?
 } derive(Eq, @debug.Debug)
 
 pub(all) enum CellValue {
@@ -27,7 +28,7 @@ pub(all) struct Sheet {
   cells : Array[Cell]
 } derive(Eq, @debug.Debug)
 pub fn Sheet::new(String) -> Self
-pub fn Sheet::set(Self, @units.CellRef, CellValue) -> Unit
+pub fn Sheet::set(Self, @units.CellRef, CellValue, format? : String) -> Unit
 
 pub(all) struct Workbook {
   sheets : Array[Sheet]
