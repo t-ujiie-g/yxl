@@ -58,6 +58,14 @@ test "the date1904 top-level key selects the 1904 date system" {
 }
 
 ///|
+test "load rejects a non-boolean date1904 value" {
+  assert_eq(
+    schema_message("sheets:\n  - name: S\ndate1904: yes\n"),
+    Some("spec.yaml: 'date1904' must be true or false"),
+  )
+}
+
+///|
 test "load rejects invalid dates and unknown cell types" {
   assert_eq(
     schema_message(

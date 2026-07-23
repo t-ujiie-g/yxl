@@ -357,6 +357,14 @@ swap touches one file.
 
 Reverse-chronological. One entry per user-visible or structural change.
 
+- **2026-07-23** — **Refactor pass (whole tree).** Split the 416-line `loader.mbt`
+  at its natural seam: structural loading (workbook/sheets/cells + the shared
+  `expect_*` helpers) stays in `loader.mbt`, and cell-value interpretation
+  (scalar/expanded/typed/date/formula/error) moves to a new `loader/cell.mbt`.
+  Extracted the emitter's number-format style interning into a named
+  `intern_format_style` helper (ADR-004), and refreshed the `load` doc for the
+  richer cell forms. No behaviour change; 60 tests green.
+
 - **2026-07-23** — **Phase 3 complete: error literals + explicit typing.** `type`
   now covers `text`/`number`/`bool`/`date`/`error`. Explicit typing coerces the
   value to the declared type — `{ value: 42, type: text }` stores a string cell,

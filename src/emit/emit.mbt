@@ -40,10 +40,6 @@ pub fn to_bytes(wb : @model.Workbook) -> Bytes raise @diag.EmitError {
 ///|
 /// Drive the backend: one sheet per model sheet, one cell per model cell, then
 /// serialize. Raises the backend's own error; the seam boundary wraps it.
-///
-/// Number-format codes are interned: each distinct code is registered as a style
-/// exactly once and reused across every cell that names it, so a format declared
-/// many times compiles to a single style id, not N copies (ADR-004).
 fn build_workbook(wb : @model.Workbook) -> Bytes raise @xlsx.XlsxError {
   let backend = @xlsx.Workbook::new()
   // Excel stores dates as serials relative to the workbook's epoch, so the
@@ -81,19 +77,31 @@ fn build_workbook(wb : @model.Workbook) -> Bytes raise @xlsx.XlsxError {
           )
       }
       if cell.format is Some(format) {
-        let style_id = match style_ids.get(format) {
-          Some(id) => id
-          None => {
-            let id = backend.add_style(@xlsx.Style::number_format(format))
-            style_ids[format] = id
-            id
-          }
-        }
+        let style_id = intern_format_style(backend, style_ids, format)
         backend.set_cell_style(sheet.name, reference, style_id)
       }
     }
   }
   @xlsx.write(backend)
+}
+
+///|
+/// Register a number-format code as a style the first time it is seen and reuse
+/// its id thereafter (ADR-004): the same format code always maps to the same
+/// `cellXfs` id, so a format declared many times is not copied N ways.
+fn intern_format_style(
+  backend : @xlsx.Workbook,
+  cache : Map[String, Int],
+  format : String,
+) -> Int {
+  match cache.get(format) {
+    Some(id) => id
+    None => {
+      let id = backend.add_style(@xlsx.Style::number_format(format))
+      cache[format] = id
+      id
+    }
+  }
 }
 
 ///|
