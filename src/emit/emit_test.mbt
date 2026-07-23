@@ -63,6 +63,58 @@ test "number formats are applied, and equal formats share one style id" {
 }
 
 ///|
+test "a full style round-trips its attributes and identical styles share one id" {
+  let wb = @model.Workbook::new()
+  let sheet = wb.add_sheet("S")
+  let style : @model.Style = {
+    number_format: Some("0.00"),
+    font: Some({
+      bold: Some(true),
+      italic: Some(true),
+      underline: None,
+      strike: None,
+      size: Some(14.0),
+      name: Some("Arial"),
+      color: @units.Color::parse("FF0000"),
+    }),
+    fill: Some({ color: @units.Color::parse("FFFF00").unwrap() }),
+    align: Some({
+      horizontal: Some(Center),
+      vertical: Some(Middle),
+      wrap: Some(true),
+    }),
+    borders: Some({
+      left: Some({ style: Thin, color: None }),
+      right: None,
+      top: None,
+      bottom: Some({ style: Double, color: @units.Color::parse("000000") }),
+    }),
+  }
+  sheet.set(@units.CellRef::new(col=1, row=1), Number(1.5), style~)
+  sheet.set(@units.CellRef::new(col=2, row=1), Number(2.5), style~)
+  // The same look minus the font is a distinct style.
+  sheet.set(@units.CellRef::new(col=3, row=1), Number(3.5), style={
+    ..style,
+    font: None,
+  })
+  let reopened = @xlsx.read(@emit.to_bytes(wb)[:])
+
+  // Interning (ADR-004): identical styles share one id; a different style does not.
+  let id = reopened.get_cell_style("S", "A1")
+  assert_eq(reopened.get_cell_style("S", "B1"), id)
+  assert_not_eq(reopened.get_cell_style("S", "C1"), id)
+
+  // The emitted style really carries the declared attributes.
+  let readback = reopened.get_style(id.unwrap())
+  assert_eq(readback.font.unwrap().bold, Some(true))
+  assert_eq(readback.font.unwrap().italic, Some(true))
+  assert_eq(readback.alignment.unwrap().horizontal, Some("center"))
+  assert_eq(readback.alignment.unwrap().vertical, Some("center"))
+  // The number format still formats the value on read-back.
+  assert_eq(reopened.get_cell_value("S", "A1", raw=false), Some("1.50"))
+}
+
+///|
 test "a date cell serializes to its Excel serial under the workbook's system" {
   let date = @units.DateTime::{
     year: 1900,

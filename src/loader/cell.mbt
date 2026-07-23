@@ -1,19 +1,20 @@
 // Cell-value interpretation for the loader: turning a `yaml.Node` cell into a
-// `model.CellValue` (+ optional number format). Handles the scalar shorthand and
-// the expanded `{ value | formula, type, format }` form, including explicit
-// typing, dates, and error literals. Structural loading (workbook/sheets/cells)
-// and the shared `expect_*`/`schema_error` helpers live in `loader.mbt`.
+// `model.CellValue` (+ optional style). Handles the scalar shorthand and the
+// expanded `{ value | formula, type, format, style }` form, including explicit
+// typing, dates, and error literals. Style parsing lives in `style.mbt`;
+// structural loading and the shared `expect_*`/`schema_error` helpers live in
+// `loader.mbt`.
 
 ///|
 /// A cell is either a scalar shorthand (`A1: 42`) or an expanded mapping with an
-/// optional `type` (currently `date`), `format`, and either a `value` or a
-/// `formula` — e.g. `A1: { value: 0.5, format: "0.00%" }`,
+/// optional `type` (currently `date`), `format`, `style`, and either a `value`
+/// or a `formula` — e.g. `A1: { value: 0.5, format: "0.00%" }`,
 /// `B1: { value: "2026-07-23", type: date }`, or `C1: { formula: "SUM(A1:A2)" }`.
 fn load_cell(
   node : @yaml.Node,
   file~ : String,
   reference~ : String,
-) -> (@model.CellValue, String?) raise @diag.SchemaError {
+) -> (@model.CellValue, @model.Style?) raise @diag.SchemaError {
   match node {
     @yaml.Map(entries) => load_expanded_cell(entries, file~, reference~)
     scalar => (scalar_value(scalar, file~, reference~), None)
@@ -25,11 +26,12 @@ fn load_expanded_cell(
   entries : Array[(String, @yaml.Node)],
   file~ : String,
   reference~ : String,
-) -> (@model.CellValue, String?) raise @diag.SchemaError {
+) -> (@model.CellValue, @model.Style?) raise @diag.SchemaError {
   let mut value_node = None
   let mut type_ = None
   let mut format = None
   let mut formula = None
+  let mut style_node = None
   for entry in entries {
     let (key, node) = entry
     match key {
@@ -46,14 +48,15 @@ fn load_expanded_cell(
         formula = Some(
           expect_string(node, file~, context="cell '\{reference}' formula"),
         )
+      "style" => style_node = Some(node)
       _ =>
         raise schema_error(
           file~,
-          "unknown key '\{key}' in cell '\{reference}' (expected 'value', 'formula', 'type', or 'format')",
+          "unknown key '\{key}' in cell '\{reference}' (expected 'value', 'formula', 'type', 'format', or 'style')",
         )
     }
   }
-  match formula {
+  let (value, number_format) = match formula {
     Some(formula) => {
       guard type_ is None else {
         raise schema_error(
@@ -75,23 +78,49 @@ fn load_expanded_cell(
           "cell '\{reference}' needs a 'value' or a 'formula'",
         )
       }
-      let value = match type_ {
-        None => scalar_value(value_node, file~, reference~)
-        Some("text") => @model.Text(coerce_text(value_node, file~, reference~))
+      match type_ {
+        None => (scalar_value(value_node, file~, reference~), format)
+        Some("text") =>
+          (@model.Text(coerce_text(value_node, file~, reference~)), format)
         Some("number") =>
-          @model.Number(coerce_number(value_node, file~, reference~))
-        Some("bool") => @model.Bool(coerce_bool(value_node, file~, reference~))
-        Some("error") => error_literal(value_node, file~, reference~)
-        Some("date") =>
-          return load_date_cell(value_node, format, file~, reference~)
+          (@model.Number(coerce_number(value_node, file~, reference~)), format)
+        Some("bool") =>
+          (@model.Bool(coerce_bool(value_node, file~, reference~)), format)
+        Some("error") => (error_literal(value_node, file~, reference~), format)
+        Some("date") => load_date_cell(value_node, format, file~, reference~)
         Some(other) =>
           raise schema_error(
             file~,
             "unknown type '\{other}' for cell '\{reference}' (expected 'text', 'number', 'bool', 'date', or 'error')",
           )
       }
-      (value, format)
     }
+  }
+  (value, combine_style(style_node, number_format, file~, reference~))
+}
+
+///|
+/// Fold a cell's `style:` mapping and `format:` number-format shorthand into one
+/// model style. The `format:` code sets the style's number format. An entirely
+/// empty result becomes `None`, leaving the cell on the default style.
+fn combine_style(
+  style_node : @yaml.Node?,
+  number_format : String?,
+  file~ : String,
+  reference~ : String,
+) -> @model.Style? raise @diag.SchemaError {
+  let base = match style_node {
+    Some(node) => load_style(node, file~, reference~)
+    None => @model.Style::empty()
+  }
+  let combined = match number_format {
+    Some(code) => { ..base, number_format: Some(code) }
+    None => base
+  }
+  if combined.is_empty() {
+    None
+  } else {
+    Some(combined)
   }
 }
 

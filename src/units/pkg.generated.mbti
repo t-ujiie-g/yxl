@@ -18,6 +18,10 @@ pub fn CellRef::new(col~ : Int, row~ : Int) -> Self
 pub fn CellRef::parse_a1(String) -> Self?
 pub fn CellRef::to_a1(Self) -> String
 
+pub struct Color(String) derive(Eq, Hash, @debug.Debug)
+pub fn Color::hex(Self) -> String
+pub fn Color::parse(String) -> Self?
+
 pub(all) enum DateSystem {
   Date1900
   Date1904

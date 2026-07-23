@@ -33,7 +33,7 @@ test "load parses a `type: date` cell with a default date format" {
       second: 0,
     }),
   )
-  assert_eq(cell.format, Some("yyyy-mm-dd"))
+  assert_eq(cell.style, Some(@model.Style::number_format("yyyy-mm-dd")))
 }
 
 ///|
@@ -41,11 +41,17 @@ test "a date-time value defaults to a date-time format, and format overrides" {
   let datetime = load_ok(
     "sheets:\n  - name: S\n    cells:\n      A1: { value: \"2026-07-23 14:30:00\", type: date }\n",
   )
-  assert_eq(datetime.sheets[0].cells[0].format, Some("yyyy-mm-dd hh:mm:ss"))
+  assert_eq(
+    datetime.sheets[0].cells[0].style,
+    Some(@model.Style::number_format("yyyy-mm-dd hh:mm:ss")),
+  )
   let custom = load_ok(
     "sheets:\n  - name: S\n    cells:\n      A1: { value: \"2026-07-23\", type: date, format: \"mmm d\" }\n",
   )
-  assert_eq(custom.sheets[0].cells[0].format, Some("mmm d"))
+  assert_eq(
+    custom.sheets[0].cells[0].style,
+    Some(@model.Style::number_format("mmm d")),
+  )
 }
 
 ///|
@@ -188,15 +194,15 @@ test "load builds sheets and typed cells from a minimal spec" {
       #|    {
       #|      name: "Sheet1",
       #|      cells: [
-      #|        { pos: { col: 1, row: 1 }, value: Text("hello"), format: None },
-      #|        { pos: { col: 2, row: 1 }, value: Number(42), format: None },
-      #|        { pos: { col: 3, row: 1 }, value: Bool(true), format: None },
-      #|        { pos: { col: 4, row: 1 }, value: Number(3.5), format: None },
+      #|        { pos: { col: 1, row: 1 }, value: Text("hello"), style: None },
+      #|        { pos: { col: 2, row: 1 }, value: Number(42), style: None },
+      #|        { pos: { col: 3, row: 1 }, value: Bool(true), style: None },
+      #|        { pos: { col: 4, row: 1 }, value: Number(3.5), style: None },
       #|      ],
       #|    },
       #|    {
       #|      name: "Second",
-      #|      cells: [{ pos: { col: 1, row: 1 }, value: Text("42"), format: None }],
+      #|      cells: [{ pos: { col: 1, row: 1 }, value: Text("42"), style: None }],
       #|    },
       #|  ],
       #|  date_system: Date1900,
@@ -220,10 +226,117 @@ test "load accepts the expanded cell form with a number format" {
   )
   let cells = workbook.sheets[0].cells
   assert_eq(cells[0].value, @model.Number(0.5))
-  assert_eq(cells[0].format, Some("0.00%"))
+  assert_eq(cells[0].style, Some(@model.Style::number_format("0.00%")))
   // A plain scalar cell keeps the General format.
   assert_eq(cells[1].value, @model.Number(42.0))
-  assert_eq(cells[1].format, None)
+  assert_eq(cells[1].style, None)
+}
+
+///|
+test "load parses a full style: font, fill, border, alignment, and number format" {
+  let workbook = load_ok(
+    (
+      #|sheets:
+      #|  - name: S
+      #|    cells:
+      #|      A1:
+      #|        value: 0.5
+      #|        format: "0.00%"
+      #|        style:
+      #|          font: { bold: true, size: 12, name: Calibri, color: "FF0000" }
+      #|          fill: "FFFF00"
+      #|          align: { horizontal: center, vertical: middle, wrap: true }
+      #|          border:
+      #|            all: thin
+      #|            bottom: { style: double, color: "000000" }
+      #|
+    ),
+  )
+  assert_eq(
+    workbook.sheets[0].cells[0].style,
+    Some(@model.Style::{
+      number_format: Some("0.00%"),
+      font: Some({
+        bold: Some(true),
+        italic: None,
+        underline: None,
+        strike: None,
+        size: Some(12.0),
+        name: Some("Calibri"),
+        color: @units.Color::parse("FF0000"),
+      }),
+      fill: Some({ color: @units.Color::parse("FFFF00").unwrap() }),
+      align: Some({
+        horizontal: Some(Center),
+        vertical: Some(Middle),
+        wrap: Some(true),
+      }),
+      borders: Some({
+        left: Some({ style: Thin, color: None }),
+        right: Some({ style: Thin, color: None }),
+        top: Some({ style: Thin, color: None }),
+        bottom: Some({ style: Double, color: @units.Color::parse("000000") }),
+      }),
+    }),
+  )
+}
+
+///|
+test "load accepts a fill and border shorthand" {
+  let workbook = load_ok(
+    (
+      #|sheets:
+      #|  - name: S
+      #|    cells:
+      #|      A1: { value: 1, style: { fill: { color: "00FF00" }, border: medium } }
+      #|
+    ),
+  )
+  let style = workbook.sheets[0].cells[0].style.unwrap()
+  assert_eq(style.fill, Some({ color: @units.Color::parse("00FF00").unwrap() }))
+  assert_eq(
+    style.borders,
+    Some({
+      left: Some({ style: Medium, color: None }),
+      right: Some({ style: Medium, color: None }),
+      top: Some({ style: Medium, color: None }),
+      bottom: Some({ style: Medium, color: None }),
+    }),
+  )
+}
+
+///|
+test "load rejects invalid style attributes" {
+  assert_eq(
+    schema_message(
+      "sheets:\n  - name: S\n    cells:\n      A1: { value: 1, style: { fill: \"red\" } }\n",
+    ),
+    Some("spec.yaml: cell 'A1' fill is not a valid hex color: 'red'"),
+  )
+  assert_eq(
+    schema_message(
+      "sheets:\n  - name: S\n    cells:\n      A1: { value: 1, style: { align: { horizontal: middle } } }\n",
+    ),
+    Some(
+      "spec.yaml: cell 'A1' has an unknown horizontal alignment 'middle' (expected 'left', 'center', 'right', 'fill', 'justify', or 'distributed')",
+    ),
+  )
+  assert_eq(
+    schema_message(
+      "sheets:\n  - name: S\n    cells:\n      A1: { value: 1, style: { border: wavy } }\n",
+    ),
+    Some(
+      "spec.yaml: cell 'A1' has an unknown border style 'wavy' (expected 'thin', 'medium', 'thick', 'dashed', 'dotted', 'double', or 'hair')",
+    ),
+  )
+  assert_eq(
+    schema_message(
+      "sheets:\n  - name: S\n    cells:\n      A1: { value: 1, style: { glow: true } }\n",
+    ),
+    Some(
+      "spec.yaml: unknown key 'glow' in cell 'A1' style (expected 'font', 'fill', 'border', or 'align')",
+    ),
+  )
 }
 
 ///|
@@ -243,7 +356,7 @@ test "load rejects an unknown key in an expanded cell" {
       "sheets:\n  - name: S\n    cells:\n      A1: { value: 1, color: red }\n",
     ),
     Some(
-      "spec.yaml: unknown key 'color' in cell 'A1' (expected 'value', 'formula', 'type', or 'format')",
+      "spec.yaml: unknown key 'color' in cell 'A1' (expected 'value', 'formula', 'type', 'format', or 'style')",
     ),
   )
 }

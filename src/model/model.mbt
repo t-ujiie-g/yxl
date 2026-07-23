@@ -16,13 +16,14 @@ pub(all) enum CellValue {
 } derive(Eq, Debug)
 
 ///|
-/// A single populated cell: where it sits, what it holds, and an optional Excel
-/// number-format code (e.g. `"#,##0.00"`, `"0%"`). `None` means the General
-/// format. Equal format codes compile to a single shared style id (ADR-004).
+/// A single populated cell: where it sits, what it holds, and an optional style
+/// (font, fill, borders, alignment, number format). `None` means the default
+/// (General) style. Equal styles compile to a single shared `cellXfs` id
+/// (ADR-004).
 pub(all) struct Cell {
   pos : @units.CellRef
   value : CellValue
-  format : String?
+  style : Style?
 } derive(Eq, Debug)
 
 ///|
@@ -66,12 +67,31 @@ pub fn Sheet::new(name : String) -> Sheet {
 
 ///|
 /// Write a value at a cell reference, appending it to the sheet's cells. Pass
-/// `format=` to attach a number-format code.
+/// `style=` for a full style, or `format=` as a shorthand for a number-format-
+/// only style. If both are given, an explicit `style` wins; a `format` fills in
+/// only when the style leaves the number format unset. An empty resulting style
+/// is dropped so the cell stays on the default style.
 pub fn Sheet::set(
   self : Sheet,
   pos : @units.CellRef,
   value : CellValue,
   format? : String,
+  style? : Style,
 ) -> Unit {
-  self.cells.push({ pos, value, format })
+  let combined = match (style, format) {
+    (Some(s), Some(code)) =>
+      if s.number_format is None {
+        Some({ ..s, number_format: Some(code) })
+      } else {
+        Some(s)
+      }
+    (Some(s), None) => Some(s)
+    (None, Some(code)) => Some(Style::number_format(code))
+    (None, None) => None
+  }
+  let style = match combined {
+    Some(s) if s.is_empty() => None
+    other => other
+  }
+  self.cells.push({ pos, value, style })
 }

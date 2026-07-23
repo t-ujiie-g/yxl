@@ -131,8 +131,8 @@ fn load_cells(
         "'\{reference}' is not a valid A1 cell reference",
       )
     }
-    let (value, format) = load_cell(value_node, file~, reference~)
-    sheet.set(cell, value, format?)
+    let (value, style) = load_cell(value_node, file~, reference~)
+    sheet.set(cell, value, style?)
   }
 }
 

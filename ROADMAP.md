@@ -139,9 +139,9 @@ The **active phase** is the first phase with any unchecked box.
       typing (`type: text | number | bool` coercion)
 
 ### Phase 4 — Styling
-- [ ] Named styles: font (bold/italic/size/name/color), fill, border, alignment
-- [ ] Number format as part of a style
-- [ ] Style **reuse** → a single interned style id per distinct style
+- [x] Named styles: font (bold/italic/size/name/color), fill, border, alignment
+- [x] Number format as part of a style
+- [x] Style **reuse** → a single interned style id per distinct style
 - [ ] Rich text: mixed fonts/colours within a single cell (`set_cell_rich_text`)
 - [ ] Column/row default styles and the workbook default font
       (`set_col_style` / `set_row_style` / `set_default_font`)
@@ -380,6 +380,23 @@ swap touches one file.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-24** — **Phase 4: cell styles (font, fill, border, alignment) with
+  interning.** A cell may carry a `style:` mapping —
+  `{ font: { bold: true, size: 12, name: Calibri, color: "FF0000" }, fill:
+  "FFFF00", align: { horizontal: center, vertical: middle, wrap: true }, border:
+  { all: thin, bottom: { style: double, color: "000000" } } }`. The `format:`
+  number-format shorthand now folds into the style, so the number format is one
+  attribute of the interned look (ADR-004 item 2): equal styles compile to a
+  single `cellXfs` id, distinct ones to distinct ids — verified by re-opening the
+  bytes and comparing style ids and the read-back `Style`. New model types
+  (`Style`, `Font`, `Fill`, `Borders`/`Border`/`BorderStyle`, `Alignment`/
+  `HAlign`/`VAlign`) all derive `Eq`/`Hash` so the emitter interns on the model
+  style; colors are a type-safe `@units.Color` newtype (validated hex), never a
+  bare `String`. `Cell.format : String?` became `Cell.style : Style?`;
+  `Sheet::set` gained a `style?` argument beside `format?`. Style parsing lives
+  in the new `loader/style.mbt`; the style→backend mapping in `emit`. Rich text
+  and column/row default styles remain (Phase 4 items 4–5). 67 tests green.
 
 - **2026-07-23** — **Roadmap tidy: scope audited against the backend, gaps
   captured.** Cross-checked the full `mbtexcel` surface against the phases and

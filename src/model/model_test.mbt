@@ -16,10 +16,49 @@ test "add_sheet appends a sheet whose edits are visible in the workbook" {
   assert_eq(wb.sheets[0].cells[0], {
     pos: @units.CellRef::new(col=1, row=1),
     value: Text("yxl"),
-    format: None,
+    style: None,
   })
   assert_eq(wb.sheets[0].cells[1].value, Number(42.0))
-  assert_eq(wb.sheets[0].cells[1].format, Some("0.00"))
+  assert_eq(
+    wb.sheets[0].cells[1].style,
+    Some(@model.Style::number_format("0.00")),
+  )
+}
+
+///|
+test "set folds a format shorthand into a style, and merges with an explicit style" {
+  let wb = @model.Workbook::new()
+  let sheet = wb.add_sheet("S")
+  let bold : @model.Style = {
+    ..@model.Style::empty(),
+    font: Some({
+      bold: Some(true),
+      italic: None,
+      underline: None,
+      strike: None,
+      size: None,
+      name: None,
+      color: None,
+    }),
+  }
+  // A `format` shorthand alone becomes a number-format-only style.
+  sheet.set(@units.CellRef::new(col=1, row=1), Number(1.0), format="0%")
+  assert_eq(sheet.cells[0].style, Some(@model.Style::number_format("0%")))
+  // A `format` fills in a style that leaves the number format unset.
+  sheet.set(
+    @units.CellRef::new(col=2, row=1),
+    Number(1.0),
+    format="0%",
+    style=bold,
+  )
+  assert_eq(sheet.cells[1].style, Some({ ..bold, number_format: Some("0%") }))
+  // An empty style with no format is dropped entirely.
+  sheet.set(
+    @units.CellRef::new(col=3, row=1),
+    Number(1.0),
+    style=@model.Style::empty(),
+  )
+  assert_eq(sheet.cells[2].style, None)
 }
 
 ///|

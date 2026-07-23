@@ -11,10 +11,38 @@ import {
 // Errors
 
 // Types and methods
+pub(all) struct Alignment {
+  horizontal : HAlign?
+  vertical : VAlign?
+  wrap : Bool?
+} derive(Eq, Hash, @debug.Debug)
+
+pub(all) struct Border {
+  style : BorderStyle
+  color : @units.Color?
+} derive(Eq, Hash, @debug.Debug)
+
+pub(all) enum BorderStyle {
+  Thin
+  Medium
+  Thick
+  Dashed
+  Dotted
+  Double
+  Hair
+} derive(Eq, Hash, @debug.Debug)
+
+pub(all) struct Borders {
+  left : Border?
+  right : Border?
+  top : Border?
+  bottom : Border?
+} derive(Eq, Hash, @debug.Debug)
+
 pub(all) struct Cell {
   pos : @units.CellRef
   value : CellValue
-  format : String?
+  style : Style?
 } derive(Eq, @debug.Debug)
 
 pub(all) enum CellValue {
@@ -26,12 +54,54 @@ pub(all) enum CellValue {
   Formula(formula~ : String, cached~ : CellValue?)
 } derive(Eq, @debug.Debug)
 
+pub(all) struct Fill {
+  color : @units.Color
+} derive(Eq, Hash, @debug.Debug)
+
+pub(all) struct Font {
+  bold : Bool?
+  italic : Bool?
+  underline : Bool?
+  strike : Bool?
+  size : Double?
+  name : String?
+  color : @units.Color?
+} derive(Eq, Hash, @debug.Debug)
+
+pub(all) enum HAlign {
+  Left
+  Center
+  Right
+  Fill
+  Justify
+  Distributed
+} derive(Eq, Hash, @debug.Debug)
+
 pub(all) struct Sheet {
   name : String
   cells : Array[Cell]
 } derive(Eq, @debug.Debug)
 pub fn Sheet::new(String) -> Self
-pub fn Sheet::set(Self, @units.CellRef, CellValue, format? : String) -> Unit
+pub fn Sheet::set(Self, @units.CellRef, CellValue, format? : String, style? : Style) -> Unit
+
+pub(all) struct Style {
+  font : Font?
+  fill : Fill?
+  borders : Borders?
+  align : Alignment?
+  number_format : String?
+} derive(Eq, Hash, @debug.Debug)
+pub fn Style::empty() -> Self
+pub fn Style::is_empty(Self) -> Bool
+pub fn Style::number_format(String) -> Self
+
+pub(all) enum VAlign {
+  Top
+  Middle
+  Bottom
+  Justify
+  Distributed
+} derive(Eq, Hash, @debug.Debug)
 
 pub(all) struct Workbook {
   sheets : Array[Sheet]
