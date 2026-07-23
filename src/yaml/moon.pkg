@@ -1,0 +1,14 @@
+// The parser seam (§4, ADR-009): YAML source -> a generic document tree with
+// source spans. Wraps `moonbit-community/yaml` behind our own `Node` type so the
+// rest of the pipeline never depends on the parser directly and it can be
+// swapped or vendored later. Depends only on `diag` and the parser library.
+import {
+  "t-ujiie-g/yxl/diag",
+  // Aliased so it does not clash with this package's own name (`yaml`).
+  "moonbit-community/yaml" @yamllib,
+}
+
+// `debug_inspect` renders the `Node` tree (which derives `Debug`) in tests.
+import {
+  "moonbitlang/core/debug",
+} for "test"

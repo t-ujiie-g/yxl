@@ -116,7 +116,8 @@ The **active phase** is the first phase with any unchecked box.
 - [x] Pick the YAML parser (§8 Q1) — record the decision as an ADR (ADR-009)
 
 ### Phase 2 — YAML → a sheet of values (walking skeleton)
-- [ ] Parse a minimal spec: `workbook › sheets › cells` (text / number / bool)
+- [x] Parse a minimal spec: `workbook › sheets › cells` (text / number / bool)
+      — the `yaml` seam: source → a `Node` document tree (ADR-010)
 - [ ] `loader` maps it to `model`; `emit` produces `.xlsx`
 - [ ] `cli`: `yxl build <in.yaml> -o <out.xlsx>` (native), exit codes
 - [ ] Golden test: spec → bytes → re-open → assert cells
@@ -265,12 +266,35 @@ the pipeline so the dependency can be swapped or vendored without touching
 (whose value tree drops positions). The `moon add` and the seam land in Phase 2,
 where the parser is first used.
 
+### ADR-010 — Parser source spans are deferred (library seals its event API)
+**Status:** Accepted. (Refines ADR-009; does not supersede it — the library is
+still our parser.)
+**Context:** ADR-009 chose `moonbit-community/yaml` partly for per-node source
+spans via its `MarkedEventReceiver` (events carry `Marker { line, col }`).
+Implementing that seam revealed the trait is a **sealed** `pub trait` (not
+`pub(open)`), so a type in *our* crate cannot implement it — the event/marker
+API is unusable by external callers. The high-level `Yaml::load_from_string`
+value tree we can use carries **no positions**, and its `YamlError` is opaque
+across the package boundary (no extractable marker).
+**Decision:** For now the `yaml` seam consumes `Yaml::load_from_string` and maps
+its (already text/number/bool-classified) value tree to our `Node`. `Node`
+carries **no spans yet**; diagnostics from `yaml`/`loader` name the **file** but
+not a line/col. This is acceptable because **rich file/line/col diagnostics are a
+Phase 8 deliverable**, not a Phase 2 one.
+**Consequences / path forward:** the `yaml` seam (§4) keeps the parser swappable,
+so Phase 8 can obtain spans by one of: (a) upstreaming an open/marked API to
+`moonbit-community/yaml`, (b) vendoring a span-capable subset parser, or (c)
+switching parsers — all behind the seam, touching only `yaml` (+ the shape of
+`Node`). Downstream code already flows optional spans through `@diag.Diagnostic`
+(its `span` is optional), so adding spans later is additive.
+
 ## 8. Open questions
 
-- **Q1 — YAML parser.** ✅ **Decided (ADR-009):** depend on
-  `moonbit-community/yaml@0.0.6` (pure MoonBit, libyaml/PyYAML event model with
-  `Marker` spans, anchors/aliases, `ToJson`, no native FFI), consumed behind the
-  `yaml` seam. `moon add` + seam land in Phase 2.
+- **Q1 — YAML parser.** ✅ **Decided (ADR-009), refined (ADR-010):** depend on
+  `moonbit-community/yaml@0.0.6` (pure MoonBit, no native FFI), consumed behind
+  the `yaml` seam. Its span-carrying event API turned out to be a sealed trait, so
+  per-node spans are deferred to Phase 8 (ADR-010); the seam keeps that swap
+  local. `moon add` + seam landed in Phase 2.
 - **Q2 — Schema altitude.** How close should the schema mirror Excel's structure
   vs. a higher-level ergonomic DSL (e.g. `table:` shorthands)? Start close to
   Excel, add sugar later.
@@ -313,6 +337,18 @@ where the parser is first used.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-23** — **Phase 2: the `yaml` parser seam.** Added
+  `moonbit-community/yaml@0.0.6` and the `yaml` package, which turns YAML source
+  into our own `Node` tree (`Str`/`Int`/`Float`/`Bool`/`Null`/`Seq`/`Map`) behind
+  a seam, so the pipeline never touches the parser directly. Scalars arrive
+  already classified — a bare `1` is `Int`, a quoted `"1"` is `Str` — which is
+  exactly the text-vs-number distinction the loader needs. Syntax errors and
+  unrepresentable values become `@diag.YamlError`s that name the file.
+  **Correction to ADR-009:** the library's span-carrying event API is a *sealed*
+  trait we cannot implement, and its value tree has no positions, so per-node
+  source spans are deferred to Phase 8 (rich diagnostics) — recorded as ADR-010;
+  the seam keeps that future swap local.
 
 - **2026-07-23** — **Phase 1 complete: YAML parser chosen (ADR-009).** Picked
   `moonbit-community/yaml@0.0.6` — a pure-MoonBit, libyaml/PyYAML-style event

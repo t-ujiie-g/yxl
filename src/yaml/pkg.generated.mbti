@@ -1,0 +1,28 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "t-ujiie-g/yxl/yaml"
+
+import {
+  "moonbitlang/core/debug",
+  "t-ujiie-g/yxl/diag",
+}
+
+// Values
+pub fn parse(String, file~ : String) -> Node raise @diag.YamlError
+
+// Errors
+
+// Types and methods
+pub(all) enum Node {
+  Str(String)
+  Int(Int64)
+  Float(Double)
+  Bool(Bool)
+  Null
+  Seq(Array[Node])
+  Map(Array[(String, Node)])
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits
+
