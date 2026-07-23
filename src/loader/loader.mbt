@@ -83,14 +83,12 @@ fn load_sheet(
         )
     }
   }
-  let sheet_name = match name {
-    Some(name) => name
-    None => raise schema_error(file~, "a sheet is missing required key 'name'")
+  guard name is Some(sheet_name) else {
+    raise schema_error(file~, "a sheet is missing required key 'name'")
   }
   let sheet = workbook.add_sheet(sheet_name)
-  match cells {
-    Some(cells_node) => load_cells(cells_node, sheet, file~)
-    None => ()
+  if cells is Some(cells_node) {
+    load_cells(cells_node, sheet, file~)
   }
   sheet_name
 }

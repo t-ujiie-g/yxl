@@ -13,7 +13,7 @@ fn run() -> Int {
   let args = @sys.get_cli_args()[1:]
   let command = @cli.parse_args(args) catch {
     @diag.CliError(d) => {
-      println("yxl: \{d.render()}")
+      report(d.render())
       return @cli.exit_usage
     }
   }
@@ -27,22 +27,29 @@ fn run() -> Int {
 fn build(input : String, output : String) -> Int {
   let source = @fs.read_file_to_string(input) catch {
     @fs.IOError(reason) => {
-      println("yxl: cannot read \{input}: \{reason}")
+      report("cannot read \{input}: \{reason}")
       return @cli.exit_error
     }
   }
   let bytes = @cli.compile(source, file=input) catch {
     err => {
-      println("yxl: \{@cli.error_message(err)}")
+      report(@cli.error_message(err))
       return @cli.exit_error
     }
   }
   @fs.write_bytes_to_file(output, bytes) catch {
     @fs.IOError(reason) => {
-      println("yxl: cannot write \{output}: \{reason}")
+      report("cannot write \{output}: \{reason}")
       return @cli.exit_error
     }
   }
-  println("yxl: wrote \{output}")
+  report("wrote \{output}")
   @cli.exit_ok
+}
+
+///|
+/// Print one `yxl: …` line. The single place that decides where CLI messages go
+/// (routing errors to stderr is a later refinement).
+fn report(message : String) -> Unit {
+  println("yxl: \{message}")
 }

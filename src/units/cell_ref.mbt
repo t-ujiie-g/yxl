@@ -2,7 +2,8 @@
 /// A 1-based cell reference — column and row, where (1, 1) is `A1`. Stored as
 /// numbers rather than an A1 string so the model stays backend-agnostic and
 /// range/offset arithmetic is possible; `to_a1` renders the Excel form. Using a
-/// newtype here (not a bare `String`) is the type-safe-boundary rule (AGENTS §7).
+/// newtype here, rather than a bare `String`, keeps cell references type-safe at
+/// internal API boundaries.
 pub struct CellRef {
   col : Int
   row : Int

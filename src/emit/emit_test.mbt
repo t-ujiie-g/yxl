@@ -1,7 +1,7 @@
 ///|
-/// Golden / round-trip test at the compile boundary (AGENTS §6): a model
-/// compiles to `.xlsx` bytes, and re-opening those bytes with the backend's
-/// reader yields the cells the model declared.
+/// Golden / round-trip test at the compile boundary: a model compiles to `.xlsx`
+/// bytes, and re-opening those bytes with the backend's reader yields the cells
+/// the model declared.
 test "to_bytes round-trips a model through real .xlsx bytes" {
   let wb = @model.Workbook::new()
   let sheet = wb.add_sheet("Sheet1")

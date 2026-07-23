@@ -39,7 +39,7 @@ pub fn Span::point(file : String, at : Pos) -> Span {
 ///|
 /// Render the span's start as `file:line:col`, the conventional location prefix
 /// an editor can jump to. The end position is carried for future caret
-/// rendering (Phase 8) but not shown here.
+/// rendering but not shown here.
 pub fn Span::render(self : Span) -> String {
   "\{self.file}:\{self.start.line}:\{self.start.col}"
 }

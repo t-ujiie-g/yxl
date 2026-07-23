@@ -352,6 +352,14 @@ swap touches one file.
 
 Reverse-chronological. One entry per user-visible or structural change.
 
+- **2026-07-23** — **Refactor pass (whole tree).** Removed the vestigial root
+  `t-ujiie-g/yxl` package — the `moon new` stub and the Phase-0 backend smoke
+  test, now covered by the `emit` round-trip and `cli` golden tests. Factored the
+  CLI's `yxl:` message prefix into one `report` helper; adopted `guard … is
+  Some(x) else …` for the argument and sheet-name checks; and scrubbed roadmap
+  phase/section codes from comments (keeping stable `ADR-nnn` references). No
+  behaviour change; 35 tests green.
+
 - **2026-07-23** — **Phase 2 complete: the `yxl build` CLI (walking skeleton).**
   Added the `cli` library (I/O-free: argument parsing → a `Command`, and
   `compile`, the whole parse→load→emit pipeline as source → `.xlsx` bytes) and a

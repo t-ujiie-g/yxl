@@ -6,7 +6,7 @@
 ///
 /// The current parser exposes no source positions to external callers (ADR-010),
 /// so diagnostics name the file but not yet a line/col — rich positional
-/// diagnostics are a later phase, and the seam keeps that change local.
+/// diagnostics are a later addition, and the seam keeps that change local.
 pub fn parse(source : String, file~ : String) -> Node raise @diag.YamlError {
   let documents = @yamllib.Yaml::load_from_string(source) catch {
     err => raise from_library_error(err, file)

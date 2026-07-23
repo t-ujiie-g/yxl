@@ -1,5 +1,5 @@
-// Process exit codes. Stable across releases (Phase 8 formalises the full set);
-// 2 for a usage/argument error is the common Unix convention.
+// Process exit codes, stable across releases. 2 for a usage/argument error is
+// the common Unix convention.
 
 ///|
 /// Success.
@@ -62,13 +62,9 @@ fn parse_build(args : ArrayView[String]) -> Command raise @diag.CliError {
       }
     }
   }
-  let input = match input {
-    Some(input) => input
-    None => raise usage_error("no input file given")
-  }
-  let output = match output {
-    Some(output) => output
-    None => raise usage_error("no output file given (use -o <out.xlsx>)")
+  guard input is Some(input) else { raise usage_error("no input file given") }
+  guard output is Some(output) else {
+    raise usage_error("no output file given (use -o <out.xlsx>)")
   }
   Build(input~, output~)
 }

@@ -17,7 +17,7 @@ pub fn Diagnostic::new(message : String, span? : Span) -> Diagnostic {
 ///|
 /// Render as `file:line:col: message` when anchored, or just `message` when
 /// there is no span. This is the plain single-line form; carets and colour are
-/// a CLI concern (Phase 8).
+/// a CLI concern.
 pub fn Diagnostic::render(self : Diagnostic) -> String {
   match self.span {
     Some(span) => "\{span.render()}: \{self.message}"

@@ -1,8 +1,8 @@
-// Subdomain error types, one per pipeline stage (AGENTS.md §7). Each wraps a
-// `Diagnostic` so failures share a single source-located shape, and each stage
-// raises its own type — never a raw `String` — so a `catch` can tell where a
-// failure came from. Constructors are public: pattern-match `YamlError(d)` to
-// reach the wrapped diagnostic.
+// Subdomain error types, one per pipeline stage. Each wraps a `Diagnostic` so
+// failures share a single source-located shape, and each stage raises its own
+// type — never a raw `String` — so a `catch` can tell where a failure came
+// from. Constructors are public: pattern-match `YamlError(d)` to reach the
+// wrapped diagnostic.
 
 ///|
 /// A failure in the `yaml` stage: the source is not well-formed YAML.
