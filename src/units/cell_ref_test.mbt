@@ -1,4 +1,24 @@
 ///|
+test "parse_column maps labels to 1-based indices (inverse of the column half of to_a1)" {
+  assert_eq(@units.parse_column("A"), Some(1))
+  assert_eq(@units.parse_column("Z"), Some(26))
+  assert_eq(@units.parse_column("AA"), Some(27))
+  assert_eq(@units.parse_column("AAA"), Some(703))
+  // Not a bare label: empty, lowercase, or containing digits.
+  assert_eq(@units.parse_column(""), None)
+  assert_eq(@units.parse_column("a"), None)
+  assert_eq(@units.parse_column("A1"), None)
+}
+
+///|
+test "parse_uint reads a non-negative digit run, rejecting empty or non-digit" {
+  assert_eq(@units.parse_uint("0"), Some(0))
+  assert_eq(@units.parse_uint("42"), Some(42))
+  assert_eq(@units.parse_uint(""), None)
+  assert_eq(@units.parse_uint("1a"), None)
+}
+
+///|
 test "CellRef::to_a1 encodes single-letter columns" {
   assert_eq(@units.CellRef::new(col=1, row=1).to_a1(), "A1")
   assert_eq(@units.CellRef::new(col=26, row=10).to_a1(), "Z10")

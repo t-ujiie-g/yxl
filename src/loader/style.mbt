@@ -7,6 +7,32 @@
 // `loader.mbt`.
 
 ///|
+/// Fold a `style:` mapping and a `format:` number-format shorthand into one
+/// model style. The `format:` code sets the style's number format. An entirely
+/// empty result becomes `None`, leaving the owner on the default style. Shared
+/// by cell, column, and row styles (`context` names the owner in diagnostics).
+fn combine_style(
+  style_node : @yaml.Node?,
+  number_format : String?,
+  file~ : String,
+  context~ : String,
+) -> @model.Style? raise @diag.SchemaError {
+  let base = match style_node {
+    Some(node) => load_style(node, file~, context~)
+    None => @model.Style::empty()
+  }
+  let combined = match number_format {
+    Some(code) => { ..base, number_format: Some(code) }
+    None => base
+  }
+  if combined.is_empty() {
+    None
+  } else {
+    Some(combined)
+  }
+}
+
+///|
 /// Parse a `style:` mapping into a model style (without a number format, which
 /// the caller supplies from the `format:` shorthand). Keys are `font`, `fill`,
 /// `border`, and `align`; anything else is a diagnostic.

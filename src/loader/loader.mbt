@@ -1,17 +1,25 @@
 ///|
 /// Load a parsed YAML document into a workbook model, validating the schema. The
-/// spec is a mapping with a `sheets` sequence (and an optional top-level
-/// `date1904`); each sheet has a `name` and an optional `cells` mapping of A1
-/// reference to a value. A cell value is either a scalar shorthand or an expanded
-/// mapping (`value`/`formula`, `type`, `format`) — see `load_cell`.
+/// spec is a mapping with a `sheets` sequence plus optional top-level `date1904`
+/// (the 1904 date system) and `default_font` (the workbook default font face).
+/// Each sheet has a `name` and optional `cells` (an A1-reference mapping),
+/// `columns`, and `rows` (whole-band default styles — see `load_columns`). A
+/// cell value is a scalar shorthand or an expanded mapping with a `value`,
+/// `formula`, or `rich` run list, plus optional `type`, `format`, and `style`
+/// (see `load_cell`).
 ///
 /// ```yaml
+/// default_font: Calibri
 /// sheets:
 ///   - name: Sheet1
+///     columns:
+///       - at: B
+///         style: { font: { bold: true } }
 ///     cells:
 ///       A1: hello
 ///       B1: { value: 0.5, format: "0.00%" }
-///       C1: { formula: "SUM(B1:B1)" }
+///       C1: { formula: "SUM(B1:B1)", style: { font: { italic: true } } }
+///       D1: { rich: ["plain ", { text: bold, font: { bold: true } }] }
 /// ```
 ///
 /// Unknown keys, wrong types, and bad cell references are `@diag.SchemaError`s
@@ -55,17 +63,15 @@ fn read_date_system(
   root : Array[(String, @yaml.Node)],
   file~ : String,
 ) -> @units.DateSystem raise @diag.SchemaError {
-  for entry in root {
-    let (key, value) = entry
-    if key == "date1904" {
-      return if expect_bool(value, file~, context="'date1904'") {
+  match find_key(root, "date1904") {
+    Some(value) =>
+      if expect_bool(value, file~, context="'date1904'") {
         Date1904
       } else {
         Date1900
       }
-    }
+    None => Date1900
   }
-  Date1900
 }
 
 ///|
@@ -75,10 +81,19 @@ fn read_default_font(
   root : Array[(String, @yaml.Node)],
   file~ : String,
 ) -> String? raise @diag.SchemaError {
+  match find_key(root, "default_font") {
+    Some(value) => Some(expect_string(value, file~, context="'default_font'"))
+    None => None
+  }
+}
+
+///|
+/// The value of the first `key` entry in a mapping's entries, or `None`.
+fn find_key(root : Array[(String, @yaml.Node)], key : String) -> @yaml.Node? {
   for entry in root {
-    let (key, value) = entry
-    if key == "default_font" {
-      return Some(expect_string(value, file~, context="'default_font'"))
+    let (candidate, value) = entry
+    if candidate == key {
+      return Some(value)
     }
   }
   None
@@ -90,10 +105,7 @@ fn load_sheets(
   workbook : @model.Workbook,
   file~ : String,
 ) -> Unit raise @diag.SchemaError {
-  let items = match node {
-    @yaml.Seq(items) => items
-    _ => raise schema_error(file~, "'sheets' must be a sequence")
-  }
+  let items = expect_seq(node, file~, context="'sheets'")
   let seen_names = []
   for item in items {
     let name = load_sheet(item, workbook, file~)

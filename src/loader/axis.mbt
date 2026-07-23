@@ -141,12 +141,12 @@ fn parse_row_selector(
   file~ : String,
 ) -> (Int, Int) raise @diag.SchemaError {
   let (start, end) = split_range(selector)
-  guard parse_positive_int(start) is Some(first) else {
+  guard parse_row_index(start) is Some(first) else {
     raise schema_error(file~, "'\{selector}' is not a valid row")
   }
   let last = match end {
     Some(end) =>
-      match parse_positive_int(end) {
+      match parse_row_index(end) {
         Some(last) => last
         None => raise schema_error(file~, "'\{selector}' is not a valid row")
       }
@@ -170,20 +170,11 @@ fn split_range(selector : String) -> (String, String?) {
 }
 
 ///|
-/// Parse a run of ASCII digits as a positive (`>= 1`) integer, or `None`.
-fn parse_positive_int(text : String) -> Int? {
-  let chars = text.to_array()
-  if chars.is_empty() {
-    return None
-  }
-  let mut value = 0
-  for ch in chars {
-    guard ch is ('0'..='9') else { return None }
-    value = value * 10 + (ch.to_int() - 48)
-  }
-  if value < 1 {
-    None
-  } else {
-    Some(value)
+/// Parse a run of ASCII digits as a 1-based row index (`>= 1`), or `None`. A row
+/// number is a positive integer, so `0` is rejected.
+fn parse_row_index(text : String) -> Int? {
+  match @units.parse_uint(text[:]) {
+    Some(value) if value >= 1 => Some(value)
+    _ => None
   }
 }

@@ -126,8 +126,10 @@ fn days_in_month(year : Int, month : Int) -> Int {
 }
 
 ///|
-/// Parse a non-empty run of ASCII digits; `None` for empty or non-digit input.
-fn parse_uint(text : StringView) -> Int? {
+/// Parse a non-empty run of ASCII digits into a non-negative integer; `None` for
+/// empty or non-digit input. Shared by date parsing and the loader's row
+/// selectors.
+pub fn parse_uint(text : StringView) -> Int? {
   guard !text.is_empty() else { return None }
   let mut value = 0
   for ch in text {

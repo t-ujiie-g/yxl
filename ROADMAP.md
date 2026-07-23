@@ -381,6 +381,19 @@ swap touches one file.
 
 Reverse-chronological. One entry per user-visible or structural change.
 
+- **2026-07-24** — **Refactor pass (whole tree).** Deduplicated: the two
+  top-level key scans (`read_date_system`/`read_default_font`) now share a
+  `find_key` helper, and `load_sheets` uses the existing `expect_seq`; the
+  loader's row-index digit parser reuses `@units.parse_uint` (promoted to public)
+  instead of a second hand-rolled loop; the emitter's underline OOXML mapping is
+  a single `underline_code` helper shared by the cell-font and rich-text-font
+  builders. Moved `combine_style` from `cell.mbt` to `style.mbt`, co-locating
+  style assembly with the style parser it drives. Refreshed the stale `load`
+  doc comment (it predated `style`/`rich`/`columns`/`rows`/`default_font`) and
+  added direct unit tests for `@units.parse_column` and `@units.parse_uint`. No
+  behaviour change; only public-API delta is the intentional `parse_uint`
+  export. 75 tests green.
+
 - **2026-07-24** — **Phase 4 complete: column/row default styles + workbook
   default font.** A sheet may carry `columns:` and `rows:` — sequences of bands,
   each `{ at: <selector>, style?, format? }` — that apply a default style to a

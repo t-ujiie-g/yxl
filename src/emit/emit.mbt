@@ -159,11 +159,21 @@ fn build_font(font : @model.Font) -> @xlsx.Font {
     bold?=font.bold,
     italic?=font.italic,
     strike?=font.strike,
-    underline?=font.underline.map(on => if on { "single" } else { "none" }),
+    underline?=font.underline.map(underline_code),
     size?=font.size,
     color?=font.color.map(color => color.hex()),
     family?=font.name,
   )
+}
+
+///|
+/// The OOXML underline-style attribute for a model font's underline toggle.
+fn underline_code(on : Bool) -> String {
+  if on {
+    "single"
+  } else {
+    "none"
+  }
 }
 
 ///|
@@ -275,7 +285,7 @@ fn build_rich_font(font : @model.Font) -> @xlsx.RichTextFont {
     shadow: false,
     condense: false,
     extended: false,
-    underline: font.underline.map(on => if on { "single" } else { "none" }),
+    underline: font.underline.map(underline_code),
     size: font.size,
     color: font.color.map(color => color.hex()),
     color_theme: None,
