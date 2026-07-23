@@ -1,0 +1,16 @@
+// The CLI's testable core: argument parsing and the I/O-free compile pipeline
+// (source string -> .xlsx bytes). All filesystem access and process exit live in
+// the `cmd/main` executable, not here (ADR-003), so this package unit-tests
+// without touching the disk.
+import {
+  "t-ujiie-g/yxl/yaml",
+  "t-ujiie-g/yxl/loader",
+  "t-ujiie-g/yxl/emit",
+  "t-ujiie-g/yxl/diag",
+}
+
+// The golden test re-opens compiled bytes with the backend reader to assert the
+// cells survived the whole pipeline.
+import {
+  "bobzhang/mbtexcel/xlsx",
+} for "test"

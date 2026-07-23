@@ -1,5 +1,11 @@
-// import {
-//   "t-ujiie-g/yxl" @lib,
-// }
+// The native executable. The only place with filesystem access and process
+// exit (ADR-003): read the spec, hand its text to the I/O-free `cli` pipeline,
+// write the bytes back, and turn errors into exit codes.
+import {
+  "t-ujiie-g/yxl/cli",
+  "t-ujiie-g/yxl/diag",
+  "moonbitlang/x/fs",
+  "moonbitlang/x/sys",
+}
 
 pkgtype(kind: "executable")

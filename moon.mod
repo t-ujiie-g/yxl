@@ -30,4 +30,5 @@ description = "A YAML-driven Excel (.xlsx) compiler and CLI — manage spreadshe
 import {
   "bobzhang/mbtexcel@0.1.8",
   "moonbit-community/yaml@0.0.6",
+  "moonbitlang/x@0.4.47",
 }

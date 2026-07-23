@@ -119,8 +119,8 @@ The **active phase** is the first phase with any unchecked box.
 - [x] Parse a minimal spec: `workbook › sheets › cells` (text / number / bool)
       — the `yaml` seam: source → a `Node` document tree (ADR-010)
 - [x] `loader` maps it to `model`; `emit` produces `.xlsx` (incl. `bool` cells)
-- [ ] `cli`: `yxl build <in.yaml> -o <out.xlsx>` (native), exit codes
-- [ ] Golden test: spec → bytes → re-open → assert cells
+- [x] `cli`: `yxl build <in.yaml> -o <out.xlsx>` (native), exit codes (ADR-011)
+- [x] Golden test: spec → bytes → re-open → assert cells
 
 ### Phase 3 — Rich cell values
 - [ ] Dates / date-times (with a date system), number formats (built-in + custom)
@@ -288,6 +288,20 @@ switching parsers — all behind the seam, touching only `yaml` (+ the shape of
 `Node`). Downstream code already flows optional spans through `@diag.Diagnostic`
 (its `span` is optional), so adding spans later is additive.
 
+### ADR-011 — `moonbitlang/x` for the CLI's filesystem, args, and exit
+**Status:** Accepted.
+**Context:** The `cmd/main` executable needs synchronous file read/write, the
+argv, and a process exit code. `core` has none of these; `moonbitlang/async/fs`
+(a transitive dep) is async and would drag an event loop into a simple batch CLI.
+**Decision:** Depend on **`moonbitlang/x@0.4.47`** (the official MoonBit extended
+library) and use `x/fs` (`read_file_to_string`, `write_bytes_to_file`) and
+`x/sys` (`get_cli_args`, `exit`). It is used **only** in `cmd/main`, preserving
+the I/O-free core (ADR-003). Its `IOError` is `pub(all)`, so the CLI pattern-matches
+it for a clean "cannot read/write \<file\>: \<reason\>" message.
+**Trade-offs:** `x` is a broad, still-`0.x` grab-bag, but it is first-party and
+the surface we use (fs/sys) is small and stable; confined to `cmd/main`, a future
+swap touches one file.
+
 ## 8. Open questions
 
 - **Q1 — YAML parser.** ✅ **Decided (ADR-009), refined (ADR-010):** depend on
@@ -337,6 +351,18 @@ switching parsers — all behind the seam, touching only `yaml` (+ the shape of
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-23** — **Phase 2 complete: the `yxl build` CLI (walking skeleton).**
+  Added the `cli` library (I/O-free: argument parsing → a `Command`, and
+  `compile`, the whole parse→load→emit pipeline as source → `.xlsx` bytes) and a
+  thin `cmd/main` native executable that reads the spec, compiles it, writes the
+  workbook, and maps failures to stable exit codes (0 ok · 1 spec/emit/IO error ·
+  2 usage) — the only place with filesystem access and process exit (ADR-003).
+  Added `moonbitlang/x` for `x/fs`/`x/sys` (ADR-011). A **golden test** compiles a
+  spec, re-opens the bytes with the backend reader, and asserts the cells across
+  text/number/bool (quoted `"007"` stays text). `yxl build report.yxl.yaml -o
+  report.xlsx` now produces a real, valid workbook end to end. **Phase 2 done;
+  the active phase is Phase 3 (rich cell values).**
 
 - **2026-07-23** — **Phase 2: the `loader` (spec → model).** Added the `loader`
   package: it interprets the minimal schema — a top-level `sheets` sequence, each

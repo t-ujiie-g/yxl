@@ -1,0 +1,32 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "t-ujiie-g/yxl/cli"
+
+import {
+  "moonbitlang/core/debug",
+  "t-ujiie-g/yxl/diag",
+}
+
+// Values
+pub fn compile(String, file~ : String) -> Bytes raise
+
+pub fn error_message(Error) -> String
+
+pub let exit_error : Int
+
+pub let exit_ok : Int
+
+pub let exit_usage : Int
+
+pub fn parse_args(ArrayView[String]) -> Command raise @diag.CliError
+
+// Errors
+
+// Types and methods
+pub(all) enum Command {
+  Build(input~ : String, output~ : String)
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits
+
