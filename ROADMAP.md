@@ -118,7 +118,7 @@ The **active phase** is the first phase with any unchecked box.
 ### Phase 2 — YAML → a sheet of values (walking skeleton)
 - [x] Parse a minimal spec: `workbook › sheets › cells` (text / number / bool)
       — the `yaml` seam: source → a `Node` document tree (ADR-010)
-- [ ] `loader` maps it to `model`; `emit` produces `.xlsx`
+- [x] `loader` maps it to `model`; `emit` produces `.xlsx` (incl. `bool` cells)
 - [ ] `cli`: `yxl build <in.yaml> -o <out.xlsx>` (native), exit codes
 - [ ] Golden test: spec → bytes → re-open → assert cells
 
@@ -337,6 +337,15 @@ switching parsers — all behind the seam, touching only `yaml` (+ the shape of
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-23** — **Phase 2: the `loader` (spec → model).** Added the `loader`
+  package: it interprets the minimal schema — a top-level `sheets` sequence, each
+  sheet a `name` plus an optional `cells` mapping of A1 reference → scalar — and
+  builds a `model.Workbook`, failing fast (ADR-006) on unknown keys, wrong types,
+  invalid cell references, and duplicate sheet names as `@diag.SchemaError`s that
+  name the file. Extended `model.CellValue` and the `emit` backend with `Bool`
+  cells, and added `units.CellRef::parse_a1` (the validated inverse of `to_a1`).
+  The `model → .xlsx` path now covers text, number, and boolean cells end to end.
 
 - **2026-07-23** — **Phase 2: the `yaml` parser seam.** Added
   `moonbit-community/yaml@0.0.6` and the `yaml` package, which turns YAML source

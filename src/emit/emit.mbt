@@ -48,6 +48,7 @@ fn build_workbook(wb : @model.Workbook) -> Bytes raise @xlsx.XlsxError {
       let value = match cell.value {
         Text(text) => @xlsx.CellValue::String(text)
         Number(number) => @xlsx.CellValue::Numeric(number)
+        Bool(flag) => @xlsx.CellValue::Bool(flag)
       }
       backend.set_cell_value(sheet.name, cell.pos.to_a1(), value)
     }

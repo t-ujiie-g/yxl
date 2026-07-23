@@ -1,0 +1,14 @@
+// Document tree -> model, with schema validation. Turns a `yaml.Node` into a
+// `model.Workbook`, rejecting unknown keys, wrong types, and bad cell
+// references as `@diag.SchemaError`s (ADR-006). Pure: no filesystem access.
+import {
+  "t-ujiie-g/yxl/yaml",
+  "t-ujiie-g/yxl/model",
+  "t-ujiie-g/yxl/units",
+  "t-ujiie-g/yxl/diag",
+}
+
+// `debug_inspect` renders the workbook model (which derives `Debug`) in tests.
+import {
+  "moonbitlang/core/debug",
+} for "test"

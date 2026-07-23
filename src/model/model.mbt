@@ -1,9 +1,10 @@
 ///|
-/// A cell's value in the minimal model: text or a number. Richer kinds
-/// (booleans, dates, formulas, error literals) arrive in later phases.
+/// A cell's value in the minimal model: text, a number, or a boolean. Richer
+/// kinds (dates, formulas, error literals) arrive in later phases.
 pub(all) enum CellValue {
   Text(String)
   Number(Double)
+  Bool(Bool)
 } derive(Eq, Debug)
 
 ///|

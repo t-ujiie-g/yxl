@@ -7,6 +7,7 @@ test "to_bytes round-trips a model through real .xlsx bytes" {
   let sheet = wb.add_sheet("Sheet1")
   sheet.set(@units.CellRef::new(col=1, row=1), Text("yxl"))
   sheet.set(@units.CellRef::new(col=2, row=1), Number(42.0))
+  sheet.set(@units.CellRef::new(col=3, row=1), Bool(true))
   sheet.set(@units.CellRef::new(col=1, row=2), Text("second row"))
   let bytes = @emit.to_bytes(wb)
 
@@ -19,6 +20,8 @@ test "to_bytes round-trips a model through real .xlsx bytes" {
   let reopened = @xlsx.read(bytes[:])
   assert_eq(reopened.get_cell("Sheet1", "A1"), Some("yxl"))
   assert_eq(reopened.get_cell("Sheet1", "B1"), Some("42"))
+  // The backend reads a boolean cell back as "1"/"0".
+  assert_eq(reopened.get_cell("Sheet1", "C1"), Some("1"))
   assert_eq(reopened.get_cell("Sheet1", "A2"), Some("second row"))
 }
 

@@ -19,6 +19,7 @@ pub(all) struct Cell {
 pub(all) enum CellValue {
   Text(String)
   Number(Double)
+  Bool(Bool)
 } derive(Eq, @debug.Debug)
 
 pub(all) struct Sheet {
