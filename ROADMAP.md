@@ -113,7 +113,7 @@ The **active phase** is the first phase with any unchecked box.
       write)
 - [x] Minimal `model`: workbook / sheet / cell / value
 - [x] `units`: type-safe `CellRef` (needed by the model; §4 package)
-- [ ] Pick the YAML parser (§8 Q1) — record the decision as an ADR
+- [x] Pick the YAML parser (§8 Q1) — record the decision as an ADR (ADR-009)
 
 ### Phase 2 — YAML → a sheet of values (walking skeleton)
 - [ ] Parse a minimal spec: `workbook › sheets › cells` (text / number / bool)
@@ -235,11 +235,42 @@ mismatches are diagnostics with source spans, never silently dropped or guessed.
 map of §4 in Phase 1, so `moon.mod` uses `source = "src"` and packages have
 clear, acyclic boundaries.
 
+### ADR-009 — YAML parser: depend on `moonbit-community/yaml`, behind our seam
+**Status:** Accepted. (Resolves §8 Q1.)
+**Context:** Four candidates exist in the registry: `moonbit-community/yaml`
+(pure MoonBit), `myfreess/yaml` (no description/repo, one release),
+`ingydotnet/yamlscript` & `yamlstar` (official YAML-org loaders), and
+`tonyfettes/tree_sitter_yaml` (a tree-sitter grammar). We need source positions
+for diagnostics (ADR-006) and a self-contained native binary (ADR-003).
+**Decision:** Depend on **`bobzhang`-style pure library `moonbit-community/yaml`**
+(pin `@0.0.6`), consumed **behind the `yaml` seam package** (§4). It follows the
+proven libyaml/PyYAML event architecture (`Parser` → `Event` stream with a
+`MarkedEventReceiver`), exposes a `Marker { index, line, col }` so we can attach
+file/line/col to every `YamlError` (ADR-006), already handles anchors/aliases
+(useful for the reuse model, §8 Q3), provides a `Yaml` value tree with `ToJson`,
+and depends only on `core` — **no native FFI**, so the CLI stays a clean,
+portable native build (ADR-003).
+**Rejected:** `ingydotnet/*` — the strongest *pedigree* (the YAML project
+itself), but they bind to the native `libyamlscript` shared library, adding a
+heavy, platform-specific runtime dependency at odds with ADR-003.
+`tree_sitter_yaml` — a C/tree-sitter grammar producing a concrete syntax tree,
+not a value loader; also native FFI. `myfreess/yaml` — too immature.
+Hand-rolling a `@json` subset — deferred fallback only, loses YAML ergonomics
+(comments, anchors, block scalars) and re-implements a solved problem.
+**Trade-offs:** the library is young (0.0.x) and may churn — mitigated by the
+`yaml` seam (§4, §8 Q1), which exposes *our* document tree + spans to the rest of
+the pipeline so the dependency can be swapped or vendored without touching
+`loader`/`resolve`/`emit`. For full per-node spans we drive the low-level
+`MarkedEventReceiver` (events carry `Marker`s), not just `Yaml::load_from_string`
+(whose value tree drops positions). The `moon add` and the seam land in Phase 2,
+where the parser is first used.
+
 ## 8. Open questions
 
-- **Q1 — YAML parser.** Is there a mature MoonBit YAML library to depend on? If
-  not: vendor a minimal YAML subset, or start on a JSON-compatible subset via
-  `@json` and widen. Put the parser behind a seam either way. (Decide in Phase 1.)
+- **Q1 — YAML parser.** ✅ **Decided (ADR-009):** depend on
+  `moonbit-community/yaml@0.0.6` (pure MoonBit, libyaml/PyYAML event model with
+  `Marker` spans, anchors/aliases, `ToJson`, no native FFI), consumed behind the
+  `yaml` seam. `moon add` + seam land in Phase 2.
 - **Q2 — Schema altitude.** How close should the schema mirror Excel's structure
   vs. a higher-level ergonomic DSL (e.g. `table:` shorthands)? Start close to
   Excel, add sugar later.
@@ -282,6 +313,17 @@ clear, acyclic boundaries.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-23** — **Phase 1 complete: YAML parser chosen (ADR-009).** Picked
+  `moonbit-community/yaml@0.0.6` — a pure-MoonBit, libyaml/PyYAML-style event
+  parser with `Marker` (line/col) spans, anchor/alias support, and `ToJson`, and
+  no native FFI — to be consumed behind the `yaml` seam. Rejected the official
+  YAML-org `ingydotnet/*` loaders (native `libyamlscript` FFI, at odds with the
+  self-contained native CLI of ADR-003) and a hand-rolled `@json` subset. The
+  `moon add` and the seam itself land in Phase 2, where the parser is first used.
+  **Phase 1 (foundations: `diag`, `units`, `model`, the emitter seam, and the
+  parser decision) is done; the active phase is now Phase 2 (YAML → a sheet of
+  values).**
 
 - **2026-07-23** — **Phase 1: emitter seam + minimal model + `units`.** Added the
   first end-to-end `model → bytes` path. `units` holds the type-safe `CellRef`
