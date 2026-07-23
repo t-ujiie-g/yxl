@@ -1,0 +1,2 @@
+// The lowest package: diagnostics and subdomain error types. Depends only on
+// core, so every higher package can import it without creating a cycle.

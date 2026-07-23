@@ -107,7 +107,7 @@ The **active phase** is the first phase with any unchecked box.
 
 ### Phase 1 — Foundations (seam, model, diagnostics)
 - [x] Restructure into the `src/` package map (ADR-008)
-- [ ] `diag`: source spans + subdomain error types
+- [x] `diag`: source spans + subdomain error types
 - [ ] The **emitter seam** (ADR-002): a trait `model → bytes`, plus a minimal
       `mbtexcel` implementation (new workbook, one sheet, string/number cell,
       write)
@@ -281,6 +281,16 @@ clear, acyclic boundaries.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-23** — **Phase 1: `diag` package (source spans + subdomain
+  errors).** Added `src/diag`, the lowest package (core-only), with `Pos`
+  (1-based line/col), `Span` (file + start/end, with a `point` helper and a
+  `file:line:col` `render`), and `Diagnostic` (message + optional span, rendering
+  as `file:line:col: message`). Defined the five `pub(all) suberror` types —
+  `YamlError` / `SchemaError` / `ResolveError` / `EmitError` / `CliError`, one
+  per pipeline stage — each wrapping a `Diagnostic` so every stage fails with the
+  same source-located shape and a `catch` can tell stages apart (ADR-006, AGENTS
+  §7). Covered by unit tests for each render path plus raise/catch round-trips.
 
 - **2026-07-23** — **Phase 1 started: `src/` layout (ADR-008).** Moved the flat
   `moon new` scaffold under `src/` and set `source = "src"` in `moon.mod`, so the
