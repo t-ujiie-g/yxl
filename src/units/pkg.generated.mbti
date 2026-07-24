@@ -6,7 +6,7 @@ import {
 }
 
 // Values
-pub fn parse_column(String) -> Int?
+pub fn parse_column(StringView) -> Int?
 
 pub fn parse_uint(StringView) -> Int?
 

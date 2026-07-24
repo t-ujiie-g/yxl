@@ -165,19 +165,18 @@ fn parse_row_selector(
 ///|
 /// Split a `start-end` range selector on its single `-`; a bare selector has no
 /// end. `A` -> `("A", None)`, `D-F` -> `("D", Some("F"))`.
-fn split_range(selector : String) -> (String, String?) {
+fn split_range(selector : String) -> (StringView, StringView?) {
   match selector.find("-") {
-    Some(index) =>
-      (selector[0:index].to_owned(), Some(selector[index + 1:].to_owned()))
-    None => (selector, None)
+    Some(index) => (selector[0:index], Some(selector[index + 1:]))
+    None => (selector[:], None)
   }
 }
 
 ///|
 /// Parse a run of ASCII digits as a 1-based row index (`>= 1`), or `None`. A row
 /// number is a positive integer, so `0` is rejected.
-fn parse_row_index(text : String) -> Int? {
-  match @units.parse_uint(text[:]) {
+fn parse_row_index(text : StringView) -> Int? {
+  match @units.parse_uint(text) {
     Some(value) if value >= 1 => Some(value)
     _ => None
   }

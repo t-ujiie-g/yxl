@@ -134,7 +134,7 @@ pub fn parse_uint(text : StringView) -> Int? {
   let mut value = 0
   for ch in text {
     guard ch is ('0'..='9') else { return None }
-    value = value * 10 + (ch.to_int() - 48)
+    value = value * 10 + (ch.to_int() - '0'.to_int())
   }
   Some(value)
 }

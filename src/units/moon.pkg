@@ -1,3 +1,4 @@
-// Type-safe value newtypes shared across the pipeline (§4): cell references
-// today, colours and dimensions as later phases need them. Pure (core only) so
-// it can sit near the bottom of the dependency graph next to `diag`.
+// Type-safe value newtypes shared across the pipeline (§4): cell references,
+// colours, and date/time serials today; dimensions as later phases need them.
+// Pure (core only) so it can sit near the bottom of the dependency graph next to
+// `diag`.

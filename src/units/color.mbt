@@ -15,12 +15,9 @@ pub fn Color::parse(text : String) -> Color? {
   guard body.length() is (6 | 8) else { return None }
   let out = StringBuilder::new()
   for ch in body {
-    let upper = match ch {
-      '0'..='9' | 'A'..='F' => ch
-      'a'..='f' => (ch.to_int() - 32).to_char().unwrap()
-      _ => return None
-    }
-    out.write_char(upper)
+    guard ch is ('0'..='9' | 'A'..='F' | 'a'..='f') else { return None }
+    // `to_ascii_uppercase` leaves digits and `A`..`F` unchanged.
+    out.write_char(ch.to_ascii_uppercase())
   }
   Some(Color(out.to_string()))
 }

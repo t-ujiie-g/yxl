@@ -448,6 +448,19 @@ each other).
 
 Reverse-chronological. One entry per user-visible or structural change.
 
+- **2026-07-24** — **Refactor pass (whole tree).** Deduplicated the `units`
+  scalar parsers: `CellRef::parse_a1` no longer hand-rolls base-26 and digit
+  loops — it splits the letters from the digits and reuses `parse_column` and
+  `parse_uint`; `parse_column` now takes a `StringView` (matching `parse_uint`),
+  and the loader's `split_range` yields `StringView`s straight into both (dropping
+  its `.to_owned()` copies). Replaced ASCII magic numbers (`65`/`48`/`32`) with
+  char-literal arithmetic (`'A'.to_int()`, `'0'.to_int()`) and `color`'s hex
+  upper-casing loop with `Char::to_ascii_uppercase`. Refreshed two stale package
+  docs: the `yaml` seam no longer claims per-node source spans (it has none yet —
+  ADR-010), and `units` lists colours/dates as present, not future. No behaviour
+  change; the only public-API delta is the intentional `parse_column` →
+  `StringView` signature. 81 tests green.
+
 - **2026-07-24** — **Phase 5: references compile to Excel defined names.** Every
   `defs.values`/`defs.formulas` entry now emits a workbook **defined name** (in
   declaration order, deterministic), and a `{ $ref: name }` reference compiles to
