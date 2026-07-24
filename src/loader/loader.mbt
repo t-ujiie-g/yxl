@@ -3,8 +3,9 @@
 /// spec is a mapping with a `sheets` sequence plus optional top-level `date1904`
 /// (the 1904 date system), `default_font` (the workbook default font face), and
 /// `defs` (named definitions — see `load_defs`). Each sheet has a `name` and
-/// optional `cells` (an A1-reference mapping), `columns`, and `rows` (whole-band
-/// default styles — see `load_columns`). A cell value is a scalar shorthand or an
+/// optional `cells` (an A1-reference mapping), `merges`, and `columns` / `rows`
+/// (bands carrying a default style, a size, visibility, and outline grouping —
+/// see `load_columns`). A cell value is a scalar shorthand or an
 /// expanded mapping with a `value`, `formula`, or `rich` run list, plus optional
 /// `type`, `format`, and `style` (see `load_cell`). A style is referenced by
 /// bareword name and a value/formula by `{ $ref: name }` (ADR-012).
@@ -21,6 +22,9 @@
 ///     columns:
 ///       - at: B
 ///         style: header
+///       - at: D-F
+///         group: 1
+///         hidden: true
 ///     cells:
 ///       A1: { $ref: company }
 ///       B1: { value: 0.5, format: "0.00%", style: header }

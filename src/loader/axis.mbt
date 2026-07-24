@@ -1,15 +1,15 @@
-// Column- and row-style interpretation for the loader: turning a sheet's
-// `columns:` / `rows:` sequences into whole-band default styles on the model
-// sheet. Each entry selects a band with `at` — a column label (`B`, `D-F`) or a
-// row number (`1`, `2-4`) — and carries a `{ style, format }` spec, reusing the
-// shared style parser in `style.mbt`. (A sequence, not a mapping, because the
-// YAML parser rejects bare integer keys, and row selectors are integers.)
-// Structural loading lives in `loader.mbt`.
+// Column- and row-band interpretation for the loader: turning a sheet's
+// `columns:` / `rows:` sequences into `@model.AxisBand`s on the model sheet.
+// Each entry selects a band with `at` — a column label (`B`, `D-F`) or a row
+// number (`1`, `2-4`) — and carries a `{ style, format, width|height, hidden,
+// group }` spec, reusing the shared style parser in `style.mbt`. (A sequence,
+// not a mapping, because the YAML parser rejects bare integer keys, and row
+// selectors are integers.) Structural loading lives in `loader.mbt`.
 
 ///|
 /// Load a sheet's `columns:` sequence: each entry's `at` selects a column or
-/// column range (`B`, `D-F`) carrying that entry's `{ style, format, width }`
-/// spec (width in character units).
+/// column range (`B`, `D-F`) carrying that entry's band spec, whose size key is
+/// `width` (in character units).
 fn load_columns(
   node : @yaml.Node,
   sheet : @model.Sheet,
@@ -19,25 +19,29 @@ fn load_columns(
   for entry in expect_seq(node, file~, context="'columns'") {
     let (selector, spec) = split_band(entry, file~, axis="column")
     let (first, last) = parse_column_selector(selector, file~)
-    let (style, width) = load_axis_spec(
+    let band = load_axis_spec(
       spec,
       file~,
       defs~,
       size_key="width",
       context="column '\{selector}'",
     )
-    if style is Some(style) {
-      sheet.set_column_style(first~, last~, style)
-    }
-    if width is Some(width) {
-      sheet.set_column_width(first~, last~, width)
+    if !band.is_empty() {
+      sheet.set_column_band(
+        first~,
+        last~,
+        style?=band.style,
+        width?=band.size,
+        hidden?=band.hidden,
+        outline_level?=band.outline_level,
+      )
     }
   }
 }
 
 ///|
 /// Load a sheet's `rows:` sequence: each entry's `at` selects a row or row range
-/// (`1`, `2-4`) carrying that entry's `{ style, format, height }` spec (height in
+/// (`1`, `2-4`) carrying that entry's band spec, whose size key is `height` (in
 /// points).
 fn load_rows(
   node : @yaml.Node,
@@ -48,18 +52,22 @@ fn load_rows(
   for entry in expect_seq(node, file~, context="'rows'") {
     let (selector, spec) = split_band(entry, file~, axis="row")
     let (first, last) = parse_row_selector(selector, file~)
-    let (style, height) = load_axis_spec(
+    let band = load_axis_spec(
       spec,
       file~,
       defs~,
       size_key="height",
       context="row '\{selector}'",
     )
-    if style is Some(style) {
-      sheet.set_row_style(first~, last~, style)
-    }
-    if height is Some(height) {
-      sheet.set_row_height(first~, last~, height)
+    if !band.is_empty() {
+      sheet.set_row_band(
+        first~,
+        last~,
+        style?=band.style,
+        height?=band.size,
+        hidden?=band.hidden,
+        outline_level?=band.outline_level,
+      )
     }
   }
 }
@@ -104,20 +112,42 @@ fn expect_selector(
 }
 
 ///|
+/// What a band entry sets, before the selector is resolved to a span: the folded
+/// style, the size (a `width` or a `height`), the hidden flag, and the outline
+/// level. Each is `None` when the entry leaves it out.
+priv struct AxisSpec {
+  style : @model.Style?
+  size : Double?
+  hidden : Bool?
+  outline_level : Int?
+}
+
+///|
+/// Whether the entry set nothing at all (`- at: B` on its own), in which case it
+/// contributes no band rather than an all-defaults one.
+fn AxisSpec::is_empty(self : AxisSpec) -> Bool {
+  self.style is None &&
+  self.size is None &&
+  self.hidden is None &&
+  self.outline_level is None
+}
+
+///|
 /// A band spec: `at` (the already-consumed selector), plus optional `style`,
-/// `format`, and a size (`width` for columns, `height` for rows — `size_key`
-/// names which). Returns the folded style (`None` if the spec sets none) and the
-/// size (`None` if unset).
+/// `format`, a size (`width` for columns, `height` for rows — `size_key` names
+/// which), `hidden`, and `group` (the outline level).
 fn load_axis_spec(
   entries : Array[(String, @yaml.Node)],
   file~ : String,
   defs~ : Defs,
   size_key~ : String,
   context~ : String,
-) -> (@model.Style?, Double?) raise @diag.SchemaError {
+) -> AxisSpec raise @diag.SchemaError {
   let mut style_node = None
   let mut format = None
   let mut size = None
+  let mut hidden = None
+  let mut outline_level = None
   for entry in entries {
     let (key, node) = entry
     match key {
@@ -125,6 +155,10 @@ fn load_axis_spec(
       "style" => style_node = Some(node)
       "format" =>
         format = Some(expect_string(node, file~, context="\{context} format"))
+      "hidden" =>
+        hidden = Some(expect_bool(node, file~, context="\{context} hidden"))
+      "group" =>
+        outline_level = Some(expect_outline_level(node, file~, context~))
       _ if key == size_key =>
         size = Some(
           expect_number(node, file~, context="\{context} \{size_key}"),
@@ -132,11 +166,37 @@ fn load_axis_spec(
       _ =>
         raise schema_error(
           file~,
-          "unknown key '\{key}' in \{context} (expected 'at', 'style', 'format', or '\{size_key}')",
+          "unknown key '\{key}' in \{context} (expected 'at', 'style', 'format', '\{size_key}', 'hidden', or 'group')",
         )
     }
   }
-  (combine_style(style_node, format, file~, defs~, context~), size)
+  {
+    style: combine_style(style_node, format, file~, defs~, context~),
+    size,
+    hidden,
+    outline_level,
+  }
+}
+
+///|
+/// A `group:` outline level: a whole number Excel accepts (0, ungrouped, through
+/// `@model.max_outline_level`). Anything else is a diagnostic rather than a
+/// backend failure at emit time (ADR-006).
+fn expect_outline_level(
+  node : @yaml.Node,
+  file~ : String,
+  context~ : String,
+) -> Int raise @diag.SchemaError {
+  guard node is @yaml.Int(level) else {
+    raise schema_error(file~, "\{context} group must be a whole number")
+  }
+  guard level >= 0 && level <= @model.max_outline_level.to_int64() else {
+    raise schema_error(
+      file~,
+      "\{context} group must be between 0 and \{@model.max_outline_level}",
+    )
+  }
+  level.to_int()
 }
 
 ///|

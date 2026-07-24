@@ -55,29 +55,41 @@ fn build_workbook(wb : @model.Workbook) -> Bytes raise @xlsx.XlsxError {
   let style_ids : Map[@model.Style, Int] = Map([])
   for sheet in wb.sheets {
     backend.new_sheet(sheet.name) |> ignore
-    // Whole-column / whole-row default styles share the cell style cache, so a
-    // column style equal to a cell style reuses the same id (ADR-004).
-    for band in sheet.column_styles {
-      let style_id = intern_style(backend, style_ids, band.style)
+    // Column and row bands: one backend call per property per column/row in the
+    // span. A band's default style shares the cell style cache, so a column
+    // style equal to a cell style reuses the same id (ADR-004).
+    for band in sheet.columns {
+      let style_id = band_style_id(backend, style_ids, band)
       for col in band.first..<=band.last {
-        backend.set_col_style(sheet.name, col, style_id)
+        if style_id is Some(id) {
+          backend.set_col_style(sheet.name, col, id)
+        }
+        if band.size is Some(width) {
+          backend.set_col_width(sheet.name, col, width)
+        }
+        if band.hidden is Some(hidden) {
+          backend.set_col_visible(sheet.name, col, !hidden)
+        }
+        if band.outline_level is Some(level) {
+          backend.set_col_outline_level(sheet.name, col, level)
+        }
       }
     }
-    for band in sheet.row_styles {
-      let style_id = intern_style(backend, style_ids, band.style)
+    for band in sheet.rows {
+      let style_id = band_style_id(backend, style_ids, band)
       for row in band.first..<=band.last {
-        backend.set_row_style(sheet.name, row, style_id)
-      }
-    }
-    // Column-width / row-height bands: one backend call per column/row in span.
-    for band in sheet.column_widths {
-      for col in band.first..<=band.last {
-        backend.set_col_width(sheet.name, col, band.size)
-      }
-    }
-    for band in sheet.row_heights {
-      for row in band.first..<=band.last {
-        backend.set_row_height(sheet.name, row, band.size)
+        if style_id is Some(id) {
+          backend.set_row_style(sheet.name, row, id)
+        }
+        if band.size is Some(height) {
+          backend.set_row_height(sheet.name, row, height)
+        }
+        if band.hidden is Some(hidden) {
+          backend.set_row_visible(sheet.name, row, !hidden)
+        }
+        if band.outline_level is Some(level) {
+          backend.set_row_outline_level(sheet.name, row, level)
+        }
       }
     }
     for cell in sheet.cells {
@@ -153,6 +165,20 @@ fn refers_to(
     Error(text) => text
     Formula(formula~, ..) => formula
     RichText(_) => ""
+  }
+}
+
+///|
+/// The interned style id for a band's default style, or `None` when the band
+/// sets no style. Interned once per band, not once per column/row it covers.
+fn band_style_id(
+  backend : @xlsx.Workbook,
+  cache : Map[@model.Style, Int],
+  band : @model.AxisBand,
+) -> Int? {
+  match band.style {
+    Some(style) => Some(intern_style(backend, cache, style))
+    None => None
   }
 }
 

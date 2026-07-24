@@ -199,19 +199,15 @@ test "load builds sheets and typed cells from a minimal spec" {
       #|        { pos: { col: 3, row: 1 }, value: Bool(true), style: None },
       #|        { pos: { col: 4, row: 1 }, value: Number(3.5), style: None },
       #|      ],
-      #|      column_styles: [],
-      #|      row_styles: [],
-      #|      column_widths: [],
-      #|      row_heights: [],
+      #|      columns: [],
+      #|      rows: [],
       #|      merges: [],
       #|    },
       #|    {
       #|      name: "Second",
       #|      cells: [{ pos: { col: 1, row: 1 }, value: Text("42"), style: None }],
-      #|      column_styles: [],
-      #|      row_styles: [],
-      #|      column_widths: [],
-      #|      row_heights: [],
+      #|      columns: [],
+      #|      rows: [],
       #|      merges: [],
       #|    },
       #|  ],
@@ -439,18 +435,18 @@ test "load parses column/row default styles and the workbook default font" {
   assert_eq(workbook.default_font, Some("Calibri"))
   let sheet = workbook.sheets[0]
   // Column B is bold; D-F share one number-format band.
-  assert_eq(sheet.column_styles.length(), 2)
-  assert_eq(sheet.column_styles[0].first, 2)
-  assert_eq(sheet.column_styles[0].last, 2)
-  assert_eq(sheet.column_styles[0].style.font.unwrap().bold, Some(true))
-  assert_eq(sheet.column_styles[1].first, 4)
-  assert_eq(sheet.column_styles[1].last, 6)
-  assert_eq(sheet.column_styles[1].style.number_format, Some("0.00"))
+  assert_eq(sheet.columns.length(), 2)
+  assert_eq(sheet.columns[0].first, 2)
+  assert_eq(sheet.columns[0].last, 2)
+  assert_eq(sheet.columns[0].style.unwrap().font.unwrap().bold, Some(true))
+  assert_eq(sheet.columns[1].first, 4)
+  assert_eq(sheet.columns[1].last, 6)
+  assert_eq(sheet.columns[1].style.unwrap().number_format, Some("0.00"))
   // Row 1 filled; rows 2-3 right-aligned as one band.
-  assert_eq(sheet.row_styles.length(), 2)
-  assert_eq((sheet.row_styles[0].first, sheet.row_styles[0].last), (1, 1))
-  assert_eq((sheet.row_styles[1].first, sheet.row_styles[1].last), (2, 3))
-  assert_eq(sheet.row_styles[1].style.align.unwrap().horizontal, Some(Right))
+  assert_eq(sheet.rows.length(), 2)
+  assert_eq((sheet.rows[0].first, sheet.rows[0].last), (1, 1))
+  assert_eq((sheet.rows[1].first, sheet.rows[1].last), (2, 3))
+  assert_eq(sheet.rows[1].style.unwrap().align.unwrap().horizontal, Some(Right))
 }
 
 ///|
@@ -477,9 +473,9 @@ test "load rejects invalid column/row selectors and a missing 'at', and keeps em
     schema_message("sheets:\n  - name: S\n    rows:\n      - format: \"0\"\n"),
     Some("spec.yaml: a row entry is missing required key 'at'"),
   )
-  // An empty band spec adds no style rather than erroring.
+  // An empty band spec adds no band rather than erroring.
   let workbook = load_ok("sheets:\n  - name: S\n    columns:\n      - at: B\n")
-  assert_eq(workbook.sheets[0].column_styles.length(), 0)
+  assert_eq(workbook.sheets[0].columns.length(), 0)
 }
 
 ///|
@@ -504,14 +500,16 @@ test "load parses merges, column widths, and row heights" {
     ),
   )
   let sheet = workbook.sheets[0]
-  // Column B has just a width; D-F carries both a style and a width band.
-  assert_eq(sheet.column_widths, [
-    { first: 2, last: 2, size: 18.0 },
-    { first: 4, last: 6, size: 10.0 },
-  ])
-  assert_eq(sheet.column_styles.length(), 1)
-  assert_eq((sheet.column_styles[0].first, sheet.column_styles[0].last), (4, 6))
-  assert_eq(sheet.row_heights, [{ first: 1, last: 1, size: 24.0 }])
+  // Column B has just a width; D-F carries a style and a width on one band.
+  assert_eq(sheet.columns.length(), 2)
+  assert_eq((sheet.columns[0].first, sheet.columns[0].last), (2, 2))
+  assert_eq(sheet.columns[0].size, Some(18.0))
+  assert_eq(sheet.columns[0].style, None)
+  assert_eq((sheet.columns[1].first, sheet.columns[1].last), (4, 6))
+  assert_eq(sheet.columns[1].size, Some(10.0))
+  assert_true(sheet.columns[1].style is Some(_))
+  assert_eq(sheet.rows.length(), 1)
+  assert_eq(sheet.rows[0].size, Some(24.0))
   assert_eq(sheet.merges, [
     {
       top_left: @units.CellRef::new(col=1, row=1),
@@ -553,8 +551,86 @@ test "load rejects bad merge ranges and a size key on the wrong axis" {
       "sheets:\n  - name: S\n    rows:\n      - at: 1\n        width: 10\n",
     ),
     Some(
-      "spec.yaml: unknown key 'width' in row '1' (expected 'at', 'style', 'format', or 'height')",
+      "spec.yaml: unknown key 'width' in row '1' (expected 'at', 'style', 'format', 'height', 'hidden', or 'group')",
     ),
+  )
+}
+
+///|
+test "load parses band visibility and outline grouping" {
+  let workbook = load_ok(
+    (
+      #|sheets:
+      #|  - name: S
+      #|    columns:
+      #|      - at: B-C
+      #|        group: 1
+      #|        hidden: true
+      #|      - at: D
+      #|        width: 12
+      #|        group: 0
+      #|    rows:
+      #|      - at: 2-4
+      #|        group: 2
+      #|        hidden: false
+      #|
+    ),
+  )
+  let sheet = workbook.sheets[0]
+  // A collapsed group: the band is both grouped and hidden.
+  assert_eq(sheet.columns[0], {
+    first: 2,
+    last: 3,
+    style: None,
+    size: None,
+    hidden: Some(true),
+    outline_level: Some(1),
+  })
+  // Grouping and sizing coexist on one band; `group: 0` is "ungrouped", which is
+  // distinct from leaving the key out.
+  assert_eq(sheet.columns[1], {
+    first: 4,
+    last: 4,
+    style: None,
+    size: Some(12.0),
+    hidden: None,
+    outline_level: Some(0),
+  })
+  assert_eq(sheet.rows[0], {
+    first: 2,
+    last: 4,
+    style: None,
+    size: None,
+    hidden: Some(false),
+    outline_level: Some(2),
+  })
+}
+
+///|
+test "load rejects a bad 'hidden' flag and an out-of-range or fractional 'group'" {
+  assert_eq(
+    schema_message(
+      "sheets:\n  - name: S\n    columns:\n      - at: B\n        hidden: yes please\n",
+    ),
+    Some("spec.yaml: column 'B' hidden must be true or false"),
+  )
+  assert_eq(
+    schema_message(
+      "sheets:\n  - name: S\n    rows:\n      - at: 1\n        group: 8\n",
+    ),
+    Some("spec.yaml: row '1' group must be between 0 and 7"),
+  )
+  assert_eq(
+    schema_message(
+      "sheets:\n  - name: S\n    rows:\n      - at: 1\n        group: -1\n",
+    ),
+    Some("spec.yaml: row '1' group must be between 0 and 7"),
+  )
+  assert_eq(
+    schema_message(
+      "sheets:\n  - name: S\n    columns:\n      - at: B\n        group: 1.5\n",
+    ),
+    Some("spec.yaml: column 'B' group must be a whole number"),
   )
 }
 
@@ -672,7 +748,7 @@ test "a named style is declared once and referenced by name from many cells" {
   // emitter interns them to a single cellXfs id (ADR-004).
   assert_eq(sheet.cells[0].style, Some(header))
   assert_eq(sheet.cells[1].style, Some(header))
-  assert_eq(sheet.column_styles[0].style, header)
+  assert_eq(sheet.columns[0].style, Some(header))
 }
 
 ///|

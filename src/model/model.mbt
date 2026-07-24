@@ -38,25 +38,30 @@ pub(all) struct Cell {
 } derive(Eq, Debug)
 
 ///|
-/// A default style applied to an inclusive span of columns or rows — the cells
-/// in that band that set no style of their own inherit it. `first`/`last` are
-/// 1-based and inclusive (a single column/row has `first == last`). Whether the
-/// band is columns or rows is determined by which `Sheet` list holds it.
-pub(all) struct AxisStyle {
-  first : Int
-  last : Int
-  style : Style
-} derive(Eq, Debug)
+/// The deepest outline (grouping) level Excel accepts on a column or row;
+/// level 0 means ungrouped (ECMA-376 §18.3.1.13, §18.3.1.73).
+pub let max_outline_level : Int = 7
 
 ///|
-/// A size given to an inclusive span of columns or rows: a column-width band (in
-/// character units) or a row-height band (in points). `first`/`last` are 1-based
-/// and inclusive. Like `AxisStyle`, whether it is columns or rows is fixed by
-/// which `Sheet` list holds it.
-pub(all) struct AxisSize {
+/// One band of columns or rows: an inclusive 1-based span (`first == last` for a
+/// single column/row) and what the spec set on it. Every property is optional;
+/// `None` leaves Excel's default in place.
+///
+/// - `style` — a default style the band's cells inherit unless they set their
+///   own. Equal styles compile to a single shared `cellXfs` id (ADR-004).
+/// - `size` — a column width in character units, or a row height in points.
+/// - `hidden` — `true` hides the band.
+/// - `outline_level` — the grouping depth (0 to `max_outline_level`), which
+///   Excel draws as a collapsible outline bracket.
+///
+/// Whether the band is columns or rows is fixed by which `Sheet` list holds it.
+pub(all) struct AxisBand {
   first : Int
   last : Int
-  size : Double
+  style : Style?
+  size : Double?
+  hidden : Bool?
+  outline_level : Int?
 } derive(Eq, Debug)
 
 ///|
@@ -70,16 +75,13 @@ pub(all) struct MergeRange {
 
 ///|
 /// One worksheet: a name, the cells written to it (kept in insertion order),
-/// default styles for whole columns or rows, column-width / row-height bands, and
-/// merged-cell ranges. Turning these into the final workbook layout is the
-/// emitter's job.
+/// the column and row bands laid over them (see `AxisBand`), and merged-cell
+/// ranges. Turning these into the final workbook layout is the emitter's job.
 pub(all) struct Sheet {
   name : String
   cells : Array[Cell]
-  column_styles : Array[AxisStyle]
-  row_styles : Array[AxisStyle]
-  column_widths : Array[AxisSize]
-  row_heights : Array[AxisSize]
+  columns : Array[AxisBand]
+  rows : Array[AxisBand]
   merges : Array[MergeRange]
 } derive(Eq, Debug)
 
@@ -142,59 +144,39 @@ pub fn Workbook::add_sheet(self : Workbook, name : String) -> Sheet {
 ///|
 /// A new, empty sheet with the given name.
 pub fn Sheet::new(name : String) -> Sheet {
-  {
-    name,
-    cells: [],
-    column_styles: [],
-    row_styles: [],
-    column_widths: [],
-    row_heights: [],
-    merges: [],
-  }
+  { name, cells: [], columns: [], rows: [], merges: [] }
 }
 
 ///|
-/// Give an inclusive span of columns (1-based) a default style.
-pub fn Sheet::set_column_style(
+/// Lay a band over an inclusive span of columns (1-based): a default style, a
+/// width in character units, a hidden flag, and an outline level. Omitted
+/// properties leave Excel's default.
+pub fn Sheet::set_column_band(
   self : Sheet,
   first~ : Int,
   last~ : Int,
-  style : Style,
+  style? : Style,
+  width? : Double,
+  hidden? : Bool,
+  outline_level? : Int,
 ) -> Unit {
-  self.column_styles.push({ first, last, style })
+  self.columns.push({ first, last, style, size: width, hidden, outline_level })
 }
 
 ///|
-/// Give an inclusive span of rows (1-based) a default style.
-pub fn Sheet::set_row_style(
+/// Lay a band over an inclusive span of rows (1-based): a default style, a
+/// height in points, a hidden flag, and an outline level. Omitted properties
+/// leave Excel's default.
+pub fn Sheet::set_row_band(
   self : Sheet,
   first~ : Int,
   last~ : Int,
-  style : Style,
+  style? : Style,
+  height? : Double,
+  hidden? : Bool,
+  outline_level? : Int,
 ) -> Unit {
-  self.row_styles.push({ first, last, style })
-}
-
-///|
-/// Set the width (in character units) of an inclusive span of columns (1-based).
-pub fn Sheet::set_column_width(
-  self : Sheet,
-  first~ : Int,
-  last~ : Int,
-  width : Double,
-) -> Unit {
-  self.column_widths.push({ first, last, size: width })
-}
-
-///|
-/// Set the height (in points) of an inclusive span of rows (1-based).
-pub fn Sheet::set_row_height(
-  self : Sheet,
-  first~ : Int,
-  last~ : Int,
-  height : Double,
-) -> Unit {
-  self.row_heights.push({ first, last, size: height })
+  self.rows.push({ first, last, style, size: height, hidden, outline_level })
 }
 
 ///|

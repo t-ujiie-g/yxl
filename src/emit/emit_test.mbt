@@ -132,8 +132,8 @@ test "column/row default styles emit and share the cell style cache; default fon
   }
   // A bold cell, then the same bold look as a whole-column and whole-row band.
   sheet.set(@units.CellRef::new(col=1, row=1), Text("x"), style=bold)
-  sheet.set_column_style(first=2, last=3, bold)
-  sheet.set_row_style(first=5, last=5, bold)
+  sheet.set_column_band(first=2, last=3, style=bold)
+  sheet.set_row_band(first=5, last=5, style=bold)
   let reopened = @xlsx.read(@emit.to_bytes(wb)[:])
 
   // The workbook default font took effect.
@@ -157,14 +157,41 @@ test "merges, column widths, and row heights survive a round trip" {
     @units.CellRef::new(col=3, row=1),
     @units.CellRef::new(col=1, row=1),
   )
-  sheet.set_column_width(first=2, last=2, 18.0)
-  sheet.set_row_height(first=1, last=1, 24.0)
+  sheet.set_column_band(first=2, last=2, width=18.0)
+  sheet.set_row_band(first=1, last=1, height=24.0)
   let reopened = @xlsx.read(@emit.to_bytes(wb)[:])
   assert_eq(reopened.get_merge_cells("S"), ["A1:C1"])
   assert_eq(reopened.get_col_width("S", 2), Some(18.0))
   assert_eq(reopened.get_row_height("S", 1), Some(24.0))
   // The merged cell keeps the top-left value.
   assert_eq(reopened.get_cell("S", "A1"), Some("title"))
+}
+
+///|
+test "hidden and grouped bands survive a round trip alongside their other properties" {
+  let wb = @model.Workbook::new()
+  let sheet = wb.add_sheet("S")
+  // A collapsed group: columns B-C are grouped one level deep and hidden, while
+  // D keeps a width and stays visible at the outer level.
+  sheet.set_column_band(first=2, last=3, hidden=true, outline_level=1)
+  sheet.set_column_band(first=4, last=4, width=12.0, outline_level=1)
+  sheet.set_row_band(first=2, last=3, hidden=true, outline_level=2)
+  sheet.set_row_band(first=4, last=4, height=30.0, hidden=false)
+  let reopened = @xlsx.read(@emit.to_bytes(wb)[:])
+  assert_false(reopened.col_visible("S", 2))
+  assert_false(reopened.col_visible("S", 3))
+  assert_true(reopened.col_visible("S", 4))
+  assert_eq(reopened.col_outline_level("S", 3), 1)
+  assert_eq(reopened.col_outline_level("S", 4), 1)
+  // The width on the grouped column is unaffected by the grouping.
+  assert_eq(reopened.get_col_width("S", 4), Some(12.0))
+  assert_false(reopened.row_visible("S", 2))
+  assert_eq(reopened.row_outline_level("S", 2), 2)
+  assert_true(reopened.row_visible("S", 4))
+  assert_eq(reopened.get_row_height("S", 4), Some(30.0))
+  // A column that no band touched keeps Excel's defaults.
+  assert_true(reopened.col_visible("S", 1))
+  assert_eq(reopened.col_outline_level("S", 1), 0)
 }
 
 ///|

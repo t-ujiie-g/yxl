@@ -167,8 +167,9 @@ The **active phase** is the first phase with any unchecked box.
 ### Phase 6 — Layout & structure
 - [x] Merged cells, column widths, row heights — a sheet `merges:` list of
       `A1:B2` ranges; `width:` on a column band and `height:` on a row band
-- [ ] Column/row visibility (hide/show) and **outline grouping** — collapsible
-      row/column groups via outline levels (`set_{col,row}_outline_level`)
+- [x] Column/row visibility (hide/show) and **outline grouping** — collapsible
+      row/column groups via outline levels (`set_{col,row}_outline_level`); a
+      band takes `hidden:` and `group:` (level 0–7, validated in the loader)
 - [ ] Multiple sheets: order, active sheet, sheet visibility
       (hidden/very-hidden)
 - [ ] Freeze / split panes, gridlines, tab color
@@ -455,6 +456,26 @@ each other).
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-25** — **Phase 6: column/row visibility and outline grouping.** A
+  column or row band takes `hidden: true` (hide the band) and `group: <level>`
+  (the outline level Excel draws as a collapsible bracket — `0` is ungrouped,
+  `@model.max_outline_level` = 7 is the deepest). Set both to emit a *collapsed*
+  group. The level is validated in the loader, so `group: 8` or `group: 1.5` is a
+  `SchemaError` with file context (ADR-006) rather than a backend failure at emit
+  time. Round-trip verified: visibility and outline level read back, and a
+  band's width/height is unaffected by grouping.
+
+  Structurally, the four per-property band arrays on `Sheet` collapsed into one
+  `AxisBand` — an inclusive span plus optional `style`, `size`, `hidden`, and
+  `outline_level` — held in `Sheet.columns` / `Sheet.rows`. Adding these two
+  properties the old way would have taken the sheet from four band arrays to
+  eight, and `load_axis_spec` from a pair to a 4-tuple; one band record per YAML
+  entry mirrors the spec shape instead. `set_column_style`/`set_column_width`/
+  `set_row_style`/`set_row_height` are replaced by `set_column_band` /
+  `set_row_band` (all properties optional) — the whole public-API delta in the
+  `.mbti`. An entry that sets nothing (`- at: B`) still contributes no band. 88
+  tests green.
 
 - **2026-07-25** — **Phase 6 started: merged cells, column widths, row heights.**
   A sheet may carry `merges:` — a list of `A1:B2` range strings, each merged into

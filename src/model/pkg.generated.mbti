@@ -7,6 +7,7 @@ import {
 }
 
 // Values
+pub let max_outline_level : Int
 
 // Errors
 
@@ -17,16 +18,13 @@ pub(all) struct Alignment {
   wrap : Bool?
 } derive(Eq, Hash, @debug.Debug)
 
-pub(all) struct AxisSize {
+pub(all) struct AxisBand {
   first : Int
   last : Int
-  size : Double
-} derive(Eq, @debug.Debug)
-
-pub(all) struct AxisStyle {
-  first : Int
-  last : Int
-  style : Style
+  style : Style?
+  size : Double?
+  hidden : Bool?
+  outline_level : Int?
 } derive(Eq, @debug.Debug)
 
 pub(all) struct Border {
@@ -108,19 +106,15 @@ pub(all) struct RichRun {
 pub(all) struct Sheet {
   name : String
   cells : Array[Cell]
-  column_styles : Array[AxisStyle]
-  row_styles : Array[AxisStyle]
-  column_widths : Array[AxisSize]
-  row_heights : Array[AxisSize]
+  columns : Array[AxisBand]
+  rows : Array[AxisBand]
   merges : Array[MergeRange]
 } derive(Eq, @debug.Debug)
 pub fn Sheet::merge(Self, @units.CellRef, @units.CellRef) -> Unit
 pub fn Sheet::new(String) -> Self
 pub fn Sheet::set(Self, @units.CellRef, CellValue, format? : String, style? : Style) -> Unit
-pub fn Sheet::set_column_style(Self, first~ : Int, last~ : Int, Style) -> Unit
-pub fn Sheet::set_column_width(Self, first~ : Int, last~ : Int, Double) -> Unit
-pub fn Sheet::set_row_height(Self, first~ : Int, last~ : Int, Double) -> Unit
-pub fn Sheet::set_row_style(Self, first~ : Int, last~ : Int, Style) -> Unit
+pub fn Sheet::set_column_band(Self, first~ : Int, last~ : Int, style? : Style, width? : Double, hidden? : Bool, outline_level? : Int) -> Unit
+pub fn Sheet::set_row_band(Self, first~ : Int, last~ : Int, style? : Style, height? : Double, hidden? : Bool, outline_level? : Int) -> Unit
 
 pub(all) struct Style {
   font : Font?
