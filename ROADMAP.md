@@ -173,7 +173,8 @@ The **active phase** is the first phase with any unchecked box.
 - [x] Multiple sheets: order (declaration order is the tab order), active sheet
       (top-level `active: <name>`), sheet visibility (per-sheet
       `visibility: visible | hidden | very_hidden`)
-- [ ] Freeze / split panes, gridlines, tab color
+- [x] Freeze / split panes, gridlines, tab color — per-sheet `freeze: <cell>`,
+      `split: { x, y }` (points), `gridlines: false`, `tab_color: "RRGGBB"`
 - [ ] Page setup for print: orientation, margins, scaling, print area,
       headers/footers, page breaks (`set_page_layout` / `set_page_margins` /
       `set_header_footer` / `insert_page_break`)
@@ -457,6 +458,25 @@ each other).
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-25** — **Phase 6: freeze / split panes, gridlines, tab color.** A
+  sheet takes `freeze: <cell>` — the rows above and columns left of that cell
+  stay put, exactly what Excel's "Freeze Panes" does with the cell selected — or
+  `split: { x, y }` for a draggable splitter. Freezing names a *cell* because a
+  freeze always lands on a row/column boundary; a split names a *position in
+  points* because it falls wherever it is dragged. `freeze: A1` (freezes
+  nothing), a split with no non-zero axis, and combining `freeze` with `split`
+  are all diagnostics. Also `gridlines: false` (the on-screen grid, not cell
+  borders) and `tab_color: "RRGGBB"`, reusing the existing color parser.
+
+  Added `model.Panes` (`Freeze` / `Split`) plus `Sheet.panes` / `gridlines` /
+  `tab_color` with setters; the emitter maps them to `set_panes`,
+  `set_sheet_view`, and `set_sheet_props`, converting a split's points to the
+  twips OOXML wants — a backend unit, so the conversion stays behind the seam
+  (ADR-002). Round-trip verified for the freeze, gridlines, and tab color; a
+  split's `state` attribute is *absent* by design (ECMA-376 §18.18.52 defaults
+  it to "split"), which the backend's reader does not model, so that case is
+  verified on the emitted `worksheets/sheetN.xml` instead. 95 tests green.
 
 - **2026-07-25** — **Phase 6: multiple sheets — order, active sheet, visibility.**
   Declaration order is the tab order (now asserted, not just assumed). A sheet

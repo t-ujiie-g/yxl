@@ -135,6 +135,22 @@ fn build_workbook(wb : @model.Workbook) -> Bytes raise @xlsx.XlsxError {
         merge.bottom_right.to_a1(),
       )
     }
+    if sheet.panes is Some(panes) {
+      backend.set_panes(sheet.name, build_panes(panes))
+    }
+    if sheet.gridlines is Some(shown) {
+      backend.set_sheet_view(
+        sheet.name,
+        LAST_SHEET_VIEW,
+        @xlsx.SheetViewOptions::with_values(show_grid_lines=shown),
+      )
+    }
+    if sheet.tab_color is Some(color) {
+      backend.set_sheet_props(
+        sheet.name,
+        Some(@xlsx.SheetPropsOptions::with_values(tab_color_rgb=color.hex())),
+      )
+    }
   }
   // Hidden tabs come after every sheet exists: the backend rejects hiding the
   // last visible sheet, and a sheet declared later may be the visible one.
@@ -179,6 +195,59 @@ fn refers_to(
     Error(text) => text
     Formula(formula~, ..) => formula
     RichText(_) => ""
+  }
+}
+
+///|
+/// The backend indexes a sheet's views; `-1` addresses the last (and, for a
+/// workbook we build ourselves, only) one.
+const LAST_SHEET_VIEW : Int = -1
+
+///|
+/// Twips — 1/20 of a point — are the unit OOXML gives a split position in
+/// (ECMA-376 §18.3.1.66). The model speaks points, so the conversion belongs
+/// here, behind the backend seam.
+const TWIPS_PER_POINT : Double = 20.0
+
+///|
+/// A model pane configuration as the backend's `Panes`. Freezing at a cell
+/// splits off the columns to its left and the rows above it — Excel counts those
+/// as the split, and the frozen corner cell becomes the scrolling pane's
+/// top-left. A split is positioned in twips instead.
+fn build_panes(panes : @model.Panes) -> @xlsx.Panes {
+  match panes {
+    Freeze(cell) => {
+      let x_split = cell.col - 1
+      let y_split = cell.row - 1
+      @xlsx.Panes::with_values(
+        freeze=true,
+        x_split~,
+        y_split~,
+        top_left_cell=cell.to_a1(),
+        active_pane=active_pane(x_split, y_split),
+      )
+    }
+    Split(x~, y~) => {
+      let x_split = (x * TWIPS_PER_POINT).to_int()
+      let y_split = (y * TWIPS_PER_POINT).to_int()
+      @xlsx.Panes::with_values(
+        split=true,
+        x_split~,
+        y_split~,
+        active_pane=active_pane(x_split, y_split),
+      )
+    }
+  }
+}
+
+///|
+/// Which pane Excel puts the cursor in: the scrolling one, named by where it
+/// sits relative to the split(s).
+fn active_pane(x_split : Int, y_split : Int) -> String {
+  match (x_split > 0, y_split > 0) {
+    (true, true) => "bottomRight"
+    (true, false) => "topRight"
+    (false, _) => "bottomLeft"
   }
 }
 

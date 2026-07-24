@@ -85,10 +85,25 @@ pub(all) enum SheetVisibility {
 } derive(Eq, Debug)
 
 ///|
+/// How a sheet's viewport is divided (ECMA-376 §18.3.1.66, `pane`):
+///
+/// - `Freeze(cell)` — the rows above and the columns left of `cell` stay put
+///   while the rest scrolls, exactly as Excel's "Freeze Panes" does with that
+///   cell selected. `A1` would freeze nothing.
+/// - `Split(x, y)` — a draggable splitter, positioned in points from the sheet's
+///   top-left corner (`0` on an axis leaves that axis unsplit). Points, not a
+///   cell, because a split falls wherever the user drags it, not on a boundary.
+pub(all) enum Panes {
+  Freeze(@units.CellRef)
+  Split(x~ : Double, y~ : Double)
+} derive(Eq, Debug)
+
+///|
 /// One worksheet: a name, the cells written to it (kept in insertion order),
 /// the column and row bands laid over them (see `AxisBand`), merged-cell
-/// ranges, and whether the tab is shown. Turning these into the final workbook
-/// layout is the emitter's job.
+/// ranges, and how the sheet presents itself — tab visibility and color, frozen
+/// or split panes, and whether gridlines show. Turning these into the final
+/// workbook layout is the emitter's job.
 pub(all) struct Sheet {
   name : String
   cells : Array[Cell]
@@ -96,6 +111,13 @@ pub(all) struct Sheet {
   rows : Array[AxisBand]
   merges : Array[MergeRange]
   visibility : SheetVisibility
+  /// Frozen or split panes; `None` leaves the sheet unsplit.
+  mut panes : Panes?
+  /// Whether the on-screen gridlines show; `None` keeps Excel's default (they
+  /// do). This is the screen grid, not cell borders, which are part of a style.
+  mut gridlines : Bool?
+  /// The tab's color; `None` keeps Excel's default (no color).
+  mut tab_color : @units.Color?
 } derive(Eq, Debug)
 
 ///|
@@ -181,7 +203,35 @@ pub fn Sheet::new(
   name : String,
   visibility? : SheetVisibility = Visible,
 ) -> Sheet {
-  { name, cells: [], columns: [], rows: [], merges: [], visibility }
+  {
+    name,
+    cells: [],
+    columns: [],
+    rows: [],
+    merges: [],
+    visibility,
+    panes: None,
+    gridlines: None,
+    tab_color: None,
+  }
+}
+
+///|
+/// Freeze or split the sheet's viewport.
+pub fn Sheet::set_panes(self : Sheet, panes : Panes) -> Unit {
+  self.panes = Some(panes)
+}
+
+///|
+/// Show or hide the on-screen gridlines.
+pub fn Sheet::set_gridlines(self : Sheet, shown : Bool) -> Unit {
+  self.gridlines = Some(shown)
+}
+
+///|
+/// Color the sheet's tab.
+pub fn Sheet::set_tab_color(self : Sheet, color : @units.Color) -> Unit {
+  self.tab_color = Some(color)
 }
 
 ///|

@@ -215,6 +215,42 @@ test "hidden and grouped bands survive a round trip alongside their other proper
 }
 
 ///|
+test "frozen panes, gridlines, and a tab color survive a round trip" {
+  let wb = @model.Workbook::new()
+  let sheet = wb.add_sheet("Report")
+  // Freezing at B2 keeps row 1 and column A in place.
+  sheet.set_panes(Freeze(@units.CellRef::new(col=2, row=2)))
+  sheet.set_gridlines(false)
+  sheet.set_tab_color(@units.Color::parse("1F77B4").unwrap())
+  let reopened = @xlsx.read(@emit.to_bytes(wb)[:])
+  let panes = reopened.get_panes("Report")
+  assert_true(panes.freeze)
+  assert_false(panes.split)
+  assert_eq(panes.x_split, 1)
+  assert_eq(panes.y_split, 1)
+  assert_eq(panes.top_left_cell, "B2")
+  assert_eq(panes.active_pane, "bottomRight")
+  assert_eq(reopened.get_sheet_view("Report", -1).show_grid_lines, Some(false))
+  assert_eq(reopened.get_sheet_props("Report").tab_color_rgb, Some("1F77B4"))
+}
+
+///|
+test "a split pane converts its point position to twips" {
+  let wb = @model.Workbook::new()
+  // 120 points across, unsplit vertically.
+  wb.add_sheet("Wide").set_panes(Split(x=120.0, y=0.0))
+  let reopened = @xlsx.read(@emit.to_bytes(wb)[:])
+  let panes = reopened.get_panes("Wide")
+  // A split pane carries no `state` attribute (ECMA-376 §18.18.52 defaults it to
+  // "split"), and the backend's reader only recognizes the frozen state — so
+  // `split` reads back false while the position and active pane survive.
+  assert_false(panes.freeze)
+  assert_eq(panes.x_split, 2400)
+  assert_eq(panes.y_split, 0)
+  assert_eq(panes.active_pane, "topRight")
+}
+
+///|
 test "a date cell serializes to its Excel serial under the workbook's system" {
   let date = @units.DateTime::{
     year: 1900,

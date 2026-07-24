@@ -4,9 +4,10 @@
 /// (the sheet Excel opens on), `date1904` (the 1904 date system), `default_font`
 /// (the workbook default font face), and `defs` (named definitions — see
 /// `load_defs`). Sheets appear in Excel in declaration order. Each sheet has a
-/// `name` and optional `visibility`, `cells` (an A1-reference mapping),
-/// `merges`, and `columns` / `rows` (bands carrying a default style, a size,
-/// visibility, and outline grouping — see `load_columns`). A cell value is a
+/// `name` and optional `cells` (an A1-reference mapping), `merges`, `columns` /
+/// `rows` (bands carrying a default style, a size, visibility, and outline
+/// grouping — see `load_columns`), and the presentation keys `visibility`,
+/// `freeze` / `split`, `gridlines`, and `tab_color`. A cell value is a
 /// scalar shorthand or an expanded mapping with a `value`, `formula`, or `rich`
 /// run list, plus optional `type`, `format`, and `style` (see `load_cell`). A
 /// style is referenced by bareword name and a value/formula by `{ $ref: name }`
@@ -22,6 +23,9 @@
 ///     company: "Acme Corp"
 /// sheets:
 ///   - name: Sheet1
+///     freeze: B2
+///     gridlines: false
+///     tab_color: "1F77B4"
 ///     columns:
 ///       - at: B
 ///         style: header
@@ -180,6 +184,10 @@ fn load_sheet(
   let mut rows = None
   let mut merges = None
   let mut visibility = @model.Visible
+  let mut freeze = None
+  let mut split = None
+  let mut gridlines = None
+  let mut tab_color = None
   for entry in entries {
     let (key, value) = entry
     match key {
@@ -189,17 +197,42 @@ fn load_sheet(
       "rows" => rows = Some(value)
       "merges" => merges = Some(value)
       "visibility" => visibility = load_visibility(value, file~)
+      "freeze" => freeze = Some(load_freeze(value, file~))
+      "split" => split = Some(load_split(value, file~))
+      "gridlines" =>
+        gridlines = Some(expect_bool(value, file~, context="sheet 'gridlines'"))
+      "tab_color" =>
+        tab_color = Some(
+          expect_color(value, file~, what="'tab_color'", context="sheet"),
+        )
       _ =>
         raise schema_error(
           file~,
-          "unknown key '\{key}' in sheet (expected 'name', 'cells', 'columns', 'rows', 'merges', or 'visibility')",
+          "unknown key '\{key}' in sheet (expected 'name', 'cells', 'columns', 'rows', 'merges', 'visibility', 'freeze', 'split', 'gridlines', or 'tab_color')",
         )
     }
   }
   guard name is Some(sheet_name) else {
     raise schema_error(file~, "a sheet is missing required key 'name'")
   }
+  guard !(freeze is Some(_) && split is Some(_)) else {
+    raise schema_error(
+      file~,
+      "sheet '\{sheet_name}' cannot combine 'freeze' and 'split'",
+    )
+  }
   let sheet = workbook.add_sheet(sheet_name, visibility~)
+  // At most one of the two is set; the guard above rejected both.
+  match (freeze, split) {
+    (Some(panes), _) | (_, Some(panes)) => sheet.set_panes(panes)
+    (None, None) => ()
+  }
+  if gridlines is Some(shown) {
+    sheet.set_gridlines(shown)
+  }
+  if tab_color is Some(color) {
+    sheet.set_tab_color(color)
+  }
   if columns is Some(columns_node) {
     load_columns(columns_node, sheet, file~, defs~)
   }
@@ -233,6 +266,61 @@ fn load_visibility(
         "unknown sheet visibility '\{other}' (expected 'visible', 'hidden', or 'very_hidden')",
       )
   }
+}
+
+///|
+/// A sheet's `freeze: <cell>` — the rows above and columns left of that cell
+/// stay put while the rest scrolls. `A1` freezes nothing, so it is a mistake
+/// worth reporting rather than a no-op.
+fn load_freeze(
+  node : @yaml.Node,
+  file~ : String,
+) -> @model.Panes raise @diag.SchemaError {
+  let reference = expect_string(node, file~, context="sheet 'freeze'")
+  guard @units.CellRef::parse_a1(reference) is Some(cell) else {
+    raise schema_error(
+      file~,
+      "'\{reference}' is not a valid A1 cell reference in 'freeze'",
+    )
+  }
+  guard cell.col > 1 || cell.row > 1 else {
+    raise schema_error(
+      file~,
+      "'freeze: A1' would freeze nothing (freeze at the first unfrozen cell)",
+    )
+  }
+  Freeze(cell)
+}
+
+///|
+/// A sheet's `split: { x, y }` — a draggable splitter, each axis given in points
+/// from the top-left corner and defaulting to `0` (that axis unsplit). Splitting
+/// on neither axis is a mistake worth reporting.
+fn load_split(
+  node : @yaml.Node,
+  file~ : String,
+) -> @model.Panes raise @diag.SchemaError {
+  let mut x = 0.0
+  let mut y = 0.0
+  for entry in expect_map(node, file~, context="sheet 'split'") {
+    let (key, value) = entry
+    match key {
+      "x" => x = expect_number(value, file~, context="sheet 'split' x")
+      "y" => y = expect_number(value, file~, context="sheet 'split' y")
+      _ =>
+        raise schema_error(
+          file~,
+          "unknown key '\{key}' in sheet 'split' (expected 'x' or 'y')",
+        )
+    }
+  }
+  guard x > 0.0 || y > 0.0 else {
+    raise schema_error(
+      file~,
+      "sheet 'split' needs a non-zero 'x' or 'y' (in points)",
+    )
+  }
+  Split(x~, y~)
 }
 
 ///|
