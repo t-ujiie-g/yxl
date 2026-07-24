@@ -66,9 +66,24 @@ pub fn CellRef::rect(a : CellRef, b : CellRef) -> (CellRef, CellRef) {
 /// Render as an A1-style reference: (1, 1) -> `A1`, (27, 10) -> `AA10`. The
 /// column uses Excel's bijective base-26 encoding (A..Z, AA..AZ, ...).
 pub fn CellRef::to_a1(self : CellRef) -> String {
-  // Column letters come out least-significant first, so collect and reverse.
+  column_letters(self.col) + self.row.to_string()
+}
+
+///|
+/// Render as an *absolute* A1 reference: (2, 3) -> `$B$3`. Excel stores the
+/// references it owns — a print area, for one — in this locked form, so that
+/// inserting rows or columns cannot shift them.
+pub fn CellRef::to_absolute_a1(self : CellRef) -> String {
+  "$" + column_letters(self.col) + "$" + self.row.to_string()
+}
+
+///|
+/// A 1-based column index as its Excel letters: 1 -> `A`, 27 -> `AA`. The
+/// inverse of `parse_column`.
+fn column_letters(col : Int) -> String {
+  // Letters come out least-significant first, so collect and reverse.
   let letters : Array[Char] = []
-  let mut n = self.col
+  let mut n = col
   while n > 0 {
     let rem = (n - 1) % 26
     letters.push(('A'.to_int() + rem).to_char().unwrap())
@@ -78,6 +93,5 @@ pub fn CellRef::to_a1(self : CellRef) -> String {
   for i = letters.length() - 1; i >= 0; i = i - 1 {
     sb.write_char(letters[i])
   }
-  sb.write_string(self.row.to_string())
   sb.to_string()
 }

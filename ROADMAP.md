@@ -175,9 +175,9 @@ The **active phase** is the first phase with any unchecked box.
       `visibility: visible | hidden | very_hidden`)
 - [x] Freeze / split panes, gridlines, tab color — per-sheet `freeze: <cell>`,
       `split: { x, y }` (points), `gridlines: false`, `tab_color: "RRGGBB"`
-- [ ] Page setup for print: orientation, margins, scaling, print area,
+- [x] Page setup for print: orientation, margins, scaling, print area,
       headers/footers, page breaks (`set_page_layout` / `set_page_margins` /
-      `set_header_footer` / `insert_page_break`)
+      `set_header_footer` / `insert_page_break`) — a per-sheet `print:` block
 
 ### Phase 7 — Modular specs
 - [ ] Includes / data–format separation (`!include`, external data files)
@@ -458,6 +458,31 @@ each other).
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-25** — **Phase 6 complete: page setup for print.** A sheet takes a
+  `print:` block — `area` (a range), `orientation`, `margins` (in inches, Excel's
+  unit here), `scale` (a percentage) *or* `fit: { width, height }` (pages across
+  and down), `header` / `footer` (Excel's `&`-code syntax, ECMA-376 §18.3.1.46),
+  and `breaks` (cells that each start a new page). Nested under one key rather
+  than flattened onto the sheet, so the sheet's top level does not balloon.
+
+  Diagnostics: a scale outside Excel's 10–400, a non-integer scale or page
+  count, `scale` together with `fit` (Excel offers one or the other), a `fit`
+  constraining neither axis, a negative margin, and a break at `A1`.
+
+  Two details the backend does not handle for us. A print area is not a normal
+  setting but Excel's built-in **sheet-scoped defined name** `_xlnm.Print_Area`,
+  whose value must be absolute and sheet-qualified (`'Report'!$A$1:$D$50`) —
+  hence the new `@units.CellRef::to_absolute_a1`. And `fitToWidth`/`fitToHeight`
+  are ignored by Excel unless the sheet also carries `<pageSetUpPr
+  fitToPage="1"/>`, so a `Fit` scale sets that flag too.
+
+  Added `model.PageSetup` / `PageMargins` / `PageScale` / `Orientation` and
+  `Sheet.page` + `set_page_setup`; renamed `MergeRange` → `CellRange` (a print
+  area is the same rectangle a merge is) and extracted the shared `parse_range`
+  the loader now uses for both. Round-trip verified through the reader, plus the
+  emitted `sheet1.xml` and `workbook.xml` inspected directly. 100 tests green.
+  **Phase 6 is complete.**
 
 - **2026-07-25** — **Phase 6: freeze / split panes, gridlines, tab color.** A
   sheet takes `freeze: <cell>` — the rows above and columns left of that cell

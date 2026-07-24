@@ -65,10 +65,10 @@ pub(all) struct AxisBand {
 } derive(Eq, Debug)
 
 ///|
-/// A rectangular block of cells merged into one, addressed by its top-left and
-/// bottom-right corners (canonical: `top_left` is at or above-left of
-/// `bottom_right`). The merged cell shows the top-left cell's value.
-pub(all) struct MergeRange {
+/// A rectangular block of cells, addressed by its top-left and bottom-right
+/// corners (canonical: `top_left` is at or above-left of `bottom_right`). Used
+/// wherever the spec names a region — a merge, a print area.
+pub(all) struct CellRange {
   top_left : @units.CellRef
   bottom_right : @units.CellRef
 } derive(Eq, Debug)
@@ -99,6 +99,75 @@ pub(all) enum Panes {
 } derive(Eq, Debug)
 
 ///|
+/// Which way the printed page runs.
+pub(all) enum Orientation {
+  Portrait
+  Landscape
+} derive(Eq, Debug)
+
+///|
+/// Printed margins, in inches — Excel's own unit here. `header`/`footer` are the
+/// distance from the paper edge to the header/footer text, not extra margin.
+/// Each is `None` when the spec leaves it to Excel's default.
+pub(all) struct PageMargins {
+  top : Double?
+  bottom : Double?
+  left : Double?
+  right : Double?
+  header : Double?
+  footer : Double?
+} derive(Eq, Debug)
+
+///|
+/// How the sheet is sized onto the paper — the two mutually exclusive halves of
+/// Excel's scaling control.
+pub(all) enum PageScale {
+  /// A percentage of actual size, within `min_page_scale`..`max_page_scale`.
+  Percent(Int)
+  /// Shrink until the sheet fits this many pages across and down; `0` on an
+  /// axis leaves it unconstrained.
+  Fit(width~ : Int, height~ : Int)
+} derive(Eq, Debug)
+
+///|
+/// Excel's limits on a print scale percentage.
+pub let min_page_scale : Int = 10
+
+///|
+pub let max_page_scale : Int = 400
+
+///|
+/// How a sheet prints: what to print (`area`, `breaks`), how it sits on the
+/// paper (`orientation`, `margins`, `scale`), and what runs along the top and
+/// bottom of every page (`header`, `footer`, in Excel's `&`-code syntax —
+/// ECMA-376 §18.3.1.46). Everything is optional; an unset field keeps Excel's
+/// default.
+pub(all) struct PageSetup {
+  area : CellRange?
+  orientation : Orientation?
+  margins : PageMargins?
+  scale : PageScale?
+  header : String?
+  footer : String?
+  /// Manual page breaks, each above and to the left of the given cell.
+  breaks : Array[@units.CellRef]
+} derive(Eq, Debug)
+
+///|
+/// A page setup that changes nothing.
+pub fn PageSetup::empty() -> PageSetup {
+  {
+    area: None,
+    orientation: None,
+    margins: None,
+    scale: None,
+    header: None,
+    footer: None,
+    breaks: [],
+  }
+}
+
+///|
 /// One worksheet: a name, the cells written to it (kept in insertion order),
 /// the column and row bands laid over them (see `AxisBand`), merged-cell
 /// ranges, and how the sheet presents itself — tab visibility and color, frozen
@@ -109,8 +178,10 @@ pub(all) struct Sheet {
   cells : Array[Cell]
   columns : Array[AxisBand]
   rows : Array[AxisBand]
-  merges : Array[MergeRange]
+  merges : Array[CellRange]
   visibility : SheetVisibility
+  /// How the sheet prints; `None` keeps Excel's defaults throughout.
+  mut page : PageSetup?
   /// Frozen or split panes; `None` leaves the sheet unsplit.
   mut panes : Panes?
   /// Whether the on-screen gridlines show; `None` keeps Excel's default (they
@@ -210,10 +281,17 @@ pub fn Sheet::new(
     rows: [],
     merges: [],
     visibility,
+    page: None,
     panes: None,
     gridlines: None,
     tab_color: None,
   }
+}
+
+///|
+/// Set how the sheet prints.
+pub fn Sheet::set_page_setup(self : Sheet, page : PageSetup) -> Unit {
+  self.page = Some(page)
 }
 
 ///|

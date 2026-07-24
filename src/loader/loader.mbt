@@ -6,8 +6,9 @@
 /// `load_defs`). Sheets appear in Excel in declaration order. Each sheet has a
 /// `name` and optional `cells` (an A1-reference mapping), `merges`, `columns` /
 /// `rows` (bands carrying a default style, a size, visibility, and outline
-/// grouping — see `load_columns`), and the presentation keys `visibility`,
-/// `freeze` / `split`, `gridlines`, and `tab_color`. A cell value is a
+/// grouping — see `load_columns`), the presentation keys `visibility`,
+/// `freeze` / `split`, `gridlines`, and `tab_color`, and a `print:` block (see
+/// `load_page_setup`). A cell value is a
 /// scalar shorthand or an expanded mapping with a `value`, `formula`, or `rich`
 /// run list, plus optional `type`, `format`, and `style` (see `load_cell`). A
 /// style is referenced by bareword name and a value/formula by `{ $ref: name }`
@@ -37,6 +38,11 @@
 ///       B1: { value: 0.5, format: "0.00%", style: header }
 ///       C1: { formula: "SUM(B1:B1)", style: { font: { italic: true } } }
 ///       D1: { rich: ["plain ", { text: bold, font: { bold: true } }] }
+///     print:
+///       area: A1:D50
+///       orientation: landscape
+///       fit: { width: 1 }
+///       header: "&C&\"Arial,Bold\"Quarterly report"
 ///   - name: Scratch
 ///     visibility: hidden
 /// ```
@@ -188,6 +194,7 @@ fn load_sheet(
   let mut split = None
   let mut gridlines = None
   let mut tab_color = None
+  let mut page = None
   for entry in entries {
     let (key, value) = entry
     match key {
@@ -205,10 +212,11 @@ fn load_sheet(
         tab_color = Some(
           expect_color(value, file~, what="'tab_color'", context="sheet"),
         )
+      "print" => page = Some(load_page_setup(value, file~))
       _ =>
         raise schema_error(
           file~,
-          "unknown key '\{key}' in sheet (expected 'name', 'cells', 'columns', 'rows', 'merges', 'visibility', 'freeze', 'split', 'gridlines', or 'tab_color')",
+          "unknown key '\{key}' in sheet (expected 'name', 'cells', 'columns', 'rows', 'merges', 'visibility', 'freeze', 'split', 'gridlines', 'tab_color', or 'print')",
         )
     }
   }
@@ -232,6 +240,9 @@ fn load_sheet(
   }
   if tab_color is Some(color) {
     sheet.set_tab_color(color)
+  }
+  if page is Some(page) {
+    sheet.set_page_setup(page)
   }
   if columns is Some(columns_node) {
     load_columns(columns_node, sheet, file~, defs~)
@@ -324,6 +335,214 @@ fn load_split(
 }
 
 ///|
+/// A sheet's `print:` block — how it goes onto paper. Every key is optional:
+/// `area` (a range), `orientation`, `margins`, `scale` or `fit` (Excel offers
+/// one or the other, never both), `header` / `footer`, and `breaks`.
+fn load_page_setup(
+  node : @yaml.Node,
+  file~ : String,
+) -> @model.PageSetup raise @diag.SchemaError {
+  let mut page = @model.PageSetup::empty()
+  let mut seen_scale = false
+  let mut seen_fit = false
+  for entry in expect_map(node, file~, context="sheet 'print'") {
+    let (key, value) = entry
+    match key {
+      "area" =>
+        page = {
+          ..page,
+          area: Some(
+            parse_range(
+              expect_string(value, file~, context="print 'area'"),
+              file~,
+              what="print area",
+            ),
+          ),
+        }
+      "orientation" =>
+        page = { ..page, orientation: Some(load_orientation(value, file~)) }
+      "margins" => page = { ..page, margins: Some(load_margins(value, file~)) }
+      "scale" => {
+        seen_scale = true
+        page = { ..page, scale: Some(load_scale(value, file~)) }
+      }
+      "fit" => {
+        seen_fit = true
+        page = { ..page, scale: Some(load_fit(value, file~)) }
+      }
+      "header" =>
+        page = {
+          ..page,
+          header: Some(expect_string(value, file~, context="print 'header'")),
+        }
+      "footer" =>
+        page = {
+          ..page,
+          footer: Some(expect_string(value, file~, context="print 'footer'")),
+        }
+      "breaks" => page = { ..page, breaks: load_breaks(value, file~) }
+      _ =>
+        raise schema_error(
+          file~,
+          "unknown key '\{key}' in sheet 'print' (expected 'area', 'orientation', 'margins', 'scale', 'fit', 'header', 'footer', or 'breaks')",
+        )
+    }
+  }
+  guard !(seen_scale && seen_fit) else {
+    raise schema_error(
+      file~,
+      "sheet 'print' cannot combine 'scale' and 'fit' (Excel scales by one or the other)",
+    )
+  }
+  page
+}
+
+///|
+/// A `print.orientation:` — which way the paper runs.
+fn load_orientation(
+  node : @yaml.Node,
+  file~ : String,
+) -> @model.Orientation raise @diag.SchemaError {
+  match expect_string(node, file~, context="print 'orientation'") {
+    "portrait" => Portrait
+    "landscape" => Landscape
+    other =>
+      raise schema_error(
+        file~,
+        "unknown print orientation '\{other}' (expected 'portrait' or 'landscape')",
+      )
+  }
+}
+
+///|
+/// A `print.scale:` percentage of actual size, within Excel's range.
+fn load_scale(
+  node : @yaml.Node,
+  file~ : String,
+) -> @model.PageScale raise @diag.SchemaError {
+  guard node is @yaml.Int(percent) else {
+    raise schema_error(file~, "print 'scale' must be a whole number of percent")
+  }
+  guard percent >= @model.min_page_scale.to_int64() &&
+    percent <= @model.max_page_scale.to_int64() else {
+    raise schema_error(
+      file~,
+      "print 'scale' must be between \{@model.min_page_scale} and \{@model.max_page_scale} percent",
+    )
+  }
+  Percent(percent.to_int())
+}
+
+///|
+/// A `print.fit: { width, height }` — how many pages across and down the sheet
+/// is shrunk to fit. An axis left out (or `0`) is unconstrained; constraining
+/// neither would scale nothing.
+fn load_fit(
+  node : @yaml.Node,
+  file~ : String,
+) -> @model.PageScale raise @diag.SchemaError {
+  let mut width = 0
+  let mut height = 0
+  for entry in expect_map(node, file~, context="print 'fit'") {
+    let (key, value) = entry
+    match key {
+      "width" => width = expect_page_count(value, file~, what="width")
+      "height" => height = expect_page_count(value, file~, what="height")
+      _ =>
+        raise schema_error(
+          file~,
+          "unknown key '\{key}' in print 'fit' (expected 'width' or 'height')",
+        )
+    }
+  }
+  guard width > 0 || height > 0 else {
+    raise schema_error(
+      file~,
+      "print 'fit' needs a non-zero 'width' or 'height' (in pages)",
+    )
+  }
+  Fit(width~, height~)
+}
+
+///|
+/// A page count in a `fit` axis: a whole number of pages, never negative.
+fn expect_page_count(
+  node : @yaml.Node,
+  file~ : String,
+  what~ : String,
+) -> Int raise @diag.SchemaError {
+  guard node is @yaml.Int(pages) && pages >= 0L else {
+    raise schema_error(
+      file~,
+      "print 'fit' \{what} must be a whole number of pages (0 for unconstrained)",
+    )
+  }
+  pages.to_int()
+}
+
+///|
+/// A `print.margins:` mapping, in inches — Excel's unit for these. A negative
+/// margin is meaningless, so it is a diagnostic.
+fn load_margins(
+  node : @yaml.Node,
+  file~ : String,
+) -> @model.PageMargins raise @diag.SchemaError {
+  let mut margins : @model.PageMargins = {
+    top: None,
+    bottom: None,
+    left: None,
+    right: None,
+    header: None,
+    footer: None,
+  }
+  for entry in expect_map(node, file~, context="print 'margins'") {
+    let (key, value) = entry
+    let inches = expect_number(value, file~, context="print margin '\{key}'")
+    guard inches >= 0.0 else {
+      raise schema_error(file~, "print margin '\{key}' cannot be negative")
+    }
+    match key {
+      "top" => margins = { ..margins, top: Some(inches) }
+      "bottom" => margins = { ..margins, bottom: Some(inches) }
+      "left" => margins = { ..margins, left: Some(inches) }
+      "right" => margins = { ..margins, right: Some(inches) }
+      "header" => margins = { ..margins, header: Some(inches) }
+      "footer" => margins = { ..margins, footer: Some(inches) }
+      _ =>
+        raise schema_error(
+          file~,
+          "unknown key '\{key}' in print 'margins' (expected 'top', 'bottom', 'left', 'right', 'header', or 'footer')",
+        )
+    }
+  }
+  margins
+}
+
+///|
+/// A `print.breaks:` sequence of cells, each starting a new page above and to
+/// the left of itself. `A1` starts no page, so it is a mistake worth reporting.
+fn load_breaks(
+  node : @yaml.Node,
+  file~ : String,
+) -> Array[@units.CellRef] raise @diag.SchemaError {
+  let breaks = []
+  for item in expect_seq(node, file~, context="print 'breaks'") {
+    let reference = expect_string(item, file~, context="a print break")
+    guard @units.CellRef::parse_a1(reference) is Some(cell) else {
+      raise schema_error(
+        file~,
+        "'\{reference}' is not a valid A1 cell reference in print 'breaks'",
+      )
+    }
+    guard cell.col > 1 || cell.row > 1 else {
+      raise schema_error(file~, "a print break at 'A1' would break nothing")
+    }
+    breaks.push(cell)
+  }
+  breaks
+}
+
+///|
 /// Load a sheet's `merges:` sequence: each entry is a range string
 /// `TopLeft:BottomRight` (e.g. `A1:B2`) merged into one cell. Corners may be
 /// given in any order; the model canonicalizes them.
@@ -333,27 +552,38 @@ fn load_merges(
   file~ : String,
 ) -> Unit raise @diag.SchemaError {
   for item in expect_seq(node, file~, context="'merges'") {
-    let range = expect_string(item, file~, context="a merge range")
-    guard range.split_once(":") is Some((left, right)) else {
-      raise schema_error(
-        file~,
-        "merge range '\{range}' must be 'TopLeft:BottomRight'",
-      )
-    }
-    guard @units.CellRef::parse_a1(left.to_owned()) is Some(top_left) else {
-      raise schema_error(
-        file~,
-        "'\{left}' is not a valid A1 cell reference in merge range '\{range}'",
-      )
-    }
-    guard @units.CellRef::parse_a1(right.to_owned()) is Some(bottom_right) else {
-      raise schema_error(
-        file~,
-        "'\{right}' is not a valid A1 cell reference in merge range '\{range}'",
-      )
-    }
-    sheet.merge(top_left, bottom_right)
+    let text = expect_string(item, file~, context="a merge range")
+    let range = parse_range(text, file~, what="merge range")
+    sheet.merge(range.top_left, range.bottom_right)
   }
+}
+
+///|
+/// Parse a `TopLeft:BottomRight` range string (e.g. `A1:B2`) into a canonical
+/// range — corners may be given in any order. `what` names the range's role in
+/// the diagnostics (e.g. `"merge range"`).
+fn parse_range(
+  text : String,
+  file~ : String,
+  what~ : String,
+) -> @model.CellRange raise @diag.SchemaError {
+  guard text.split_once(":") is Some((left, right)) else {
+    raise schema_error(file~, "\{what} '\{text}' must be 'TopLeft:BottomRight'")
+  }
+  guard @units.CellRef::parse_a1(left.to_owned()) is Some(first) else {
+    raise schema_error(
+      file~,
+      "'\{left}' is not a valid A1 cell reference in \{what} '\{text}'",
+    )
+  }
+  guard @units.CellRef::parse_a1(right.to_owned()) is Some(second) else {
+    raise schema_error(
+      file~,
+      "'\{right}' is not a valid A1 cell reference in \{what} '\{text}'",
+    )
+  }
+  let (top_left, bottom_right) = @units.CellRef::rect(first, second)
+  { top_left, bottom_right }
 }
 
 ///|

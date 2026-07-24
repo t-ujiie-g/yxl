@@ -251,6 +251,64 @@ test "a split pane converts its point position to twips" {
 }
 
 ///|
+test "page setup round-trips: layout, margins, header/footer, and the print area" {
+  let wb = @model.Workbook::new()
+  let sheet = wb.add_sheet("Report")
+  sheet.set_page_setup({
+    area: Some({
+      top_left: @units.CellRef::new(col=1, row=1),
+      bottom_right: @units.CellRef::new(col=4, row=50),
+    }),
+    orientation: Some(Landscape),
+    margins: Some({
+      top: Some(1.0),
+      bottom: Some(1.0),
+      left: Some(0.7),
+      right: Some(0.7),
+      header: None,
+      footer: None,
+    }),
+    scale: Some(Percent(80)),
+    header: Some("&CQuarterly report"),
+    footer: Some("&LPage &P of &N"),
+    breaks: [@units.CellRef::new(col=1, row=21)],
+  })
+  let reopened = @xlsx.read(@emit.to_bytes(wb)[:])
+  let layout = reopened.get_page_layout("Report")
+  assert_eq(layout.orientation, Some("landscape"))
+  assert_eq(layout.adjust_to, Some(80))
+  let margins = reopened.get_page_margins("Report")
+  assert_eq(margins.top, Some(1.0))
+  assert_eq(margins.left, Some(0.7))
+  let header_footer = reopened.get_header_footer("Report").unwrap()
+  assert_eq(header_footer.odd_header, "&CQuarterly report")
+  assert_eq(header_footer.odd_footer, "&LPage &P of &N")
+  // The print area is Excel's own sheet-scoped defined name, stored absolute.
+  let names = reopened.get_defined_names()
+  assert_eq(names.length(), 1)
+  assert_eq(names[0].name, "_xlnm.Print_Area")
+  assert_eq(names[0].refers_to, "'Report'!$A$1:$D$50")
+  assert_eq(names[0].scope, "Report")
+}
+
+///|
+test "a fit-to-page scale also flags the sheet fit-to-page" {
+  let wb = @model.Workbook::new()
+  wb
+  .add_sheet("Wide")
+  .set_page_setup({
+    ..@model.PageSetup::empty(),
+    scale: Some(Fit(width=1, height=0)),
+  })
+  let reopened = @xlsx.read(@emit.to_bytes(wb)[:])
+  let layout = reopened.get_page_layout("Wide")
+  assert_eq(layout.fit_to_width, Some(1))
+  assert_eq(layout.fit_to_height, Some(0))
+  // Excel ignores the fit unless the sheet carries this flag.
+  assert_eq(reopened.get_sheet_props("Wide").fit_to_page, Some(true))
+}
+
+///|
 test "a date cell serializes to its Excel serial under the workbook's system" {
   let date = @units.DateTime::{
     year: 1900,

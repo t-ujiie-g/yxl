@@ -32,6 +32,13 @@ test "CellRef::to_a1 encodes multi-letter columns (bijective base-26)" {
 }
 
 ///|
+test "CellRef::to_absolute_a1 locks both the column and the row" {
+  assert_eq(@units.CellRef::new(col=1, row=1).to_absolute_a1(), "$A$1")
+  assert_eq(@units.CellRef::new(col=2, row=3).to_absolute_a1(), "$B$3")
+  assert_eq(@units.CellRef::new(col=27, row=100).to_absolute_a1(), "$AA$100")
+}
+
+///|
 test "CellRef::parse_a1 accepts valid references and inverts to_a1" {
   assert_eq(
     @units.CellRef::parse_a1("A1"),

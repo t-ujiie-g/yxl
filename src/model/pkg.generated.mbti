@@ -9,6 +9,10 @@ import {
 // Values
 pub let max_outline_level : Int
 
+pub let max_page_scale : Int
+
+pub let min_page_scale : Int
+
 // Errors
 
 // Types and methods
@@ -55,6 +59,11 @@ pub(all) struct Cell {
   style : Style?
 } derive(Eq, @debug.Debug)
 
+pub(all) struct CellRange {
+  top_left : @units.CellRef
+  bottom_right : @units.CellRef
+} derive(Eq, @debug.Debug)
+
 pub(all) enum CellValue {
   Text(String)
   Number(Double)
@@ -93,10 +102,35 @@ pub(all) enum HAlign {
   Distributed
 } derive(Eq, Hash, @debug.Debug)
 
-pub(all) struct MergeRange {
-  top_left : @units.CellRef
-  bottom_right : @units.CellRef
+pub(all) enum Orientation {
+  Portrait
+  Landscape
 } derive(Eq, @debug.Debug)
+
+pub(all) struct PageMargins {
+  top : Double?
+  bottom : Double?
+  left : Double?
+  right : Double?
+  header : Double?
+  footer : Double?
+} derive(Eq, @debug.Debug)
+
+pub(all) enum PageScale {
+  Percent(Int)
+  Fit(width~ : Int, height~ : Int)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct PageSetup {
+  area : CellRange?
+  orientation : Orientation?
+  margins : PageMargins?
+  scale : PageScale?
+  header : String?
+  footer : String?
+  breaks : Array[@units.CellRef]
+} derive(Eq, @debug.Debug)
+pub fn PageSetup::empty() -> Self
 
 pub(all) enum Panes {
   Freeze(@units.CellRef)
@@ -113,8 +147,9 @@ pub(all) struct Sheet {
   cells : Array[Cell]
   columns : Array[AxisBand]
   rows : Array[AxisBand]
-  merges : Array[MergeRange]
+  merges : Array[CellRange]
   visibility : SheetVisibility
+  mut page : PageSetup?
   mut panes : Panes?
   mut gridlines : Bool?
   mut tab_color : @units.Color?
@@ -124,6 +159,7 @@ pub fn Sheet::new(String, visibility? : SheetVisibility) -> Self
 pub fn Sheet::set(Self, @units.CellRef, CellValue, format? : String, style? : Style) -> Unit
 pub fn Sheet::set_column_band(Self, first~ : Int, last~ : Int, style? : Style, width? : Double, hidden? : Bool, outline_level? : Int) -> Unit
 pub fn Sheet::set_gridlines(Self, Bool) -> Unit
+pub fn Sheet::set_page_setup(Self, PageSetup) -> Unit
 pub fn Sheet::set_panes(Self, Panes) -> Unit
 pub fn Sheet::set_row_band(Self, first~ : Int, last~ : Int, style? : Style, height? : Double, hidden? : Bool, outline_level? : Int) -> Unit
 pub fn Sheet::set_tab_color(Self, @units.Color) -> Unit
