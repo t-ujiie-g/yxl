@@ -136,6 +136,20 @@ fn build_workbook(wb : @model.Workbook) -> Bytes raise @xlsx.XlsxError {
       )
     }
   }
+  // Hidden tabs come after every sheet exists: the backend rejects hiding the
+  // last visible sheet, and a sheet declared later may be the visible one.
+  for sheet in wb.sheets {
+    match sheet.visibility {
+      Visible => ()
+      Hidden => backend.set_sheet_visible(sheet.name, false)
+      VeryHidden =>
+        backend.set_sheet_visible(sheet.name, false, very_hidden=true)
+    }
+  }
+  // The tab Excel opens on, as an index into the sheet order.
+  if wb.active_sheet is Some(name) {
+    backend.set_active_sheet(backend.sheet_index(name))
+  }
   // Workbook defined names (ADR-013): each named value/formula the spec declared
   // once, shared across the workbook and referenced by cells as `=name`.
   for defined_name in wb.defined_names {

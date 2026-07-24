@@ -170,8 +170,9 @@ The **active phase** is the first phase with any unchecked box.
 - [x] Column/row visibility (hide/show) and **outline grouping** — collapsible
       row/column groups via outline levels (`set_{col,row}_outline_level`); a
       band takes `hidden:` and `group:` (level 0–7, validated in the loader)
-- [ ] Multiple sheets: order, active sheet, sheet visibility
-      (hidden/very-hidden)
+- [x] Multiple sheets: order (declaration order is the tab order), active sheet
+      (top-level `active: <name>`), sheet visibility (per-sheet
+      `visibility: visible | hidden | very_hidden`)
 - [ ] Freeze / split panes, gridlines, tab color
 - [ ] Page setup for print: orientation, margins, scaling, print area,
       headers/footers, page breaks (`set_page_layout` / `set_page_margins` /
@@ -456,6 +457,26 @@ each other).
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-25** — **Phase 6: multiple sheets — order, active sheet, visibility.**
+  Declaration order is the tab order (now asserted, not just assumed). A sheet
+  takes `visibility: visible | hidden | very_hidden` — a bareword rather than a
+  boolean, because Excel has three states here (`ST_SheetState`, ECMA-376
+  §18.18.68), unlike a band's two-state `hidden:`. A top-level `active: <name>`
+  picks the tab Excel opens on, by name rather than index, so a typo is a
+  diagnostic instead of silently opening elsewhere.
+
+  Three fail-fast checks land in the loader rather than at emit time (ADR-006):
+  an `active` naming no declared sheet, an `active` naming a *hidden* one (Excel
+  cannot open on a tab it does not show), and a workbook whose every sheet is
+  hidden (the backend rejects it with a bare EmitError). Added
+  `model.SheetVisibility` + `Sheet.visibility` and `Workbook.active_sheet` /
+  `set_active_sheet`; `add_sheet` and `Sheet::new` take an optional
+  `visibility~`. The emitter hides tabs in a pass *after* every sheet exists —
+  hiding inside the sheet loop would trip the backend's "at least one visible
+  sheet" guard whenever an early sheet is the hidden one — then resolves
+  `active_sheet` through `sheet_index` to Excel's `activeTab`. Round-trip
+  verified, plus the emitted `workbook.xml` inspected directly. 91 tests green.
 
 - **2026-07-25** — **Phase 6: column/row visibility and outline grouping.** A
   column or row band takes `hidden: true` (hide the band) and `group: <level>`

@@ -1,17 +1,20 @@
 ///|
 /// Load a parsed YAML document into a workbook model, validating the schema. The
-/// spec is a mapping with a `sheets` sequence plus optional top-level `date1904`
-/// (the 1904 date system), `default_font` (the workbook default font face), and
-/// `defs` (named definitions — see `load_defs`). Each sheet has a `name` and
-/// optional `cells` (an A1-reference mapping), `merges`, and `columns` / `rows`
-/// (bands carrying a default style, a size, visibility, and outline grouping —
-/// see `load_columns`). A cell value is a scalar shorthand or an
-/// expanded mapping with a `value`, `formula`, or `rich` run list, plus optional
-/// `type`, `format`, and `style` (see `load_cell`). A style is referenced by
-/// bareword name and a value/formula by `{ $ref: name }` (ADR-012).
+/// spec is a mapping with a `sheets` sequence plus optional top-level `active`
+/// (the sheet Excel opens on), `date1904` (the 1904 date system), `default_font`
+/// (the workbook default font face), and `defs` (named definitions — see
+/// `load_defs`). Sheets appear in Excel in declaration order. Each sheet has a
+/// `name` and optional `visibility`, `cells` (an A1-reference mapping),
+/// `merges`, and `columns` / `rows` (bands carrying a default style, a size,
+/// visibility, and outline grouping — see `load_columns`). A cell value is a
+/// scalar shorthand or an expanded mapping with a `value`, `formula`, or `rich`
+/// run list, plus optional `type`, `format`, and `style` (see `load_cell`). A
+/// style is referenced by bareword name and a value/formula by `{ $ref: name }`
+/// (ADR-012).
 ///
 /// ```yaml
 /// default_font: Calibri
+/// active: Sheet1
 /// defs:
 ///   styles:
 ///     header: { font: { bold: true } }
@@ -30,6 +33,8 @@
 ///       B1: { value: 0.5, format: "0.00%", style: header }
 ///       C1: { formula: "SUM(B1:B1)", style: { font: { italic: true } } }
 ///       D1: { rich: ["plain ", { text: bold, font: { bold: true } }] }
+///   - name: Scratch
+///     visibility: hidden
 /// ```
 ///
 /// Unknown keys, wrong types, bad cell references, and dangling name references
@@ -57,17 +62,46 @@ pub fn load(
       "date1904" => () // consumed by read_date_system
       "default_font" => () // consumed by read_default_font
       "defs" => () // consumed by load_defs
+      "active" => () // resolved below, once every sheet name is known
       _ =>
         raise schema_error(
           file~,
-          "unknown top-level key '\{key}' (expected 'sheets', 'date1904', 'default_font', or 'defs')",
+          "unknown top-level key '\{key}' (expected 'sheets', 'active', 'date1904', 'default_font', or 'defs')",
         )
     }
   }
   guard seen_sheets else {
     raise schema_error(file~, "missing required key 'sheets'")
   }
+  read_active_sheet(root, workbook, file~)
+  guard workbook.sheets.iter().any(sheet => sheet.visibility is Visible) else {
+    raise schema_error(
+      file~,
+      "every sheet is hidden; Excel needs at least one visible sheet",
+    )
+  }
   workbook
+}
+
+///|
+/// The optional top-level `active: <sheet name>` selects the sheet Excel opens
+/// on; its absence opens the first sheet. The name must be a declared, visible
+/// sheet — Excel cannot open on a tab it does not show.
+fn read_active_sheet(
+  root : Array[(String, @yaml.Node)],
+  workbook : @model.Workbook,
+  file~ : String,
+) -> Unit raise @diag.SchemaError {
+  guard find_key(root, "active") is Some(value) else { return }
+  let name = expect_string(value, file~, context="'active'")
+  guard workbook.sheets.iter().find_first(sheet => sheet.name == name)
+    is Some(sheet) else {
+    raise schema_error(file~, "active sheet '\{name}' is not a declared sheet")
+  }
+  guard sheet.visibility is Visible else {
+    raise schema_error(file~, "active sheet '\{name}' is hidden")
+  }
+  workbook.set_active_sheet(name)
 }
 
 ///|
@@ -145,6 +179,7 @@ fn load_sheet(
   let mut columns = None
   let mut rows = None
   let mut merges = None
+  let mut visibility = @model.Visible
   for entry in entries {
     let (key, value) = entry
     match key {
@@ -153,17 +188,18 @@ fn load_sheet(
       "columns" => columns = Some(value)
       "rows" => rows = Some(value)
       "merges" => merges = Some(value)
+      "visibility" => visibility = load_visibility(value, file~)
       _ =>
         raise schema_error(
           file~,
-          "unknown key '\{key}' in sheet (expected 'name', 'cells', 'columns', 'rows', or 'merges')",
+          "unknown key '\{key}' in sheet (expected 'name', 'cells', 'columns', 'rows', 'merges', or 'visibility')",
         )
     }
   }
   guard name is Some(sheet_name) else {
     raise schema_error(file~, "a sheet is missing required key 'name'")
   }
-  let sheet = workbook.add_sheet(sheet_name)
+  let sheet = workbook.add_sheet(sheet_name, visibility~)
   if columns is Some(columns_node) {
     load_columns(columns_node, sheet, file~, defs~)
   }
@@ -177,6 +213,26 @@ fn load_sheet(
     load_merges(merges_node, sheet, file~)
   }
   sheet_name
+}
+
+///|
+/// A sheet's `visibility:` — `visible` (the default), `hidden`, or `very_hidden`
+/// (unhideable from Excel's UI). A bareword, not a boolean, because Excel has
+/// three states, unlike a column or row band's two-state `hidden:`.
+fn load_visibility(
+  node : @yaml.Node,
+  file~ : String,
+) -> @model.SheetVisibility raise @diag.SchemaError {
+  match expect_string(node, file~, context="sheet 'visibility'") {
+    "visible" => Visible
+    "hidden" => Hidden
+    "very_hidden" => VeryHidden
+    other =>
+      raise schema_error(
+        file~,
+        "unknown sheet visibility '\{other}' (expected 'visible', 'hidden', or 'very_hidden')",
+      )
+  }
 }
 
 ///|

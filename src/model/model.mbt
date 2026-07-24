@@ -74,15 +74,28 @@ pub(all) struct MergeRange {
 } derive(Eq, Debug)
 
 ///|
+/// How Excel shows a sheet in the tab bar (ECMA-376 §18.18.68,
+/// `ST_SheetState`): visible; hidden, which the user can undo from the tab
+/// context menu; or very hidden, which only VBA can undo. A workbook must keep
+/// at least one visible sheet.
+pub(all) enum SheetVisibility {
+  Visible
+  Hidden
+  VeryHidden
+} derive(Eq, Debug)
+
+///|
 /// One worksheet: a name, the cells written to it (kept in insertion order),
-/// the column and row bands laid over them (see `AxisBand`), and merged-cell
-/// ranges. Turning these into the final workbook layout is the emitter's job.
+/// the column and row bands laid over them (see `AxisBand`), merged-cell
+/// ranges, and whether the tab is shown. Turning these into the final workbook
+/// layout is the emitter's job.
 pub(all) struct Sheet {
   name : String
   cells : Array[Cell]
   columns : Array[AxisBand]
   rows : Array[AxisBand]
   merges : Array[MergeRange]
+  visibility : SheetVisibility
 } derive(Eq, Debug)
 
 ///|
@@ -96,9 +109,10 @@ pub(all) struct DefinedName {
 } derive(Eq, Debug)
 
 ///|
-/// A workbook: an ordered list of sheets, the date system that governs how dates
-/// serialize, and any workbook-level defined names. This is the entire input to
-/// the emitter seam (`model -> bytes`, ADR-002).
+/// A workbook: an ordered list of sheets — the order is the order of the tabs —
+/// the date system that governs how dates serialize, and any workbook-level
+/// defined names. This is the entire input to the emitter seam
+/// (`model -> bytes`, ADR-002).
 pub(all) struct Workbook {
   sheets : Array[Sheet]
   date_system : @units.DateSystem
@@ -108,16 +122,32 @@ pub(all) struct Workbook {
   /// Named definitions shared across the workbook, in declaration order
   /// (deterministic). A reference cell holds `=name`; Excel resolves the name.
   defined_names : Array[DefinedName]
+  /// The sheet selected when the workbook opens, by name (`None` selects the
+  /// first sheet). The emitter resolves it to Excel's `activeTab` index.
+  mut active_sheet : String?
 } derive(Eq, Debug)
 
 ///|
-/// A new, empty workbook. Defaults to the 1900 date system and the backend's
-/// default font.
+/// A new, empty workbook. Defaults to the 1900 date system, the backend's
+/// default font, and the first sheet active.
 pub fn Workbook::new(
   date_system? : @units.DateSystem = Date1900,
   default_font? : String,
 ) -> Workbook {
-  { sheets: [], date_system, default_font, defined_names: [] }
+  {
+    sheets: [],
+    date_system,
+    default_font,
+    defined_names: [],
+    active_sheet: None,
+  }
+}
+
+///|
+/// Select, by name, the sheet Excel opens on. The name must be one of the
+/// workbook's sheets; callers validate that (the loader raises a diagnostic).
+pub fn Workbook::set_active_sheet(self : Workbook, name : String) -> Unit {
+  self.active_sheet = Some(name)
 }
 
 ///|
@@ -132,19 +162,26 @@ pub fn Workbook::add_defined_name(
 }
 
 ///|
-/// Append a new empty sheet and return it so cells can be written to it. The
-/// returned sheet shares the workbook's storage, so `set` on it is visible in
-/// the workbook.
-pub fn Workbook::add_sheet(self : Workbook, name : String) -> Sheet {
-  let sheet = Sheet::new(name)
+/// Append a new empty sheet and return it so cells can be written to it. Sheets
+/// appear in Excel in the order they are added. The returned sheet shares the
+/// workbook's storage, so `set` on it is visible in the workbook.
+pub fn Workbook::add_sheet(
+  self : Workbook,
+  name : String,
+  visibility? : SheetVisibility = Visible,
+) -> Sheet {
+  let sheet = Sheet::new(name, visibility~)
   self.sheets.push(sheet)
   sheet
 }
 
 ///|
-/// A new, empty sheet with the given name.
-pub fn Sheet::new(name : String) -> Sheet {
-  { name, cells: [], columns: [], rows: [], merges: [] }
+/// A new, empty sheet with the given name, visible unless told otherwise.
+pub fn Sheet::new(
+  name : String,
+  visibility? : SheetVisibility = Visible,
+) -> Sheet {
+  { name, cells: [], columns: [], rows: [], merges: [], visibility }
 }
 
 ///|

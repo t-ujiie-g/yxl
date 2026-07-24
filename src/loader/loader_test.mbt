@@ -202,6 +202,7 @@ test "load builds sheets and typed cells from a minimal spec" {
       #|      columns: [],
       #|      rows: [],
       #|      merges: [],
+      #|      visibility: Visible,
       #|    },
       #|    {
       #|      name: "Second",
@@ -209,11 +210,13 @@ test "load builds sheets and typed cells from a minimal spec" {
       #|      columns: [],
       #|      rows: [],
       #|      merges: [],
+      #|      visibility: Visible,
       #|    },
       #|  ],
       #|  date_system: Date1900,
       #|  default_font: None,
       #|  defined_names: [],
+      #|  active_sheet: None,
       #|}
     ),
   )
@@ -661,7 +664,7 @@ test "load rejects an unknown top-level key" {
   assert_eq(
     schema_message("sheetz:\n  - name: S\n"),
     Some(
-      "spec.yaml: unknown top-level key 'sheetz' (expected 'sheets', 'date1904', 'default_font', or 'defs')",
+      "spec.yaml: unknown top-level key 'sheetz' (expected 'sheets', 'active', 'date1904', 'default_font', or 'defs')",
     ),
   )
 }
@@ -671,7 +674,7 @@ test "load requires the sheets key" {
   assert_eq(
     schema_message("title: report\n"),
     Some(
-      "spec.yaml: unknown top-level key 'title' (expected 'sheets', 'date1904', 'default_font', or 'defs')",
+      "spec.yaml: unknown top-level key 'title' (expected 'sheets', 'active', 'date1904', 'default_font', or 'defs')",
     ),
   )
   assert_eq(
@@ -861,11 +864,72 @@ test "load rejects a $ref value combined with a type, and unknown defs keys" {
 }
 
 ///|
+test "load parses sheet visibility and the active sheet, keeping declaration order" {
+  let workbook = load_ok(
+    (
+      #|active: Summary
+      #|sheets:
+      #|  - name: Data
+      #|  - name: Summary
+      #|  - name: Scratch
+      #|    visibility: hidden
+      #|  - name: Internals
+      #|    visibility: very_hidden
+      #|
+    ),
+  )
+  // Sheet order is declaration order — the spec is the tab order.
+  assert_eq(workbook.sheets.map(sheet => sheet.name), [
+    "Data", "Summary", "Scratch", "Internals",
+  ])
+  assert_eq(workbook.sheets.map(sheet => sheet.visibility), [
+    Visible,
+    Visible,
+    Hidden,
+    VeryHidden,
+  ])
+  assert_eq(workbook.active_sheet, Some("Summary"))
+  // Left out, `active` opens on the first sheet and every tab is visible.
+  let plain = load_ok("sheets:\n  - name: S\n")
+  assert_eq(plain.active_sheet, None)
+  assert_eq(plain.sheets[0].visibility, Visible)
+}
+
+///|
+test "load rejects a bad visibility, a dangling or hidden active sheet, and an all-hidden workbook" {
+  assert_eq(
+    schema_message("sheets:\n  - name: S\n    visibility: gone\n"),
+    Some(
+      "spec.yaml: unknown sheet visibility 'gone' (expected 'visible', 'hidden', or 'very_hidden')",
+    ),
+  )
+  assert_eq(
+    schema_message("active: Nope\nsheets:\n  - name: S\n"),
+    Some("spec.yaml: active sheet 'Nope' is not a declared sheet"),
+  )
+  // Excel cannot open on a tab it does not show.
+  assert_eq(
+    schema_message(
+      "active: S\nsheets:\n  - name: S\n    visibility: hidden\n  - name: T\n",
+    ),
+    Some("spec.yaml: active sheet 'S' is hidden"),
+  )
+  assert_eq(
+    schema_message(
+      "sheets:\n  - name: S\n    visibility: hidden\n  - name: T\n    visibility: very_hidden\n",
+    ),
+    Some(
+      "spec.yaml: every sheet is hidden; Excel needs at least one visible sheet",
+    ),
+  )
+}
+
+///|
 test "load rejects an unknown key inside a sheet" {
   assert_eq(
     schema_message("sheets:\n  - name: S\n    color: red\n"),
     Some(
-      "spec.yaml: unknown key 'color' in sheet (expected 'name', 'cells', 'columns', 'rows', or 'merges')",
+      "spec.yaml: unknown key 'color' in sheet (expected 'name', 'cells', 'columns', 'rows', 'merges', or 'visibility')",
     ),
   )
 }

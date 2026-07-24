@@ -109,12 +109,19 @@ pub(all) struct Sheet {
   columns : Array[AxisBand]
   rows : Array[AxisBand]
   merges : Array[MergeRange]
+  visibility : SheetVisibility
 } derive(Eq, @debug.Debug)
 pub fn Sheet::merge(Self, @units.CellRef, @units.CellRef) -> Unit
-pub fn Sheet::new(String) -> Self
+pub fn Sheet::new(String, visibility? : SheetVisibility) -> Self
 pub fn Sheet::set(Self, @units.CellRef, CellValue, format? : String, style? : Style) -> Unit
 pub fn Sheet::set_column_band(Self, first~ : Int, last~ : Int, style? : Style, width? : Double, hidden? : Bool, outline_level? : Int) -> Unit
 pub fn Sheet::set_row_band(Self, first~ : Int, last~ : Int, style? : Style, height? : Double, hidden? : Bool, outline_level? : Int) -> Unit
+
+pub(all) enum SheetVisibility {
+  Visible
+  Hidden
+  VeryHidden
+} derive(Eq, @debug.Debug)
 
 pub(all) struct Style {
   font : Font?
@@ -140,10 +147,12 @@ pub(all) struct Workbook {
   date_system : @units.DateSystem
   default_font : String?
   defined_names : Array[DefinedName]
+  mut active_sheet : String?
 } derive(Eq, @debug.Debug)
 pub fn Workbook::add_defined_name(Self, String, CellValue) -> Unit
-pub fn Workbook::add_sheet(Self, String) -> Sheet
+pub fn Workbook::add_sheet(Self, String, visibility? : SheetVisibility) -> Sheet
 pub fn Workbook::new(date_system? : @units.DateSystem, default_font? : String) -> Self
+pub fn Workbook::set_active_sheet(Self, String) -> Unit
 
 // Type aliases
 

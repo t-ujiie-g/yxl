@@ -34,6 +34,26 @@ test "MbtexcelEmitter emits every sheet in order" {
   let reopened = @xlsx.read(bytes[:])
   assert_eq(reopened.get_cell("First", "A1"), Some("a"))
   assert_eq(reopened.get_cell("Second", "A1"), Some("b"))
+  // Declaration order is the tab order.
+  assert_eq(reopened.sheet_index("First"), 0)
+  assert_eq(reopened.sheet_index("Second"), 1)
+}
+
+///|
+test "sheet visibility and the active sheet survive a round trip" {
+  let wb = @model.Workbook::new()
+  // The first sheet is hidden, so the backend must see every sheet before any
+  // of them is hidden — otherwise no visible sheet would be left at that point.
+  wb.add_sheet("Scratch", visibility=Hidden) |> ignore
+  wb.add_sheet("Internals", visibility=VeryHidden) |> ignore
+  wb.add_sheet("Summary") |> ignore
+  wb.set_active_sheet("Summary")
+  let reopened = @xlsx.read(@emit.to_bytes(wb)[:])
+  assert_false(reopened.sheet_visible("Scratch"))
+  assert_false(reopened.sheet_visible("Internals"))
+  assert_true(reopened.sheet_visible("Summary"))
+  // `activeTab` is an index into the sheet order.
+  assert_eq(reopened.get_active_sheet_index(), 2)
 }
 
 ///|
