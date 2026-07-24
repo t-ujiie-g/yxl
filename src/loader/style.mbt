@@ -347,36 +347,3 @@ fn load_border_style(
       )
   }
 }
-
-///|
-/// A number scalar (integer or float) as a `Double`.
-fn expect_number(
-  node : @yaml.Node,
-  file~ : String,
-  context~ : String,
-) -> Double raise @diag.SchemaError {
-  match node {
-    @yaml.Int(number) => number.to_double()
-    @yaml.Float(number) => number
-    _ => raise schema_error(file~, "\{context} must be a number")
-  }
-}
-
-///|
-/// A hex-color scalar, validated into a `@units.Color`. `what` names the
-/// attribute for the diagnostic (e.g. `"font 'color'"`).
-fn expect_color(
-  node : @yaml.Node,
-  file~ : String,
-  what~ : String,
-  context~ : String,
-) -> @units.Color raise @diag.SchemaError {
-  let text = expect_string(node, file~, context="\{context} \{what}")
-  guard @units.Color::parse(text) is Some(color) else {
-    raise schema_error(
-      file~,
-      "\{context} \{what} is not a valid hex color: '\{text}'",
-    )
-  }
-  color
-}

@@ -459,6 +459,43 @@ each other).
 
 Reverse-chronological. One entry per user-visible or structural change.
 
+- **2026-07-25** — **Refactor pass (whole tree), after Phase 6.** No behaviour
+  change: the same spec compiles to *byte-identical* `.xlsx` output and the
+  `.mbti` files show **no public-API diff**. 107 tests green (81 → 107 over the
+  phase, +7 in this pass).
+
+  *Duplication.* Four sites hand-rolled "parse an A1 reference or raise a
+  diagnostic"; they now share `expect_cell_ref`. The scalar expectations were
+  split across two files (`expect_map`/`string`/`seq`/`bool` in `loader.mbt`,
+  `expect_number`/`expect_color` in `style.mbt`) — all of them, plus
+  `schema_error` and `find_key`, now live in one `loader/expect.mbt`, the
+  vocabulary every loader file shares.
+
+  *File splitting*, at concern boundaries rather than line counts: `loader.mbt`
+  661 → 341 (print block out to `loader/page.mbt`, mirroring the existing
+  axis/cell/style/defs layout); `emit.mbt` 560 → 284 (style translation out to
+  `emit/style.mbt`, print setup to `emit/page.mbt`). `build_workbook` was a
+  145-line function doing everything; it is now a short driver over `emit_sheet`
+  and `emit_cell`.
+
+  *Simplification.* `load_sheet` carried 11 mutable locals to stage keys before
+  creating the sheet; it now reads only `name` and `visibility` up front (via
+  `find_key`) and applies every other key to the sheet in place — zero mutables.
+  `load_page_setup` likewise stopped rebuilding the record per key.
+
+  *Tests.* `model_test.mbt` had not kept up with Phases 4–6: added direct
+  coverage for the band setters, `merge` canonicalization, the sheet
+  presentation setters, `PageSetup::empty`, `Style::is_empty`, defined names and
+  the active sheet, plus `CellRef::rect` in `units`.
+
+  *Docs.* `README.md` was badly stale — it claimed "the compiler is not yet
+  functional" (six phases ship) and showed a schema that never existed (a
+  `workbook:` wrapper, `A1: { text:, merge: }`, top-level `styles:`). Rewritten
+  against the real schema, with the example **verified by compiling it**; the
+  package table dropped the `resolve` package that was never built (ADR-013
+  folded it into the loader). Two `moon.pkg` comments cited ROADMAP `§4`, which
+  §8.6 forbids — a reader without this file cannot follow them.
+
 - **2026-07-25** — **Phase 6 complete: page setup for print.** A sheet takes a
   `print:` block — `area` (a range), `orientation`, `margins` (in inches, Excel's
   unit here), `scale` (a percentage) *or* `fit: { width, height }` (pages across

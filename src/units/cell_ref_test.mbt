@@ -32,6 +32,25 @@ test "CellRef::to_a1 encodes multi-letter columns (bijective base-26)" {
 }
 
 ///|
+test "CellRef::rect orders any two corners into top-left and bottom-right" {
+  let a = @units.CellRef::new(col=1, row=1)
+  let b = @units.CellRef::new(col=3, row=4)
+  let expected = (a, b)
+  // All four corner pairs describe the same rectangle.
+  assert_eq(@units.CellRef::rect(a, b), expected)
+  assert_eq(@units.CellRef::rect(b, a), expected)
+  assert_eq(
+    @units.CellRef::rect(
+      @units.CellRef::new(col=3, row=1),
+      @units.CellRef::new(col=1, row=4),
+    ),
+    expected,
+  )
+  // A degenerate "rectangle" of one cell is its own pair of corners.
+  assert_eq(@units.CellRef::rect(a, a), (a, a))
+}
+
+///|
 test "CellRef::to_absolute_a1 locks both the column and the row" {
   assert_eq(@units.CellRef::new(col=1, row=1).to_absolute_a1(), "$A$1")
   assert_eq(@units.CellRef::new(col=2, row=3).to_absolute_a1(), "$B$3")

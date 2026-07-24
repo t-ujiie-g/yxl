@@ -62,6 +62,125 @@ test "set folds a format shorthand into a style, and merges with an explicit sty
 }
 
 ///|
+test "Style::is_empty distinguishes the default style from any set attribute" {
+  assert_true(@model.Style::empty().is_empty())
+  assert_false(@model.Style::number_format("0.00").is_empty())
+  assert_false(
+    @model.Style::{ ..@model.Style::empty(), fill: Some({ color: red() }) }.is_empty(),
+  )
+}
+
+///|
+test "band setters record an inclusive span and only the properties given" {
+  let sheet = @model.Sheet::new("S")
+  sheet.set_column_band(first=2, last=4, width=12.0, hidden=true)
+  sheet.set_row_band(first=1, last=1, height=24.0, outline_level=2)
+  assert_eq(sheet.columns, [
+    {
+      first: 2,
+      last: 4,
+      style: None,
+      size: Some(12.0),
+      hidden: Some(true),
+      outline_level: None,
+    },
+  ])
+  assert_eq(sheet.rows, [
+    {
+      first: 1,
+      last: 1,
+      style: None,
+      size: Some(24.0),
+      hidden: None,
+      outline_level: Some(2),
+    },
+  ])
+  // A band that sets nothing is still a band; dropping empties is the loader's
+  // job, not the model's.
+  sheet.set_column_band(first=9, last=9)
+  assert_eq(sheet.columns.length(), 2)
+}
+
+///|
+test "merge canonicalizes its corners whichever pair is given" {
+  let sheet = @model.Sheet::new("S")
+  // Bottom-right first, then top-right — both name the same rectangle.
+  sheet.merge(
+    @units.CellRef::new(col=3, row=3),
+    @units.CellRef::new(col=1, row=1),
+  )
+  sheet.merge(
+    @units.CellRef::new(col=3, row=1),
+    @units.CellRef::new(col=1, row=3),
+  )
+  let expected : @model.CellRange = {
+    top_left: @units.CellRef::new(col=1, row=1),
+    bottom_right: @units.CellRef::new(col=3, row=3),
+  }
+  assert_eq(sheet.merges, [expected, expected])
+}
+
+///|
+test "sheet presentation setters are independent and default to Excel's own" {
+  let sheet = @model.Sheet::new("S")
+  // Untouched, every presentation property defers to Excel.
+  assert_eq(sheet.visibility, Visible)
+  assert_eq(sheet.panes, None)
+  assert_eq(sheet.gridlines, None)
+  assert_eq(sheet.tab_color, None)
+  assert_eq(sheet.page, None)
+  sheet.set_panes(Freeze(@units.CellRef::new(col=2, row=2)))
+  sheet.set_gridlines(false)
+  sheet.set_tab_color(red())
+  sheet.set_page_setup({
+    ..@model.PageSetup::empty(),
+    orientation: Some(Landscape),
+  })
+  assert_eq(sheet.panes, Some(Freeze(@units.CellRef::new(col=2, row=2))))
+  assert_eq(sheet.gridlines, Some(false))
+  assert_eq(sheet.tab_color, Some(red()))
+  assert_eq(sheet.page.unwrap().orientation, Some(Landscape))
+  // A hidden sheet is declared at construction, not mutated in.
+  assert_eq(
+    @model.Sheet::new("H", visibility=VeryHidden).visibility,
+    VeryHidden,
+  )
+}
+
+///|
+test "PageSetup::empty changes nothing" {
+  let page = @model.PageSetup::empty()
+  assert_eq(page.area, None)
+  assert_eq(page.orientation, None)
+  assert_eq(page.margins, None)
+  assert_eq(page.scale, None)
+  assert_eq(page.header, None)
+  assert_eq(page.footer, None)
+  assert_eq(page.breaks, [])
+}
+
+///|
+test "defined names and the active sheet are workbook-wide, in declaration order" {
+  let wb = @model.Workbook::new()
+  assert_eq(wb.active_sheet, None)
+  wb.add_defined_name("tax_rate", Number(0.08))
+  wb.add_defined_name("company", Text("Acme"))
+  assert_eq(wb.defined_names, [
+    { name: "tax_rate", refers_to: Number(0.08) },
+    { name: "company", refers_to: Text("Acme") },
+  ])
+  wb.add_sheet("S") |> ignore
+  wb.set_active_sheet("S")
+  assert_eq(wb.active_sheet, Some("S"))
+}
+
+///|
+/// A color for the tests that need one; `parse` is exercised in `units`.
+fn red() -> @units.Color {
+  @units.Color::parse("FF0000").unwrap()
+}
+
+///|
 test "cells keep insertion order across multiple sheets" {
   let wb = @model.Workbook::new()
   let s1 = wb.add_sheet("First")

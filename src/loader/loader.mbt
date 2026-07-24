@@ -146,18 +146,6 @@ fn read_default_font(
 }
 
 ///|
-/// The value of the first `key` entry in a mapping's entries, or `None`.
-fn find_key(root : Array[(String, @yaml.Node)], key : String) -> @yaml.Node? {
-  for entry in root {
-    let (candidate, value) = entry
-    if candidate == key {
-      return Some(value)
-    }
-  }
-  None
-}
-
-///|
 fn load_sheets(
   node : @yaml.Node,
   workbook : @model.Workbook,
@@ -184,77 +172,49 @@ fn load_sheet(
   defs~ : Defs,
 ) -> String raise @diag.SchemaError {
   let entries = expect_map(node, file~, context="a sheet")
-  let mut name = None
-  let mut cells = None
-  let mut columns = None
-  let mut rows = None
-  let mut merges = None
-  let mut visibility = @model.Visible
-  let mut freeze = None
-  let mut split = None
-  let mut gridlines = None
-  let mut tab_color = None
-  let mut page = None
-  for entry in entries {
-    let (key, value) = entry
-    match key {
-      "name" => name = Some(expect_string(value, file~, context="sheet 'name'"))
-      "cells" => cells = Some(value)
-      "columns" => columns = Some(value)
-      "rows" => rows = Some(value)
-      "merges" => merges = Some(value)
-      "visibility" => visibility = load_visibility(value, file~)
-      "freeze" => freeze = Some(load_freeze(value, file~))
-      "split" => split = Some(load_split(value, file~))
-      "gridlines" =>
-        gridlines = Some(expect_bool(value, file~, context="sheet 'gridlines'"))
-      "tab_color" =>
-        tab_color = Some(
-          expect_color(value, file~, what="'tab_color'", context="sheet"),
-        )
-      "print" => page = Some(load_page_setup(value, file~))
-      _ =>
-        raise schema_error(
-          file~,
-          "unknown key '\{key}' in sheet (expected 'name', 'cells', 'columns', 'rows', 'merges', 'visibility', 'freeze', 'split', 'gridlines', 'tab_color', or 'print')",
-        )
-    }
-  }
-  guard name is Some(sheet_name) else {
+  // `name` and `visibility` are read up front because the sheet cannot be
+  // created without them; every other key then applies to the sheet in place.
+  guard find_key(entries, "name") is Some(name_node) else {
     raise schema_error(file~, "a sheet is missing required key 'name'")
   }
-  guard !(freeze is Some(_) && split is Some(_)) else {
+  let sheet_name = expect_string(name_node, file~, context="sheet 'name'")
+  let visibility = match find_key(entries, "visibility") {
+    Some(value) => load_visibility(value, file~)
+    None => @model.Visible
+  }
+  guard !(find_key(entries, "freeze") is Some(_) &&
+    find_key(entries, "split") is Some(_)) else {
     raise schema_error(
       file~,
       "sheet '\{sheet_name}' cannot combine 'freeze' and 'split'",
     )
   }
   let sheet = workbook.add_sheet(sheet_name, visibility~)
-  // At most one of the two is set; the guard above rejected both.
-  match (freeze, split) {
-    (Some(panes), _) | (_, Some(panes)) => sheet.set_panes(panes)
-    (None, None) => ()
-  }
-  if gridlines is Some(shown) {
-    sheet.set_gridlines(shown)
-  }
-  if tab_color is Some(color) {
-    sheet.set_tab_color(color)
-  }
-  if page is Some(page) {
-    sheet.set_page_setup(page)
-  }
-  if columns is Some(columns_node) {
-    load_columns(columns_node, sheet, file~, defs~)
-  }
-  if rows is Some(rows_node) {
-    load_rows(rows_node, sheet, file~, defs~)
-  }
-  if cells is Some(cells_node) {
-    load_cells(cells_node, sheet, file~, defs~)
-  }
-  if merges is Some(merges_node) {
-    load_merges(merges_node, sheet, file~)
+  for entry in entries {
+    let (key, value) = entry
+    match key {
+      "name" | "visibility" => () // consumed above
+      "cells" => load_cells(value, sheet, file~, defs~)
+      "columns" => load_columns(value, sheet, file~, defs~)
+      "rows" => load_rows(value, sheet, file~, defs~)
+      "merges" => load_merges(value, sheet, file~)
+      "freeze" => sheet.set_panes(load_freeze(value, file~))
+      "split" => sheet.set_panes(load_split(value, file~))
+      "gridlines" =>
+        sheet.set_gridlines(
+          expect_bool(value, file~, context="sheet 'gridlines'"),
+        )
+      "tab_color" =>
+        sheet.set_tab_color(
+          expect_color(value, file~, what="'tab_color'", context="sheet"),
+        )
+      "print" => sheet.set_page_setup(load_page_setup(value, file~))
+      _ =>
+        raise schema_error(
+          file~,
+          "unknown key '\{key}' in sheet (expected 'name', 'cells', 'columns', 'rows', 'merges', 'visibility', 'freeze', 'split', 'gridlines', 'tab_color', or 'print')",
+        )
+    }
   }
   sheet_name
 }
@@ -288,12 +248,7 @@ fn load_freeze(
   file~ : String,
 ) -> @model.Panes raise @diag.SchemaError {
   let reference = expect_string(node, file~, context="sheet 'freeze'")
-  guard @units.CellRef::parse_a1(reference) is Some(cell) else {
-    raise schema_error(
-      file~,
-      "'\{reference}' is not a valid A1 cell reference in 'freeze'",
-    )
-  }
+  let cell = expect_cell_ref(reference, file~, what="'freeze'")
   guard cell.col > 1 || cell.row > 1 else {
     raise schema_error(
       file~,
@@ -335,214 +290,6 @@ fn load_split(
 }
 
 ///|
-/// A sheet's `print:` block — how it goes onto paper. Every key is optional:
-/// `area` (a range), `orientation`, `margins`, `scale` or `fit` (Excel offers
-/// one or the other, never both), `header` / `footer`, and `breaks`.
-fn load_page_setup(
-  node : @yaml.Node,
-  file~ : String,
-) -> @model.PageSetup raise @diag.SchemaError {
-  let mut page = @model.PageSetup::empty()
-  let mut seen_scale = false
-  let mut seen_fit = false
-  for entry in expect_map(node, file~, context="sheet 'print'") {
-    let (key, value) = entry
-    match key {
-      "area" =>
-        page = {
-          ..page,
-          area: Some(
-            parse_range(
-              expect_string(value, file~, context="print 'area'"),
-              file~,
-              what="print area",
-            ),
-          ),
-        }
-      "orientation" =>
-        page = { ..page, orientation: Some(load_orientation(value, file~)) }
-      "margins" => page = { ..page, margins: Some(load_margins(value, file~)) }
-      "scale" => {
-        seen_scale = true
-        page = { ..page, scale: Some(load_scale(value, file~)) }
-      }
-      "fit" => {
-        seen_fit = true
-        page = { ..page, scale: Some(load_fit(value, file~)) }
-      }
-      "header" =>
-        page = {
-          ..page,
-          header: Some(expect_string(value, file~, context="print 'header'")),
-        }
-      "footer" =>
-        page = {
-          ..page,
-          footer: Some(expect_string(value, file~, context="print 'footer'")),
-        }
-      "breaks" => page = { ..page, breaks: load_breaks(value, file~) }
-      _ =>
-        raise schema_error(
-          file~,
-          "unknown key '\{key}' in sheet 'print' (expected 'area', 'orientation', 'margins', 'scale', 'fit', 'header', 'footer', or 'breaks')",
-        )
-    }
-  }
-  guard !(seen_scale && seen_fit) else {
-    raise schema_error(
-      file~,
-      "sheet 'print' cannot combine 'scale' and 'fit' (Excel scales by one or the other)",
-    )
-  }
-  page
-}
-
-///|
-/// A `print.orientation:` — which way the paper runs.
-fn load_orientation(
-  node : @yaml.Node,
-  file~ : String,
-) -> @model.Orientation raise @diag.SchemaError {
-  match expect_string(node, file~, context="print 'orientation'") {
-    "portrait" => Portrait
-    "landscape" => Landscape
-    other =>
-      raise schema_error(
-        file~,
-        "unknown print orientation '\{other}' (expected 'portrait' or 'landscape')",
-      )
-  }
-}
-
-///|
-/// A `print.scale:` percentage of actual size, within Excel's range.
-fn load_scale(
-  node : @yaml.Node,
-  file~ : String,
-) -> @model.PageScale raise @diag.SchemaError {
-  guard node is @yaml.Int(percent) else {
-    raise schema_error(file~, "print 'scale' must be a whole number of percent")
-  }
-  guard percent >= @model.min_page_scale.to_int64() &&
-    percent <= @model.max_page_scale.to_int64() else {
-    raise schema_error(
-      file~,
-      "print 'scale' must be between \{@model.min_page_scale} and \{@model.max_page_scale} percent",
-    )
-  }
-  Percent(percent.to_int())
-}
-
-///|
-/// A `print.fit: { width, height }` — how many pages across and down the sheet
-/// is shrunk to fit. An axis left out (or `0`) is unconstrained; constraining
-/// neither would scale nothing.
-fn load_fit(
-  node : @yaml.Node,
-  file~ : String,
-) -> @model.PageScale raise @diag.SchemaError {
-  let mut width = 0
-  let mut height = 0
-  for entry in expect_map(node, file~, context="print 'fit'") {
-    let (key, value) = entry
-    match key {
-      "width" => width = expect_page_count(value, file~, what="width")
-      "height" => height = expect_page_count(value, file~, what="height")
-      _ =>
-        raise schema_error(
-          file~,
-          "unknown key '\{key}' in print 'fit' (expected 'width' or 'height')",
-        )
-    }
-  }
-  guard width > 0 || height > 0 else {
-    raise schema_error(
-      file~,
-      "print 'fit' needs a non-zero 'width' or 'height' (in pages)",
-    )
-  }
-  Fit(width~, height~)
-}
-
-///|
-/// A page count in a `fit` axis: a whole number of pages, never negative.
-fn expect_page_count(
-  node : @yaml.Node,
-  file~ : String,
-  what~ : String,
-) -> Int raise @diag.SchemaError {
-  guard node is @yaml.Int(pages) && pages >= 0L else {
-    raise schema_error(
-      file~,
-      "print 'fit' \{what} must be a whole number of pages (0 for unconstrained)",
-    )
-  }
-  pages.to_int()
-}
-
-///|
-/// A `print.margins:` mapping, in inches — Excel's unit for these. A negative
-/// margin is meaningless, so it is a diagnostic.
-fn load_margins(
-  node : @yaml.Node,
-  file~ : String,
-) -> @model.PageMargins raise @diag.SchemaError {
-  let mut margins : @model.PageMargins = {
-    top: None,
-    bottom: None,
-    left: None,
-    right: None,
-    header: None,
-    footer: None,
-  }
-  for entry in expect_map(node, file~, context="print 'margins'") {
-    let (key, value) = entry
-    let inches = expect_number(value, file~, context="print margin '\{key}'")
-    guard inches >= 0.0 else {
-      raise schema_error(file~, "print margin '\{key}' cannot be negative")
-    }
-    match key {
-      "top" => margins = { ..margins, top: Some(inches) }
-      "bottom" => margins = { ..margins, bottom: Some(inches) }
-      "left" => margins = { ..margins, left: Some(inches) }
-      "right" => margins = { ..margins, right: Some(inches) }
-      "header" => margins = { ..margins, header: Some(inches) }
-      "footer" => margins = { ..margins, footer: Some(inches) }
-      _ =>
-        raise schema_error(
-          file~,
-          "unknown key '\{key}' in print 'margins' (expected 'top', 'bottom', 'left', 'right', 'header', or 'footer')",
-        )
-    }
-  }
-  margins
-}
-
-///|
-/// A `print.breaks:` sequence of cells, each starting a new page above and to
-/// the left of itself. `A1` starts no page, so it is a mistake worth reporting.
-fn load_breaks(
-  node : @yaml.Node,
-  file~ : String,
-) -> Array[@units.CellRef] raise @diag.SchemaError {
-  let breaks = []
-  for item in expect_seq(node, file~, context="print 'breaks'") {
-    let reference = expect_string(item, file~, context="a print break")
-    guard @units.CellRef::parse_a1(reference) is Some(cell) else {
-      raise schema_error(
-        file~,
-        "'\{reference}' is not a valid A1 cell reference in print 'breaks'",
-      )
-    }
-    guard cell.col > 1 || cell.row > 1 else {
-      raise schema_error(file~, "a print break at 'A1' would break nothing")
-    }
-    breaks.push(cell)
-  }
-  breaks
-}
-
-///|
 /// Load a sheet's `merges:` sequence: each entry is a range string
 /// `TopLeft:BottomRight` (e.g. `A1:B2`) merged into one cell. Corners may be
 /// given in any order; the model canonicalizes them.
@@ -570,18 +317,9 @@ fn parse_range(
   guard text.split_once(":") is Some((left, right)) else {
     raise schema_error(file~, "\{what} '\{text}' must be 'TopLeft:BottomRight'")
   }
-  guard @units.CellRef::parse_a1(left.to_owned()) is Some(first) else {
-    raise schema_error(
-      file~,
-      "'\{left}' is not a valid A1 cell reference in \{what} '\{text}'",
-    )
-  }
-  guard @units.CellRef::parse_a1(right.to_owned()) is Some(second) else {
-    raise schema_error(
-      file~,
-      "'\{right}' is not a valid A1 cell reference in \{what} '\{text}'",
-    )
-  }
+  let corner = "\{what} '\{text}'"
+  let first = expect_cell_ref(left.to_owned(), file~, what=corner)
+  let second = expect_cell_ref(right.to_owned(), file~, what=corner)
   let (top_left, bottom_right) = @units.CellRef::rect(first, second)
   { top_left, bottom_right }
 }
@@ -596,66 +334,8 @@ fn load_cells(
   let entries = expect_map(node, file~, context="'cells'")
   for entry in entries {
     let (reference, value_node) = entry
-    guard @units.CellRef::parse_a1(reference) is Some(cell) else {
-      raise schema_error(
-        file~,
-        "'\{reference}' is not a valid A1 cell reference",
-      )
-    }
+    let cell = expect_cell_ref(reference, file~)
     let (value, style) = load_cell(value_node, file~, reference~, defs~)
     sheet.set(cell, value, style?)
   }
-}
-
-///|
-fn expect_map(
-  node : @yaml.Node,
-  file~ : String,
-  context~ : String,
-) -> Array[(String, @yaml.Node)] raise @diag.SchemaError {
-  match node {
-    @yaml.Map(entries) => entries
-    _ => raise schema_error(file~, "\{context} must be a mapping")
-  }
-}
-
-///|
-fn expect_string(
-  node : @yaml.Node,
-  file~ : String,
-  context~ : String,
-) -> String raise @diag.SchemaError {
-  match node {
-    @yaml.Str(text) => text
-    _ => raise schema_error(file~, "\{context} must be text")
-  }
-}
-
-///|
-fn expect_seq(
-  node : @yaml.Node,
-  file~ : String,
-  context~ : String,
-) -> Array[@yaml.Node] raise @diag.SchemaError {
-  match node {
-    @yaml.Seq(items) => items
-    _ => raise schema_error(file~, "\{context} must be a sequence")
-  }
-}
-
-///|
-fn expect_bool(
-  node : @yaml.Node,
-  file~ : String,
-  context~ : String,
-) -> Bool raise @diag.SchemaError {
-  match node {
-    @yaml.Bool(flag) => flag
-    _ => raise schema_error(file~, "\{context} must be true or false")
-  }
-}
-
-///|
-fn schema_error(file~ : String, message : String) -> @diag.SchemaError {
-  @diag.SchemaError(@diag.Diagnostic::new("\{file}: \{message}"))
 }

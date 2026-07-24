@@ -38,7 +38,7 @@ pub fn to_bytes(wb : @model.Workbook) -> Bytes raise @diag.EmitError {
 }
 
 ///|
-/// Drive the backend: one sheet per model sheet, one cell per model cell, then
+/// Drive the backend: workbook-wide settings, one sheet per model sheet, then
 /// serialize. Raises the backend's own error; the seam boundary wraps it.
 fn build_workbook(wb : @model.Workbook) -> Bytes raise @xlsx.XlsxError {
   let backend = @xlsx.Workbook::new()
@@ -52,108 +52,12 @@ fn build_workbook(wb : @model.Workbook) -> Bytes raise @xlsx.XlsxError {
   if wb.default_font is Some(name) {
     backend.set_default_font(name)
   }
+  // One cache for the whole workbook, so a style shared across sheets is
+  // registered once (ADR-004).
   let style_ids : Map[@model.Style, Int] = Map([])
   for sheet in wb.sheets {
     backend.new_sheet(sheet.name) |> ignore
-    // Column and row bands: one backend call per property per column/row in the
-    // span. A band's default style shares the cell style cache, so a column
-    // style equal to a cell style reuses the same id (ADR-004).
-    for band in sheet.columns {
-      let style_id = band_style_id(backend, style_ids, band)
-      for col in band.first..<=band.last {
-        if style_id is Some(id) {
-          backend.set_col_style(sheet.name, col, id)
-        }
-        if band.size is Some(width) {
-          backend.set_col_width(sheet.name, col, width)
-        }
-        if band.hidden is Some(hidden) {
-          backend.set_col_visible(sheet.name, col, !hidden)
-        }
-        if band.outline_level is Some(level) {
-          backend.set_col_outline_level(sheet.name, col, level)
-        }
-      }
-    }
-    for band in sheet.rows {
-      let style_id = band_style_id(backend, style_ids, band)
-      for row in band.first..<=band.last {
-        if style_id is Some(id) {
-          backend.set_row_style(sheet.name, row, id)
-        }
-        if band.size is Some(height) {
-          backend.set_row_height(sheet.name, row, height)
-        }
-        if band.hidden is Some(hidden) {
-          backend.set_row_visible(sheet.name, row, !hidden)
-        }
-        if band.outline_level is Some(level) {
-          backend.set_row_outline_level(sheet.name, row, level)
-        }
-      }
-    }
-    for cell in sheet.cells {
-      let reference = cell.pos.to_a1()
-      match cell.value {
-        Text(text) =>
-          backend.set_cell_value(sheet.name, reference, String(text))
-        Number(number) =>
-          backend.set_cell_value(sheet.name, reference, Numeric(number))
-        Bool(flag) => backend.set_cell_value(sheet.name, reference, Bool(flag))
-        Date(datetime) =>
-          backend.set_cell_value(
-            sheet.name,
-            reference,
-            Numeric(datetime.to_serial(wb.date_system)),
-          )
-        Error(text) =>
-          backend.set_cell_value(sheet.name, reference, Error(text))
-        Formula(formula~, cached~) =>
-          backend.set_cell_formula(
-            sheet.name,
-            reference,
-            formula,
-            value?=cached.map(value => render_cached(value, wb.date_system)),
-          )
-        RichText(runs) =>
-          backend.set_cell_rich_text(
-            sheet.name,
-            reference,
-            runs.map(build_rich_run)[:],
-          )
-      }
-      if cell.style is Some(style) {
-        let style_id = intern_style(backend, style_ids, style)
-        backend.set_cell_style(sheet.name, reference, style_id)
-      }
-    }
-    // Merge after the cells are written so the top-left keeps its value.
-    for merge in sheet.merges {
-      backend.merge_cell(
-        sheet.name,
-        merge.top_left.to_a1(),
-        merge.bottom_right.to_a1(),
-      )
-    }
-    if sheet.panes is Some(panes) {
-      backend.set_panes(sheet.name, build_panes(panes))
-    }
-    if sheet.gridlines is Some(shown) {
-      backend.set_sheet_view(
-        sheet.name,
-        LAST_SHEET_VIEW,
-        @xlsx.SheetViewOptions::with_values(show_grid_lines=shown),
-      )
-    }
-    if sheet.tab_color is Some(color) {
-      backend.set_sheet_props(
-        sheet.name,
-        Some(@xlsx.SheetPropsOptions::with_values(tab_color_rgb=color.hex())),
-      )
-    }
-    if sheet.page is Some(page) {
-      apply_page_setup(backend, sheet.name, page)
-    }
+    emit_sheet(backend, sheet, style_ids, wb.date_system)
   }
   // Hidden tabs come after every sheet exists: the backend rejects hiding the
   // last visible sheet, and a sheet declared later may be the visible one.
@@ -183,6 +87,131 @@ fn build_workbook(wb : @model.Workbook) -> Bytes raise @xlsx.XlsxError {
 }
 
 ///|
+/// Write one sheet into the backend: its column and row bands, its cells, then
+/// everything layered over them (merges, panes, view, tab color, page setup).
+/// The sheet must already exist in `backend`.
+fn emit_sheet(
+  backend : @xlsx.Workbook,
+  sheet : @model.Sheet,
+  style_ids : Map[@model.Style, Int],
+  date_system : @units.DateSystem,
+) -> Unit raise @xlsx.XlsxError {
+  // Column and row bands: one backend call per property per column/row in the
+  // span. A band's default style shares the cell style cache, so a column style
+  // equal to a cell style reuses the same id (ADR-004).
+  for band in sheet.columns {
+    let style_id = band_style_id(backend, style_ids, band)
+    for col in band.first..<=band.last {
+      if style_id is Some(id) {
+        backend.set_col_style(sheet.name, col, id)
+      }
+      if band.size is Some(width) {
+        backend.set_col_width(sheet.name, col, width)
+      }
+      if band.hidden is Some(hidden) {
+        backend.set_col_visible(sheet.name, col, !hidden)
+      }
+      if band.outline_level is Some(level) {
+        backend.set_col_outline_level(sheet.name, col, level)
+      }
+    }
+  }
+  for band in sheet.rows {
+    let style_id = band_style_id(backend, style_ids, band)
+    for row in band.first..<=band.last {
+      if style_id is Some(id) {
+        backend.set_row_style(sheet.name, row, id)
+      }
+      if band.size is Some(height) {
+        backend.set_row_height(sheet.name, row, height)
+      }
+      if band.hidden is Some(hidden) {
+        backend.set_row_visible(sheet.name, row, !hidden)
+      }
+      if band.outline_level is Some(level) {
+        backend.set_row_outline_level(sheet.name, row, level)
+      }
+    }
+  }
+  for cell in sheet.cells {
+    emit_cell(backend, sheet.name, cell, style_ids, date_system)
+  }
+  // Merge after the cells are written so the top-left keeps its value.
+  for merge in sheet.merges {
+    backend.merge_cell(
+      sheet.name,
+      merge.top_left.to_a1(),
+      merge.bottom_right.to_a1(),
+    )
+  }
+  if sheet.panes is Some(panes) {
+    backend.set_panes(sheet.name, build_panes(panes))
+  }
+  if sheet.gridlines is Some(shown) {
+    backend.set_sheet_view(
+      sheet.name,
+      LAST_SHEET_VIEW,
+      @xlsx.SheetViewOptions::with_values(show_grid_lines=shown),
+    )
+  }
+  if sheet.tab_color is Some(color) {
+    backend.set_sheet_props(
+      sheet.name,
+      Some(@xlsx.SheetPropsOptions::with_values(tab_color_rgb=color.hex())),
+    )
+  }
+  if sheet.page is Some(page) {
+    apply_page_setup(backend, sheet.name, page)
+  }
+}
+
+///|
+/// Write one cell: its value in whichever backend form the kind calls for, then
+/// its style id if it has one.
+fn emit_cell(
+  backend : @xlsx.Workbook,
+  sheet_name : String,
+  cell : @model.Cell,
+  style_ids : Map[@model.Style, Int],
+  date_system : @units.DateSystem,
+) -> Unit raise @xlsx.XlsxError {
+  let reference = cell.pos.to_a1()
+  match cell.value {
+    Text(text) => backend.set_cell_value(sheet_name, reference, String(text))
+    Number(number) =>
+      backend.set_cell_value(sheet_name, reference, Numeric(number))
+    Bool(flag) => backend.set_cell_value(sheet_name, reference, Bool(flag))
+    Date(datetime) =>
+      backend.set_cell_value(
+        sheet_name,
+        reference,
+        Numeric(datetime.to_serial(date_system)),
+      )
+    Error(text) => backend.set_cell_value(sheet_name, reference, Error(text))
+    Formula(formula~, cached~) =>
+      backend.set_cell_formula(
+        sheet_name,
+        reference,
+        formula,
+        value?=cached.map(value => render_cached(value, date_system)),
+      )
+    RichText(runs) =>
+      backend.set_cell_rich_text(
+        sheet_name,
+        reference,
+        runs.map(build_rich_run)[:],
+      )
+  }
+  if cell.style is Some(style) {
+    backend.set_cell_style(
+      sheet_name,
+      reference,
+      intern_style(backend, style_ids, style),
+    )
+  }
+}
+
+///|
 /// The Excel `refers_to` expression for a defined name's target. A constant
 /// becomes its formula literal — a string is quoted (inner quotes doubled, per
 /// Excel), a number/bool/date its literal — and a formula is its body verbatim.
@@ -205,106 +234,6 @@ fn refers_to(
 /// The backend indexes a sheet's views; `-1` addresses the last (and, for a
 /// workbook we build ourselves, only) one.
 const LAST_SHEET_VIEW : Int = -1
-
-///|
-/// Excel's built-in defined name for a sheet's print area (ECMA-376 §18.2.5);
-/// scoping it to the sheet is what makes it that sheet's area.
-const PRINT_AREA_NAME : String = "_xlnm.Print_Area"
-
-///|
-/// Drive the backend's page-setup surface for one sheet: paper layout, margins,
-/// header/footer, manual breaks, and the print area.
-fn apply_page_setup(
-  backend : @xlsx.Workbook,
-  sheet_name : String,
-  page : @model.PageSetup,
-) -> Unit raise @xlsx.XlsxError {
-  let orientation = page.orientation.map(orientation_code)
-  let (adjust_to, fit_to_width, fit_to_height) = match page.scale {
-    Some(Percent(percent)) => (Some(percent), None, None)
-    Some(Fit(width~, height~)) => (None, Some(width), Some(height))
-    None => (None, None, None)
-  }
-  if orientation is Some(_) || page.scale is Some(_) {
-    backend.set_page_layout(
-      sheet_name,
-      Some(
-        @xlsx.PageLayoutOptions::with_values(
-          orientation?,
-          adjust_to?,
-          fit_to_width?,
-          fit_to_height?,
-        ),
-      ),
-    )
-  }
-  // Excel ignores fitToWidth/fitToHeight unless the sheet is flagged fit-to-page.
-  if page.scale is Some(Fit(..)) {
-    backend.set_sheet_props(
-      sheet_name,
-      Some(@xlsx.SheetPropsOptions::with_values(fit_to_page=true)),
-    )
-  }
-  if page.margins is Some(margins) {
-    backend.set_page_margins(
-      sheet_name,
-      Some(
-        @xlsx.PageLayoutMarginsOptions::with_values(
-          top?=margins.top,
-          bottom?=margins.bottom,
-          left?=margins.left,
-          right?=margins.right,
-          header?=margins.header,
-          footer?=margins.footer,
-        ),
-      ),
-    )
-  }
-  if page.header is Some(_) || page.footer is Some(_) {
-    backend.set_header_footer(
-      sheet_name,
-      Some(
-        @xlsx.HeaderFooterOptions::with_values(
-          odd_header?=page.header,
-          odd_footer?=page.footer,
-        ),
-      ),
-    )
-  }
-  for at in page.breaks {
-    backend.insert_page_break(sheet_name, at.to_a1())
-  }
-  if page.area is Some(area) {
-    backend.set_defined_name(
-      @xlsx.DefinedName::new(
-        PRINT_AREA_NAME,
-        absolute_range(sheet_name, area),
-        scope=sheet_name,
-      ),
-    )
-  }
-}
-
-///|
-/// A range as the absolute, sheet-qualified reference Excel stores a print area
-/// as: `'Sheet 1'!$A$1:$D$20`. A quote inside a sheet name is doubled.
-fn absolute_range(sheet_name : String, range : @model.CellRange) -> String {
-  let quoted = "'" + sheet_name.replace_all(old="'", new="''") + "'"
-  quoted +
-  "!" +
-  range.top_left.to_absolute_a1() +
-  ":" +
-  range.bottom_right.to_absolute_a1()
-}
-
-///|
-/// The OOXML page-orientation attribute for a model `Orientation`.
-fn orientation_code(orientation : @model.Orientation) -> String {
-  match orientation {
-    Portrait => "portrait"
-    Landscape => "landscape"
-  }
-}
 
 ///|
 /// Twips — 1/20 of a point — are the unit OOXML gives a split position in
@@ -351,210 +280,5 @@ fn active_pane(x_split : Int, y_split : Int) -> String {
     (true, true) => "bottomRight"
     (true, false) => "topRight"
     (false, _) => "bottomLeft"
-  }
-}
-
-///|
-/// The interned style id for a band's default style, or `None` when the band
-/// sets no style. Interned once per band, not once per column/row it covers.
-fn band_style_id(
-  backend : @xlsx.Workbook,
-  cache : Map[@model.Style, Int],
-  band : @model.AxisBand,
-) -> Int? {
-  match band.style {
-    Some(style) => Some(intern_style(backend, cache, style))
-    None => None
-  }
-}
-
-///|
-/// Register a style the first time it is seen and reuse its id thereafter
-/// (ADR-004): equal styles always map to the same `cellXfs` id, so a look
-/// declared many times is not copied N ways. The cache keys on the model style,
-/// which compares and hashes structurally.
-fn intern_style(
-  backend : @xlsx.Workbook,
-  cache : Map[@model.Style, Int],
-  style : @model.Style,
-) -> Int {
-  match cache.get(style) {
-    Some(id) => id
-    None => {
-      let id = backend.add_style(build_style(style))
-      cache[style] = id
-      id
-    }
-  }
-}
-
-///|
-/// Translate a model style into the backend's `Style`. A number format, if any,
-/// seeds the style; font, fill, borders, and alignment are layered on.
-fn build_style(style : @model.Style) -> @xlsx.Style {
-  let mut backend = match style.number_format {
-    Some(code) => @xlsx.Style::number_format(code)
-    None => @xlsx.Style::new()
-  }
-  if style.font is Some(font) {
-    backend = backend.with_font(build_font(font))
-  }
-  if style.fill is Some(fill) {
-    backend = backend.with_fill(@xlsx.Fill::solid(fill.color.hex()))
-  }
-  if style.borders is Some(borders) {
-    backend = backend.with_border(build_borders(borders))
-  }
-  if style.align is Some(align) {
-    backend = backend.with_alignment(build_alignment(align))
-  }
-  backend
-}
-
-///|
-/// A model font as the backend's `Font`. The face name maps to the backend's
-/// `family` field; underline is expressed as its OOXML style string.
-fn build_font(font : @model.Font) -> @xlsx.Font {
-  @xlsx.Font::with_values(
-    bold?=font.bold,
-    italic?=font.italic,
-    strike?=font.strike,
-    underline?=font.underline.map(underline_code),
-    size?=font.size,
-    color?=font.color.map(color => color.hex()),
-    family?=font.name,
-  )
-}
-
-///|
-/// The OOXML underline-style attribute for a model font's underline toggle.
-fn underline_code(on : Bool) -> String {
-  if on {
-    "single"
-  } else {
-    "none"
-  }
-}
-
-///|
-/// A model alignment as the backend's `Alignment`.
-fn build_alignment(align : @model.Alignment) -> @xlsx.Alignment {
-  @xlsx.Alignment::with_values(
-    horizontal?=align.horizontal.map(horizontal_code),
-    vertical?=align.vertical.map(vertical_code),
-    wrap_text?=align.wrap,
-  )
-}
-
-///|
-/// The four model border edges as the backend's per-edge `Border` array; only
-/// the sides that are set contribute an entry.
-fn build_borders(borders : @model.Borders) -> Array[@xlsx.Border] {
-  let edges = []
-  fn push(side : String, border : @model.Border?) -> Unit {
-    if border is Some(b) {
-      edges.push(
-        @xlsx.Border::with_values(
-          side,
-          color?=b.color.map(color => color.hex()),
-          style=border_style_code(b.style),
-        ),
-      )
-    }
-  }
-
-  push("left", borders.left)
-  push("right", borders.right)
-  push("top", borders.top)
-  push("bottom", borders.bottom)
-  edges
-}
-
-///|
-/// The OOXML horizontal-alignment attribute for a model `HAlign`.
-fn horizontal_code(align : @model.HAlign) -> String {
-  match align {
-    Left => "left"
-    Center => "center"
-    Right => "right"
-    Fill => "fill"
-    Justify => "justify"
-    Distributed => "distributed"
-  }
-}
-
-///|
-/// The OOXML vertical-alignment attribute for a model `VAlign` (Excel spells
-/// vertical centering `center`).
-fn vertical_code(align : @model.VAlign) -> String {
-  match align {
-    Top => "top"
-    Middle => "center"
-    Bottom => "bottom"
-    Justify => "justify"
-    Distributed => "distributed"
-  }
-}
-
-///|
-/// The excelize border line-style code for a model `BorderStyle`.
-fn border_style_code(style : @model.BorderStyle) -> Int {
-  match style {
-    Thin => 1
-    Medium => 2
-    Dashed => 3
-    Dotted => 4
-    Thick => 5
-    Double => 6
-    Hair => 7
-  }
-}
-
-///|
-/// Render a formula's cached result as the string the backend stores in `<v>`.
-/// Only scalar caches occur in practice; a date renders to its serial.
-fn render_cached(
-  value : @model.CellValue,
-  date_system : @units.DateSystem,
-) -> String {
-  match value {
-    Text(text) => text
-    Number(number) => number.to_string()
-    Bool(flag) => if flag { "TRUE" } else { "FALSE" }
-    Date(datetime) => datetime.to_serial(date_system).to_string()
-    Error(text) => text
-    Formula(..) | RichText(_) => ""
-  }
-}
-
-///|
-/// A model rich-text run as the backend's `RichTextRun`.
-fn build_rich_run(run : @model.RichRun) -> @xlsx.RichTextRun {
-  { text: run.text, font: run.font.map(build_rich_font) }
-}
-
-///|
-/// A model font as the backend's `RichTextFont` (a per-run font). The backend's
-/// toggles are non-optional, so an unset toggle becomes `false`.
-fn build_rich_font(font : @model.Font) -> @xlsx.RichTextFont {
-  {
-    bold: font.bold.unwrap_or(false),
-    italic: font.italic.unwrap_or(false),
-    strike: font.strike.unwrap_or(false),
-    outline: false,
-    shadow: false,
-    condense: false,
-    extended: false,
-    underline: font.underline.map(underline_code),
-    size: font.size,
-    color: font.color.map(color => color.hex()),
-    color_theme: None,
-    color_indexed: None,
-    color_tint: None,
-    charset: None,
-    family_number: None,
-    scheme: None,
-    vert_align: None,
-    family: font.name,
   }
 }

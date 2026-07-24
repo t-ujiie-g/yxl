@@ -24,46 +24,68 @@ MoonBit port of Go's excelize); `yxl` is the language, the reuse/dedup engine,
 the validator, and the CLI on top. It is not another spreadsheet *library* — it
 is declarative authoring for people who'd rather edit YAML than write code.
 
-> ⚠️ **Status: early development, pre-release (Phase 0).** The foundation is
-> being laid; the compiler is not yet functional. See
+> ⚠️ **Status: pre-release, schema not yet frozen.** `yxl build` works today —
+> values, formulas, dates, rich text, styles, named definitions, layout, and
+> print setup all compile. Modular specs (includes, external data) and CLI
+> polish are still ahead, and the schema may change until v1.0. See
 > [`ROADMAP.md`](./ROADMAP.md) for the phase plan and the living changelog.
 
-## A taste (target design)
+## A taste
 
 ```yaml
 # report.yxl.yaml
-workbook:
-  sheets:
-    - name: Sales
-      cells:
-        A1: { text: "Q3 Sales Report", style: title, merge: "A1:C1" }
-        A3: { text: Region, style: header }
-        B3: { text: Revenue, style: header }
-        A4: { text: APAC }
-        B4: { number: 2400000, format: "#,##0" }
-        A5: { text: Total, style: bold }
-        B5: { formula: "SUM(B4:B4)", format: "#,##0" }
+defs:                      # declared once, referenced by name
+  styles:
+    title:  { font: { bold: true, size: 16 }, align: { horizontal: center } }
+    header: { font: { bold: true, color: "FFFFFF" }, fill: "1F3864" }
+    total:  { font: { bold: true } }
+  values:
+    quarter: "Q3 FY26 Sales"
 
-styles:            # declared once, referenced by name → one style id each
-  title:  { bold: true, size: 16, align: center }
-  header: { bold: true, fill: "1F3864", color: "FFFFFF", align: center }
-  bold:   { bold: true }
+sheets:
+  - name: Sales
+    freeze: A4               # the header rows stay put while the data scrolls
+    merges: [A1:B1]
+    columns:
+      - at: A
+        width: 18
+      - at: B
+        width: 14
+        format: "#,##0"      # a whole-column default format
+    cells:
+      A1: { value: { $ref: quarter }, style: title }
+      A3: { value: Region, style: header }
+      B3: { value: Revenue, style: header }
+      A4: APAC
+      B4: 2400000
+      A5: EMEA
+      B5: 1750000
+      A6: { value: Total, style: total }
+      B6: { formula: "SUM(B4:B5)", style: total }
+    print:
+      area: A1:B6
+      orientation: landscape
+      fit: { width: 1 }      # shrink to one page across
 ```
 
 ```bash
 yxl build report.yxl.yaml -o report.xlsx
 ```
 
-*(Schema is under design — see `ROADMAP.md §8`. The above shows the intended
-shape, not a frozen contract.)*
+Each declared style compiles to a **single** Excel style id however many cells
+wear it, and each `defs.values` entry to a **defined name** — so editing it in
+Excel updates every reference. An unknown key, a bad cell reference, or a
+dangling `$ref` fails the build with a diagnostic naming the file, never a
+silently dropped value.
 
 ## How it works
 
 ```
 report.yxl.yaml
-   → parse + validate (typed model, diagnostics with file/line)
-   → resolve references + intern shared values / formulas / styles   ← the DRY engine
-   → emit via a swappable backend (bobzhang/mbtexcel)
+   → parse (YAML → document tree)
+   → load + validate + resolve references (typed model, diagnostics naming the file)
+   → emit: intern shared styles, strings, and defined names   ← the DRY engine
+     via a swappable backend (bobzhang/mbtexcel)
    → report.xlsx
 ```
 
@@ -73,17 +95,14 @@ the CLI touches disk. The Excel backend sits behind a seam so it can be swapped
 
 ## Packages
 
-Target layout (see [`ROADMAP.md §4`](./ROADMAP.md) for the full map):
-
 | Package | Purpose |
 |---|---|
 | `diag` | Diagnostics + subdomain errors with source spans |
-| `units` | Type-safe cell references, colors, dimensions |
+| `units` | Type-safe cell references, colors, dates |
 | `yaml` | YAML source → document tree |
 | `model` | Typed intermediate representation |
-| `loader` | Document tree → model, schema validation, includes |
-| `resolve` | Named references + reuse/dedup interning |
-| `emit` | Model → `.xlsx` bytes (mbtexcel-backed) |
+| `loader` | Document tree → model: schema validation, reference resolution |
+| `emit` | Model → `.xlsx` bytes (mbtexcel-backed), style/string interning |
 | `cli` (`cmd/main`) | Argument parsing, file I/O, exit codes |
 
 ## Development

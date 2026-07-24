@@ -1,4 +1,4 @@
-// The parser seam (§4, ADR-009): YAML source -> a generic document tree. Wraps
+// The parser seam (ADR-009): YAML source -> a generic document tree. Wraps
 // `moonbit-community/yaml` behind our own `Node` type so the rest of the pipeline
 // never depends on the parser directly and it can be swapped or vendored later.
 // `Node` carries no source spans yet — the library seals its marked-event API
