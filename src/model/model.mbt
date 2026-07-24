@@ -49,14 +49,38 @@ pub(all) struct AxisStyle {
 } derive(Eq, Debug)
 
 ///|
-/// One worksheet: a name, the cells written to it (kept in insertion order), and
-/// any default styles for whole columns or rows. Turning these into the final
-/// workbook layout is the emitter's job.
+/// A size given to an inclusive span of columns or rows: a column-width band (in
+/// character units) or a row-height band (in points). `first`/`last` are 1-based
+/// and inclusive. Like `AxisStyle`, whether it is columns or rows is fixed by
+/// which `Sheet` list holds it.
+pub(all) struct AxisSize {
+  first : Int
+  last : Int
+  size : Double
+} derive(Eq, Debug)
+
+///|
+/// A rectangular block of cells merged into one, addressed by its top-left and
+/// bottom-right corners (canonical: `top_left` is at or above-left of
+/// `bottom_right`). The merged cell shows the top-left cell's value.
+pub(all) struct MergeRange {
+  top_left : @units.CellRef
+  bottom_right : @units.CellRef
+} derive(Eq, Debug)
+
+///|
+/// One worksheet: a name, the cells written to it (kept in insertion order),
+/// default styles for whole columns or rows, column-width / row-height bands, and
+/// merged-cell ranges. Turning these into the final workbook layout is the
+/// emitter's job.
 pub(all) struct Sheet {
   name : String
   cells : Array[Cell]
   column_styles : Array[AxisStyle]
   row_styles : Array[AxisStyle]
+  column_widths : Array[AxisSize]
+  row_heights : Array[AxisSize]
+  merges : Array[MergeRange]
 } derive(Eq, Debug)
 
 ///|
@@ -118,7 +142,15 @@ pub fn Workbook::add_sheet(self : Workbook, name : String) -> Sheet {
 ///|
 /// A new, empty sheet with the given name.
 pub fn Sheet::new(name : String) -> Sheet {
-  { name, cells: [], column_styles: [], row_styles: [] }
+  {
+    name,
+    cells: [],
+    column_styles: [],
+    row_styles: [],
+    column_widths: [],
+    row_heights: [],
+    merges: [],
+  }
 }
 
 ///|
@@ -141,6 +173,40 @@ pub fn Sheet::set_row_style(
   style : Style,
 ) -> Unit {
   self.row_styles.push({ first, last, style })
+}
+
+///|
+/// Set the width (in character units) of an inclusive span of columns (1-based).
+pub fn Sheet::set_column_width(
+  self : Sheet,
+  first~ : Int,
+  last~ : Int,
+  width : Double,
+) -> Unit {
+  self.column_widths.push({ first, last, size: width })
+}
+
+///|
+/// Set the height (in points) of an inclusive span of rows (1-based).
+pub fn Sheet::set_row_height(
+  self : Sheet,
+  first~ : Int,
+  last~ : Int,
+  height : Double,
+) -> Unit {
+  self.row_heights.push({ first, last, size: height })
+}
+
+///|
+/// Merge a rectangular block of cells, given its two corners (any opposite pair;
+/// stored canonically as top-left / bottom-right).
+pub fn Sheet::merge(
+  self : Sheet,
+  corner1 : @units.CellRef,
+  corner2 : @units.CellRef,
+) -> Unit {
+  let (top_left, bottom_right) = @units.CellRef::rect(corner1, corner2)
+  self.merges.push({ top_left, bottom_right })
 }
 
 ///|

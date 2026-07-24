@@ -8,7 +8,8 @@
 
 ///|
 /// Load a sheet's `columns:` sequence: each entry's `at` selects a column or
-/// column range (`B`, `D-F`) styled by that entry's `{ style, format }` spec.
+/// column range (`B`, `D-F`) carrying that entry's `{ style, format, width }`
+/// spec (width in character units).
 fn load_columns(
   node : @yaml.Node,
   sheet : @model.Sheet,
@@ -18,16 +19,26 @@ fn load_columns(
   for entry in expect_seq(node, file~, context="'columns'") {
     let (selector, spec) = split_band(entry, file~, axis="column")
     let (first, last) = parse_column_selector(selector, file~)
-    if load_axis_spec(spec, file~, defs~, context="column '\{selector}'")
-      is Some(style) {
+    let (style, width) = load_axis_spec(
+      spec,
+      file~,
+      defs~,
+      size_key="width",
+      context="column '\{selector}'",
+    )
+    if style is Some(style) {
       sheet.set_column_style(first~, last~, style)
+    }
+    if width is Some(width) {
+      sheet.set_column_width(first~, last~, width)
     }
   }
 }
 
 ///|
 /// Load a sheet's `rows:` sequence: each entry's `at` selects a row or row range
-/// (`1`, `2-4`) styled by that entry's `{ style, format }` spec.
+/// (`1`, `2-4`) carrying that entry's `{ style, format, height }` spec (height in
+/// points).
 fn load_rows(
   node : @yaml.Node,
   sheet : @model.Sheet,
@@ -37,9 +48,18 @@ fn load_rows(
   for entry in expect_seq(node, file~, context="'rows'") {
     let (selector, spec) = split_band(entry, file~, axis="row")
     let (first, last) = parse_row_selector(selector, file~)
-    if load_axis_spec(spec, file~, defs~, context="row '\{selector}'")
-      is Some(style) {
+    let (style, height) = load_axis_spec(
+      spec,
+      file~,
+      defs~,
+      size_key="height",
+      context="row '\{selector}'",
+    )
+    if style is Some(style) {
       sheet.set_row_style(first~, last~, style)
+    }
+    if height is Some(height) {
+      sheet.set_row_height(first~, last~, height)
     }
   }
 }
@@ -84,17 +104,20 @@ fn expect_selector(
 }
 
 ///|
-/// A band spec: `at` (the already-consumed selector), plus optional `style`
-/// and/or `format`, folded into a single style (an empty spec yields `None`, so
-/// the band adds no style).
+/// A band spec: `at` (the already-consumed selector), plus optional `style`,
+/// `format`, and a size (`width` for columns, `height` for rows — `size_key`
+/// names which). Returns the folded style (`None` if the spec sets none) and the
+/// size (`None` if unset).
 fn load_axis_spec(
   entries : Array[(String, @yaml.Node)],
   file~ : String,
   defs~ : Defs,
+  size_key~ : String,
   context~ : String,
-) -> @model.Style? raise @diag.SchemaError {
+) -> (@model.Style?, Double?) raise @diag.SchemaError {
   let mut style_node = None
   let mut format = None
+  let mut size = None
   for entry in entries {
     let (key, node) = entry
     match key {
@@ -102,14 +125,18 @@ fn load_axis_spec(
       "style" => style_node = Some(node)
       "format" =>
         format = Some(expect_string(node, file~, context="\{context} format"))
+      _ if key == size_key =>
+        size = Some(
+          expect_number(node, file~, context="\{context} \{size_key}"),
+        )
       _ =>
         raise schema_error(
           file~,
-          "unknown key '\{key}' in \{context} (expected 'at', 'style', or 'format')",
+          "unknown key '\{key}' in \{context} (expected 'at', 'style', 'format', or '\{size_key}')",
         )
     }
   }
-  combine_style(style_node, format, file~, defs~, context~)
+  (combine_style(style_node, format, file~, defs~, context~), size)
 }
 
 ///|

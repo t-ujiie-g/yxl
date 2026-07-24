@@ -69,6 +69,17 @@ fn build_workbook(wb : @model.Workbook) -> Bytes raise @xlsx.XlsxError {
         backend.set_row_style(sheet.name, row, style_id)
       }
     }
+    // Column-width / row-height bands: one backend call per column/row in span.
+    for band in sheet.column_widths {
+      for col in band.first..<=band.last {
+        backend.set_col_width(sheet.name, col, band.size)
+      }
+    }
+    for band in sheet.row_heights {
+      for row in band.first..<=band.last {
+        backend.set_row_height(sheet.name, row, band.size)
+      }
+    }
     for cell in sheet.cells {
       let reference = cell.pos.to_a1()
       match cell.value {
@@ -103,6 +114,14 @@ fn build_workbook(wb : @model.Workbook) -> Bytes raise @xlsx.XlsxError {
         let style_id = intern_style(backend, style_ids, style)
         backend.set_cell_style(sheet.name, reference, style_id)
       }
+    }
+    // Merge after the cells are written so the top-left keeps its value.
+    for merge in sheet.merges {
+      backend.merge_cell(
+        sheet.name,
+        merge.top_left.to_a1(),
+        merge.bottom_right.to_a1(),
+      )
     }
   }
   // Workbook defined names (ADR-013): each named value/formula the spec declared

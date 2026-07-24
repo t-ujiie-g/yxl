@@ -17,6 +17,12 @@ pub(all) struct Alignment {
   wrap : Bool?
 } derive(Eq, Hash, @debug.Debug)
 
+pub(all) struct AxisSize {
+  first : Int
+  last : Int
+  size : Double
+} derive(Eq, @debug.Debug)
+
 pub(all) struct AxisStyle {
   first : Int
   last : Int
@@ -89,6 +95,11 @@ pub(all) enum HAlign {
   Distributed
 } derive(Eq, Hash, @debug.Debug)
 
+pub(all) struct MergeRange {
+  top_left : @units.CellRef
+  bottom_right : @units.CellRef
+} derive(Eq, @debug.Debug)
+
 pub(all) struct RichRun {
   text : String
   font : Font?
@@ -99,10 +110,16 @@ pub(all) struct Sheet {
   cells : Array[Cell]
   column_styles : Array[AxisStyle]
   row_styles : Array[AxisStyle]
+  column_widths : Array[AxisSize]
+  row_heights : Array[AxisSize]
+  merges : Array[MergeRange]
 } derive(Eq, @debug.Debug)
+pub fn Sheet::merge(Self, @units.CellRef, @units.CellRef) -> Unit
 pub fn Sheet::new(String) -> Self
 pub fn Sheet::set(Self, @units.CellRef, CellValue, format? : String, style? : Style) -> Unit
 pub fn Sheet::set_column_style(Self, first~ : Int, last~ : Int, Style) -> Unit
+pub fn Sheet::set_column_width(Self, first~ : Int, last~ : Int, Double) -> Unit
+pub fn Sheet::set_row_height(Self, first~ : Int, last~ : Int, Double) -> Unit
 pub fn Sheet::set_row_style(Self, first~ : Int, last~ : Int, Style) -> Unit
 
 pub(all) struct Style {

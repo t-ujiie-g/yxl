@@ -201,12 +201,18 @@ test "load builds sheets and typed cells from a minimal spec" {
       #|      ],
       #|      column_styles: [],
       #|      row_styles: [],
+      #|      column_widths: [],
+      #|      row_heights: [],
+      #|      merges: [],
       #|    },
       #|    {
       #|      name: "Second",
       #|      cells: [{ pos: { col: 1, row: 1 }, value: Text("42"), style: None }],
       #|      column_styles: [],
       #|      row_styles: [],
+      #|      column_widths: [],
+      #|      row_heights: [],
+      #|      merges: [],
       #|    },
       #|  ],
       #|  date_system: Date1900,
@@ -477,6 +483,82 @@ test "load rejects invalid column/row selectors and a missing 'at', and keeps em
 }
 
 ///|
+test "load parses merges, column widths, and row heights" {
+  let workbook = load_ok(
+    (
+      #|sheets:
+      #|  - name: S
+      #|    columns:
+      #|      - at: B
+      #|        width: 18
+      #|      - at: D-F
+      #|        style: { font: { bold: true } }
+      #|        width: 10
+      #|    rows:
+      #|      - at: 1
+      #|        height: 24
+      #|    merges:
+      #|      - A1:C1
+      #|      - B2:B4
+      #|
+    ),
+  )
+  let sheet = workbook.sheets[0]
+  // Column B has just a width; D-F carries both a style and a width band.
+  assert_eq(sheet.column_widths, [
+    { first: 2, last: 2, size: 18.0 },
+    { first: 4, last: 6, size: 10.0 },
+  ])
+  assert_eq(sheet.column_styles.length(), 1)
+  assert_eq((sheet.column_styles[0].first, sheet.column_styles[0].last), (4, 6))
+  assert_eq(sheet.row_heights, [{ first: 1, last: 1, size: 24.0 }])
+  assert_eq(sheet.merges, [
+    {
+      top_left: @units.CellRef::new(col=1, row=1),
+      bottom_right: @units.CellRef::new(col=3, row=1),
+    },
+    {
+      top_left: @units.CellRef::new(col=2, row=2),
+      bottom_right: @units.CellRef::new(col=2, row=4),
+    },
+  ])
+}
+
+///|
+test "a merge range's corners are canonicalized regardless of order" {
+  let workbook = load_ok("sheets:\n  - name: S\n    merges:\n      - C3:A1\n")
+  assert_eq(workbook.sheets[0].merges, [
+    {
+      top_left: @units.CellRef::new(col=1, row=1),
+      bottom_right: @units.CellRef::new(col=3, row=3),
+    },
+  ])
+}
+
+///|
+test "load rejects bad merge ranges and a size key on the wrong axis" {
+  assert_eq(
+    schema_message("sheets:\n  - name: S\n    merges:\n      - A1\n"),
+    Some("spec.yaml: merge range 'A1' must be 'TopLeft:BottomRight'"),
+  )
+  assert_eq(
+    schema_message("sheets:\n  - name: S\n    merges:\n      - A1:Z0\n"),
+    Some(
+      "spec.yaml: 'Z0' is not a valid A1 cell reference in merge range 'A1:Z0'",
+    ),
+  )
+  // `width` belongs on a column band, `height` on a row band.
+  assert_eq(
+    schema_message(
+      "sheets:\n  - name: S\n    rows:\n      - at: 1\n        width: 10\n",
+    ),
+    Some(
+      "spec.yaml: unknown key 'width' in row '1' (expected 'at', 'style', 'format', or 'height')",
+    ),
+  )
+}
+
+///|
 test "load rejects an expanded cell missing its value" {
   assert_eq(
     schema_message(
@@ -707,7 +789,7 @@ test "load rejects an unknown key inside a sheet" {
   assert_eq(
     schema_message("sheets:\n  - name: S\n    color: red\n"),
     Some(
-      "spec.yaml: unknown key 'color' in sheet (expected 'name', 'cells', 'columns', or 'rows')",
+      "spec.yaml: unknown key 'color' in sheet (expected 'name', 'cells', 'columns', 'rows', or 'merges')",
     ),
   )
 }

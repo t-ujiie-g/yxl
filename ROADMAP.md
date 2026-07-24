@@ -156,11 +156,17 @@ The **active phase** is the first phase with any unchecked box.
       names** for named values/formulas, referenced as `=name` (ADR-013). Shared
       *formulas* (fill-down grouping) await a range-formula construct — nothing
       references them, so not part of reference compilation.
-- [ ] Diagnostics for dangling / cyclic references (dangling done with the
-      references above; cyclic awaits def→def references)
+- [x] Diagnostics for **dangling** references — every undefined style/value/
+      formula reference is a fail-fast `@diag.SchemaError` (ADR-006), landed with
+      the references above. *Cyclic*-reference detection is **not applicable
+      yet**: definitions cannot reference one another (values are scalars,
+      formulas are opaque strings, styles are self-contained), so no cycle can
+      form. It belongs with whatever first lets a definition reference another
+      (e.g. templating, §Phase 7) and will land there.
 
 ### Phase 6 — Layout & structure
-- [ ] Merged cells, column widths, row heights
+- [x] Merged cells, column widths, row heights — a sheet `merges:` list of
+      `A1:B2` ranges; `width:` on a column band and `height:` on a row band
 - [ ] Column/row visibility (hide/show) and **outline grouping** — collapsible
       row/column groups via outline levels (`set_{col,row}_outline_level`)
 - [ ] Multiple sheets: order, active sheet, sheet visibility
@@ -173,7 +179,9 @@ The **active phase** is the first phase with any unchecked box.
 ### Phase 7 — Modular specs
 - [ ] Includes / data–format separation (`!include`, external data files)
 - [ ] External data sources (CSV/JSON tables feeding a sheet region)
-- [ ] Lightweight templating / parameterization
+- [ ] Lightweight templating / parameterization — the first construct that can
+      let one definition reference another, so **cyclic-reference detection**
+      (deferred from Phase 5) lands here
 
 ### Phase 8 — CLI UX
 - [ ] Rich diagnostics rendered with file/line/col and carets
@@ -447,6 +455,22 @@ each other).
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-25** — **Phase 6 started: merged cells, column widths, row heights.**
+  A sheet may carry `merges:` — a list of `A1:B2` range strings, each merged into
+  one cell (corners in any order; the model canonicalizes to top-left /
+  bottom-right, and the merge keeps the top-left value). A column band gains an
+  optional `width:` (character units) and a row band an optional `height:`
+  (points), alongside the existing `style`/`format`; `width` is rejected on a row
+  band and `height` on a column band. Added `model.AxisSize` and `MergeRange`,
+  `Sheet.column_widths`/`row_heights`/`merges` with their setters and
+  `@units.CellRef::rect` (corner canonicalization), wired the loader
+  (`load_axis_spec` now returns a style *and* a size; new `load_merges`) and the
+  emitter (`set_col_width`/`set_row_height`/`merge_cell`). Round-trip verified:
+  the merge range, width, and height read back, and the merged cell keeps its
+  value. **Phase 5 is complete** (item 4 tidied: dangling diagnostics done;
+  cyclic-reference detection deferred to Phase 7 templating, where definitions
+  first reference one another). 85 tests green.
 
 - **2026-07-24** — **Refactor pass (whole tree).** Deduplicated the `units`
   scalar parsers: `CellRef::parse_a1` no longer hand-rolls base-26 and digit

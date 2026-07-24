@@ -148,6 +148,26 @@ test "column/row default styles emit and share the cell style cache; default fon
 }
 
 ///|
+test "merges, column widths, and row heights survive a round trip" {
+  let wb = @model.Workbook::new()
+  let sheet = wb.add_sheet("S")
+  sheet.set(@units.CellRef::new(col=1, row=1), Text("title"))
+  // Corners given reversed; the model canonicalizes to A1:C1.
+  sheet.merge(
+    @units.CellRef::new(col=3, row=1),
+    @units.CellRef::new(col=1, row=1),
+  )
+  sheet.set_column_width(first=2, last=2, 18.0)
+  sheet.set_row_height(first=1, last=1, 24.0)
+  let reopened = @xlsx.read(@emit.to_bytes(wb)[:])
+  assert_eq(reopened.get_merge_cells("S"), ["A1:C1"])
+  assert_eq(reopened.get_col_width("S", 2), Some(18.0))
+  assert_eq(reopened.get_row_height("S", 1), Some(24.0))
+  // The merged cell keeps the top-left value.
+  assert_eq(reopened.get_cell("S", "A1"), Some("title"))
+}
+
+///|
 test "a date cell serializes to its Excel serial under the workbook's system" {
   let date = @units.DateTime::{
     year: 1900,

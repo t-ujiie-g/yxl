@@ -51,6 +51,18 @@ pub fn parse_column(text : StringView) -> Int? {
 }
 
 ///|
+/// The top-left and bottom-right corners of the rectangle spanned by two cells,
+/// given in any corner order: `top_left` takes the smaller column and row,
+/// `bottom_right` the larger. Used to canonicalize a merge range.
+pub fn CellRef::rect(a : CellRef, b : CellRef) -> (CellRef, CellRef) {
+  let min_col = if a.col < b.col { a.col } else { b.col }
+  let max_col = if a.col > b.col { a.col } else { b.col }
+  let min_row = if a.row < b.row { a.row } else { b.row }
+  let max_row = if a.row > b.row { a.row } else { b.row }
+  ({ col: min_col, row: min_row }, { col: max_col, row: max_row })
+}
+
+///|
 /// Render as an A1-style reference: (1, 1) -> `A1`, (27, 10) -> `AA10`. The
 /// column uses Excel's bijective base-26 encoding (A..Z, AA..AZ, ...).
 pub fn CellRef::to_a1(self : CellRef) -> String {

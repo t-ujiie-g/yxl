@@ -140,6 +140,7 @@ fn load_sheet(
   let mut cells = None
   let mut columns = None
   let mut rows = None
+  let mut merges = None
   for entry in entries {
     let (key, value) = entry
     match key {
@@ -147,10 +148,11 @@ fn load_sheet(
       "cells" => cells = Some(value)
       "columns" => columns = Some(value)
       "rows" => rows = Some(value)
+      "merges" => merges = Some(value)
       _ =>
         raise schema_error(
           file~,
-          "unknown key '\{key}' in sheet (expected 'name', 'cells', 'columns', or 'rows')",
+          "unknown key '\{key}' in sheet (expected 'name', 'cells', 'columns', 'rows', or 'merges')",
         )
     }
   }
@@ -167,7 +169,43 @@ fn load_sheet(
   if cells is Some(cells_node) {
     load_cells(cells_node, sheet, file~, defs~)
   }
+  if merges is Some(merges_node) {
+    load_merges(merges_node, sheet, file~)
+  }
   sheet_name
+}
+
+///|
+/// Load a sheet's `merges:` sequence: each entry is a range string
+/// `TopLeft:BottomRight` (e.g. `A1:B2`) merged into one cell. Corners may be
+/// given in any order; the model canonicalizes them.
+fn load_merges(
+  node : @yaml.Node,
+  sheet : @model.Sheet,
+  file~ : String,
+) -> Unit raise @diag.SchemaError {
+  for item in expect_seq(node, file~, context="'merges'") {
+    let range = expect_string(item, file~, context="a merge range")
+    guard range.split_once(":") is Some((left, right)) else {
+      raise schema_error(
+        file~,
+        "merge range '\{range}' must be 'TopLeft:BottomRight'",
+      )
+    }
+    guard @units.CellRef::parse_a1(left.to_owned()) is Some(top_left) else {
+      raise schema_error(
+        file~,
+        "'\{left}' is not a valid A1 cell reference in merge range '\{range}'",
+      )
+    }
+    guard @units.CellRef::parse_a1(right.to_owned()) is Some(bottom_right) else {
+      raise schema_error(
+        file~,
+        "'\{right}' is not a valid A1 cell reference in merge range '\{range}'",
+      )
+    }
+    sheet.merge(top_left, bottom_right)
+  }
 }
 
 ///|
