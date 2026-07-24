@@ -502,7 +502,7 @@ test "load rejects an unknown top-level key" {
   assert_eq(
     schema_message("sheetz:\n  - name: S\n"),
     Some(
-      "spec.yaml: unknown top-level key 'sheetz' (expected 'sheets', 'date1904', or 'default_font')",
+      "spec.yaml: unknown top-level key 'sheetz' (expected 'sheets', 'date1904', 'default_font', or 'defs')",
     ),
   )
 }
@@ -512,7 +512,7 @@ test "load requires the sheets key" {
   assert_eq(
     schema_message("title: report\n"),
     Some(
-      "spec.yaml: unknown top-level key 'title' (expected 'sheets', 'date1904', or 'default_font')",
+      "spec.yaml: unknown top-level key 'title' (expected 'sheets', 'date1904', 'default_font', or 'defs')",
     ),
   )
   assert_eq(
@@ -550,6 +550,138 @@ test "load rejects duplicate sheet names" {
   assert_eq(
     schema_message("sheets:\n  - name: S\n  - name: S\n"),
     Some("spec.yaml: duplicate sheet name 'S'"),
+  )
+}
+
+///|
+test "a named style is declared once and referenced by name from many cells" {
+  let workbook = load_ok(
+    (
+      #|defs:
+      #|  styles:
+      #|    header: { font: { bold: true }, fill: "DDDDDD" }
+      #|sheets:
+      #|  - name: S
+      #|    columns:
+      #|      - at: A
+      #|        style: header
+      #|    cells:
+      #|      A1: { value: "Name", style: header }
+      #|      B1: { value: "Qty", style: header }
+      #|
+    ),
+  )
+  let sheet = workbook.sheets[0]
+  let header : @model.Style = {
+    ..@model.Style::empty(),
+    font: Some({
+      bold: Some(true),
+      italic: None,
+      underline: None,
+      strike: None,
+      size: None,
+      name: None,
+      color: None,
+    }),
+    fill: Some({ color: @units.Color::parse("DDDDDD").unwrap() }),
+  }
+  // Both cells and the column band resolve to the one declared style, so the
+  // emitter interns them to a single cellXfs id (ADR-004).
+  assert_eq(sheet.cells[0].style, Some(header))
+  assert_eq(sheet.cells[1].style, Some(header))
+  assert_eq(sheet.column_styles[0].style, header)
+}
+
+///|
+test "a style reference still layers a cell's own format on top" {
+  let workbook = load_ok(
+    (
+      #|defs:
+      #|  styles:
+      #|    money: { font: { bold: true } }
+      #|sheets:
+      #|  - name: S
+      #|    cells:
+      #|      A1: { value: 1.5, style: money, format: "0.00" }
+      #|
+    ),
+  )
+  let style = workbook.sheets[0].cells[0].style.unwrap()
+  assert_eq(style.font.unwrap().bold, Some(true))
+  assert_eq(style.number_format, Some("0.00"))
+}
+
+///|
+test "named values and formulas are referenced with $ref" {
+  let workbook = load_ok(
+    (
+      #|defs:
+      #|  values:
+      #|    company: "Acme Corp"
+      #|    tax_rate: 0.08
+      #|  formulas:
+      #|    subtotal: "=SUM(B2:B9)"
+      #|sheets:
+      #|  - name: S
+      #|    cells:
+      #|      A1: { $ref: company }
+      #|      A2: { value: { $ref: tax_rate }, format: "0.00%" }
+      #|      B10: { formula: { $ref: subtotal }, value: 100 }
+      #|
+    ),
+  )
+  let cells = workbook.sheets[0].cells
+  assert_eq(cells[0].value, @model.Text("Acme Corp"))
+  assert_eq(cells[1].value, @model.Number(0.08))
+  assert_eq(cells[1].style, Some(@model.Style::number_format("0.00%")))
+  // The referenced formula is stripped of its leading '=' like an inline one.
+  assert_eq(
+    cells[2].value,
+    @model.Formula(formula="SUM(B2:B9)", cached=Some(@model.Number(100.0))),
+  )
+}
+
+///|
+test "load rejects references to undefined names" {
+  assert_eq(
+    schema_message(
+      "sheets:\n  - name: S\n    cells:\n      A1: { value: 1, style: ghost }\n",
+    ),
+    Some("spec.yaml: cell 'A1' references undefined style 'ghost'"),
+  )
+  assert_eq(
+    schema_message(
+      "sheets:\n  - name: S\n    cells:\n      A1: { $ref: missing }\n",
+    ),
+    Some("spec.yaml: cell 'A1' references undefined value 'missing'"),
+  )
+  assert_eq(
+    schema_message(
+      "sheets:\n  - name: S\n    cells:\n      A1: { formula: { $ref: nope } }\n",
+    ),
+    Some("spec.yaml: cell 'A1' references undefined formula 'nope'"),
+  )
+  assert_eq(
+    schema_message(
+      "sheets:\n  - name: S\n    columns:\n      - at: A\n        style: gone\n",
+    ),
+    Some("spec.yaml: column 'A' references undefined style 'gone'"),
+  )
+}
+
+///|
+test "load rejects a $ref value combined with a type, and unknown defs keys" {
+  assert_eq(
+    schema_message(
+      "defs:\n  values:\n    n: 1\nsheets:\n  - name: S\n    cells:\n      A1: { value: { $ref: n }, type: text }\n",
+    ),
+    Some("spec.yaml: cell 'A1' cannot combine a '$ref' value with 'type'"),
+  )
+  assert_eq(
+    schema_message("defs:\n  colors: {}\nsheets:\n  - name: S\n"),
+    Some(
+      "spec.yaml: unknown key 'colors' in 'defs' (expected 'styles', 'values', or 'formulas')",
+    ),
   )
 }
 

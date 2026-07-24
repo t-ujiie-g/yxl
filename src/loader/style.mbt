@@ -15,9 +15,20 @@ fn combine_style(
   style_node : @yaml.Node?,
   number_format : String?,
   file~ : String,
+  defs~ : Defs,
   context~ : String,
 ) -> @model.Style? raise @diag.SchemaError {
   let base = match style_node {
+    // A bareword names a style definition (ADR-012); a mapping is inline.
+    Some(@yaml.Str(name)) =>
+      match defs.styles.get(name) {
+        Some(style) => style
+        None =>
+          raise schema_error(
+            file~,
+            "\{context} references undefined style '\{name}'",
+          )
+      }
     Some(node) => load_style(node, file~, context~)
     None => @model.Style::empty()
   }

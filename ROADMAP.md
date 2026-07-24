@@ -147,11 +147,14 @@ The **active phase** is the first phase with any unchecked box.
       (`set_col_style` / `set_row_style` / `set_default_font`)
 
 ### Phase 5 — Reuse / dedup engine ("compression") — the differentiator
-- [ ] Named definitions for values, formulas, and styles (declare once)
-- [ ] Reference syntax (YAML anchors `&`/`*` and/or explicit `$ref` — §8 Q3)
+- [x] Named definitions for values, formulas, and styles (declare once) — the
+      top-level `defs:` block (ADR-012)
+- [x] Reference syntax: bareword name for styles, `{ $ref: name }` for values
+      and formulas — explicit definitions, not YAML anchors (ADR-012 resolves Q3)
 - [ ] Compile references to Excel-native sharing: shared strings, **defined
       names**, **shared formulas**, shared style ids
-- [ ] Diagnostics for dangling / cyclic references
+- [ ] Diagnostics for dangling / cyclic references (dangling done with the
+      references above; cyclic awaits def→def references)
 
 ### Phase 6 — Layout & structure
 - [ ] Merged cells, column widths, row heights
@@ -331,6 +334,33 @@ it for a clean "cannot read/write \<file\>: \<reason\>" message.
 the surface we use (fs/sys) is small and stable; confined to `cmd/main`, a future
 swap touches one file.
 
+### ADR-012 — Named definitions with explicit references; resolved in the loader
+**Status:** Accepted. (Resolves §8 Q3.)
+**Context:** Phase 5 lets an author declare a value/formula/style once and
+reference it many times, compiling to Excel's native sharing (ADR-004). ADR-009
+had noted YAML anchors/aliases as a candidate, but the chosen parser
+(`moonbit-community/yaml`) **resolves `*alias` into a copy of the anchored value
+during load** (its loader looks the anchor up and inlines it), so by the time the
+`yaml` seam hands us a `Node` there is no alias identity left — anchors give
+textual reuse but cannot be compiled to *defined names* or *shared formulas*.
+**Decision:** Reuse is expressed with **explicit named definitions**: a top-level
+`defs:` block with `styles`, `values`, and `formulas` maps. A **style** is
+referenced by bareword name where a `style:` mapping would go (`style: header`),
+matching the existing scalar-shorthand idiom (`fill:` hex, `border:` name). A
+**value** or **formula** is referenced by `{ $ref: name }` — an explicit marker
+is needed because a bare scalar there is a literal value. The reference's kind is
+fixed by position (`style:`/`value:`/`formula:`), so each kind has its own
+namespace and a name may be reused across kinds. YAML anchors remain usable as
+plain-text convenience but are not the sharing mechanism.
+**Resolution stays in the `loader` for now:** references resolve to the same
+model value/style, and the emitter's existing structural interning (ADR-004)
+already collapses them to one shared string / `cellXfs` id — so the source-level
+single-source-of-truth is delivered without a `resolve` package yet. Excel
+*defined names* and *shared formulas* (Phase 5 item 3) will introduce `resolve`
+(§4) and carry reference identity into the model. A reference to an undefined
+name is a fail-fast `@diag.SchemaError` (ADR-006); cyclic references cannot occur
+until definitions may reference each other.
+
 ## 8. Open questions
 
 - **Q1 — YAML parser.** ✅ **Decided (ADR-009), refined (ADR-010):** depend on
@@ -341,8 +371,11 @@ swap touches one file.
 - **Q2 — Schema altitude.** How close should the schema mirror Excel's structure
   vs. a higher-level ergonomic DSL (e.g. `table:` shorthands)? Start close to
   Excel, add sugar later.
-- **Q3 — Reference syntax.** YAML anchors/aliases (`&name` / `*name`), an
-  explicit `$ref` / named-section scheme, or both? Affects the reuse UX.
+- **Q3 — Reference syntax.** ✅ **Decided (ADR-012):** explicit named definitions
+  in a top-level `defs:` block — a bareword name for styles, `{ $ref: name }` for
+  values and formulas. YAML anchors were rejected as the core mechanism because
+  the parser expands aliases to copies, losing the identity needed to compile to
+  defined names / shared formulas.
 - **Q4 — Data/format split mechanism.** `!include`, external CSV/JSON data
   sources, or a `data:` / `format:` split within one document?
 - **Q5 — Reverse import.** Is `xlsx → yxl.yaml` in scope for v1, or a post-v1
@@ -380,6 +413,24 @@ swap touches one file.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-24** — **Phase 5 started: named definitions + references (declare
+  once).** A spec may carry a top-level `defs:` block — `styles`, `values`, and
+  `formulas` maps — that declare a look, constant, or formula once. Cells,
+  columns, and rows reference a style by bareword name (`style: header`); a cell
+  references a named value or formula by `{ $ref: name }` (e.g. `A1: { $ref:
+  company }` as a whole-cell shorthand, or `{ value: { $ref: rate }, format:
+  "0.00%" }` / `{ formula: { $ref: subtotal } }` inside the expanded form). A
+  referenced style still layers the cell's own `format` on top, and references
+  resolve to the same model value/style so the emitter's existing interning
+  (ADR-004) collapses them to one shared string / `cellXfs` id. YAML anchors were
+  rejected as the mechanism (the parser expands aliases to copies, losing the
+  identity needed for Excel-native sharing) — recorded as **ADR-012**, which
+  resolves **Q3**. A reference to an undefined name is a fail-fast
+  `@diag.SchemaError`. Resolution lives in the `loader` for now; Excel *defined
+  names* / *shared formulas* (Phase 5 item 3) will add the `resolve` package.
+  80 tests green. **Phase 5 items 1–2 done; items 3–4 (native-sharing compilation,
+  cyclic-ref diagnostics) remain.**
 
 - **2026-07-24** — **Refactor pass (whole tree).** Deduplicated: the two
   top-level key scans (`read_date_system`/`read_default_font`) now share a

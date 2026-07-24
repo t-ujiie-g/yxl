@@ -16,10 +16,14 @@ fn load_cell(
   node : @yaml.Node,
   file~ : String,
   reference~ : String,
+  defs~ : Defs,
 ) -> (@model.CellValue, @model.Style?) raise @diag.SchemaError {
   match node {
-    @yaml.Map(entries) => load_expanded_cell(entries, file~, reference~)
-    scalar => (scalar_value(scalar, file~, reference~), None)
+    // `A1: { $ref: name }` is the whole-cell shorthand for a named value.
+    @yaml.Map(_) if as_ref(node) is Some(name) =>
+      (resolve_value_ref(name, file~, reference~, defs~), None)
+    @yaml.Map(entries) => load_expanded_cell(entries, file~, reference~, defs~)
+    scalar => (scalar_value(scalar, file~, context="cell '\{reference}'"), None)
   }
 }
 
@@ -28,6 +32,7 @@ fn load_expanded_cell(
   entries : Array[(String, @yaml.Node)],
   file~ : String,
   reference~ : String,
+  defs~ : Defs,
 ) -> (@model.CellValue, @model.Style?) raise @diag.SchemaError {
   let mut value_node = None
   let mut type_ = None
@@ -48,9 +53,7 @@ fn load_expanded_cell(
           expect_string(node, file~, context="cell '\{reference}' format"),
         )
       "formula" =>
-        formula = Some(
-          expect_string(node, file~, context="cell '\{reference}' formula"),
-        )
+        formula = Some(resolve_formula(node, file~, reference~, defs~))
       "style" => style_node = Some(node)
       "rich" => rich_node = Some(node)
       _ =>
@@ -91,7 +94,8 @@ fn load_expanded_cell(
         }
         // A formula's `value` is its optional cached result.
         let cached = match value_node {
-          Some(node) => Some(scalar_value(node, file~, reference~))
+          Some(node) =>
+            Some(scalar_value(node, file~, context="cell '\{reference}'"))
           None => None
         }
         (@model.Formula(formula=strip_leading_equals(formula), cached~), format)
@@ -103,25 +107,42 @@ fn load_expanded_cell(
             "cell '\{reference}' needs a 'value' or a 'formula'",
           )
         }
-        match type_ {
-          None => (scalar_value(value_node, file~, reference~), format)
-          Some("text") =>
-            (@model.Text(coerce_text(value_node, file~, reference~)), format)
-          Some("number") =>
-            (
-              @model.Number(coerce_number(value_node, file~, reference~)),
-              format,
-            )
-          Some("bool") =>
-            (@model.Bool(coerce_bool(value_node, file~, reference~)), format)
-          Some("error") =>
-            (error_literal(value_node, file~, reference~), format)
-          Some("date") => load_date_cell(value_node, format, file~, reference~)
-          Some(other) =>
+        if as_ref(value_node) is Some(name) {
+          // A `{ $ref: name }` value reuses a named definition; the cell's own
+          // `format`/`style` still layer on via `combine_style` below.
+          guard type_ is None else {
             raise schema_error(
               file~,
-              "unknown type '\{other}' for cell '\{reference}' (expected 'text', 'number', 'bool', 'date', or 'error')",
+              "cell '\{reference}' cannot combine a '$ref' value with 'type'",
             )
+          }
+          (resolve_value_ref(name, file~, reference~, defs~), format)
+        } else {
+          match type_ {
+            None =>
+              (
+                scalar_value(value_node, file~, context="cell '\{reference}'"),
+                format,
+              )
+            Some("text") =>
+              (@model.Text(coerce_text(value_node, file~, reference~)), format)
+            Some("number") =>
+              (
+                @model.Number(coerce_number(value_node, file~, reference~)),
+                format,
+              )
+            Some("bool") =>
+              (@model.Bool(coerce_bool(value_node, file~, reference~)), format)
+            Some("error") =>
+              (error_literal(value_node, file~, reference~), format)
+            Some("date") =>
+              load_date_cell(value_node, format, file~, reference~)
+            Some(other) =>
+              raise schema_error(
+                file~,
+                "unknown type '\{other}' for cell '\{reference}' (expected 'text', 'number', 'bool', 'date', or 'error')",
+              )
+          }
         }
       }
     }
@@ -132,6 +153,7 @@ fn load_expanded_cell(
       style_node,
       number_format,
       file~,
+      defs~,
       context="cell '\{reference}'",
     ),
   )
@@ -355,7 +377,7 @@ fn coerce_bool(
 fn scalar_value(
   node : @yaml.Node,
   file~ : String,
-  reference~ : String,
+  context~ : String,
 ) -> @model.CellValue raise @diag.SchemaError {
   match node {
     @yaml.Str(text) => @model.Text(text)
@@ -365,7 +387,7 @@ fn scalar_value(
     @yaml.Null | @yaml.Seq(_) | @yaml.Map(_) =>
       raise schema_error(
         file~,
-        "cell '\{reference}' must be text, a number, or a boolean",
+        "\{context} must be text, a number, or a boolean",
       )
   }
 }

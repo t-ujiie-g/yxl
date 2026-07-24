@@ -1,34 +1,42 @@
 ///|
 /// Load a parsed YAML document into a workbook model, validating the schema. The
 /// spec is a mapping with a `sheets` sequence plus optional top-level `date1904`
-/// (the 1904 date system) and `default_font` (the workbook default font face).
-/// Each sheet has a `name` and optional `cells` (an A1-reference mapping),
-/// `columns`, and `rows` (whole-band default styles — see `load_columns`). A
-/// cell value is a scalar shorthand or an expanded mapping with a `value`,
-/// `formula`, or `rich` run list, plus optional `type`, `format`, and `style`
-/// (see `load_cell`).
+/// (the 1904 date system), `default_font` (the workbook default font face), and
+/// `defs` (named definitions — see `load_defs`). Each sheet has a `name` and
+/// optional `cells` (an A1-reference mapping), `columns`, and `rows` (whole-band
+/// default styles — see `load_columns`). A cell value is a scalar shorthand or an
+/// expanded mapping with a `value`, `formula`, or `rich` run list, plus optional
+/// `type`, `format`, and `style` (see `load_cell`). A style is referenced by
+/// bareword name and a value/formula by `{ $ref: name }` (ADR-012).
 ///
 /// ```yaml
 /// default_font: Calibri
+/// defs:
+///   styles:
+///     header: { font: { bold: true } }
+///   values:
+///     company: "Acme Corp"
 /// sheets:
 ///   - name: Sheet1
 ///     columns:
 ///       - at: B
-///         style: { font: { bold: true } }
+///         style: header
 ///     cells:
-///       A1: hello
-///       B1: { value: 0.5, format: "0.00%" }
+///       A1: { $ref: company }
+///       B1: { value: 0.5, format: "0.00%", style: header }
 ///       C1: { formula: "SUM(B1:B1)", style: { font: { italic: true } } }
 ///       D1: { rich: ["plain ", { text: bold, font: { bold: true } }] }
 /// ```
 ///
-/// Unknown keys, wrong types, and bad cell references are `@diag.SchemaError`s
-/// (ADR-006). `file` names the source in those diagnostics.
+/// Unknown keys, wrong types, bad cell references, and dangling name references
+/// are `@diag.SchemaError`s (ADR-006). `file` names the source in those
+/// diagnostics.
 pub fn load(
   document : @yaml.Node,
   file~ : String,
 ) -> @model.Workbook raise @diag.SchemaError {
   let root = expect_map(document, file~, context="the top level")
+  let defs = load_defs(root, file~)
   let workbook = @model.Workbook::new(
     date_system=read_date_system(root, file~),
     default_font?=read_default_font(root, file~),
@@ -39,14 +47,15 @@ pub fn load(
     match key {
       "sheets" => {
         seen_sheets = true
-        load_sheets(value, workbook, file~)
+        load_sheets(value, workbook, file~, defs~)
       }
       "date1904" => () // consumed by read_date_system
       "default_font" => () // consumed by read_default_font
+      "defs" => () // consumed by load_defs
       _ =>
         raise schema_error(
           file~,
-          "unknown top-level key '\{key}' (expected 'sheets', 'date1904', or 'default_font')",
+          "unknown top-level key '\{key}' (expected 'sheets', 'date1904', 'default_font', or 'defs')",
         )
     }
   }
@@ -104,11 +113,12 @@ fn load_sheets(
   node : @yaml.Node,
   workbook : @model.Workbook,
   file~ : String,
+  defs~ : Defs,
 ) -> Unit raise @diag.SchemaError {
   let items = expect_seq(node, file~, context="'sheets'")
   let seen_names = []
   for item in items {
-    let name = load_sheet(item, workbook, file~)
+    let name = load_sheet(item, workbook, file~, defs~)
     guard !seen_names.contains(name) else {
       raise schema_error(file~, "duplicate sheet name '\{name}'")
     }
@@ -122,6 +132,7 @@ fn load_sheet(
   node : @yaml.Node,
   workbook : @model.Workbook,
   file~ : String,
+  defs~ : Defs,
 ) -> String raise @diag.SchemaError {
   let entries = expect_map(node, file~, context="a sheet")
   let mut name = None
@@ -147,13 +158,13 @@ fn load_sheet(
   }
   let sheet = workbook.add_sheet(sheet_name)
   if columns is Some(columns_node) {
-    load_columns(columns_node, sheet, file~)
+    load_columns(columns_node, sheet, file~, defs~)
   }
   if rows is Some(rows_node) {
-    load_rows(rows_node, sheet, file~)
+    load_rows(rows_node, sheet, file~, defs~)
   }
   if cells is Some(cells_node) {
-    load_cells(cells_node, sheet, file~)
+    load_cells(cells_node, sheet, file~, defs~)
   }
   sheet_name
 }
@@ -163,6 +174,7 @@ fn load_cells(
   node : @yaml.Node,
   sheet : @model.Sheet,
   file~ : String,
+  defs~ : Defs,
 ) -> Unit raise @diag.SchemaError {
   let entries = expect_map(node, file~, context="'cells'")
   for entry in entries {
@@ -173,7 +185,7 @@ fn load_cells(
         "'\{reference}' is not a valid A1 cell reference",
       )
     }
-    let (value, style) = load_cell(value_node, file~, reference~)
+    let (value, style) = load_cell(value_node, file~, reference~, defs~)
     sheet.set(cell, value, style?)
   }
 }

@@ -171,7 +171,7 @@ test "compile surfaces a schema error carrying the file name" {
   assert_eq(
     caught,
     Some(
-      "spec.yaml: unknown top-level key 'title' (expected 'sheets', 'date1904', or 'default_font')",
+      "spec.yaml: unknown top-level key 'title' (expected 'sheets', 'date1904', 'default_font', or 'defs')",
     ),
   )
 }

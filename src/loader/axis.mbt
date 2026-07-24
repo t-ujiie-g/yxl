@@ -13,11 +13,12 @@ fn load_columns(
   node : @yaml.Node,
   sheet : @model.Sheet,
   file~ : String,
+  defs~ : Defs,
 ) -> Unit raise @diag.SchemaError {
   for entry in expect_seq(node, file~, context="'columns'") {
     let (selector, spec) = split_band(entry, file~, axis="column")
     let (first, last) = parse_column_selector(selector, file~)
-    if load_axis_spec(spec, file~, context="column '\{selector}'")
+    if load_axis_spec(spec, file~, defs~, context="column '\{selector}'")
       is Some(style) {
       sheet.set_column_style(first~, last~, style)
     }
@@ -31,11 +32,13 @@ fn load_rows(
   node : @yaml.Node,
   sheet : @model.Sheet,
   file~ : String,
+  defs~ : Defs,
 ) -> Unit raise @diag.SchemaError {
   for entry in expect_seq(node, file~, context="'rows'") {
     let (selector, spec) = split_band(entry, file~, axis="row")
     let (first, last) = parse_row_selector(selector, file~)
-    if load_axis_spec(spec, file~, context="row '\{selector}'") is Some(style) {
+    if load_axis_spec(spec, file~, defs~, context="row '\{selector}'")
+      is Some(style) {
       sheet.set_row_style(first~, last~, style)
     }
   }
@@ -87,6 +90,7 @@ fn expect_selector(
 fn load_axis_spec(
   entries : Array[(String, @yaml.Node)],
   file~ : String,
+  defs~ : Defs,
   context~ : String,
 ) -> @model.Style? raise @diag.SchemaError {
   let mut style_node = None
@@ -105,7 +109,7 @@ fn load_axis_spec(
         )
     }
   }
-  combine_style(style_node, format, file~, context~)
+  combine_style(style_node, format, file~, defs~, context~)
 }
 
 ///|
