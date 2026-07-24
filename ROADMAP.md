@@ -151,8 +151,11 @@ The **active phase** is the first phase with any unchecked box.
       top-level `defs:` block (ADR-012)
 - [x] Reference syntax: bareword name for styles, `{ $ref: name }` for values
       and formulas — explicit definitions, not YAML anchors (ADR-012 resolves Q3)
-- [ ] Compile references to Excel-native sharing: shared strings, **defined
-      names**, **shared formulas**, shared style ids
+- [x] Compile references to Excel-native sharing: shared strings and shared
+      style ids (already native — string dedup + style interning), and **defined
+      names** for named values/formulas, referenced as `=name` (ADR-013). Shared
+      *formulas* (fill-down grouping) await a range-formula construct — nothing
+      references them, so not part of reference compilation.
 - [ ] Diagnostics for dangling / cyclic references (dangling done with the
       references above; cyclic awaits def→def references)
 
@@ -361,6 +364,37 @@ single-source-of-truth is delivered without a `resolve` package yet. Excel
 name is a fail-fast `@diag.SchemaError` (ADR-006); cyclic references cannot occur
 until definitions may reference each other.
 
+### ADR-013 — References compile to Excel defined names; `=name` cells
+**Status:** Accepted. (Extends ADR-012 for Phase 5 item 3.)
+**Context:** ADR-012 made references resolve in the loader by inlining the target
+value/formula. That already yields Excel-native sharing for two of the four
+mechanisms — repeated string values dedupe into the **shared-strings** table
+automatically, and equal styles intern to one **cellXfs** id (ADR-004). The
+missing piece is a mechanism the *author* can edit centrally in Excel: a
+**defined name**.
+**Decision:** Every declared `defs.values`/`defs.formulas` entry is emitted as a
+workbook **defined name** (`set_defined_name`), in declaration order so output is
+deterministic. A value or formula **reference** compiles to the formula `=name`
+(a `model.Formula` whose body is the name), caching the definition's value so the
+cell displays it until Excel recomputes — editing the defined name in Excel then
+updates every reference (the §1 "change once, changes everywhere" promise). A
+constant's `refers_to` is its formula literal (a string is quoted with inner
+quotes doubled; a number/bool/date is its literal); a named formula's is its body
+verbatim. Styles are **not** defined names (Excel has no such concept beyond
+`cellXfs`); style references stay interned (ADR-012).
+**Trade-offs / consequences:** a referenced value cell is a *formula* (`=name`),
+not a literal — the chosen behavior, since it is what makes central editing work.
+A named formula's defined name inherits Excel's relative-reference semantics
+(evaluated relative to the referencing cell); authors wanting position
+independence use absolute refs — consistent with "yxl emits, Excel computes"
+(§2). Invalid Excel names (e.g. a name shaped like a cell ref) are rejected by
+the backend as an `EmitError`; loader-side name validation with better spans is a
+Phase 8 refinement. **This fit in the `loader` plus one model field
+(`Workbook.defined_names`), so the dedicated `resolve` package (§4) that ADR-012
+anticipated is still deferred** — it will land when a pass genuinely needs its own
+stage (shared-formula grouping, or cycle detection once definitions may reference
+each other).
+
 ## 8. Open questions
 
 - **Q1 — YAML parser.** ✅ **Decided (ADR-009), refined (ADR-010):** depend on
@@ -413,6 +447,23 @@ until definitions may reference each other.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-24** — **Phase 5: references compile to Excel defined names.** Every
+  `defs.values`/`defs.formulas` entry now emits a workbook **defined name** (in
+  declaration order, deterministic), and a `{ $ref: name }` reference compiles to
+  the formula `=name` — so editing the defined name in Excel updates every
+  reference (§1's "change once, changes everywhere"). A referenced value caches
+  its constant (`=tax_rate` shows `0.08` until recompute); a `refers_to` literal
+  quotes strings (inner quotes doubled) and passes numbers/formulas through. The
+  other two native mechanisms in the item were already satisfied — repeated
+  strings dedupe into shared strings, styles intern to one `cellXfs` id (ADR-004);
+  shared *formulas* (fill-down) await a range construct and aren't referenced.
+  Added `model.DefinedName` + `Workbook.defined_names`/`add_defined_name`, wired
+  the loader to register names and resolve refs to `=name`, and the emitter to
+  `set_defined_name`. Recorded as **ADR-013**; the dedicated `resolve` package
+  stays deferred (this fit in loader + one model field). Round-trip verified:
+  defined names and the `=name` cell survive re-opening. 81 tests green. **Phase 5
+  item 3 done; only item 4's cyclic-ref case remains (dangling already covered).**
 
 - **2026-07-24** — **Phase 5 started: named definitions + references (declare
   once).** A spec may carry a top-level `defs:` block — `styles`, `values`, and

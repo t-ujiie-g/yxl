@@ -196,6 +196,34 @@ test "a formula cell emits its formula and optional cached value" {
 }
 
 ///|
+test "defined names emit and a reference cell resolves them via =name" {
+  let wb = @model.Workbook::new()
+  wb.add_defined_name("tax_rate", Number(0.08))
+  wb.add_defined_name("company", Text("Acme Corp"))
+  let sheet = wb.add_sheet("S")
+  // A cell referencing the named value: the formula body is the name.
+  sheet.set(
+    @units.CellRef::new(col=1, row=1),
+    Formula(formula="tax_rate", cached=Some(Number(0.08))),
+  )
+  let reopened = @xlsx.read(@emit.to_bytes(wb)[:])
+
+  // The defined names survive with their refers_to expressions (a string
+  // constant is quoted; a number is a bare literal).
+  let names = reopened.get_defined_names()
+  let by_name : Map[String, String] = Map([])
+  for dn in names {
+    by_name[dn.name] = dn.refers_to
+  }
+  assert_eq(by_name.get("tax_rate"), Some("0.08"))
+  assert_eq(by_name.get("company"), Some("\"Acme Corp\""))
+
+  // The reference cell emits `=tax_rate`; Excel resolves the name on open.
+  assert_eq(reopened.get_cell_formula("S", "A1"), Some("tax_rate"))
+  assert_eq(reopened.get_cell_value("S", "A1", raw=true), Some("0.08"))
+}
+
+///|
 test "a rich-text cell round-trips its runs and per-run fonts" {
   let wb = @model.Workbook::new()
   let sheet = wb.add_sheet("S")

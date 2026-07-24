@@ -105,7 +105,36 @@ fn build_workbook(wb : @model.Workbook) -> Bytes raise @xlsx.XlsxError {
       }
     }
   }
+  // Workbook defined names (ADR-013): each named value/formula the spec declared
+  // once, shared across the workbook and referenced by cells as `=name`.
+  for defined_name in wb.defined_names {
+    backend.set_defined_name(
+      @xlsx.DefinedName::new(
+        defined_name.name,
+        refers_to(defined_name.refers_to, wb.date_system),
+      ),
+    )
+  }
   @xlsx.write(backend)
+}
+
+///|
+/// The Excel `refers_to` expression for a defined name's target. A constant
+/// becomes its formula literal — a string is quoted (inner quotes doubled, per
+/// Excel), a number/bool/date its literal — and a formula is its body verbatim.
+fn refers_to(
+  value : @model.CellValue,
+  date_system : @units.DateSystem,
+) -> String {
+  match value {
+    Text(text) => "\"" + text.replace_all(old="\"", new="\"\"") + "\""
+    Number(number) => number.to_string()
+    Bool(flag) => if flag { "TRUE" } else { "FALSE" }
+    Date(datetime) => datetime.to_serial(date_system).to_string()
+    Error(text) => text
+    Formula(formula~, ..) => formula
+    RichText(_) => ""
+  }
 }
 
 ///|

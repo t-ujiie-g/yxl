@@ -1,10 +1,14 @@
-// Named definitions and reference resolution for the loader (ADR-012). The
-// top-level `defs:` block declares reusable `styles`, `values`, and `formulas`
-// once; cells, columns, and rows reference them by name (a bareword for styles,
-// `{ $ref: name }` for values and formulas). References resolve here to the same
-// model value/style, so the emitter's structural interning (ADR-004) collapses
-// them to one shared string / `cellXfs` id. A reference to a name that was never
-// defined is a fail-fast `@diag.SchemaError` (ADR-006).
+// Named definitions and reference resolution for the loader (ADR-012, ADR-013).
+// The top-level `defs:` block declares reusable `styles`, `values`, and
+// `formulas` once; cells, columns, and rows reference them by name (a bareword
+// for styles, `{ $ref: name }` for values and formulas).
+//
+// Each declared value/formula is registered as a workbook *defined name*, and a
+// value/formula reference compiles to the formula `=name` — so editing the
+// defined name in Excel updates every reference (ADR-013). A style reference
+// instead resolves to the same model style, which the emitter's structural
+// interning (ADR-004) collapses to one `cellXfs` id. A reference to a name that
+// was never defined is a fail-fast `@diag.SchemaError` (ADR-006).
 
 ///|
 /// The named definitions in scope while loading a workbook, one namespace per
@@ -31,6 +35,7 @@ fn Defs::empty() -> Defs {
 /// leading `=` is stripped on use, as for cell formulas).
 fn load_defs(
   root : Array[(String, @yaml.Node)],
+  workbook : @model.Workbook,
   file~ : String,
 ) -> Defs raise @diag.SchemaError {
   let defs = Defs::empty()
@@ -39,8 +44,8 @@ fn load_defs(
     let (key, value) = entry
     match key {
       "styles" => load_style_defs(value, defs, file~)
-      "values" => load_value_defs(value, defs, file~)
-      "formulas" => load_formula_defs(value, defs, file~)
+      "values" => load_value_defs(value, defs, workbook, file~)
+      "formulas" => load_formula_defs(value, defs, workbook, file~)
       _ =>
         raise schema_error(
           file~,
@@ -67,15 +72,18 @@ fn load_style_defs(
 fn load_value_defs(
   node : @yaml.Node,
   defs : Defs,
+  workbook : @model.Workbook,
   file~ : String,
 ) -> Unit raise @diag.SchemaError {
   for entry in expect_map(node, file~, context="'defs.values'") {
     let (name, value_node) = entry
-    defs.values[name] = scalar_value(
+    let value = scalar_value(
       value_node,
       file~,
       context="value definition '\{name}'",
     )
+    defs.values[name] = value
+    workbook.add_defined_name(name, value)
   }
 }
 
@@ -83,15 +91,16 @@ fn load_value_defs(
 fn load_formula_defs(
   node : @yaml.Node,
   defs : Defs,
+  workbook : @model.Workbook,
   file~ : String,
 ) -> Unit raise @diag.SchemaError {
   for entry in expect_map(node, file~, context="'defs.formulas'") {
     let (name, formula_node) = entry
-    defs.formulas[name] = expect_string(
-      formula_node,
-      file~,
-      context="formula definition '\{name}'",
+    let formula = strip_leading_equals(
+      expect_string(formula_node, file~, context="formula definition '\{name}'"),
     )
+    defs.formulas[name] = formula
+    workbook.add_defined_name(name, @model.Formula(formula~, cached=None))
   }
 }
 
@@ -104,8 +113,9 @@ fn as_ref(node : @yaml.Node) -> String? {
 }
 
 ///|
-/// Look a value reference up in `defs.values`; an undefined name is a
-/// fail-fast diagnostic naming the referencing cell.
+/// Resolve a value reference to the formula `=name` referencing the workbook
+/// defined name (ADR-013), caching the definition's constant so the cell shows
+/// it until Excel recomputes. An undefined name is a fail-fast diagnostic.
 fn resolve_value_ref(
   name : String,
   file~ : String,
@@ -113,7 +123,7 @@ fn resolve_value_ref(
   defs~ : Defs,
 ) -> @model.CellValue raise @diag.SchemaError {
   match defs.values.get(name) {
-    Some(value) => value
+    Some(value) => @model.Formula(formula=name, cached=Some(value))
     None =>
       raise schema_error(
         file~,
@@ -123,9 +133,10 @@ fn resolve_value_ref(
 }
 
 ///|
-/// Resolve a cell's `formula:` node: a `{ $ref: name }` looks the formula up in
-/// `defs.formulas`, otherwise the node is an inline formula string. The result
-/// is the raw formula; the caller strips a leading `=`.
+/// Resolve a cell's `formula:` node to the formula body the cell emits. A
+/// `{ $ref: name }` compiles to `=name` (the referencing name is the body, and
+/// the workbook defined name carries the actual formula — ADR-013); a string is
+/// an inline formula. Either way the caller strips a leading `=`.
 fn resolve_formula(
   node : @yaml.Node,
   file~ : String,
@@ -134,13 +145,13 @@ fn resolve_formula(
 ) -> String raise @diag.SchemaError {
   match as_ref(node) {
     Some(name) =>
-      match defs.formulas.get(name) {
-        Some(formula) => formula
-        None =>
-          raise schema_error(
-            file~,
-            "cell '\{reference}' references undefined formula '\{name}'",
-          )
+      if defs.formulas.get(name) is Some(_) {
+        name
+      } else {
+        raise schema_error(
+          file~,
+          "cell '\{reference}' references undefined formula '\{name}'",
+        )
       }
     None => expect_string(node, file~, context="cell '\{reference}' formula")
   }

@@ -60,15 +60,28 @@ pub(all) struct Sheet {
 } derive(Eq, Debug)
 
 ///|
-/// A workbook: an ordered list of sheets plus the date system that governs how
-/// dates serialize. This is the entire input to the emitter seam (`model ->
-/// bytes`, ADR-002).
+/// A workbook-level named definition (ADR-012): a name and what it refers to — a
+/// constant (`Text`/`Number`/`Bool`/`Date`) or a formula (`Formula`, whose
+/// `cached` is unused here). It compiles to an Excel *defined name* the whole
+/// workbook shares; a cell references it with the formula `=name` (ADR-013).
+pub(all) struct DefinedName {
+  name : String
+  refers_to : CellValue
+} derive(Eq, Debug)
+
+///|
+/// A workbook: an ordered list of sheets, the date system that governs how dates
+/// serialize, and any workbook-level defined names. This is the entire input to
+/// the emitter seam (`model -> bytes`, ADR-002).
 pub(all) struct Workbook {
   sheets : Array[Sheet]
   date_system : @units.DateSystem
   /// The workbook's default font face name (`None` keeps the backend default).
   /// Only the name is a workbook-level default; size/color/etc. are per-style.
   default_font : String?
+  /// Named definitions shared across the workbook, in declaration order
+  /// (deterministic). A reference cell holds `=name`; Excel resolves the name.
+  defined_names : Array[DefinedName]
 } derive(Eq, Debug)
 
 ///|
@@ -78,7 +91,18 @@ pub fn Workbook::new(
   date_system? : @units.DateSystem = Date1900,
   default_font? : String,
 ) -> Workbook {
-  { sheets: [], date_system, default_font }
+  { sheets: [], date_system, default_font, defined_names: [] }
+}
+
+///|
+/// Register a workbook-level defined name pointing at a constant or formula
+/// (ADR-013). Appended in call order so emission is deterministic.
+pub fn Workbook::add_defined_name(
+  self : Workbook,
+  name : String,
+  refers_to : CellValue,
+) -> Unit {
+  self.defined_names.push({ name, refers_to })
 }
 
 ///|

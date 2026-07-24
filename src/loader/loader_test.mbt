@@ -211,6 +211,7 @@ test "load builds sheets and typed cells from a minimal spec" {
       #|  ],
       #|  date_system: Date1900,
       #|  default_font: None,
+      #|  defined_names: [],
       #|}
     ),
   )
@@ -612,7 +613,7 @@ test "a style reference still layers a cell's own format on top" {
 }
 
 ///|
-test "named values and formulas are referenced with $ref" {
+test "named values and formulas become defined names, referenced as =name" {
   let workbook = load_ok(
     (
       #|defs:
@@ -630,15 +631,31 @@ test "named values and formulas are referenced with $ref" {
       #|
     ),
   )
+  // Each reference compiles to `=name`, caching the value it stands for (ADR-013).
   let cells = workbook.sheets[0].cells
-  assert_eq(cells[0].value, @model.Text("Acme Corp"))
-  assert_eq(cells[1].value, @model.Number(0.08))
+  assert_eq(
+    cells[0].value,
+    @model.Formula(formula="company", cached=Some(@model.Text("Acme Corp"))),
+  )
+  assert_eq(
+    cells[1].value,
+    @model.Formula(formula="tax_rate", cached=Some(@model.Number(0.08))),
+  )
   assert_eq(cells[1].style, Some(@model.Style::number_format("0.00%")))
-  // The referenced formula is stripped of its leading '=' like an inline one.
+  // A formula reference caches the cell's own `value`.
   assert_eq(
     cells[2].value,
-    @model.Formula(formula="SUM(B2:B9)", cached=Some(@model.Number(100.0))),
+    @model.Formula(formula="subtotal", cached=Some(@model.Number(100.0))),
   )
+  // Every declared value/formula is registered as a defined name, in order.
+  assert_eq(workbook.defined_names, [
+    { name: "company", refers_to: @model.Text("Acme Corp") },
+    { name: "tax_rate", refers_to: @model.Number(0.08) },
+    {
+      name: "subtotal",
+      refers_to: @model.Formula(formula="SUM(B2:B9)", cached=None),
+    },
+  ])
 }
 
 ///|

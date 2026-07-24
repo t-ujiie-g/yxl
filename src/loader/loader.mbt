@@ -36,11 +36,12 @@ pub fn load(
   file~ : String,
 ) -> @model.Workbook raise @diag.SchemaError {
   let root = expect_map(document, file~, context="the top level")
-  let defs = load_defs(root, file~)
   let workbook = @model.Workbook::new(
     date_system=read_date_system(root, file~),
     default_font?=read_default_font(root, file~),
   )
+  // Registers each declared value/formula as a workbook defined name (ADR-013).
+  let defs = load_defs(root, workbook, file~)
   let mut seen_sheets = false
   for entry in root {
     let (key, value) = entry
