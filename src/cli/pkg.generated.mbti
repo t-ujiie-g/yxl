@@ -4,10 +4,11 @@ package "t-ujiie-g/yxl/cli"
 import {
   "moonbitlang/core/debug",
   "t-ujiie-g/yxl/diag",
+  "t-ujiie-g/yxl/loader",
 }
 
 // Values
-pub fn compile(String, file~ : String) -> Bytes raise
+pub fn compile(String, file~ : String, resolve? : (String, String) -> @loader.Included raise) -> Bytes raise
 
 pub fn error_message(Error) -> String
 

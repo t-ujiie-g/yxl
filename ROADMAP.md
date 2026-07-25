@@ -78,7 +78,7 @@ ADR-008). Dependencies point *downward*; lower packages never import higher.
 | `units` | Type-safe values: cell references, colors, dimensions (or thin wrappers over the backend's typed values) |
 | `yaml` | YAML source → a generic document tree (adopt or vendor a parser — §8 Q1); the parser sits behind a seam too |
 | `model` | The typed intermediate representation: workbook / sheet / cell / value / style / named definitions |
-| `loader` | Document tree → `model`; schema validation with diagnostics; resolves includes / external data (`!include`, data files) |
+| `loader` | Document tree → `model`; schema validation with diagnostics; expands `$include` through a reader the CLI injects (ADR-014) |
 | `resolve` | Resolve named references & anchors; **intern** shared values / formulas / styles (the reuse/dedup engine) |
 | `emit` | `model` → `.xlsx` bytes through the emitter seam; the `mbtexcel`-backed implementation lives here |
 | `cli` (`cmd/main`) | Argument parsing, file read/write, `--check` / `--watch`, exit codes, help |
@@ -180,7 +180,9 @@ The **active phase** is the first phase with any unchecked box.
       `set_header_footer` / `insert_page_break`) — a per-sheet `print:` block
 
 ### Phase 7 — Modular specs
-- [ ] Includes / data–format separation (`!include`, external data files)
+- [x] Includes / data–format separation — `{ $include: path }` wherever a node
+      may stand, resolved through a reader the CLI injects (ADR-014). A YAML
+      `!include` tag is **not** possible: the parser drops unknown tags silently
 - [ ] External data sources (CSV/JSON tables feeding a sheet region)
 - [ ] Lightweight templating / parameterization — the first construct that can
       let one definition reference another, so **cyclic-reference detection**
@@ -406,6 +408,40 @@ anticipated is still deferred** — it will land when a pass genuinely needs its
 stage (shared-formula grouping, or cycle detection once definitions may reference
 each other).
 
+### ADR-014 — Includes are `{ $include: path }`, resolved through an injected reader
+**Status:** Accepted.
+**Context:** Phase 7 needs a data/format split (§8 Q4, ADR-005). The obvious
+spelling is YAML's own `!include` tag — but the parser seam cannot see tags. The
+library's tag-carrying API is its `MarkedEventReceiver` event stream, whose
+trait is **sealed** (`pub trait`, not `pub(open)`), so we cannot implement a
+receiver (this is the same wall ADR-010 hit for source spans); the value-tree API
+we do use (`Yaml::load_from_string`) drops unknown tags silently. Verified: a
+spec containing `A1: !include x.yaml` compiles *successfully* with the cell set
+to the text `"x.yaml"`. A directive that degrades into a plain string on a typo
+is exactly what ADR-006 forbids.
+**Decision:** An include is a **single-key mapping** `{ $include: <path> }`,
+usable wherever a node may stand (a whole document, one sheet, a `cells:` block,
+a `defs.styles` map). `$` marks it as a directive rather than spec data, matching
+`$ref` (ADR-012). Expansion is a pre-pass over the document tree, so every
+schema reader below is unaware more than one file existed. Combining `$include`
+with sibling keys is a diagnostic rather than an implied merge — that keeps merge
+semantics available to define later.
+**Reading the files stays outside the core (ADR-003):** `load` takes an
+`IncludeResolver` — `(from, path) -> Included { name, source }` — that the CLI
+supplies from the filesystem and tests supply from a map. The resolver returns
+the *name* it opened, so a diagnostic inside an included file points at that
+file and nested relative includes resolve against the right directory. Include
+**cycles are detected during expansion** and reported with the whole chain
+(`a.yaml -> b.yaml -> a.yaml`); this is the cycle detection Phase 5 deferred,
+arriving with the first construct that can actually form a loop.
+**Trade-offs / consequences:** `load` now raises `Error` rather than only
+`@diag.SchemaError`, because a syntax error in an included file is a genuine
+`@diag.YamlError` — the alternative was relabelling syntax errors as schema
+errors, which would lie about the kind. The path is resolver-defined: the CLI
+treats it as relative to the including file, so a spec directory can be moved
+wholesale. Should the parser ever gain an open event API, `!include` could be
+added as sugar over the same expansion, but `$include` stays the contract.
+
 ## 8. Open questions
 
 - **Q1 — YAML parser.** ✅ **Decided (ADR-009), refined (ADR-010):** depend on
@@ -421,8 +457,14 @@ each other).
   values and formulas. YAML anchors were rejected as the core mechanism because
   the parser expands aliases to copies, losing the identity needed to compile to
   defined names / shared formulas.
-- **Q4 — Data/format split mechanism.** `!include`, external CSV/JSON data
-  sources, or a `data:` / `format:` split within one document?
+- **Q4 — Data/format split mechanism.** ✅ **Decided (ADR-014):**
+  `{ $include: path }`, usable wherever a node may stand, resolved through an
+  `IncludeResolver` the CLI injects so the core stays I/O-free (ADR-003). A YAML
+  `!include` tag was ruled out on evidence — the parser's tag-carrying API is a
+  sealed trait and its value tree drops tags silently, so a typo would compile to
+  a plain string instead of failing (ADR-006). Because an include can replace any
+  node, a `data:` / `format:` split needs no separate mechanism. External CSV/JSON
+  tables remain their own Phase 7 item.
 - **Q5 — Reverse import.** Is `xlsx → yxl.yaml` in scope for v1, or a post-v1
   stretch? (Currently a stretch — §6 Phase 10.)
 - **Q6 — Distribution.** Native binary only, or also a wasm CLI? A wasm target
@@ -458,6 +500,33 @@ each other).
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-26** — **Phase 7 started: includes / data–format separation.** A
+  spec may now be split across files: `{ $include: path }` stands wherever a node
+  may — a whole document, one sheet, a `cells:` block, a `defs.styles` map — and
+  expands before any schema key is read, so every loader below is unaware more
+  than one file existed (ADR-005, ADR-014).
+
+  The obvious spelling, YAML's `!include` tag, turned out to be **impossible**:
+  the parser's tag-carrying API is a sealed trait (the wall ADR-010 already hit)
+  and the value tree drops unknown tags *silently* — verified, a spec with
+  `A1: !include x.yaml` compiled successfully with the cell set to the text
+  `"x.yaml"`. A directive that degrades to a string on a typo is what ADR-006
+  exists to prevent, so `$include` (a directive marker matching `$ref`) is the
+  contract. §6 and §8 Q4 are corrected accordingly.
+
+  Reading files stays out of the core (ADR-003): `load` takes an
+  `IncludeResolver` that the CLI backs with the filesystem — resolving each path
+  relative to the file containing it, so a spec directory moves wholesale — and
+  tests back with a map, needing no fixtures. Include **cycles are detected and
+  reported with the whole chain**; this is the cycle detection deferred from
+  Phase 5, arriving with the first construct that can form a loop. Combining
+  `$include` with sibling keys is a diagnostic, not an implied merge.
+
+  Public API: `load` and `compile` gained an optional `resolve~`, and `load` now
+  raises `Error` rather than only `@diag.SchemaError` — a syntax error inside an
+  included file is a real `@diag.YamlError`, and relabelling it would lie about
+  the kind. 113 tests green.
 
 - **2026-07-25** — **Refactor pass (whole tree), after Phase 6.** No behaviour
   change: the same spec compiles to *byte-identical* `.xlsx` output and the

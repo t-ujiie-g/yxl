@@ -2,19 +2,23 @@
 package "t-ujiie-g/yxl/loader"
 
 import {
-  "t-ujiie-g/yxl/diag",
   "t-ujiie-g/yxl/model",
   "t-ujiie-g/yxl/yaml",
 }
 
 // Values
-pub fn load(@yaml.Node, file~ : String) -> @model.Workbook raise @diag.SchemaError
+pub fn load(@yaml.Node, file~ : String, resolve? : (String, String) -> Included raise) -> @model.Workbook raise
 
 // Errors
 
 // Types and methods
+pub(all) struct Included {
+  name : String
+  source : String
+}
 
 // Type aliases
+pub type IncludeResolver = (String, String) -> Included raise
 
 // Traits
 

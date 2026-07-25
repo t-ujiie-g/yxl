@@ -53,7 +53,11 @@
 pub fn load(
   document : @yaml.Node,
   file~ : String,
-) -> @model.Workbook raise @diag.SchemaError {
+  resolve? : IncludeResolver = no_includes,
+) -> @model.Workbook raise {
+  // Multi-file specs collapse to one tree before any key is interpreted, so
+  // every reader below is unaware that more than one file existed (ADR-005).
+  let document = expand_includes(document, file~, resolve~, chain=[file])
   let root = expect_map(document, file~, context="the top level")
   let workbook = @model.Workbook::new(
     date_system=read_date_system(root, file~),

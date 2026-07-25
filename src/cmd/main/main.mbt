@@ -31,7 +31,7 @@ fn build(input : String, output : String) -> Int {
       return @cli.exit_error
     }
   }
-  let bytes = @cli.compile(source, file=input) catch {
+  let bytes = @cli.compile(source, file=input, resolve=read_included) catch {
     err => {
       report(@cli.error_message(err))
       return @cli.exit_error
@@ -45,6 +45,37 @@ fn build(input : String, output : String) -> Int {
   }
   report("wrote \{output}")
   @cli.exit_ok
+}
+
+///|
+/// Read the file an `$include` names, relative to the file containing it, so a
+/// spec can be moved as a directory. This is the disk half of includes; the
+/// loader itself never opens a file (ADR-003).
+fn read_included(from : String, path : String) -> @loader.Included raise {
+  let name = resolve_path(from, path)
+  let source = @fs.read_file_to_string(name) catch {
+    @fs.IOError(reason) =>
+      raise @diag.SchemaError(
+        @diag.Diagnostic::new(
+          "\{from}: cannot read included file '\{name}': \{reason}",
+        ),
+      )
+  }
+  { name, source }
+}
+
+///|
+/// A path written in `from`, resolved against the directory `from` sits in: an
+/// include in `specs/report.yaml` naming `data/q3.yaml` means
+/// `specs/data/q3.yaml`. An absolute path is taken as it stands.
+fn resolve_path(from : String, path : String) -> String {
+  if path.has_prefix("/") {
+    return path
+  }
+  match from.rev_find("/") {
+    Some(slash) => from[:slash + 1].to_owned() + path
+    None => path
+  }
 }
 
 ///|

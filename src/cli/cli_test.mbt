@@ -161,6 +161,38 @@ test "golden: explicit typing coerces the stored type, and errors survive" {
 }
 
 ///|
+/// Golden round-trip for a *split* spec: the data lives in one file and the
+/// formatting in another, and they compile to the one workbook (ADR-005).
+test "golden: an included data file compiles into the same workbook" {
+  let source =
+    #|defs:
+    #|  styles:
+    #|    $include: theme.yaml
+    #|sheets:
+    #|  - name: S
+    #|    cells:
+    #|      $include: data.yaml
+    #|
+  let files = {
+    "theme.yaml": "header: { font: { bold: true } }\n",
+    "data.yaml": "A1: { value: Region, style: header }\nB1: 2400000\n",
+  }
+  let bytes = @cli.compile(source, file="spec.yaml", resolve=(_from, path) => {
+    match files.get(path) {
+      Some(text) => { name: path, source: text }
+      None => raise @diag.SchemaError(@diag.Diagnostic::new("missing \{path}"))
+    }
+  })
+  let reopened = @xlsx.read(bytes[:])
+  assert_eq(reopened.get_cell("S", "A1"), Some("Region"))
+  assert_eq(reopened.get_cell("S", "B1"), Some("2400000"))
+  // The style came from the other file and really applied.
+  let style = reopened.get_cell_style("S", "A1")
+  assert_true(style is Some(_) && style != Some(0))
+  assert_eq(reopened.get_style(style.unwrap()).font.unwrap().bold, Some(true))
+}
+
+///|
 test "compile surfaces a schema error carrying the file name" {
   let caught = try {
     @cli.compile("title: x\n", file="spec.yaml") |> ignore

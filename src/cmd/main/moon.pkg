@@ -3,6 +3,8 @@
 // write the bytes back, and turn errors into exit codes.
 import {
   "t-ujiie-g/yxl/cli",
+  // For the `$include` resolver's return type; the loader itself reads nothing.
+  "t-ujiie-g/yxl/loader",
   "t-ujiie-g/yxl/diag",
   "moonbitlang/x/fs",
   "moonbitlang/x/sys",

@@ -74,8 +74,16 @@ fn parse_build(args : ArrayView[String]) -> Command raise @diag.CliError {
 /// parse, load, emit — and is I/O-free, so it tests on strings and bytes.
 /// `file` names the source in any diagnostic. It may raise `@diag.YamlError`,
 /// `@diag.SchemaError`, or `@diag.EmitError`.
-pub fn compile(source : String, file~ : String) -> Bytes raise {
-  @emit.to_bytes(@loader.load(@yaml.parse(source, file~), file~))
+///
+/// `resolve` supplies the source of any `$include`; without it a spec that uses
+/// one is a diagnostic. Reading files stays the caller's job — that is what
+/// keeps this function I/O-free (ADR-003).
+pub fn compile(
+  source : String,
+  file~ : String,
+  resolve? : @loader.IncludeResolver,
+) -> Bytes raise {
+  @emit.to_bytes(@loader.load(@yaml.parse(source, file~), file~, resolve?))
 }
 
 ///|
