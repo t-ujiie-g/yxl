@@ -88,21 +88,31 @@ diagnostic naming the file, never a silently dropped value.
 
 ## Install
 
+**Linux / macOS:**
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/t-ujiie-g/yxl/main/install.sh | sh
 ```
 
-That fetches the [latest release](https://github.com/t-ujiie-g/yxl/releases) for
-your platform, **verifies its SHA-256**, and installs `yxl` into
-`~/.local/bin`. Pin a version or choose a directory with:
+**Windows (PowerShell):**
+
+```powershell
+irm https://raw.githubusercontent.com/t-ujiie-g/yxl/main/install.ps1 | iex
+```
+
+Either fetches the [latest release](https://github.com/t-ujiie-g/yxl/releases)
+for your platform, **verifies its SHA-256**, and installs `yxl` — into
+`~/.local/bin`, or `%LOCALAPPDATA%\yxl\bin` on Windows. Pin a version or choose
+a directory with `YXL_VERSION` and `YXL_INSTALL_DIR`:
 
 ```bash
 YXL_VERSION=0.1.0 YXL_INSTALL_DIR=/usr/local/bin \
   curl -fsSL https://raw.githubusercontent.com/t-ujiie-g/yxl/main/install.sh | sh
 ```
 
-Prebuilt binaries cover **Linux x86_64** and **macOS arm64** (Apple silicon).
-On an Intel Mac, or any other platform, build from source below. Piping
+Prebuilt binaries cover **Linux x86_64**, **macOS arm64** (Apple silicon), and
+**Windows x86_64**. On an Intel Mac, or any other platform, build from source
+below. Piping
 a script into a shell is worth doing deliberately — [read
 `install.sh`](./install.sh) first if you would rather, or install by hand from
 the release assets, or build from source:
@@ -120,6 +130,9 @@ install -m 755 _build/native/release/build/cmd/main/main.exe ~/.local/bin/yxl
 
 macOS marks downloaded binaries as quarantined; if Gatekeeper objects, clear it
 with `xattr -d com.apple.quarantine ~/.local/bin/yxl`.
+
+Paths may use either separator, so `yxl build specs\report.yaml` works on
+Windows and a spec's own `$include: data/x.yaml` stays portable.
 
 ## Using it
 

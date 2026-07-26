@@ -311,3 +311,73 @@ test "compile surfaces a schema error carrying the file name" {
     ),
   )
 }
+
+///|
+test "resolve_path takes a path as relative to the file that wrote it" {
+  // The ordinary case, either separator.
+  assert_eq(
+    @cli.resolve_path("specs/report.yaml", "data/q3.yaml"),
+    "specs/data/q3.yaml",
+  )
+  assert_eq(
+    @cli.resolve_path("specs\\report.yaml", "data/q3.yaml"),
+    "specs\\data/q3.yaml",
+  )
+  // Nested, and back up a level — yxl passes `..` through for the OS to resolve.
+  assert_eq(
+    @cli.resolve_path("a/b/c.yaml", "../shared/theme.yaml"),
+    "a/b/../shared/theme.yaml",
+  )
+  // No directory part: the path stands alone.
+  assert_eq(@cli.resolve_path("report.yaml", "data/q3.yaml"), "data/q3.yaml")
+}
+
+///|
+test "resolve_path leaves absolute paths alone, in every spelling" {
+  for
+    absolute in [
+      "/etc/yxl/theme.yaml", // POSIX
+       "C:\\specs\\theme.yaml", // Windows drive, backslash
+       "c:/specs/theme.yaml", // Windows drive, forward slash, lowercase
+       "\\\\server\\share\\theme.yaml", // UNC
+    ] {
+    assert_eq(@cli.resolve_path("specs/report.yaml", absolute), absolute)
+  }
+  // `C:x` is relative to that drive's own working directory, which yxl cannot
+  // honour, so it is treated as relative rather than silently mis-resolved.
+  assert_eq(
+    @cli.resolve_path("specs/report.yaml", "C:theme.yaml"),
+    "specs/C:theme.yaml",
+  )
+}
+
+///|
+test "resolve_path splits by character, so Japanese paths survive" {
+  // On Japanese Windows a backslash *displays* as ¥ — the same character, so
+  // this is the ordinary case wearing a different glyph.
+  assert_eq(
+    @cli.resolve_path("仕様\\報告書.yaml", "データ/売上.csv"),
+    "仕様\\データ/売上.csv",
+  )
+  // CP932 encodes 表, ソ and 十 with 0x5C as their *second* byte. Splitting by
+  // byte would cut these names in half; splitting by character cannot.
+  for name in ["表", "ソ", "十", "貼", "能"] {
+    assert_eq(
+      @cli.resolve_path("\{name}/report.yaml", "theme.yaml"),
+      "\{name}/theme.yaml",
+    )
+    // The same character as the *last* thing before the separator, which is
+    // where a byte-wise split would do its damage.
+    assert_eq(
+      @cli.resolve_path("specs/一覧\{name}/report.yaml", "theme.yaml"),
+      "specs/一覧\{name}/theme.yaml",
+    )
+  }
+  // A genuine yen sign is a filename character, not a separator: this name must
+  // survive whole, or an include beside it would resolve into nowhere.
+  assert_eq(
+    @cli.resolve_path("specs/見積¥1000.yaml", "theme.yaml"),
+    "specs/theme.yaml",
+  )
+  assert_eq(@cli.resolve_path("見積¥1000.yaml", "theme.yaml"), "theme.yaml")
+}

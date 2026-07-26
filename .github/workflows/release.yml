@@ -39,18 +39,34 @@ jobs:
             target: linux-x86_64
           - os: macos-latest # Apple silicon
             target: macos-arm64
+          - os: windows-latest
+            target: windows-x86_64
           # No Intel macOS build: the free `macos-13` runner is retired, and its
           # successors (`macos-15-intel` / `-large`) are larger runners whose
           # billing was not confirmed. Intel Macs build from source — an arm64
           # binary cannot run there, so shipping one would be worse than none.
     runs-on: ${{ matrix.os }}
+    # Git Bash ships on the Windows runners, so packaging is one script for all
+    # three platforms; only the installer and the archive format differ.
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@v5
 
-      - name: Install MoonBit
+      - name: Install MoonBit (Unix)
+        if: runner.os != 'Windows'
         run: |
           curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
           echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+
+      - name: Install MoonBit (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Set-ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
+          irm https://cli.moonbitlang.com/install/powershell.ps1 | iex
+          "$env:USERPROFILE\.moon\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: Update registry index
         run: moon update
@@ -71,12 +87,22 @@ jobs:
           version=${TAG#v}
           staging="yxl-$version-$TARGET"
           mkdir "$staging"
-          cp _build/native/release/build/cmd/main/main.exe "$staging/yxl"
-          chmod +x "$staging/yxl"
           cp README.md LICENSE "$staging/"
           cp -r examples "$staging/"
-          tar czf "$staging.tar.gz" "$staging"
-          shasum -a 256 "$staging.tar.gz" > "$staging.tar.gz.sha256"
+          # Windows gets a .zip and a .exe — what its users can open and run
+          # without extra tools; everyone else gets a tarball.
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            cp _build/native/release/build/cmd/main/main.exe "$staging/yxl.exe"
+            archive="$staging.zip"
+            powershell -Command "Compress-Archive -Path '$staging' -DestinationPath '$archive'"
+          else
+            cp _build/native/release/build/cmd/main/main.exe "$staging/yxl"
+            chmod +x "$staging/yxl"
+            archive="$staging.tar.gz"
+            tar czf "$archive" "$staging"
+          fi
+          # `shasum` is present on all three runners (Git Bash carries Perl's).
+          shasum -a 256 "$archive" > "$archive.sha256"
 
       - uses: actions/upload-artifact@v7
         with:
@@ -84,6 +110,8 @@ jobs:
           path: |
             *.tar.gz
             *.tar.gz.sha256
+            *.zip
+            *.zip.sha256
           if-no-files-found: error
 
   release:

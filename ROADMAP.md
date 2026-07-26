@@ -226,15 +226,13 @@ The **active phase** is the first phase with any unchecked box.
 - [x] `--check` (validate only), `--version`, help
 - [x] Stable exit codes (0 / 1 / 2, documented in `yxl help` and the README, and
       exercised end-to-end); native binary build + install docs
-- [ ] **A Windows binary.** Releases ship Linux x86_64 and macOS arm64; for a
-      tool whose subject is *Excel*, leaving out the platform most of its users
-      run on is the biggest gap in the product (raised in the post-v0.1.0
-      review, §11). Unknowns to settle before this is a task rather than a
-      guess: does `moon build --target native` work on `windows-latest` (the C
-      backend needs a toolchain — MSVC or MinGW), is the artifact `main.exe`,
-      and does the ZIP need a PowerShell installer since `install.sh` is
-      POSIX-only? Order this against Phase 9 — reach beats depth if the answer
-      is "it builds".
+- [x] **A Windows binary.** Releases ship Linux x86_64, macOS arm64, and
+      Windows x86_64 (a `.zip` with `yxl.exe`), installed by `install.ps1`. The
+      unknowns were settled by running them on `windows-latest` rather than
+      reasoning about them: the native backend builds (gcc and clang are
+      preinstalled — no MSVC setup), the artifact sits at the same relative path
+      as everywhere else, and the whole suite passes. Path resolution now takes
+      either separator. CI covers all three platforms.
 
 ### Phase 9 — Richer Excel features (leverage mbtexcel, additive)
 - [ ] Charts, images, **Excel tables** (structured tables / ListObjects,
