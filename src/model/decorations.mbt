@@ -165,6 +165,14 @@ pub let icon_set_styles : Array[String] = [
 ]
 
 ///|
+/// Excel's caps on a `Rank` rule, as its own dialog enforces them: at most this
+/// many cells by count, or this many percent.
+pub let max_rank_count : Int = 1000
+
+///|
+pub let max_rank_percent : Int = 100
+
+///|
 /// A conditional format over a range: what decides it, and how a matching cell
 /// is drawn.
 pub(all) struct ConditionalFormat {

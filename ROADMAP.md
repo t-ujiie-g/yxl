@@ -723,6 +723,41 @@ silently reading the wrong file).
 
 Reverse-chronological. One entry per user-visible or structural change.
 
+- **2026-07-26** — **Refactoring pass over the whole tree.** No behaviour
+  changed; 257 tests pass.
+
+  **Split at a boundary, not at a line count.** `loader/decorations.mbt` had
+  reached 525 lines holding four unrelated schemas: `filter:` (7 lines),
+  `links:` (60), `comments:` (37), and `validations:` (~290). Validations are as
+  substantial as conditional formats, which already had a file, so
+  `validation.mbt` came out at the same boundary and the tests followed. What
+  stays behind is what the two big files *share* — the comparison vocabulary and
+  sheet-qualified range parsing — which the header now says outright.
+
+  **Tests moved to sit beside what they test:** the `comments:` tests had been
+  written into `properties_test.mbt` and now live in `decorations_test.mbt`,
+  where the loading does.
+
+  **Three untested error paths covered:** an unterminated quoted sheet name
+  (`'Lists!A1:A3`), a list source that is a cell rather than a range, and a
+  conditional bound given a sequence.
+
+  **Excel's rank caps** (1000 by count, 100 by percent) became named constants
+  in `model`, where every other Excel limit already lives.
+
+  Two documentation drifts fixed: the README's example table had not caught up
+  with the notes and document properties added to `interactive` and `layout`,
+  and `load_filter`'s doc comment described a duplicate `filter:` key
+  "replacing" the first — which cannot happen, since the YAML parser rejects a
+  repeated mapping key before the loader sees it.
+
+  One finding deliberately **not** acted on: the sheet and top-level key lists
+  are written twice, as `match` arms and again in the unknown-key diagnostic.
+  Extracting a constant would have matched the `VALIDATION_RULES` pattern
+  without matching its reason — those lists appear in *two* diagnostics, so
+  naming them removes a copy, while these appear in one, so naming them removes
+  nothing and still leaves two places to edit.
+
 - **2026-07-26** — **Notes, document properties, and calculation settings** —
   the rest of Phase 9's schema-only features, leaving only the ones that need
   new machinery (tables, charts, images, pivots, protection).
