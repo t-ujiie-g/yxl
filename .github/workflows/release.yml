@@ -79,30 +79,13 @@ jobs:
       - name: Build (native, release)
         run: moon build --target native --release
 
+      # Shared with CI, which runs it on every pull request so this path is
+      # never first exercised by a tag push.
       - name: Package
         env:
           TAG: ${{ github.ref_name }}
           TARGET: ${{ matrix.target }}
-        run: |
-          version=${TAG#v}
-          staging="yxl-$version-$TARGET"
-          mkdir "$staging"
-          cp README.md LICENSE "$staging/"
-          cp -r examples "$staging/"
-          # Windows gets a .zip and a .exe — what its users can open and run
-          # without extra tools; everyone else gets a tarball.
-          if [ "$RUNNER_OS" = "Windows" ]; then
-            cp _build/native/release/build/cmd/main/main.exe "$staging/yxl.exe"
-            archive="$staging.zip"
-            powershell -Command "Compress-Archive -Path '$staging' -DestinationPath '$archive'"
-          else
-            cp _build/native/release/build/cmd/main/main.exe "$staging/yxl"
-            chmod +x "$staging/yxl"
-            archive="$staging.tar.gz"
-            tar czf "$archive" "$staging"
-          fi
-          # `shasum` is present on all three runners (Git Bash carries Perl's).
-          shasum -a 256 "$archive" > "$archive.sha256"
+        run: .github/scripts/package.sh "${TAG#v}" "$TARGET"
 
       - uses: actions/upload-artifact@v7
         with:

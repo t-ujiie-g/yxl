@@ -80,6 +80,31 @@ jobs:
             "$yxl" build "$spec" --check
           done
 
+      # The release archive is built by the same script `release.yml` uses, so
+      # a packaging step that only works on some platforms fails here rather
+      # than on a tag push, where it costs a release. Unpacking it and running
+      # what comes out is also what checks the layout the installers expect.
+      - name: Package (the release path, rehearsed)
+        run: |
+          .github/scripts/package.sh 0.0.0-ci "$RUNNER_OS"
+          name="yxl-0.0.0-ci-$RUNNER_OS"
+
+          sum=$(cut -d' ' -f1 <"$name".*.sha256)
+          echo "$sum" | grep -Eq '^[0-9a-f]{64}$' ||
+            { echo "the .sha256 does not start with a sha256: '$sum'"; exit 1; }
+
+          mkdir yxl-unpacked
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            powershell -NoProfile -Command \
+              "Expand-Archive -Path '$name.zip' -DestinationPath 'yxl-unpacked'"
+            binary="yxl-unpacked/$name/yxl.exe"
+          else
+            tar xzf "$name.tar.gz" -C yxl-unpacked
+            binary="yxl-unpacked/$name/yxl"
+          fi
+          test -f "$binary" || { echo "the archive has no $binary"; exit 1; }
+          "$binary" version
+
       # Japanese Windows is a first-class case, and there are two halves to it.
       # This is the half yxl controls: a `\` separator (which that console draws
       # as ¥) and CP932 names like 表, ソ and 十, whose second byte is 0x5C — a

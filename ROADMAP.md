@@ -693,6 +693,25 @@ silently reading the wrong file).
 
 Reverse-chronological. One entry per user-visible or structural change.
 
+- **2026-07-26** — **The release path is rehearsed on every pull request.**
+  Tagging v0.1.1 failed on Windows: packaging ended in `shasum -a 256`, and Git
+  Bash ships GNU `sha256sum`, not Perl's `shasum` — while macOS ships `shasum`
+  and no `sha256sum`. Nothing here was subtle; the flaw was that **the Package
+  step ran only on a tag push**, so its first execution on Windows was the one
+  that had to work. The whole build was green and the release still produced
+  nothing.
+
+  Packaging now lives in `.github/scripts/package.sh`, which **CI runs on all
+  three platforms on every PR** — it builds the archive, unpacks it, and runs
+  the binary out of it, so the layout `install.sh` / `install.ps1` expect is
+  checked too. The script tries `sha256sum` then `shasum`, and writes the
+  `.sha256` line itself (`<hash> *<file>`) rather than passing through whichever
+  tool it found, so the format is identical everywhere and binary-mode
+  verification is right on Windows as well.
+
+  The wider lesson, worth stating once: **a code path that only executes during
+  a release is untested code, and CI's green tick says nothing about it.**
+
 - **2026-07-26** — **Windows support.** The post-v0.1.0 review's top gap, closed.
   Feasibility was answered by *running* it on `windows-latest` rather than
   reasoning about it: the native backend builds (gcc and clang are preinstalled,

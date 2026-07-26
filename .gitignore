@@ -7,3 +7,10 @@ examples/*/out/
 .moonagent/
 .claude/*.local.json
 *.coverage
+# `.github/scripts/package.sh` output — release archives and their staging
+# directory, whether it ran on a runner or locally to rehearse a release.
+yxl-*.tar.gz
+yxl-*.zip
+yxl-*.sha256
+yxl-[0-9]*-*/
+yxl-unpacked/
