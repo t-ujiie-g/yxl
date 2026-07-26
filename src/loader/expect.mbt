@@ -125,3 +125,38 @@ fn expect_cell_ref(
   }
   cell
 }
+
+///|
+/// A scalar node, or a diagnostic: text, a number, or a boolean, never a
+/// structure. `scalar_value` turns the result into a cell value; parameters keep
+/// it as a node.
+fn expect_scalar(
+  node : @yaml.Node,
+  file~ : String,
+  context~ : String,
+) -> @yaml.Node raise @diag.SchemaError {
+  match node {
+    @yaml.Str(_) | @yaml.Int(_) | @yaml.Float(_) | @yaml.Bool(_) => node
+    _ => raise not_scalar(file~, context~)
+  }
+}
+
+///|
+/// The diagnostic for a structure where one value belongs. Shared so a cell
+/// value and a parameter are refused in the same words.
+fn not_scalar(file~ : String, context~ : String) -> @diag.SchemaError {
+  schema_error(file~, "\{context} must be text, a number, or a boolean")
+}
+
+///|
+/// Untyped text as the scalar it looks like. Shared by `--set` values, which
+/// arrive from a command line, and CSV fields, which carry no types either — so
+/// both read `0.08` as a number and `true` as a boolean, and a spreadsheet built
+/// from either holds the same kinds of cell.
+fn infer_scalar(text : String) -> @yaml.Node {
+  match text {
+    "true" => @yaml.Bool(true)
+    "false" => @yaml.Bool(false)
+    _ => @yaml.Float(@string.parse_double(text)) catch { _ => @yaml.Str(text) }
+  }
+}

@@ -21,7 +21,6 @@ pub(all) struct Alignment {
   vertical : VAlign?
   wrap : Bool?
 } derive(Eq, Hash, @debug.Debug)
-pub fn Alignment::over(Self, Self) -> Self
 
 pub(all) struct AxisBand {
   first : Int
@@ -53,7 +52,6 @@ pub(all) struct Borders {
   top : Border?
   bottom : Border?
 } derive(Eq, Hash, @debug.Debug)
-pub fn Borders::over(Self, Self) -> Self
 
 pub(all) struct Cell {
   pos : @units.CellRef
@@ -94,7 +92,6 @@ pub(all) struct Font {
   name : String?
   color : @units.Color?
 } derive(Eq, Hash, @debug.Debug)
-pub fn Font::over(Self, Self) -> Self
 
 pub(all) enum HAlign {
   Left

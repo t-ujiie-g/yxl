@@ -541,6 +541,42 @@ on the command line says so instead of quietly doing nothing.
 
 Reverse-chronological. One entry per user-visible or structural change.
 
+- **2026-07-26** — **Refactor pass (whole tree), after Phase 7.** No behaviour
+  change; 129 tests green throughout. The only public-API delta is three
+  functions *leaving* the surface.
+
+  *Duplication.* The scalar inference that reads untyped text as a number or a
+  boolean existed twice — in `csv_field` and in `infer_scalar` — which the
+  parameterization entry above had already claimed was shared. It is now, and the
+  claim is corrected. `expect_scalar` and `scalar_value` also spelled the same
+  refusal separately; the message is now one `not_scalar`. The three cycle
+  detectors (includes, style inheritance, parameters) each built their diagnostic
+  by hand; they now share `cycle_error`.
+
+  *Helpers in the wrong home.* `render_cycle` lived in `include.mbt` but served
+  all three cycle checks, and `infer_scalar` lived in `params.mbt` but is a CSV
+  concern too. Both moved: cycle detection to its own `cycle.mbt`, the scalar
+  helpers to `expect.mbt`, the file that already holds the vocabulary every
+  loader shares.
+
+  *Consistency.* `$include` and `params` were named constants while `$ref` — the
+  oldest of the three directives — was an inline literal; it is now `REF_KEY`.
+
+  *Public surface.* `Font::over`, `Alignment::over`, and `Borders::over` were
+  public but called only by `Style::over`; they are private now, so the model
+  exposes merging whole styles rather than their pieces.
+
+  *File splitting.* `loader_test.mbt` had grown to 1699 lines and 61 tests
+  covering ten source files. Split along those files — `cell_test`, `style_test`,
+  `axis_test`, `sheet_test`, `page_test`, `include_test`, `table_test`,
+  `params_test` — leaving `loader_test.mbt` (104 lines) for the shared helpers
+  and document-level structure.
+
+  *Docs.* README had gone stale again: it still said modular specs were "ahead"
+  and showed none of Phase 7. Rewritten, and its example **verified by compiling
+  it twice** — once plain, once with `--set` — so the `$include`/`data:`/`params:`
+  /`extends:` it now advertises are all exercised.
+
 - **2026-07-26** — **Phase 7 complete: parameterization (`params:` / `--set`).**
   A spec declares parameters with defaults and substitutes them as `${name}` in
   any string — values *and* mapping keys, so a sheet name, a cell reference, or a
@@ -552,9 +588,11 @@ Reverse-chronological. One entry per user-visible or structural change.
 
   Two rules keep types intact: a string that is exactly one placeholder takes the
   parameter's own type (`B1: "${rate}"` is a number cell), and a `--set` value is
-  read as the scalar it looks like — the same inference CSV fields get, which is
-  now one shared `infer_scalar`. Without the second, `--set rate=0.15` would
-  quietly turn a number cell into text.
+  read as the scalar it looks like — the same inference CSV fields get. Without
+  the second, `--set rate=0.15` would quietly turn a number cell into text.
+  *(This entry originally claimed the two inferences were already one shared
+  `infer_scalar`; they were not — the edit had silently missed. The refactor
+  below actually makes it so.)*
 
   A bug caught while testing: the pass originally short-circuited when a spec
   declared no parameters, which let a stray `${nope}` survive as a literal into a

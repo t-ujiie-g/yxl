@@ -233,14 +233,14 @@ fn csv_field(text : String, quoted : Bool) -> @model.CellValue? {
   }
   match text {
     "" => None
-    "true" => Some(@model.Bool(true))
-    "false" => Some(@model.Bool(false))
+    // The same reading a `--set` value gets: text that looks like a number or a
+    // boolean is one.
     _ =>
-      Some(
-        @model.Number(@string.parse_double(text)) catch {
-          _ => @model.Text(text)
-        },
-      )
+      match infer_scalar(text) {
+        @yaml.Bool(flag) => Some(@model.Bool(flag))
+        @yaml.Float(number) => Some(@model.Number(number))
+        _ => Some(@model.Text(text))
+      }
   }
 }
 

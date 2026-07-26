@@ -90,10 +90,7 @@ fn resolve_style_def(
     return resolved
   }
   guard !chain.contains(name) else {
-    raise schema_error(
-      file~,
-      "style inheritance cycle: \{render_cycle(chain, name)}",
-    )
+    raise cycle_error(chain, name, kind="style inheritance", file~)
   }
   guard find_key(declared, name) is Some(node) else {
     // Only reachable through an `extends:`; the walk itself starts on declared
@@ -148,10 +145,17 @@ fn load_formula_defs(
 }
 
 ///|
+/// The mapping key that marks a reference to a named definition (ADR-012), the
+/// `$`-marked directive `$include` and `params` substitution follow.
+const REF_KEY : String = "$ref"
+
+///|
 /// A `{ $ref: name }` node yields the referenced name; any other node is `None`.
 /// The mapping must have exactly the single `$ref` key with a string value.
 fn as_ref(node : @yaml.Node) -> String? {
-  guard node is @yaml.Map([("$ref", @yaml.Str(name))]) else { return None }
+  guard node is @yaml.Map([(key, @yaml.Str(name))]) && key == REF_KEY else {
+    return None
+  }
   Some(name)
 }
 

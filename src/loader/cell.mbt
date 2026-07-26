@@ -385,9 +385,6 @@ fn scalar_value(
     @yaml.Float(number) => @model.Number(number)
     @yaml.Bool(flag) => @model.Bool(flag)
     @yaml.Null | @yaml.Seq(_) | @yaml.Map(_) =>
-      raise schema_error(
-        file~,
-        "\{context} must be text, a number, or a boolean",
-      )
+      raise not_scalar(file~, context~)
   }
 }

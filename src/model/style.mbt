@@ -76,8 +76,9 @@ fn[T] or_else(base : T?, over : T?) -> T? {
 }
 
 ///|
-/// A font laid over another, attribute by attribute.
-pub fn Font::over(self : Font, base : Font) -> Font {
+/// A font laid over another, attribute by attribute. Part of `Style::over`;
+/// callers merge whole styles, not their pieces.
+fn Font::over(self : Font, base : Font) -> Font {
   {
     bold: or_else(base.bold, self.bold),
     italic: or_else(base.italic, self.italic),
@@ -91,7 +92,7 @@ pub fn Font::over(self : Font, base : Font) -> Font {
 
 ///|
 /// An alignment laid over another, attribute by attribute.
-pub fn Alignment::over(self : Alignment, base : Alignment) -> Alignment {
+fn Alignment::over(self : Alignment, base : Alignment) -> Alignment {
   {
     horizontal: or_else(base.horizontal, self.horizontal),
     vertical: or_else(base.vertical, self.vertical),
@@ -103,7 +104,7 @@ pub fn Alignment::over(self : Alignment, base : Alignment) -> Alignment {
 /// Borders laid over others, edge by edge; an edge the overriding style sets
 /// replaces that edge whole (a `Border` is a style plus a color, not parts to
 /// blend).
-pub fn Borders::over(self : Borders, base : Borders) -> Borders {
+fn Borders::over(self : Borders, base : Borders) -> Borders {
   {
     left: or_else(base.left, self.left),
     right: or_else(base.right, self.right),

@@ -14,8 +14,11 @@ Spreadsheets-as-code, with the properties code has:
   and referenced many times is managed in one place, and compiles down to
   Excel's *native* sharing (shared strings, defined names, shared formulas, a
   single style id). Change it once, it changes everywhere.
-- **Flexible structure** — split data and formatting across files for large
-  workbooks, or inline everything for simple ones.
+- **Flexible structure** — split data and formatting across files with
+  `$include`, feed a region straight from a CSV or JSON table, or inline
+  everything in one file. Same result either way.
+- **One spec, many workbooks** — declare `params:` and override them per build
+  with `--set region=EMEA`.
 - **A single native command** — `yxl build report.yxl.yaml -o report.xlsx`.
 
 The `.xlsx` bytes are produced by the mature
@@ -25,25 +28,29 @@ the validator, and the CLI on top. It is not another spreadsheet *library* — i
 is declarative authoring for people who'd rather edit YAML than write code.
 
 > ⚠️ **Status: pre-release, schema not yet frozen.** `yxl build` works today —
-> values, formulas, dates, rich text, styles, named definitions, layout, and
-> print setup all compile. Modular specs (includes, external data) and CLI
-> polish are still ahead, and the schema may change until v1.0. See
-> [`ROADMAP.md`](./ROADMAP.md) for the phase plan and the living changelog.
+> values, formulas, dates, rich text, styles, layout, print setup, multi-file
+> specs, external CSV/JSON data, and parameters all compile. CLI polish (rich
+> diagnostics with line/column, `--check`, `--watch`) is still ahead, and the
+> schema may change until v1.0. See [`ROADMAP.md`](./ROADMAP.md) for the phase
+> plan and the living changelog.
 
 ## A taste
 
 ```yaml
 # report.yxl.yaml
-defs:                      # declared once, referenced by name
+params:                      # overridable per build with --set
+  region: APAC
+  quarter: Q3
+
+defs:                        # declared once, referenced by name
   styles:
-    title:  { font: { bold: true, size: 16 }, align: { horizontal: center } }
-    header: { font: { bold: true, color: "FFFFFF" }, fill: "1F3864" }
-    total:  { font: { bold: true } }
-  values:
-    quarter: "Q3 FY26 Sales"
+    base:   { font: { name: Calibri, size: 11 } }
+    title:  { extends: base, font: { bold: true, size: 16 } }
+    header: { extends: base, font: { bold: true, color: "FFFFFF" }, fill: "1F3864" }
+    total:  { extends: base, font: { bold: true } }
 
 sheets:
-  - name: Sales
+  - name: "${region}"
     freeze: A4               # the header rows stay put while the data scrolls
     merges: [A1:B1]
     columns:
@@ -53,30 +60,30 @@ sheets:
         width: 14
         format: "#,##0"      # a whole-column default format
     cells:
-      A1: { value: { $ref: quarter }, style: title }
+      A1: { value: "${quarter} ${region} sales", style: title }
       A3: { value: Region, style: header }
       B3: { value: Revenue, style: header }
-      A4: APAC
-      B4: 2400000
-      A5: EMEA
-      B5: 1750000
-      A6: { value: Total, style: total }
-      B6: { formula: "SUM(B4:B5)", style: total }
+      A7: { value: Total, style: total }
+      B7: { formula: "SUM(B4:B6)", style: total }
+    data:
+      - at: A4
+        csv: data/sales.csv  # the rows come from a file the spec never restates
     print:
-      area: A1:B6
+      area: A1:B7
       orientation: landscape
       fit: { width: 1 }      # shrink to one page across
 ```
 
 ```bash
-yxl build report.yxl.yaml -o report.xlsx
+yxl build report.yxl.yaml -o q3-apac.xlsx
+yxl build report.yxl.yaml -o q4-emea.xlsx --set region=EMEA --set quarter=Q4
 ```
 
 Each declared style compiles to a **single** Excel style id however many cells
 wear it, and each `defs.values` entry to a **defined name** — so editing it in
-Excel updates every reference. An unknown key, a bad cell reference, or a
-dangling `$ref` fails the build with a diagnostic naming the file, never a
-silently dropped value.
+Excel updates every reference. An unknown key, a bad cell reference, a dangling
+`$ref`, or a cycle among includes, styles, or parameters fails the build with a
+diagnostic naming the file, never a silently dropped value.
 
 ## How it works
 

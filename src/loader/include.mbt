@@ -58,10 +58,7 @@ fn expand_includes(
       let path = expect_string(value, file~, context="'\{INCLUDE_KEY}'")
       let included = resolve(file, path)
       guard !chain.contains(included.name) else {
-        raise schema_error(
-          file~,
-          "include cycle: \{render_cycle(chain, included.name)}",
-        )
+        raise cycle_error(chain, included.name, kind="include", file~)
       }
       // The included text is parsed here, not by the resolver, so a syntax error
       // in it is reported against the file it came from.
@@ -98,19 +95,4 @@ fn expand_includes(
     }
     scalar => scalar
   }
-}
-
-///|
-/// The include chain as `a.yaml -> b.yaml -> a.yaml`, ending on the file that
-/// closes the loop.
-fn render_cycle(chain : Array[String], repeated : String) -> String {
-  let names = [..chain, repeated]
-  let joined = StringBuilder::new()
-  for index, name in names {
-    if index > 0 {
-      joined.write_string(" -> ")
-    }
-    joined.write_string(name)
-  }
-  joined.to_string()
 }

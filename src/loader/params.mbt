@@ -79,7 +79,7 @@ fn resolve_param(
     return value
   }
   guard !chain.contains(name) else {
-    raise schema_error(file~, "parameter cycle: \{render_cycle(chain, name)}")
+    raise cycle_error(chain, name, kind="parameter", file~)
   }
   guard find_key(declared, name) is Some(default) else {
     let from = chain[chain.length() - 1]
@@ -254,33 +254,5 @@ fn scalar_text(node : @yaml.Node) -> String {
     @yaml.Bool(flag) => if flag { "true" } else { "false" }
     @yaml.Null => ""
     _ => ""
-  }
-}
-
-///|
-/// A scalar node, or a diagnostic: a parameter holds one value, not a structure.
-fn expect_scalar(
-  node : @yaml.Node,
-  file~ : String,
-  context~ : String,
-) -> @yaml.Node raise @diag.SchemaError {
-  match node {
-    @yaml.Str(_) | @yaml.Int(_) | @yaml.Float(_) | @yaml.Bool(_) => node
-    _ =>
-      raise schema_error(
-        file~,
-        "\{context} must be text, a number, or a boolean",
-      )
-  }
-}
-
-///|
-/// Untyped text as the scalar it looks like. Shared by `--set` values, which
-/// arrive from a command line, and CSV fields, which carry no types either.
-fn infer_scalar(text : String) -> @yaml.Node {
-  match text {
-    "true" => @yaml.Bool(true)
-    "false" => @yaml.Bool(false)
-    _ => @yaml.Float(@string.parse_double(text)) catch { _ => @yaml.Str(text) }
   }
 }
