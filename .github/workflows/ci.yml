@@ -1,8 +1,10 @@
 name: CI
 
+# Pull requests only. `main` is protected and can be reached solely through a
+# PR whose branch must be up to date first, so a push-to-main run would re-test
+# a tree this workflow has already passed. Tags are covered by `release.yml`,
+# which runs the tests again before it packages anything.
 on:
-  push:
-    branches: [main]
   pull_request:
 
 jobs:
