@@ -134,6 +134,15 @@ with `xattr -d com.apple.quarantine ~/.local/bin/yxl`.
 Paths may use either separator, so `yxl build specs\report.yaml` works on
 Windows and a spec's own `$include: data/x.yaml` stays portable.
 
+**One Windows limitation:** the *command line* cannot carry non-ASCII today —
+`yxl build 売上\report.yaml` fails, because the runtime reads arguments as UTF-8
+while Windows hands them over in the system code page
+([upstream](https://github.com/moonbitlang/x): "TODO: Handle other encodings").
+Paths *inside* a spec are unaffected — `$include: 表/theme.yaml` and
+`csv: 売上/data.csv` work, since those come from the file, which is UTF-8. So
+name the spec you pass on the command line in ASCII; everything it refers to can
+be in any script.
+
 ## Using it
 
 ```bash

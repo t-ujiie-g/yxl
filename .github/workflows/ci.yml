@@ -80,18 +80,34 @@ jobs:
             "$yxl" build "$spec" --check
           done
 
-      # Two things break Japanese Windows specifically, and both are silent: a
-      # `\` separator (which that console *draws* as ¥), and CP932 names like 表,
-      # ソ and 十 whose second byte is 0x5C — a byte-wise split would cut them in
-      # half. Resolving an include from under such a directory exercises both.
-      - name: A spec under a Japanese path, reached by backslash (Windows)
+      # Japanese Windows is a first-class case, and there are two halves to it.
+      # This is the half yxl controls: a `\` separator (which that console draws
+      # as ¥) and CP932 names like 表, ソ and 十, whose second byte is 0x5C — a
+      # byte-wise split would cut such a name in half. The paths that matter come
+      # from *file contents*, which are UTF-8 all the way through.
+      #
+      # The other half is the command line itself, which cannot carry non-ASCII
+      # on Windows today: `moonbitlang/x/sys` reads argv as UTF-8 ("TODO: Handle
+      # other encodings"), while Windows hands it over in the ANSI code page. So
+      # the spec is named in ASCII here and reached by backslash; the Japanese
+      # paths live inside it.
+      - name: Japanese paths and backslashes (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force -Path "表ソ十" | Out-Null
-          Copy-Item examples\modular.yxl.yaml "表ソ十\"
-          Copy-Item -Recurse examples\modular "表ソ十\modular"
+          New-Item -ItemType Directory -Force -Path "表ソ十\見積¥1000" | Out-Null
+          Copy-Item -Recurse examples\modular "表ソ十\見積¥1000\modular"
+          New-Item -ItemType Directory -Force -Path specs | Out-Null
+          @'
+          defs:
+            styles:
+              $include: ../表ソ十/見積¥1000/modular/theme.yaml
+          sheets:
+            - name: 売上
+              data:
+                - at: A1
+                  csv: ../表ソ十/見積¥1000/modular/sales.csv
+          '@ | Set-Content -Path "specs\report.yxl.yaml" -Encoding utf8
           $yxl = "_build\native\release\build\cmd\main\main.exe"
-          & $yxl build 表ソ十\modular.yxl.yaml --check
-          & $yxl build 表ソ十\modular.yxl.yaml -o "表ソ十\出力.xlsx"
-          Get-Item "表ソ十\出力.xlsx" | Format-List Name, Length
+          & $yxl build specs\report.yxl.yaml -o out.xlsx
+          Get-Item out.xlsx | Format-List Name, Length
