@@ -73,6 +73,9 @@ fn promises() -> Array[Promise] {
     // charts: the cells a chart plots are ordinary cells, which is the point.
     promise("charts.yxl.yaml", "Figures", "A2", "APAC"),
     promise("charts.yxl.yaml", "Figures", "C4", "2600000"),
+    // pivots: likewise — the summary is Excel's work, the data is the spec's.
+    promise("pivots.yxl.yaml", "Summary", "A1", "Revenue by region and quarter"),
+    promise("pivots.yxl.yaml", "Orders", "D7", "3300000"),
   ]
 }
 
@@ -215,6 +218,49 @@ test "the charts example draws what its comments describe" {
   let xml = summary.charts()[0].xml
   assert_true(xml.contains("<c:f>'Figures'!$B$2:$B$4</c:f>"))
   assert_false(xml.contains("<c:legend>"))
+}
+
+///|
+/// The `pivots` example claims two summaries of one source. A pivot is not a
+/// cell value either — and the file carries no summary at all, only the
+/// instruction to build one — so it is asserted here.
+test "the pivots example summarizes what its comments describe" {
+  let path = "\{EXAMPLES}/pivots.yxl.yaml"
+  let workbook = @xlsx.read(
+    @cli.compile(
+      @fs.read_file_to_string(path),
+      file=path,
+      resolve=included,
+      read_bytes=included_bytes,
+    )[:],
+  )
+  let pivots = workbook.get_pivot_tables("Summary")
+  assert_eq(pivots.length(), 2)
+  assert_eq(pivots[0].name, "RevenueByRegion")
+  assert_true(pivots[0].table_xml.contains("<location ref=\"A3:F30\""))
+  assert_true(
+    pivots[0].table_xml.contains("<pivotField name=\"Region\" axis=\"axisRow\""),
+  )
+  assert_true(
+    pivots[0].table_xml.contains(
+      "<pivotField name=\"Quarter\" axis=\"axisCol\"",
+    ),
+  )
+  assert_true(
+    pivots[0].table_xml.contains("name=\"Total revenue\" subtotal=\"sum\""),
+  )
+  // Both read the same source, and neither carries a cached summary: Excel
+  // builds them on open.
+  for pivot in pivots {
+    assert_true(
+      pivot.cache_definition_xml.contains(
+        "<worksheetSource ref=\"A1:D7\" sheet=\"Orders\"/>",
+      ),
+    )
+    assert_true(pivot.cache_definition_xml.contains("refreshOnLoad=\"1\""))
+  }
+  assert_true(pivots[1].table_xml.contains("subtotal=\"count\""))
+  assert_true(pivots[1].table_xml.contains("colGrandTotals=\"0\""))
 }
 
 ///|

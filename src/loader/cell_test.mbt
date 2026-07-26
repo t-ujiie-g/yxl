@@ -200,6 +200,7 @@ test "load builds sheets and typed cells from a minimal spec" {
       #|      tables: [],
       #|      charts: [],
       #|      images: [],
+      #|      pivots: [],
       #|      protection: None,
       #|    },
       #|    {
@@ -221,6 +222,7 @@ test "load builds sheets and typed cells from a minimal spec" {
       #|      tables: [],
       #|      charts: [],
       #|      images: [],
+      #|      pivots: [],
       #|      protection: None,
       #|    },
       #|  ],

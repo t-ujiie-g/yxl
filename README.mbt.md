@@ -30,9 +30,9 @@ is declarative authoring for people who'd rather edit YAML than write code.
 > ⚠️ **Status: pre-release, schema not yet frozen.** `yxl build` works today —
 > values, formulas, dates, rich text, styles, layout, print setup, multi-file
 > specs, external CSV/JSON data, parameters, validations, conditional
-> formatting, hyperlinks, notes, protection, Excel tables, charts, and images
-> all compile, and the CLI has `--check`, `--set`, and stable exit codes. Still
-> ahead: pivot tables and the schema freeze —
+> formatting, hyperlinks, notes, protection, Excel tables, charts, images, and
+> pivot tables all compile, and the CLI has `--check`, `--set`, and stable exit
+> codes. Still ahead: performance work and the schema freeze —
 > **the schema may change until v1.0.** See [`ROADMAP.md`](./ROADMAP.md) for the
 > phase plan and the living changelog.
 
@@ -177,6 +177,7 @@ so the pages cannot drift from the compiler:
 | [`parameters.yxl.yaml`](./examples/parameters.yxl.yaml) | `params:` with `${}` and `--set` |
 | [`interactive.yxl.yaml`](./examples/interactive.yxl.yaml) | drop-downs and other validations, an auto filter, hyperlinks, notes |
 | [`charts.yxl.yaml`](./examples/charts.yxl.yaml) | column, pie, and bar charts, series named from cells, one plotting another sheet |
+| [`pivots.yxl.yaml`](./examples/pivots.yxl.yaml) | two pivot tables over one source: rows, columns, filters, and two aggregations |
 
 ```bash
 yxl build examples/quickstart.yxl.yaml -o quickstart.xlsx

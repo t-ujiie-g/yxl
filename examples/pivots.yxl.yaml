@@ -1,0 +1,71 @@
+# A pivot table summarizes cells that live somewhere else: it names a region and
+# how to group it, and Excel does the arithmetic — refreshing the whole summary
+# whenever the source changes.
+active: Summary
+
+sheets:
+  - name: Summary
+    cells:
+      A1: Revenue by region and quarter
+
+    pivots:
+      # The source's top row names the fields; everything below refers to those
+      # names, not to columns or letters.
+      - at: A3:F30
+        source: Orders!A1:D7
+        rows: [Region]
+        columns: [Quarter]
+        values:
+          - field: Revenue
+            function: sum
+            name: Total revenue      # Excel would say "Sum of Revenue"
+        name: RevenueByRegion
+        style: PivotStyleMedium9
+
+      # A second view of the same data: how many orders each channel placed. A
+      # field may group here and be counted there. Both pivots read the same
+      # source — see docs/spec.md §14 for why that is required today.
+      - at: H3:J30
+        source: Orders!A1:D7
+        rows: [Channel]
+        values:
+          - field: Revenue
+            function: count
+            name: Orders
+        column_grand_totals: false
+
+  # The raw data. A pivot needs a header row and rows beneath it — nothing else.
+  - name: Orders
+    columns:
+      - at: D
+        width: 14
+        format: "#,##0"
+    cells:
+      A1: Region
+      B1: Quarter
+      C1: Channel
+      D1: Revenue
+      A2: APAC
+      B2: Q3
+      C2: Direct
+      D2: 2400000
+      A3: EMEA
+      B3: Q3
+      C3: Partner
+      D3: 1750000
+      A4: AMER
+      B4: Q3
+      C4: Partner
+      D4: 3100000
+      A5: APAC
+      B5: Q4
+      C5: Direct
+      D5: 2600000
+      A6: EMEA
+      B6: Q4
+      C6: Direct
+      D6: 1900000
+      A7: AMER
+      B7: Q4
+      C7: Direct
+      D7: 3300000

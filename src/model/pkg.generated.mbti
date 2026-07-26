@@ -11,6 +11,8 @@ pub let icon_set_styles : Array[String]
 
 pub let image_formats : Array[String]
 
+pub fn is_pivot_style(String) -> Bool
+
 pub fn is_table_style(String) -> Bool
 
 pub let max_outline_level : Int
@@ -24,6 +26,8 @@ pub let max_rank_percent : Int
 pub let max_validation_list_length : Int
 
 pub let min_page_scale : Int
+
+pub let pivot_style_families : Array[(String, Int)]
 
 pub let table_style_families : Array[(String, Int)]
 
@@ -312,6 +316,43 @@ pub(all) enum Panes {
   Split(x~ : Double, y~ : Double)
 } derive(Eq, @debug.Debug)
 
+pub(all) struct Pivot {
+  at : CellRange
+  source : SheetRange
+  rows : Array[PivotField]
+  columns : Array[PivotField]
+  values : Array[PivotValue]
+  name : String?
+  style : String?
+  row_grand_totals : Bool
+  column_grand_totals : Bool
+} derive(Eq, @debug.Debug)
+
+pub(all) struct PivotField {
+  field : String
+  name : String?
+} derive(Eq, @debug.Debug)
+
+pub(all) enum PivotFunction {
+  Sum
+  Count
+  CountNumbers
+  Average
+  Max
+  Min
+  Product
+  StdDev
+  StdDevP
+  Var
+  VarP
+} derive(Eq, @debug.Debug)
+
+pub(all) struct PivotValue {
+  field : String
+  function : PivotFunction
+  name : String?
+} derive(Eq, @debug.Debug)
+
 pub(all) enum PropertyValue {
   Number(Double)
   Bool(Bool)
@@ -347,6 +388,7 @@ pub(all) struct Sheet {
   tables : Array[Table]
   charts : Array[Chart]
   images : Array[Image]
+  pivots : Array[Pivot]
   mut protection : SheetProtection?
 } derive(Eq, @debug.Debug)
 pub fn Sheet::add_chart(Self, Chart) -> Unit
@@ -354,6 +396,7 @@ pub fn Sheet::add_comment(Self, @units.CellRef, String, author? : String) -> Uni
 pub fn Sheet::add_conditional_format(Self, ConditionalFormat) -> Unit
 pub fn Sheet::add_image(Self, Image) -> Unit
 pub fn Sheet::add_link(Self, @units.CellRef, LinkTarget, tip? : String) -> Unit
+pub fn Sheet::add_pivot(Self, Pivot) -> Unit
 pub fn Sheet::add_table(Self, Table) -> Unit
 pub fn Sheet::add_validation(Self, Validation) -> Unit
 pub fn Sheet::merge(Self, @units.CellRef, @units.CellRef) -> Unit

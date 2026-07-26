@@ -209,6 +209,8 @@ pub(all) struct Sheet {
   charts : Array[Chart]
   /// Images anchored on the sheet, in declaration order.
   images : Array[Image]
+  /// Pivot tables placed on the sheet, in declaration order.
+  pivots : Array[Pivot]
   /// What a reader may still do once the sheet is protected; `None` leaves the
   /// sheet unprotected.
   mut protection : SheetProtection?
@@ -349,6 +351,7 @@ pub fn Sheet::new(
     tables: [],
     charts: [],
     images: [],
+    pivots: [],
     protection: None,
   }
 }
@@ -420,6 +423,13 @@ pub fn Sheet::add_chart(self : Sheet, chart : Chart) -> Unit {
 /// Anchor an image on the sheet. Like a chart, it floats above the grid.
 pub fn Sheet::add_image(self : Sheet, image : Image) -> Unit {
   self.images.push(image)
+}
+
+///|
+/// Place a pivot table on the sheet. The cells it summarizes are elsewhere —
+/// possibly on another sheet — and are written as usual.
+pub fn Sheet::add_pivot(self : Sheet, pivot : Pivot) -> Unit {
+  self.pivots.push(pivot)
 }
 
 ///|
