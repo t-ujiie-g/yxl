@@ -187,6 +187,9 @@ fn emit_sheet(
   for table in sheet.tables {
     apply_table(backend, sheet.name, table)
   }
+  for chart in sheet.charts {
+    apply_chart(backend, sheet.name, chart)
+  }
   for validation in sheet.validations {
     apply_validation(backend, sheet.name, validation, date_system)
   }

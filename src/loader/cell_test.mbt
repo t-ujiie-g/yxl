@@ -198,6 +198,7 @@ test "load builds sheets and typed cells from a minimal spec" {
       #|      conditional_formats: [],
       #|      comments: [],
       #|      tables: [],
+      #|      charts: [],
       #|      protection: None,
       #|    },
       #|    {
@@ -217,6 +218,7 @@ test "load builds sheets and typed cells from a minimal spec" {
       #|      conditional_formats: [],
       #|      comments: [],
       #|      tables: [],
+      #|      charts: [],
       #|      protection: None,
       #|    },
       #|  ],

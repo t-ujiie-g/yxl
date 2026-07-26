@@ -87,12 +87,18 @@ fn apply_page_setup(
 /// A range as the absolute, sheet-qualified reference Excel stores a print area
 /// as: `'Sheet 1'!$A$1:$D$20`. A quote inside a sheet name is doubled.
 fn absolute_range(sheet_name : String, range : @model.CellRange) -> String {
-  let quoted = "'" + sheet_name.replace_all(old="'", new="''") + "'"
-  quoted +
+  quoted_sheet(sheet_name) +
   "!" +
   range.top_left.to_absolute_a1() +
   ":" +
   range.bottom_right.to_absolute_a1()
+}
+
+///|
+/// A sheet name as a reference quotes it. Excel quotes every name it writes
+/// itself, whether or not the name needs it, and doubles an inner quote.
+fn quoted_sheet(sheet_name : String) -> String {
+  "'" + sheet_name.replace_all(old="'", new="''") + "'"
 }
 
 ///|

@@ -21,9 +21,9 @@ sheets: [...]          # the workbook's sheets, in tab order
 active: Summary        # the sheet Excel opens on (default: the first)
 params: {...}          # named values substituted as ${name}   → §7
 defs: {...}            # named styles, values, and formulas    → §6
-properties: {...}      # what the file says about itself       → §12
-calc: {...}            # when Excel recalculates               → §12
-protect: {...}         # lock the workbook's structure         → §13
+properties: {...}      # what the file says about itself       → §13
+calc: {...}            # when Excel recalculates               → §13
+protect: {...}         # lock the workbook's structure         → §14
 date1904: false        # use Excel's 1904 date epoch
 default_font: Calibri  # the workbook's default font face
 ```
@@ -34,9 +34,9 @@ default_font: Calibri  # the workbook's default font face
 | `active` | text | Must name a declared, **visible** sheet. |
 | `params` | mapping | §7. |
 | `defs` | mapping | §6. |
-| `properties` | mapping | Document properties. §12. |
-| `calc` | mapping | Calculation settings. §12. |
-| `protect` | mapping | Workbook protection. §13. |
+| `properties` | mapping | Document properties. §13. |
+| `calc` | mapping | Calculation settings. §13. |
+| `protect` | mapping | Workbook protection. §14. |
 | `date1904` | boolean | `true` selects the 1904 epoch. Affects how dates serialize. |
 | `default_font` | text | Face name only; size and colour are per-style. |
 
@@ -63,7 +63,8 @@ sheets:
     conditional: [...] # → §10
     comments: {...}    # → §10
     tables: [...]      # → §11
-    protect: {...}     # → §13
+    charts: [...]      # → §12
+    protect: {...}     # → §14
 ```
 
 | Key | Type | Notes |
@@ -85,7 +86,8 @@ sheets:
 | `conditional` | sequence | Formatting decided by the value. §10. |
 | `comments` | mapping | Notes, by cell. §10. |
 | `tables` | sequence | Excel tables over the sheet's regions. §11. |
-| `protect` | mapping | Sheet protection. §13. |
+| `charts` | sequence | Charts anchored on the sheet. §12. |
+| `protect` | mapping | Sheet protection. §14. |
 
 Sheet keys apply **in the order written**, so where a `data:` table and `cells:`
 overlap, whichever comes last wins.
@@ -211,7 +213,7 @@ defs:
 | `font` | `{ bold, italic, underline, strike, size, name, color }` — all optional. |
 | `fill` | A hex `RRGGBB`, or `{ color: RRGGBB }`. Solid fills only. |
 | `border` | A style name for all four edges (`border: thin`), or a mapping of `all` / `left` / `right` / `top` / `bottom`, each a style name or `{ style, color }`. Styles: `thin`, `medium`, `thick`, `dashed`, `dotted`, `double`, `hair`. |
-| `protection` | `{ locked, hidden }` — what sheet protection does to a cell wearing this style. §13. |
+| `protection` | `{ locked, hidden }` — what sheet protection does to a cell wearing this style. §14. |
 | `align` | `{ horizontal, vertical, wrap }`. Horizontal: `left`, `center`, `right`, `fill`, `justify`, `distributed`. Vertical: `top`, `middle`, `bottom`, `justify`, `distributed`. |
 
 A cell's own `format` layers on top of a referenced style.
@@ -518,7 +520,61 @@ refuses) a workbook that breaks any of this, so `yxl` refuses the spec first.
 
 A table with its header row turned off is not expressible yet.
 
-## 12. Document properties and calculation
+## 12. Charts
+
+A chart is a picture of cells that already exist. It holds no values of its own
+— every part of it points at a range — so editing a cell redraws the chart, and
+a chart may plot a sheet other than the one it sits on.
+
+```yaml
+charts:
+  - at: E2                 # required; the chart's top-left corner floats here
+    type: column           # required
+    title: Revenue by region
+    legend: bottom         # bottom | top | left | right | top_right | none
+    size: { width: 520, height: 300 }    # pixels
+    x_axis: { title: Region }
+    y_axis: { title: Amount, min: 0, max: 4000000 }
+    series:                # required; at least one
+      - values: B2:B4      # required
+        categories: A2:A4  # the labels down the category axis
+        name_from: B1      # the legend entry, read from a cell
+      - values: Figures!C2:C4
+        name: Cost         # …or written out
+```
+
+| Key | Type | Notes |
+|---|---|---|
+| `at` | cell | **Required.** A chart floats above the grid; the cells beneath it keep whatever they hold. |
+| `type` | bareword | **Required.** See below. |
+| `series` | sequence | **Required**, and not empty. |
+| `title` | text | |
+| `legend` | bareword | `none` leaves the chart without one. |
+| `size` | `{ width, height }` | **Both required**, in whole pixels. |
+| `x_axis` / `y_axis` | `{ title, min, max }` | At least one of the three. An unset end leaves Excel scaling the axis to the data. |
+
+**Types:** `column`, `column_stacked`, `column_percent_stacked`, `bar`,
+`bar_stacked`, `bar_percent_stacked`, `line`, `area`, `area_stacked`,
+`area_percent_stacked`, `pie`, `doughnut`, `scatter`, `radar`. Excel's 3-D
+variants, stock charts, and bubble charts are not expressible yet.
+
+### Series
+
+| Key | Notes |
+|---|---|
+| `values` | **Required.** The cells plotted. `Sheet!A1:A9` names another sheet, which must be declared. |
+| `categories` | The labels down the category axis — for a `scatter` chart, the X values. Without it Excel numbers the points 1, 2, 3, … |
+| `name` | What the legend calls the series, written out. |
+| `name_from` | A cell to read that name from — usually the column header, so renaming the header renames the series. Mutually exclusive with `name`. |
+
+A literal `name` may not contain `!`: Excel reads a series name holding one as a
+reference to a cell, so it would quietly become a lookup. Use `name_from`.
+
+A `pie` or `doughnut` draws only its first series. Every range is emitted
+sheet-qualified and absolute (`'Figures'!$B$2:$B$4`), which is how Excel stores
+one — a chart lives in a part of its own, where a bare `B2:B4` names nothing.
+
+## 13. Document properties and calculation
 
 ```yaml
 properties:
@@ -553,7 +609,7 @@ values the spec supplied, which is worth setting where recalculation is slow;
 `on_load: true` forces one full pass regardless, which is what you want where
 the spec supplied no cached values at all.
 
-## 13. Protection
+## 14. Protection
 
 ```yaml
 protect:                    # the workbook itself
@@ -603,7 +659,7 @@ A style may carry **either** a number format **or** cell protection, not both.
 The build fails saying so, naming the format, rather than dropping one
 silently. Split them into two styles, or drop the format.
 
-## 14. Diagnostics
+## 15. Diagnostics
 
 A failed build prints one diagnostic and exits non-zero. YAML **syntax** errors
 carry a line and column with the source quoted:
