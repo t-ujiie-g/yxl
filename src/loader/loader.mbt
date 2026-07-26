@@ -234,10 +234,11 @@ fn load_sheet(
       "filter" => load_filter(value, sheet, file~)
       "validations" => load_validations(value, sheet, file~)
       "links" => load_links(value, sheet, file~)
+      "conditional" => load_conditional_formats(value, sheet, file~, defs~)
       _ =>
         raise schema_error(
           file~,
-          "unknown key '\{key}' in sheet (expected 'name', 'cells', 'data', 'columns', 'rows', 'merges', 'visibility', 'freeze', 'split', 'gridlines', 'tab_color', 'print', 'filter', 'validations', or 'links')",
+          "unknown key '\{key}' in sheet (expected 'name', 'cells', 'data', 'columns', 'rows', 'merges', 'visibility', 'freeze', 'split', 'gridlines', 'tab_color', 'print', 'filter', 'validations', 'links', or 'conditional')",
         )
     }
   }

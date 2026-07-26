@@ -145,6 +145,35 @@ test "the interactive example decorates the cells it says it does" {
 }
 
 ///|
+/// The `styling` example claims its conditional formats reuse the styles it
+/// declares. Reuse is the point of the whole package (ADR-004), so it is worth
+/// asserting rather than trusting.
+test "the styling example's conditional formats share their declared looks" {
+  let path = "\{EXAMPLES}/styling.yxl.yaml"
+  let workbook = @xlsx.read(
+    @cli.compile(@fs.read_file_to_string(path), file=path, resolve=included)[:],
+  )
+  let formats = workbook.get_conditional_formats("Report")
+  guard formats.get("B2:B3") is Some(over_revenue) else {
+    fail("expected conditional formats over B2:B3")
+  }
+  // Two highlighting rules and a data bar, in the order the spec declares them.
+  assert_eq(over_revenue.length(), 3)
+  assert_eq(over_revenue[0].criteria, "greater than or equal to")
+  assert_eq(over_revenue[1].criteria, "less than")
+  assert_true(over_revenue[1].stop_if_true)
+  assert_eq(over_revenue[2].format_type, "data_bar")
+
+  // The two highlighting rules wear different looks, and the data bar wears
+  // none — it draws its own.
+  assert_eq(over_revenue[0].format, Some(0))
+  assert_eq(over_revenue[1].format, Some(1))
+  assert_eq(over_revenue[2].format, None)
+  assert_eq(formats.get("C2:C3").unwrap()[0].format_type, "3_color_scale")
+  assert_eq(formats.get("D2:D3").unwrap()[0].icon_style, "3TrafficLights1")
+}
+
+///|
 test "the corpus and the promises cover each other" {
   let promised = promises().map(promise => promise.spec)
   let specs = []

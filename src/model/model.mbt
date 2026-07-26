@@ -197,6 +197,9 @@ pub(all) struct Sheet {
   validations : Array[Validation]
   /// Hyperlinks, one per cell, in declaration order.
   links : Array[Link]
+  /// Conditional formats, in declaration order — which is priority order, so an
+  /// earlier rule wins where two match the same cell.
+  conditional_formats : Array[ConditionalFormat]
 } derive(Eq, Debug)
 
 ///|
@@ -296,6 +299,7 @@ pub fn Sheet::new(
     filter: None,
     validations: [],
     links: [],
+    conditional_formats: [],
   }
 }
 
@@ -336,6 +340,16 @@ pub fn Sheet::set_filter(self : Sheet, range : CellRange) -> Unit {
 /// deterministic.
 pub fn Sheet::add_validation(self : Sheet, validation : Validation) -> Unit {
   self.validations.push(validation)
+}
+
+///|
+/// Add a conditional format over a range. Appended in call order, which Excel
+/// reads as priority order.
+pub fn Sheet::add_conditional_format(
+  self : Sheet,
+  format : ConditionalFormat,
+) -> Unit {
+  self.conditional_formats.push(format)
 }
 
 ///|

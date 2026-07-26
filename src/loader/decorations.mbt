@@ -1,6 +1,8 @@
 // The sheet keys that decorate cells rather than fill them: `filter:`,
-// `validations:`, and `links:`. Structural loading lives in `loader.mbt`; the
-// shared `expect_*` vocabulary lives in `expect.mbt`.
+// `validations:`, and `links:`. The fourth, `conditional:`, is large enough for
+// its own file and lives in `conditional.mbt`, sharing the comparison parser
+// below. Structural loading lives in `loader.mbt`; the shared `expect_*`
+// vocabulary lives in `expect.mbt`.
 
 ///|
 /// A sheet's `filter: <range>` — Excel's auto filter, whose top row is read as
@@ -127,7 +129,15 @@ fn load_validation(
           _ => @model.DateValue
         }
         rule = Some(
-          Compare(kind~, check=load_comparison(value, file~, kind, context~)),
+          Compare(
+            kind~,
+            check=load_comparison(
+              value,
+              file~,
+              read_bound=(node, what) => expect_bound(node, file~, kind, what~),
+              context~,
+            ),
+          ),
         )
       }
       "allow_blank" =>
@@ -197,12 +207,17 @@ fn load_validation_list(
 }
 
 ///|
-/// A validation's comparison: exactly one operator key, whose value is a bound
-/// (or a pair of them, for the two-endpoint operators).
+/// A comparison: exactly one operator key, whose value is a bound (or a pair of
+/// them, for the two-endpoint operators). `read_bound` decides how a bound is
+/// read, which is all that differs between a validation — whose declared kind
+/// fixes what its bounds may be — and a conditional format, which infers.
+///
+/// Shared so the two spell their comparisons identically: `at_least` means the
+/// same thing wherever it is written.
 fn load_comparison(
   node : @yaml.Node,
   file~ : String,
-  kind : @model.ValidationKind,
+  read_bound~ : (@yaml.Node, String) -> @model.Bound raise @diag.SchemaError,
   context~ : String,
 ) -> @model.Comparison raise @diag.SchemaError {
   let entries = expect_map(node, file~, context="\{context} rule")
@@ -214,21 +229,28 @@ fn load_comparison(
   }
   let (key, value) = entries[0]
   let what = "\{context} '\{key}'"
+  let pair = () => {
+    let items = expect_seq(value, file~, context=what)
+    guard items.length() == 2 else {
+      raise schema_error(file~, "\{what} takes exactly two bounds, [low, high]")
+    }
+    (read_bound(items[0], what), read_bound(items[1], what))
+  }
   match key {
     "between" => {
-      let (low, high) = expect_bound_pair(value, file~, kind, what~)
+      let (low, high) = pair()
       Between(low, high)
     }
     "not_between" => {
-      let (low, high) = expect_bound_pair(value, file~, kind, what~)
+      let (low, high) = pair()
       NotBetween(low, high)
     }
-    "equals" => Equal(expect_bound(value, file~, kind, what~))
-    "not_equals" => NotEqual(expect_bound(value, file~, kind, what~))
-    "at_least" => AtLeast(expect_bound(value, file~, kind, what~))
-    "at_most" => AtMost(expect_bound(value, file~, kind, what~))
-    "greater_than" => GreaterThan(expect_bound(value, file~, kind, what~))
-    "less_than" => LessThan(expect_bound(value, file~, kind, what~))
+    "equals" => Equal(read_bound(value, what))
+    "not_equals" => NotEqual(read_bound(value, what))
+    "at_least" => AtLeast(read_bound(value, what))
+    "at_most" => AtMost(read_bound(value, what))
+    "greater_than" => GreaterThan(read_bound(value, what))
+    "less_than" => LessThan(read_bound(value, what))
     _ =>
       raise schema_error(
         file~,
@@ -239,24 +261,6 @@ fn load_comparison(
 
 ///|
 const COMPARISONS : String = "'between', 'not_between', 'equals', 'not_equals', 'at_least', 'at_most', 'greater_than', or 'less_than'"
-
-///|
-/// The two endpoints of a `between` / `not_between`, in the order written.
-fn expect_bound_pair(
-  node : @yaml.Node,
-  file~ : String,
-  kind : @model.ValidationKind,
-  what~ : String,
-) -> (@model.Bound, @model.Bound) raise @diag.SchemaError {
-  let items = expect_seq(node, file~, context=what)
-  guard items.length() == 2 else {
-    raise schema_error(file~, "\{what} takes exactly two bounds, [low, high]")
-  }
-  (
-    expect_bound(items[0], file~, kind, what~),
-    expect_bound(items[1], file~, kind, what~),
-  )
-}
 
 ///|
 /// One endpoint, read as the rule's kind demands: a date rule takes a date

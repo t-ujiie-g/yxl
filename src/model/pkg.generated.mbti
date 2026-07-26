@@ -7,6 +7,8 @@ import {
 }
 
 // Values
+pub let icon_set_styles : Array[String]
+
 pub let max_outline_level : Int
 
 pub let max_page_scale : Int
@@ -58,6 +60,7 @@ pub(all) struct Borders {
 pub(all) enum Bound {
   Number(Double)
   Date(@units.DateTime)
+  Text(String)
 } derive(Eq, @debug.Debug)
 
 pub(all) struct Cell {
@@ -90,6 +93,25 @@ pub(all) enum Comparison {
   AtMost(Bound)
   GreaterThan(Bound)
   LessThan(Bound)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ConditionalFormat {
+  at : CellRange
+  rule : ConditionalRule
+  style : Style?
+  stop_if_true : Bool
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ConditionalRule {
+  CellIs(Comparison)
+  Formula(String)
+  Text(match_~ : TextMatch, value~ : String)
+  Rank(count~ : Int, bottom~ : Bool, percent~ : Bool)
+  Duplicate
+  Unique
+  ColorScale(low~ : @units.Color, middle~ : @units.Color?, high~ : @units.Color)
+  DataBar(color~ : @units.Color, bar_only~ : Bool)
+  IconSet(style~ : String, reverse~ : Bool, icons_only~ : Bool)
 } derive(Eq, @debug.Debug)
 
 pub(all) struct DefinedName {
@@ -185,7 +207,9 @@ pub(all) struct Sheet {
   mut filter : CellRange?
   validations : Array[Validation]
   links : Array[Link]
+  conditional_formats : Array[ConditionalFormat]
 } derive(Eq, @debug.Debug)
+pub fn Sheet::add_conditional_format(Self, ConditionalFormat) -> Unit
 pub fn Sheet::add_link(Self, @units.CellRef, LinkTarget, tip? : String) -> Unit
 pub fn Sheet::add_validation(Self, Validation) -> Unit
 pub fn Sheet::merge(Self, @units.CellRef, @units.CellRef) -> Unit
@@ -221,6 +245,13 @@ pub fn Style::empty() -> Self
 pub fn Style::is_empty(Self) -> Bool
 pub fn Style::number_format(String) -> Self
 pub fn Style::over(Self, Self) -> Self
+
+pub(all) enum TextMatch {
+  Contains
+  NotContains
+  BeginsWith
+  EndsWith
+} derive(Eq, @debug.Debug)
 
 pub(all) enum VAlign {
   Top

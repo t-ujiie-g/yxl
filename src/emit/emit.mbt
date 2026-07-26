@@ -52,12 +52,14 @@ fn build_workbook(wb : @model.Workbook) -> Bytes raise @xlsx.XlsxError {
   if wb.default_font is Some(name) {
     backend.set_default_font(name)
   }
-  // One cache for the whole workbook, so a style shared across sheets is
-  // registered once (ADR-004).
+  // One cache each for the whole workbook, so a style shared across sheets is
+  // registered once (ADR-004). Cell styles and conditional formats live in
+  // separate Excel tables, so they cannot share a cache.
   let style_ids : Map[@model.Style, Int] = Map([])
+  let dxf_ids : Map[@model.Style, Int] = Map([])
   for sheet in wb.sheets {
     backend.new_sheet(sheet.name) |> ignore
-    emit_sheet(backend, sheet, style_ids, wb.date_system)
+    emit_sheet(backend, sheet, style_ids, dxf_ids, wb.date_system)
   }
   // Hidden tabs come after every sheet exists: the backend rejects hiding the
   // last visible sheet, and a sheet declared later may be the visible one.
@@ -94,6 +96,7 @@ fn emit_sheet(
   backend : @xlsx.Workbook,
   sheet : @model.Sheet,
   style_ids : Map[@model.Style, Int],
+  dxf_ids : Map[@model.Style, Int],
   date_system : @units.DateSystem,
 ) -> Unit raise @xlsx.XlsxError {
   // Column and row bands: one backend call per property per column/row in the
@@ -168,6 +171,9 @@ fn emit_sheet(
   }
   for validation in sheet.validations {
     apply_validation(backend, sheet.name, validation, date_system)
+  }
+  for format in sheet.conditional_formats {
+    apply_conditional_format(backend, sheet.name, format, dxf_ids, date_system)
   }
   // Links come after the merges: the backend redirects a link landing inside a
   // merged region to that region's anchor cell, which it can only do once the

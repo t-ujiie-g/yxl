@@ -19,6 +19,15 @@ defs:
       font: { bold: true }
       border: { top: { style: thin } }
 
+    # Excel keeps the looks a conditional format applies in a table of its own,
+    # but they are declared here like any other and reused the same way.
+    strong:
+      font: { color: "006100" }
+      fill: "C6EFCE"
+    weak:
+      font: { color: "9C0006" }
+      fill: "FFC7CE"
+
   values:
     # A named value becomes an Excel *defined name*: edit it in Excel and every
     # reference updates.
@@ -49,3 +58,22 @@ sheets:
           - "Figures are "
           - { text: unaudited, font: { italic: true, color: "C00000" } }
           - " as of Q3."
+
+    # Formatting decided by the value rather than the address. Rules are tried in
+    # the order written, so the first match wins where two overlap.
+    conditional:
+      - at: B2:B3
+        cell: { at_least: 2000000 }
+        style: strong
+      - at: B2:B3
+        cell: { less_than: 1000000 }
+        style: weak
+        stop_if_true: true   # matched here, Excel stops trying later rules
+
+      # These three draw their own appearance, so they take no style at all.
+      - at: B2:B3
+        data_bar: { color: "638EC6" }
+      - at: C2:C3
+        color_scale: { low: "F8696B", middle: "FFEB84", high: "63BE7B" }
+      - at: D2:D3
+        icon_set: 3TrafficLights1

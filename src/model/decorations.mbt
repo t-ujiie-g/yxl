@@ -39,17 +39,22 @@ pub(all) enum ValidationKind {
 } derive(Eq, Debug)
 
 ///|
-/// One endpoint of a validation test. A date stays a `DateTime` rather than
-/// becoming a number here because the serial depends on the workbook's epoch,
-/// which only the emitter knows.
+/// One endpoint of a comparison. A date stays a `DateTime` rather than becoming
+/// a number here because the serial depends on the workbook's epoch, which only
+/// the emitter knows.
+///
+/// `Text` is reachable from a conditional format (`cell: { "=": Paid }`) but not
+/// from a validation, whose kind already fixes what its bounds may be.
 pub(all) enum Bound {
   Number(Double)
   Date(@units.DateTime)
+  Text(String)
 } derive(Eq, Debug)
 
 ///|
-/// The test a value must pass (ECMA-376 §18.18.15, `ST_DataValidationOperator`).
-/// The two-endpoint forms take their bounds in the order written.
+/// The test a value must pass (ECMA-376 §18.18.15, `ST_DataValidationOperator`;
+/// the same eight serve a conditional format's `cellIs` rule). The two-endpoint
+/// forms take their bounds in the order written.
 pub(all) enum Comparison {
   Between(Bound, Bound)
   NotBetween(Bound, Bound)
@@ -103,6 +108,75 @@ pub(all) struct Validation {
 /// comma-joined list of choices. Exceeding it is rejected with a diagnostic
 /// rather than being passed to the backend, which would fail far from the spec.
 pub let max_validation_list_length : Int = 255
+
+///|
+/// How a conditional format decides which cells it applies to (ECMA-376
+/// §18.18.12, `ST_CfType`).
+///
+/// The first group *highlights*: a matching cell is drawn in the format's style,
+/// and a format carrying one of these without a style would do nothing visible.
+/// The last three *draw* instead — a gradient, a bar, or an icon per cell — and
+/// carry their own appearance, so a style would have nothing to apply.
+pub(all) enum ConditionalRule {
+  /// The cell's value against a bound: `cellIs`.
+  CellIs(Comparison)
+  /// A formula evaluated per cell, matching where it is true: `expression`.
+  /// Written relative to the range's top-left cell, as Excel's own dialog does.
+  Formula(String)
+  /// The cell's text against a substring: `containsText` and its relatives.
+  Text(match_~ : TextMatch, value~ : String)
+  /// The highest (or, with `bottom`, lowest) `rank` cells, or that percentage of
+  /// them: `top10`.
+  Rank(count~ : Int, bottom~ : Bool, percent~ : Bool)
+  /// Cells whose value appears more than once in the range: `duplicateValues`.
+  Duplicate
+  /// Cells whose value appears exactly once: `uniqueValues`.
+  Unique
+  /// A two- or three-color gradient across the range: `colorScale`.
+  ColorScale(low~ : @units.Color, middle~ : @units.Color?, high~ : @units.Color)
+  /// A bar in each cell, in proportion to its value: `dataBar`.
+  DataBar(color~ : @units.Color, bar_only~ : Bool)
+  /// An icon per cell, chosen by which band its value falls in: `iconSet`.
+  IconSet(style~ : String, reverse~ : Bool, icons_only~ : Bool)
+} derive(Eq, Debug)
+
+///|
+/// Which part of the cell's text a `Text` rule looks at.
+pub(all) enum TextMatch {
+  Contains
+  NotContains
+  BeginsWith
+  EndsWith
+} derive(Eq, Debug)
+
+///|
+/// The icon sets Excel knows, by the names OOXML gives them (ECMA-376
+/// §18.18.42, `ST_IconSetType`). Excel's own vocabulary is used verbatim rather
+/// than translated, so a spec names the same thing its documentation does.
+///
+/// The list is repeated from the backend so an unknown name fails as a
+/// diagnostic against the spec rather than as an error from deep inside the
+/// emitter (ADR-006); it is checked against the backend by a test.
+pub let icon_set_styles : Array[String] = [
+  "3Arrows", "3ArrowsGray", "3Flags", "3Signs", "3Stars", "3Symbols", "3Symbols2",
+  "3TrafficLights1", "3TrafficLights2", "3Triangles", "4Arrows", "4ArrowsGray", "4Rating",
+  "4RedToBlack", "4TrafficLights", "5Arrows", "5ArrowsGray", "5Boxes", "5Quarters",
+  "5Rating",
+]
+
+///|
+/// A conditional format over a range: what decides it, and how a matching cell
+/// is drawn.
+pub(all) struct ConditionalFormat {
+  at : CellRange
+  rule : ConditionalRule
+  /// The look applied where the rule matches. Excel keeps these in their own
+  /// table (`dxfs`) rather than `cellXfs`, and only the parts it sets are
+  /// overridden — a rule that sets a fill leaves the cell's font alone.
+  style : Style?
+  /// `true` stops Excel evaluating any later rule on a cell this one matched.
+  stop_if_true : Bool
+} derive(Eq, Debug)
 
 ///|
 /// Where a hyperlink goes.
