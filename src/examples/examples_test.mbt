@@ -70,6 +70,9 @@ fn promises() -> Array[Promise] {
     // them is asserted separately below.
     promise("interactive.yxl.yaml", "Orders", "B2", "Sent"),
     promise("interactive.yxl.yaml", "Statuses", "A3", "Paid"),
+    // charts: the cells a chart plots are ordinary cells, which is the point.
+    promise("charts.yxl.yaml", "Figures", "A2", "APAC"),
+    promise("charts.yxl.yaml", "Figures", "C4", "2600000"),
   ]
 }
 
@@ -160,6 +163,37 @@ test "the interactive example decorates the cells it says it does" {
   }
   assert_eq(workbook.get_style(id).protection.unwrap().locked, Some(false))
   assert_true(workbook.workbook_protection is Some(_))
+}
+
+///|
+/// The `charts` example claims three charts, one of them plotting another
+/// sheet. A chart is not a cell value, so the promise table cannot carry it.
+test "the charts example draws what its comments describe" {
+  let path = "\{EXAMPLES}/charts.yxl.yaml"
+  let workbook = @xlsx.read(
+    @cli.compile(@fs.read_file_to_string(path), file=path, resolve=included)[:],
+  )
+  guard workbook.sheet("Figures") is Some(figures) else {
+    fail("expected the Figures sheet")
+  }
+  let charts = figures.charts()
+  assert_eq(charts.length(), 2)
+  assert_eq(charts[0].reference, "E2")
+  assert_true(charts[0].xml.contains("<c:barChart>"))
+  // Both series are named from their column headers, not written out.
+  assert_true(charts[0].xml.contains("<c:f>'Figures'!$B$1</c:f>"))
+  assert_true(charts[0].xml.contains("<c:f>'Figures'!$C$1</c:f>"))
+  assert_eq(charts[1].reference, "E20")
+  assert_true(charts[1].xml.contains("<c:pieChart>"))
+
+  // The summary's chart plots the other sheet's cells rather than copying them.
+  guard workbook.sheet("Summary") is Some(summary) else {
+    fail("expected the Summary sheet")
+  }
+  assert_eq(summary.charts().length(), 1)
+  let xml = summary.charts()[0].xml
+  assert_true(xml.contains("<c:f>'Figures'!$B$2:$B$4</c:f>"))
+  assert_false(xml.contains("<c:legend>"))
 }
 
 ///|

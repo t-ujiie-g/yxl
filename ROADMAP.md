@@ -248,9 +248,16 @@ is why validation, filters, and links arrived before charts.
       Deferred: a table with its header row turned off (the backend drops the
       range's first row for one, excelize parity, so a spec's `at` and the
       emitted range would disagree), totals rows, and per-column formulas
-- [ ] Charts and images. Images need bytes from disk, so they also need the
-      include reader to carry binary — the first thing here that is not just
-      schema
+- [x] **Charts** — `charts:` anchored at a cell, with fourteen kinds (column /
+      bar / line / area and their stacked forms, pie, doughnut, scatter, radar),
+      one or more series whose ranges may name another sheet, a series name
+      written out *or* read from a cell, a title, legend placement, a size in
+      pixels, and per-axis title and bounds. Ranges are emitted the way Excel
+      stores them, sheet-qualified and absolute. Deferred: 3-D variants, stock
+      and bubble charts (each wants an extra range or a shape the spec cannot
+      describe), combo charts, per-series colors and markers, and chart sheets
+- [ ] Images. They need bytes from disk, so they also need the include reader to
+      carry binary — the first thing here that is not just schema
 - [ ] **Pivot tables** (`add_pivot_table`) — the heaviest item here (source data,
       cache, field layout); may land late or as a stretch
 - [x] **Data validation** — drop-downs (inline choices or sourced from cells,
@@ -737,6 +744,42 @@ silently reading the wrong file).
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-27** — **Charts.** `charts:` anchors a chart at a cell: fourteen
+  kinds, one or more series, a title, legend placement, a size in pixels, and
+  per-axis title and bounds. A chart holds no values — every part of it points
+  at a range — so it needed no new cell machinery, only references written the
+  way Excel writes them.
+
+  **Which is the thing worth getting right.** A chart lives in a part of its
+  own (`xl/charts/chart1.xml`), where a bare `B2:B4` names nothing, so every
+  range is emitted sheet-qualified and absolute: `'Figures'!$B$2:$B$4`. The
+  quoting helper `absolute_range` already did for print areas came out as
+  `quoted_sheet` and is now shared. A series may name another sheet, and that
+  sheet must be declared — checked beside the other cross-sheet references,
+  because a chart plotting a sheet that does not exist opens as an empty frame
+  saying nothing about why.
+
+  **A series name is either a literal or a cell**, and the backend tells them
+  apart by looking for `!`. So `name: Data!B1` would silently become a lookup
+  the author never asked for — it is refused, pointing at `name_from`, which is
+  the key that *does* read a name from a cell (usually the column header, so
+  renaming the header renames the series).
+
+  Fourteen kinds rather than the backend's fifty-odd: the 3-D variants, stock
+  charts, and bubble charts each want either an extra range per series or a
+  shape the spec has no way to describe, and half-supporting them would be
+  worse than not listing them. The spelling table doubles as the diagnostic's
+  list of what *is* accepted, so the two cannot drift.
+
+  Verified by reading `chart1.xml` and `drawing1.xml` out of the file: the two
+  series with their `strRef` / `v` names, both axis titles, `<c:min val="0"/>`,
+  `<c:legendPos val="b"/>`, and the anchor at `E2` with `cx="4953000"` —
+  520 px at 9525 EMU each (ECMA-376 §20.1.2.1).
+
+  New `examples/charts.yxl.yaml`, since the feature earns a cookbook page of
+  its own: a column chart of two series named from their headers, a pie, and a
+  bar chart on a second sheet plotting the first.
 
 - **2026-07-27** — **Excel tables.** `tables:` declares a region to *be* a table
   (a ListObject) rather than merely look like one: filter buttons, banded

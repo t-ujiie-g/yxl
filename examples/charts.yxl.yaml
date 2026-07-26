@@ -1,0 +1,65 @@
+# Charts: a picture of cells that already exist. A chart holds no values of its
+# own — every part of it points at a range, so editing a cell redraws the chart.
+sheets:
+  - name: Figures
+    columns:
+      - at: B-C
+        width: 14
+        format: "#,##0"
+    cells:
+      A1: Region
+      B1: Revenue
+      C1: Cost
+      A2: APAC
+      B2: 2400000
+      C2: 1800000
+      A3: EMEA
+      B3: 1750000
+      C3: 1500000
+      A4: AMER
+      B4: 3100000
+      C4: 2600000
+
+    charts:
+      # The chart floats above the grid: `at` positions its top-left corner, and
+      # the cells underneath keep whatever they hold.
+      - at: E2
+        type: column
+        title: Revenue and cost by region
+        legend: bottom
+        size: { width: 520, height: 300 }
+        x_axis: { title: Region }
+        y_axis: { title: Amount, min: 0 }
+        series:
+          # `name_from` reads the series name from a cell, so renaming the
+          # column header renames the legend entry too.
+          - values: B2:B4
+            categories: A2:A4
+            name_from: B1
+          - values: C2:C4
+            categories: A2:A4
+            name_from: C1
+
+      # A pie draws only its first series, and needs no axes.
+      - at: E20
+        type: pie
+        title: Share of revenue
+        legend: right
+        series:
+          - values: B2:B4
+            categories: A2:A4
+            name: Revenue
+
+  # A chart may plot another sheet, which is how a summary tab gets its picture
+  # without repeating the numbers.
+  - name: Summary
+    cells:
+      A1: Revenue by region
+    charts:
+      - at: A3
+        type: bar
+        legend: none
+        series:
+          - values: Figures!B2:B4
+            categories: Figures!A2:A4
+            name_from: Figures!B1

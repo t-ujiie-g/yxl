@@ -203,6 +203,30 @@ fn check_cross_sheet_references(
         )
       }
     }
+    for chart in sheet.charts {
+      for series in chart.series {
+        // A chart plotting a sheet that does not exist opens as an empty frame,
+        // saying nothing about which reference went nowhere.
+        for source in [Some(series.values), series.categories] {
+          guard source is Some({ sheet: Some(named), .. }) else { continue }
+          guard declared(named) else {
+            raise schema_error(
+              file~,
+              "chart at '\{chart.at.to_a1()}' on sheet '\{sheet.name}' plots sheet '\{named}', which is not declared",
+            )
+          }
+        }
+        guard series.name is Some(FromCell(sheet=Some(named), ..)) else {
+          continue
+        }
+        guard declared(named) else {
+          raise schema_error(
+            file~,
+            "chart at '\{chart.at.to_a1()}' on sheet '\{sheet.name}' names a series from sheet '\{named}', which is not declared",
+          )
+        }
+      }
+    }
     for link in sheet.links {
       guard link.target is Location(location) else { continue }
       // Only a sheet-qualified location can be checked; a bare one is a defined

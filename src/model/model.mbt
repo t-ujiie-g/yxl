@@ -205,6 +205,8 @@ pub(all) struct Sheet {
   /// Excel tables over the sheet's regions, in declaration order. Ranges may not
   /// overlap — Excel refuses a workbook whose tables do.
   tables : Array[Table]
+  /// Charts anchored on the sheet, in declaration order.
+  charts : Array[Chart]
   /// What a reader may still do once the sheet is protected; `None` leaves the
   /// sheet unprotected.
   mut protection : SheetProtection?
@@ -343,6 +345,7 @@ pub fn Sheet::new(
     conditional_formats: [],
     comments: [],
     tables: [],
+    charts: [],
     protection: None,
   }
 }
@@ -401,6 +404,13 @@ pub fn Sheet::add_conditional_format(
 /// as usual; this only says what the region is.
 pub fn Sheet::add_table(self : Sheet, table : Table) -> Unit {
   self.tables.push(table)
+}
+
+///|
+/// Anchor a chart on the sheet. It floats above the grid, so the cells under it
+/// keep whatever they hold.
+pub fn Sheet::add_chart(self : Sheet, chart : Chart) -> Unit {
+  self.charts.push(chart)
 }
 
 ///|

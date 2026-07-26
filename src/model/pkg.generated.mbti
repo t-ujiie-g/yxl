@@ -108,6 +108,51 @@ pub(all) enum CellValue {
   RichText(Array[RichRun])
 } derive(Eq, @debug.Debug)
 
+pub(all) struct Chart {
+  at : @units.CellRef
+  kind : ChartKind
+  series : Array[ChartSeries]
+  title : String?
+  legend : LegendPosition?
+  size : ChartSize?
+  x_axis : ChartAxis?
+  y_axis : ChartAxis?
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ChartAxis {
+  title : String?
+  min : Double?
+  max : Double?
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ChartKind {
+  Column
+  ColumnStacked
+  ColumnPercentStacked
+  Bar
+  BarStacked
+  BarPercentStacked
+  Line
+  Area
+  AreaStacked
+  AreaPercentStacked
+  Pie
+  Doughnut
+  Scatter
+  Radar
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ChartSeries {
+  values : SheetRange
+  categories : SheetRange?
+  name : SeriesName?
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ChartSize {
+  width : Int
+  height : Int
+} derive(Eq, @debug.Debug)
+
 pub(all) struct Comment {
   at : @units.CellRef
   text : String
@@ -192,6 +237,15 @@ pub(all) enum HAlign {
   Distributed
 } derive(Eq, Hash, @debug.Debug)
 
+pub(all) enum LegendPosition {
+  Bottom
+  Top
+  Left
+  Right
+  TopRight
+  NoLegend
+} derive(Eq, @debug.Debug)
+
 pub(all) struct Link {
   at : @units.CellRef
   target : LinkTarget
@@ -249,6 +303,11 @@ pub(all) struct RichRun {
   font : Font?
 } derive(Eq, Hash, @debug.Debug)
 
+pub(all) enum SeriesName {
+  Literal(String)
+  FromCell(sheet~ : String?, at~ : @units.CellRef)
+} derive(Eq, @debug.Debug)
+
 pub(all) struct Sheet {
   name : String
   cells : Array[Cell]
@@ -266,8 +325,10 @@ pub(all) struct Sheet {
   conditional_formats : Array[ConditionalFormat]
   comments : Array[Comment]
   tables : Array[Table]
+  charts : Array[Chart]
   mut protection : SheetProtection?
 } derive(Eq, @debug.Debug)
+pub fn Sheet::add_chart(Self, Chart) -> Unit
 pub fn Sheet::add_comment(Self, @units.CellRef, String, author? : String) -> Unit
 pub fn Sheet::add_conditional_format(Self, ConditionalFormat) -> Unit
 pub fn Sheet::add_link(Self, @units.CellRef, LinkTarget, tip? : String) -> Unit

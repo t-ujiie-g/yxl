@@ -242,11 +242,12 @@ fn load_sheet(
       "conditional" => load_conditional_formats(value, sheet, file~, defs~)
       "comments" => load_comments(value, sheet, file~)
       "tables" => load_tables(value, sheet, file~)
+      "charts" => load_charts(value, sheet, file~)
       "protect" => sheet.set_protection(load_sheet_protection(value, file~))
       _ =>
         raise schema_error(
           file~,
-          "unknown key '\{key}' in sheet (expected 'name', 'cells', 'data', 'columns', 'rows', 'merges', 'visibility', 'freeze', 'split', 'gridlines', 'tab_color', 'print', 'filter', 'validations', 'links', 'conditional', 'comments', 'tables', or 'protect')",
+          "unknown key '\{key}' in sheet (expected 'name', 'cells', 'data', 'columns', 'rows', 'merges', 'visibility', 'freeze', 'split', 'gridlines', 'tab_color', 'print', 'filter', 'validations', 'links', 'conditional', 'comments', 'tables', 'charts', or 'protect')",
         )
     }
   }
