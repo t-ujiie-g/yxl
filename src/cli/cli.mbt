@@ -145,18 +145,27 @@ fn parse_setting(argument : String) -> (String, String) raise @diag.CliError {
 /// `file` names the source in any diagnostic. It may raise `@diag.YamlError`,
 /// `@diag.SchemaError`, or `@diag.EmitError`.
 ///
-/// `resolve` supplies the source of any `$include`; without it a spec that uses
-/// one is a diagnostic. Reading files stays the caller's job — that is what
-/// keeps this function I/O-free (ADR-003). `params` overrides the spec's
-/// declared parameter defaults (the CLI's `--set`).
+/// `resolve` supplies the source of any `$include` — and of a `data:` table —
+/// while `read_bytes` supplies the contents of any file that is not text, which
+/// today means an image. Without either, a spec that needs it is a diagnostic:
+/// reading files stays the caller's job, and that is what keeps this function
+/// I/O-free (ADR-003). `params` overrides the spec's declared parameter defaults
+/// (the CLI's `--set`).
 pub fn compile(
   source : String,
   file~ : String,
   resolve? : @loader.IncludeResolver,
+  read_bytes? : @loader.BytesResolver,
   params? : Map[String, String],
 ) -> Bytes raise {
   @emit.to_bytes(
-    @loader.load(@yaml.parse(source, file~), file~, resolve?, params?),
+    @loader.load(
+      @yaml.parse(source, file~),
+      file~,
+      resolve?,
+      read_bytes?,
+      params?,
+    ),
   )
 }
 

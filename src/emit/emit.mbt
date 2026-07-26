@@ -190,6 +190,9 @@ fn emit_sheet(
   for chart in sheet.charts {
     apply_chart(backend, sheet.name, chart)
   }
+  for image in sheet.images {
+    apply_image(backend, sheet.name, image)
+  }
   for validation in sheet.validations {
     apply_validation(backend, sheet.name, validation, date_system)
   }

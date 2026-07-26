@@ -7,7 +7,7 @@ import {
 }
 
 // Values
-pub fn load(@yaml.Node, file~ : String, resolve? : (String, String) -> Included raise, params? : Map[String, String]) -> @model.Workbook raise
+pub fn load(@yaml.Node, file~ : String, resolve? : (String, String) -> Included raise, read_bytes? : (String, String) -> IncludedBytes raise, params? : Map[String, String]) -> @model.Workbook raise
 
 // Errors
 
@@ -17,7 +17,14 @@ pub(all) struct Included {
   source : String
 }
 
+pub(all) struct IncludedBytes {
+  name : String
+  data : Bytes
+}
+
 // Type aliases
+pub type BytesResolver = (String, String) -> IncludedBytes raise
+
 pub type IncludeResolver = (String, String) -> Included raise
 
 // Traits

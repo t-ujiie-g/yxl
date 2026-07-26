@@ -41,7 +41,14 @@ fn check(input : String, params : Map[String, String]) -> Int {
       return @cli.exit_error
     }
   }
-  (@cli.compile(source, file=input, resolve=read_included, params~) |> ignore) catch {
+  (@cli.compile(
+    source,
+    file=input,
+    resolve=read_included,
+    read_bytes=read_included_bytes,
+    params~,
+  )
+  |> ignore) catch {
     err => {
       report(@cli.error_message(err, source~))
       return @cli.exit_error
@@ -60,7 +67,13 @@ fn build(input : String, output : String, params : Map[String, String]) -> Int {
       return @cli.exit_error
     }
   }
-  let bytes = @cli.compile(source, file=input, resolve=read_included, params~) catch {
+  let bytes = @cli.compile(
+    source,
+    file=input,
+    resolve=read_included,
+    read_bytes=read_included_bytes,
+    params~,
+  ) catch {
     err => {
       report(@cli.error_message(err, source~))
       return @cli.exit_error
@@ -91,6 +104,24 @@ fn read_included(from : String, path : String) -> @loader.Included raise {
       )
   }
   { name, source }
+}
+
+///|
+/// Read a file the spec names but cannot hold: an image's bytes. Resolved the
+/// same way as an `$include`, and, like it, the disk half of a seam the loader
+/// itself never crosses (ADR-003).
+fn read_included_bytes(
+  from : String,
+  path : String,
+) -> @loader.IncludedBytes raise {
+  let name = @cli.resolve_path(from, path)
+  let data = @fs.read_file_to_bytes(name) catch {
+    @fs.IOError(reason) =>
+      raise @diag.SchemaError(
+        @diag.Diagnostic::new("\{from}: cannot read '\{name}': \{reason}"),
+      )
+  }
+  { name, data }
 }
 
 ///|

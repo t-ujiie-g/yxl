@@ -21,9 +21,9 @@ sheets: [...]          # the workbook's sheets, in tab order
 active: Summary        # the sheet Excel opens on (default: the first)
 params: {...}          # named values substituted as ${name}   → §7
 defs: {...}            # named styles, values, and formulas    → §6
-properties: {...}      # what the file says about itself       → §13
-calc: {...}            # when Excel recalculates               → §13
-protect: {...}         # lock the workbook's structure         → §14
+properties: {...}      # what the file says about itself       → §14
+calc: {...}            # when Excel recalculates               → §14
+protect: {...}         # lock the workbook's structure         → §15
 date1904: false        # use Excel's 1904 date epoch
 default_font: Calibri  # the workbook's default font face
 ```
@@ -34,9 +34,9 @@ default_font: Calibri  # the workbook's default font face
 | `active` | text | Must name a declared, **visible** sheet. |
 | `params` | mapping | §7. |
 | `defs` | mapping | §6. |
-| `properties` | mapping | Document properties. §13. |
-| `calc` | mapping | Calculation settings. §13. |
-| `protect` | mapping | Workbook protection. §14. |
+| `properties` | mapping | Document properties. §14. |
+| `calc` | mapping | Calculation settings. §14. |
+| `protect` | mapping | Workbook protection. §15. |
 | `date1904` | boolean | `true` selects the 1904 epoch. Affects how dates serialize. |
 | `default_font` | text | Face name only; size and colour are per-style. |
 
@@ -64,7 +64,8 @@ sheets:
     comments: {...}    # → §10
     tables: [...]      # → §11
     charts: [...]      # → §12
-    protect: {...}     # → §14
+    images: [...]      # → §13
+    protect: {...}     # → §15
 ```
 
 | Key | Type | Notes |
@@ -87,7 +88,8 @@ sheets:
 | `comments` | mapping | Notes, by cell. §10. |
 | `tables` | sequence | Excel tables over the sheet's regions. §11. |
 | `charts` | sequence | Charts anchored on the sheet. §12. |
-| `protect` | mapping | Sheet protection. §14. |
+| `images` | sequence | Pictures anchored on the sheet. §13. |
+| `protect` | mapping | Sheet protection. §15. |
 
 Sheet keys apply **in the order written**, so where a `data:` table and `cells:`
 overlap, whichever comes last wins.
@@ -213,7 +215,7 @@ defs:
 | `font` | `{ bold, italic, underline, strike, size, name, color }` — all optional. |
 | `fill` | A hex `RRGGBB`, or `{ color: RRGGBB }`. Solid fills only. |
 | `border` | A style name for all four edges (`border: thin`), or a mapping of `all` / `left` / `right` / `top` / `bottom`, each a style name or `{ style, color }`. Styles: `thin`, `medium`, `thick`, `dashed`, `dotted`, `double`, `hair`. |
-| `protection` | `{ locked, hidden }` — what sheet protection does to a cell wearing this style. §14. |
+| `protection` | `{ locked, hidden }` — what sheet protection does to a cell wearing this style. §15. |
 | `align` | `{ horizontal, vertical, wrap }`. Horizontal: `left`, `center`, `right`, `fill`, `justify`, `distributed`. Vertical: `top`, `middle`, `bottom`, `justify`, `distributed`. |
 
 A cell's own `format` layers on top of a referenced style.
@@ -574,7 +576,48 @@ A `pie` or `doughnut` draws only its first series. Every range is emitted
 sheet-qualified and absolute (`'Figures'!$B$2:$B$4`), which is how Excel stores
 one — a chart lives in a part of its own, where a bare `B2:B4` names nothing.
 
-## 13. Document properties and calculation
+## 13. Images
+
+A picture floats above the grid: `at` positions its top-left corner, and the
+cells under it keep whatever they hold.
+
+```yaml
+images:
+  - at: E1
+    file: assets/logo.png      # required
+    alt: Example Ltd logo
+    scale: 0.5                 # or: { x: 2, y: 0.5 }
+    offset: { x: 4, y: 4 }     # pixels in from the cell's corner
+    positioning: move          # move | move_and_size | fixed
+```
+
+| Key | Type | Notes |
+|---|---|---|
+| `at` | cell | **Required.** |
+| `file` | path | **Required.** Resolved like a `data:` path — see §9. |
+| `alt` | text | What a screen reader announces; Excel's "Alt Text". |
+| `scale` | number or `{ x, y }` | A factor over the image's natural size, above `0` and at most `100`. One number scales both directions. |
+| `offset` | `{ x, y }` | **Both required**, in whole pixels, and never negative — OOXML's anchor measures in from the cell's corner (ECMA-376 §20.5.2.3). |
+| `positioning` | bareword | What happens when the cells beneath change. |
+
+**Positioning**, in the words of Excel's own "Size and Properties" pane:
+
+| Written | Excel calls it |
+|---|---|
+| `move` (the default) | "Move but don't size with cells" |
+| `move_and_size` | "Move and size with cells" |
+| `fixed` | "Don't move or size with cells" |
+
+**Formats:** `png`, `jpg`/`jpeg`, `gif`, `bmp`, `tif`/`tiff`, `ico`, `svg`,
+`emf`/`emz`, `wmf`/`wmz`. The format is taken from the file's extension, since
+that is what Excel decodes by — it never inspects the bytes. An unknown
+extension, a name with no extension at all, and an empty file are each
+diagnostics.
+
+The bytes are read while the spec compiles and travel into the workbook, so the
+`.xlsx` carries the picture itself and no longer needs the file.
+
+## 14. Document properties and calculation
 
 ```yaml
 properties:
@@ -609,7 +652,7 @@ values the spec supplied, which is worth setting where recalculation is slow;
 `on_load: true` forces one full pass regardless, which is what you want where
 the spec supplied no cached values at all.
 
-## 14. Protection
+## 15. Protection
 
 ```yaml
 protect:                    # the workbook itself
@@ -659,7 +702,7 @@ A style may carry **either** a number format **or** cell protection, not both.
 The build fails saying so, naming the format, rather than dropping one
 silently. Split them into two styles, or drop the format.
 
-## 15. Diagnostics
+## 16. Diagnostics
 
 A failed build prints one diagnostic and exits non-zero. YAML **syntax** errors
 carry a line and column with the source quoted:
