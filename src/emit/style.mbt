@@ -39,6 +39,26 @@ fn intern_style(
 }
 
 ///|
+/// The interned *differential* format id for a conditional format's style
+/// (ADR-004, in Excel's `dxfs` table rather than `cellXfs`). Kept in its own
+/// cache because the two tables are indexed separately: an id from one means
+/// nothing in the other.
+fn intern_conditional_style(
+  backend : @xlsx.Workbook,
+  cache : Map[@model.Style, Int],
+  style : @model.Style,
+) -> Int {
+  match cache.get(style) {
+    Some(id) => id
+    None => {
+      let id = backend.new_conditional_style(build_style(style))
+      cache[style] = id
+      id
+    }
+  }
+}
+
+///|
 /// Translate a model style into the backend's `Style`. A number format, if any,
 /// seeds the style; font, fill, borders, and alignment are layered on.
 fn build_style(style : @model.Style) -> @xlsx.Style {

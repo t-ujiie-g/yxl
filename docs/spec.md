@@ -54,6 +54,7 @@ sheets:
     filter: A1:D1      # → §10
     validations: [...] # → §10
     links: {...}       # → §10
+    conditional: [...] # → §10
 ```
 
 | Key | Type | Notes |
@@ -72,6 +73,7 @@ sheets:
 | `filter` | range | Excel's auto filter. §10. |
 | `validations` | sequence | What cells will accept. §10. |
 | `links` | mapping | Hyperlinks, by cell. §10. |
+| `conditional` | sequence | Formatting decided by the value. §10. |
 
 Sheet keys apply **in the order written**, so where a `data:` table and `cells:`
 overlap, whichever comes last wins.
@@ -304,7 +306,7 @@ that is missing is an error.
 > It fails loudly with the path it tried, never silently reading the wrong file.
 > (ADR-016 — the tree carries no per-node provenance.)
 
-## 10. Validation, filters, and links
+## 10. Validation, filters, links, and conditional formatting
 
 These decorate cells rather than fill them. A validation over an empty range is
 legal, and a link supplies no text of its own — the value you see still comes
@@ -380,6 +382,65 @@ just text.
 A sheet named by `to:` or by a validation's `from:` must be declared, or the
 build fails — Excel reports neither, so a typo would otherwise ship as a
 drop-down that comes up empty or a link that goes nowhere.
+
+### Conditional formatting
+
+Formatting decided by the value rather than the address.
+
+```yaml
+conditional:
+  - at: B2:B50
+    cell: { at_least: 1000000 }    # the same comparisons validations use
+    style: strong                  # a declared style, or an inline mapping
+  - at: B2:B50
+    cell: { less_than: 0 }
+    style: weak
+    stop_if_true: true             # matched here, Excel tries no later rule
+  - at: C2:C50
+    text: { contains: urgent }
+    style: weak
+  - at: D2:D50
+    formula: "AND($D2>0, $E2<0)"
+    style: strong
+  - at: E2:E50
+    top: 10                        # or { count: 10, percent: true }
+    style: strong
+  - at: F2:F50
+    duplicate: true                # or unique: true
+    style: weak
+  - at: G2:G50
+    color_scale: { low: "F8696B", middle: "FFEB84", high: "63BE7B" }
+  - at: H2:H50
+    data_bar: { color: "638EC6" }
+  - at: I2:I50
+    icon_set: 3TrafficLights1      # or { style:, reverse:, icons_only: }
+```
+
+| Key | Notes |
+|---|---|
+| `at` | **Required.** The range the rule covers. |
+| `cell` | A comparison, spelled exactly as in a validation (§ above). The bound is read as it is written: a number, a date if it parses as one, otherwise text. |
+| `formula` | An expression, true where the rule should apply. Written relative to the range's **top-left** cell, as Excel's own dialog does — `$B2` holds the column and lets the row move. |
+| `text` | Exactly one of `contains`, `not_contains`, `begins_with`, `ends_with`. |
+| `top` / `bottom` | A count (1–1000), or `{ count, percent: true }` for a percentage (1–100). |
+| `duplicate` / `unique` | `true`. Values appearing more than once, or exactly once, in the range. |
+| `color_scale` | `low` and `high`, optionally `middle` — a two- or three-color gradient. |
+| `data_bar` | `color`, and `bar_only: true` to hide the value behind the bar. |
+| `icon_set` | One of Excel's own names — `3Arrows`, `3TrafficLights1`, `4Rating`, `5Boxes`, … — optionally with `reverse` and `icons_only`. |
+| `style` / `format` | The look applied where the rule matches. |
+| `stop_if_true` | Stop evaluating later rules on a cell this one matched. |
+
+Rules apply **in the order written**, which is Excel's priority order.
+
+`style` and `format` are **required** for the rules that highlight (`cell`,
+`formula`, `text`, `top`, `bottom`, `duplicate`, `unique`) — one without a look
+would match cells and change nothing. They are **refused** for the three that
+draw their own appearance (`color_scale`, `data_bar`, `icon_set`), which would
+have nothing to apply it to.
+
+Excel keeps these looks in a table of its own, separate from the styles cells
+wear, but they are declared the same way and shared the same way: a look used by
+ten rules is stored once.
 
 ## 11. Diagnostics
 

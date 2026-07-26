@@ -251,8 +251,15 @@ is why validation, filters, and links arrived before charts.
       whose serial the emitter computes), never a bare string
 - [x] **Hyperlinks** — out of the workbook (`url`) or into it (`to`), with a
       tooltip. A link decorates a cell; it never supplies its text
-- [ ] Conditional formatting, comments — the rest of the group above. Both are
-      range-keyed the same way, so the schema shape is already settled
+- [x] **Conditional formatting** — `cell` comparisons (the same eight a
+      validation spells, shared code and shared vocabulary), `formula`, `text`,
+      `top`/`bottom` by count or percentage, `duplicate`/`unique`, two- and
+      three-stop color scales, data bars, and all twenty of Excel's icon sets.
+      Looks are interned into Excel's *differential* format table, so a look ten
+      rules share is stored once (ADR-004). Deferred, as demand warrants: time
+      periods (`today`, `last week`), above/below average, blanks/errors, and
+      per-stop control of where a scale or bar anchors its endpoints
+- [ ] Comments — the last of the range-keyed group
 - [x] Auto filter (`set_auto_filter`) — `filter: <range>`. Per-column criteria
       are deferred: the backend takes them as its own little expression language
       (`x > 5`), and passing that through unvalidated would turn a typo into a
@@ -709,6 +716,35 @@ silently reading the wrong file).
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-26** — **Conditional formatting.** A sheet's `conditional:` takes
+  rules that decide formatting from the *value* rather than the address: `cell`
+  comparisons, a `formula`, `text` matches, `top`/`bottom` by count or
+  percentage, `duplicate`/`unique`, color scales, data bars, and icon sets.
+  Rules apply in the order written, which is Excel's priority order, and
+  `stop_if_true` cuts the rest off.
+
+  **A `cell` rule spells its comparison exactly as a validation does** — the
+  same `at_least`, the same `between` — because it is the same code. Generalizing
+  `load_comparison` over *how a bound is read* was all it took: a validation's
+  declared kind fixes what its bounds may be, while a conditional format infers
+  (a number, a date if the text parses as one, otherwise text). One vocabulary,
+  learned once.
+
+  **Looks are interned into Excel's `dxfs` table**, which is separate from the
+  `cellXfs` ids cells wear — an id from one means nothing in the other, so it
+  gets its own cache. Reuse still holds inside it: ten rules sharing a look
+  store it once (ADR-004), which a test pins.
+
+  Two rules of the schema are worth stating, both about the same distinction.
+  The seven rules that *highlight* **require** a `style` — one without a look
+  would match cells and then change nothing. The three that *draw* — a scale, a
+  bar, an icon set — **refuse** one, having nothing to apply it to.
+
+  Icon-set names are Excel's own (`3TrafficLights1`, `5Rating`), listed in
+  `model` so an unknown one fails as a diagnostic rather than as a backend error
+  from deep inside the emitter (ADR-006). A test emits all twenty, so the copied
+  list cannot drift from what the backend accepts.
 
 - **2026-07-26** — **Validation, filters, and links** — the first Phase 9 slice.
   A sheet gains three keys that *decorate* cells rather than fill them:

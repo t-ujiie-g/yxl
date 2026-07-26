@@ -7,6 +7,9 @@ examples/*/out/
 .moonagent/
 .claude/*.local.json
 *.coverage
+# Compiled workbooks. `yxl build` writes these, so one lands in the tree
+# whenever an example is compiled by hand; none belongs in the repository.
+*.xlsx
 # `.github/scripts/package.sh` output — release archives and their staging
 # directory, whether it ran on a runner or locally to rehearse a release.
 yxl-*.tar.gz
