@@ -20,6 +20,8 @@ pub let exit_usage : Int
 
 pub fn parse_args(ArrayView[String]) -> Command raise @diag.CliError
 
+pub fn resolve_path(String, String) -> String
+
 pub let usage : String
 
 pub let version : String

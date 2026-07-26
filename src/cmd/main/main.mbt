@@ -81,7 +81,7 @@ fn build(input : String, output : String, params : Map[String, String]) -> Int {
 /// spec can be moved as a directory. This is the disk half of includes; the
 /// loader itself never opens a file (ADR-003).
 fn read_included(from : String, path : String) -> @loader.Included raise {
-  let name = resolve_path(from, path)
+  let name = @cli.resolve_path(from, path)
   let source = @fs.read_file_to_string(name) catch {
     @fs.IOError(reason) =>
       raise @diag.SchemaError(
@@ -91,20 +91,6 @@ fn read_included(from : String, path : String) -> @loader.Included raise {
       )
   }
   { name, source }
-}
-
-///|
-/// A path written in `from`, resolved against the directory `from` sits in: an
-/// include in `specs/report.yaml` naming `data/q3.yaml` means
-/// `specs/data/q3.yaml`. An absolute path is taken as it stands.
-fn resolve_path(from : String, path : String) -> String {
-  if path.has_prefix("/") {
-    return path
-  }
-  match from.rev_find("/") {
-    Some(slash) => from[:slash + 1].to_owned() + path
-    None => path
-  }
 }
 
 ///|

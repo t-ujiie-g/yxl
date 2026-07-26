@@ -239,6 +239,12 @@ sheets:
 
 - Paths resolve **relative to the file containing the include**, so a spec
   directory can be moved as a unit.
+- Either separator works: `/` and `\` both split a path, on every platform. Use
+  `/` inside a spec if you want it to read the same everywhere. (On Japanese
+  Windows the backslash *displays* as `¥` — that is the same character. A real
+  yen sign is an ordinary filename character, as it is to Windows itself.)
+- Non-ASCII paths are fine **inside** a spec. On the *command line*, Windows
+  cannot carry them today — see the README's install notes.
 - Includes may nest. A cycle is an error, reported with the whole chain.
 - `$include` replaces its entire node, so combining it with sibling keys is an
   error rather than an implied merge.

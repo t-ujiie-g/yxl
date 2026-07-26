@@ -88,21 +88,31 @@ diagnostic naming the file, never a silently dropped value.
 
 ## Install
 
+**Linux / macOS:**
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/t-ujiie-g/yxl/main/install.sh | sh
 ```
 
-That fetches the [latest release](https://github.com/t-ujiie-g/yxl/releases) for
-your platform, **verifies its SHA-256**, and installs `yxl` into
-`~/.local/bin`. Pin a version or choose a directory with:
+**Windows (PowerShell):**
+
+```powershell
+irm https://raw.githubusercontent.com/t-ujiie-g/yxl/main/install.ps1 | iex
+```
+
+Either fetches the [latest release](https://github.com/t-ujiie-g/yxl/releases)
+for your platform, **verifies its SHA-256**, and installs `yxl` — into
+`~/.local/bin`, or `%LOCALAPPDATA%\yxl\bin` on Windows. Pin a version or choose
+a directory with `YXL_VERSION` and `YXL_INSTALL_DIR`:
 
 ```bash
 YXL_VERSION=0.1.0 YXL_INSTALL_DIR=/usr/local/bin \
   curl -fsSL https://raw.githubusercontent.com/t-ujiie-g/yxl/main/install.sh | sh
 ```
 
-Prebuilt binaries cover **Linux x86_64** and **macOS arm64** (Apple silicon).
-On an Intel Mac, or any other platform, build from source below. Piping
+Prebuilt binaries cover **Linux x86_64**, **macOS arm64** (Apple silicon), and
+**Windows x86_64**. On an Intel Mac, or any other platform, build from source
+below. Piping
 a script into a shell is worth doing deliberately — [read
 `install.sh`](./install.sh) first if you would rather, or install by hand from
 the release assets, or build from source:
@@ -120,6 +130,18 @@ install -m 755 _build/native/release/build/cmd/main/main.exe ~/.local/bin/yxl
 
 macOS marks downloaded binaries as quarantined; if Gatekeeper objects, clear it
 with `xattr -d com.apple.quarantine ~/.local/bin/yxl`.
+
+Paths may use either separator, so `yxl build specs\report.yaml` works on
+Windows and a spec's own `$include: data/x.yaml` stays portable.
+
+**One Windows limitation:** the *command line* cannot carry non-ASCII today —
+`yxl build 売上\report.yaml` fails, because the runtime reads arguments as UTF-8
+while Windows hands them over in the system code page
+([upstream](https://github.com/moonbitlang/x): "TODO: Handle other encodings").
+Paths *inside* a spec are unaffected — `$include: 表/theme.yaml` and
+`csv: 売上/data.csv` work, since those come from the file, which is UTF-8. So
+name the spec you pass on the command line in ASCII; everything it refers to can
+be in any script.
 
 ## Using it
 
