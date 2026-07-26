@@ -604,6 +604,17 @@ silently reading the wrong file).
   the barrier to adoption. Explicitly *not* a round-trip contract — lossy and
   irreversible is fine for a migration aid (§2, §6 Phase 10). What it recovers,
   and what it is called, are Q9.
+- **Q10 — Non-ASCII on the Windows command line.** ✅ **Decided 2026-07-26:
+  document it.** `moonbitlang/x/sys` reads argv as UTF-8 ("TODO: Handle other
+  encodings") while Windows supplies it in the system code page, so
+  `yxl build 売上\report.yaml` cannot work — the characters are already lost
+  before yxl sees them. Fixing it here means our first FFI (`GetCommandLineW` +
+  `CommandLineToArgvW`), Windows-only, for a problem upstream has already
+  identified as theirs. Paths *inside* a spec are unaffected, which covers the
+  case that matters: name the spec you type in ASCII, and everything it refers to
+  can be in any script. README and `docs/spec.md` say so. Revisit if upstream
+  stalls and real users hit it.
+
 - **Q9 — What is the import command called, and how much does it recover?**
   `import` reads naturally from yxl's side ("bring this workbook in") but the
   thing it *writes* is YAML, so the word points the wrong way for anyone reading
@@ -681,6 +692,82 @@ silently reading the wrong file).
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-26** — **Windows support.** The post-v0.1.0 review's top gap, closed.
+  Feasibility was answered by *running* it on `windows-latest` rather than
+  reasoning about it: the native backend builds (gcc and clang are preinstalled,
+  so no MSVC setup), the binary lands at the same relative path as on Unix, the
+  whole suite passes there unchanged, and it writes a real `.xlsx`. Releases now
+  ship a `.zip` with `yxl.exe`, `install.ps1` gives Windows the same one-line
+  install, and CI runs the full matrix on three platforms.
+
+  **Path separators** were the one real bug: `resolve_path` split on `/` alone,
+  so a spec named the way Windows tab-completion writes it —
+  `yxl build examples\modular.yxl.yaml` — resolved its includes against the
+  working directory instead of the spec's folder. Both separators now split, and
+  `C:\…`, `C:/…` and UNC `\\server\share` count as absolute. The rule moved
+  from the executable into `cli`: string work, not I/O, so it deserves tests that
+  run on every platform (ADR-003 keeps the reading in `cmd/main`).
+
+  **On the yen sign**, since Japanese Windows is a first-class case: that console
+  *draws* U+005C as `¥` — the same character in a different glyph — so handling
+  `\` handles it. A genuine yen sign (U+00A5, or full-width U+FFE5) is
+  deliberately **not** a separator: Windows treats it as an ordinary filename
+  character, so splitting there would break a legal name like `見積¥1000.yaml`
+  while rescuing nothing. The hazard that does bite is **CP932 dame-moji** — 表,
+  ソ, 十 carry 0x5C as their *second byte*, and a byte-wise split would cut such
+  a name in half; MoonBit strings are sequences of characters, so this splitting
+  cannot. Pinned by unit tests and by a Windows CI job that builds a spec
+  referring to `表ソ十\見積¥1000\`.
+
+  **One limitation stands, and it is upstream** (§8 Q10): non-ASCII cannot cross
+  the *command line* on Windows. `moonbitlang/x/sys` reads argv as UTF-8 ("TODO:
+  Handle other encodings") while Windows hands it over in the system code page,
+  so `yxl build 売上\report.yaml` fails — as `???` on an English-locale machine,
+  as unusable CP932 bytes on a Japanese one. Paths *inside* a spec are
+  unaffected, being read as UTF-8 through `@fs`. Documented rather than worked
+  around.
+
+- **2026-07-26** — **Post-v0.1.0 review absorbed into the roadmap.** An outside
+  review of the shipped v0.1.0 raised five points; this records where each landed.
+
+  *Accepted and scheduled:* a `cells:`-keyed spec is **not** diffable under row
+  insertion, which contradicts §1's headline — §1 now says which half is
+  delivered and **Phase 11** adds inline `data:` tables; the **one-way
+  direction** is now stated in §1 and §2 rather than left to be discovered, with
+  a one-time import separated from continuous round-tripping; and **import** was
+  promoted from a post-v1 stretch to a wanted Phase 10 item (§8 Q5), with its
+  name and scope left open as §8 Q9.
+
+  *Recorded, not scheduled:* no Windows binary (added to Phase 8 with its
+  unknowns spelled out — since **closed**, see above); a **JSON Schema**
+  generated from `docs/spec.md` (Phase 11); and the fact that **nothing checks
+  Excel opens the output without a repair dialog** — Tier 1 re-opens files with
+  the same library that wrote them, which cannot disagree with itself (§9 risks,
+  and named in the v1.0 gate).
+
+- **2026-07-26** — **v0.1.0 released; CI trigger and action runtimes tidied.**
+  The first release published from a `v0.1.0` tag: Linux x86_64 and macOS arm64
+  tarballs with checksums, and the one-line installer live. Two things the run
+  surfaced. **CI no longer runs on push to `main`** — with `main` reachable only
+  through a PR, and `strict` requiring that PR to be current first, the
+  post-merge run re-tested a tree the PR had already passed; tags stay covered by
+  `release.yml`, which tests again before packaging. **Node 20 deprecation
+  warnings gone**: `actions/upload-artifact@v4` and `download-artifact@v4` still
+  target Node 20 and were being forced onto Node 24, so they move to `@v7` and
+  `@v8`, whose `action.yml` files declare `using: node24` — the inputs in use
+  were checked against those tags rather than assumed. `actions/checkout@v5`
+  already runs on Node 24 and was left alone.
+
+- **2026-07-26** — **Release runners: no Intel macOS build.** Caught before the
+  first release rather than by it: the matrix named `macos-13`, GitHub's free
+  Intel runner, which is **retired** — that job would have failed, and because
+  the publish step waits on the whole matrix, the release would have produced
+  nothing. Its successors (`macos-15-intel`, `-large`) are larger runners whose
+  billing could not be confirmed, so rather than quietly commit the repository to
+  possibly-paid minutes, the Intel target was dropped. `install.sh` no longer
+  claims a `macos-x86_64` build exists — it sends those users to the source
+  instructions instead of a binary that could not run anyway.
 
 - **2026-07-26** — **Release automation, the spec reference, and a PR-only
   `main`.** Three pieces of project plumbing, none of them compiler changes:
