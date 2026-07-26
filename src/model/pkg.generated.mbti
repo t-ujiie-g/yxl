@@ -11,6 +11,8 @@ pub let max_outline_level : Int
 
 pub let max_page_scale : Int
 
+pub let max_validation_list_length : Int
+
 pub let min_page_scale : Int
 
 // Errors
@@ -53,6 +55,11 @@ pub(all) struct Borders {
   bottom : Border?
 } derive(Eq, Hash, @debug.Debug)
 
+pub(all) enum Bound {
+  Number(Double)
+  Date(@units.DateTime)
+} derive(Eq, @debug.Debug)
+
 pub(all) struct Cell {
   pos : @units.CellRef
   value : CellValue
@@ -72,6 +79,17 @@ pub(all) enum CellValue {
   Error(String)
   Formula(formula~ : String, cached~ : CellValue?)
   RichText(Array[RichRun])
+} derive(Eq, @debug.Debug)
+
+pub(all) enum Comparison {
+  Between(Bound, Bound)
+  NotBetween(Bound, Bound)
+  Equal(Bound)
+  NotEqual(Bound)
+  AtLeast(Bound)
+  AtMost(Bound)
+  GreaterThan(Bound)
+  LessThan(Bound)
 } derive(Eq, @debug.Debug)
 
 pub(all) struct DefinedName {
@@ -101,6 +119,17 @@ pub(all) enum HAlign {
   Justify
   Distributed
 } derive(Eq, Hash, @debug.Debug)
+
+pub(all) struct Link {
+  at : @units.CellRef
+  target : LinkTarget
+  tip : String?
+} derive(Eq, @debug.Debug)
+
+pub(all) enum LinkTarget {
+  Url(String)
+  Location(String)
+} derive(Eq, @debug.Debug)
 
 pub(all) enum Orientation {
   Portrait
@@ -153,16 +182,27 @@ pub(all) struct Sheet {
   mut panes : Panes?
   mut gridlines : Bool?
   mut tab_color : @units.Color?
+  mut filter : CellRange?
+  validations : Array[Validation]
+  links : Array[Link]
 } derive(Eq, @debug.Debug)
+pub fn Sheet::add_link(Self, @units.CellRef, LinkTarget, tip? : String) -> Unit
+pub fn Sheet::add_validation(Self, Validation) -> Unit
 pub fn Sheet::merge(Self, @units.CellRef, @units.CellRef) -> Unit
 pub fn Sheet::new(String, visibility? : SheetVisibility) -> Self
 pub fn Sheet::set(Self, @units.CellRef, CellValue, format? : String, style? : Style) -> Unit
 pub fn Sheet::set_column_band(Self, first~ : Int, last~ : Int, style? : Style, width? : Double, hidden? : Bool, outline_level? : Int) -> Unit
+pub fn Sheet::set_filter(Self, CellRange) -> Unit
 pub fn Sheet::set_gridlines(Self, Bool) -> Unit
 pub fn Sheet::set_page_setup(Self, PageSetup) -> Unit
 pub fn Sheet::set_panes(Self, Panes) -> Unit
 pub fn Sheet::set_row_band(Self, first~ : Int, last~ : Int, style? : Style, height? : Double, hidden? : Bool, outline_level? : Int) -> Unit
 pub fn Sheet::set_tab_color(Self, @units.Color) -> Unit
+
+pub(all) struct SheetRange {
+  sheet : String?
+  range : CellRange
+} derive(Eq, @debug.Debug)
 
 pub(all) enum SheetVisibility {
   Visible
@@ -189,6 +229,44 @@ pub(all) enum VAlign {
   Justify
   Distributed
 } derive(Eq, Hash, @debug.Debug)
+
+pub(all) struct Validation {
+  at : CellRange
+  rule : ValidationRule
+  allow_blank : Bool
+  prompt : ValidationPrompt?
+  error : ValidationError?
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ValidationError {
+  title : String
+  body : String
+  style : ValidationErrorStyle
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ValidationErrorStyle {
+  Stop
+  Warning
+  Information
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ValidationKind {
+  Whole
+  Decimal
+  TextLength
+  DateValue
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ValidationPrompt {
+  title : String
+  body : String
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ValidationRule {
+  List(Array[String])
+  ListFrom(SheetRange)
+  Compare(kind~ : ValidationKind, check~ : Comparison)
+} derive(Eq, @debug.Debug)
 
 pub(all) struct Workbook {
   sheets : Array[Sheet]

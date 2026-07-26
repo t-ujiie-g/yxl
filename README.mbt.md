@@ -174,6 +174,7 @@ so the pages cannot drift from the compiler:
 | [`layout.yxl.yaml`](./examples/layout.yxl.yaml) | merges, frozen headers, sized and grouped bands, sheet visibility, print setup |
 | [`modular.yxl.yaml`](./examples/modular.yxl.yaml) | `$include` and CSV / JSON `data:` tables |
 | [`parameters.yxl.yaml`](./examples/parameters.yxl.yaml) | `params:` with `${}` and `--set` |
+| [`interactive.yxl.yaml`](./examples/interactive.yxl.yaml) | drop-downs and other validations, an auto filter, hyperlinks |
 
 ```bash
 yxl build examples/quickstart.yxl.yaml -o quickstart.xlsx

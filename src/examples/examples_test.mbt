@@ -66,6 +66,10 @@ fn promises() -> Array[Promise] {
       "region": "EMEA",
       "quarter": "Q4",
     }),
+    // interactive: the decorated cells keep their own values; what decorates
+    // them is asserted separately below.
+    promise("interactive.yxl.yaml", "Orders", "B2", "Sent"),
+    promise("interactive.yxl.yaml", "Statuses", "A3", "Paid"),
   ]
 }
 
@@ -96,6 +100,48 @@ test "every example compiles and holds what it promises" {
       Some(promise.value),
     )
   }
+}
+
+///|
+/// The decorations are not cell values, so the promise table above cannot carry
+/// them. This asserts the `interactive` example produces the filter, drop-downs,
+/// and links its comments describe.
+test "the interactive example decorates the cells it says it does" {
+  let path = "\{EXAMPLES}/interactive.yxl.yaml"
+  let workbook = @xlsx.read(
+    @cli.compile(@fs.read_file_to_string(path), file=path, resolve=included)[:],
+  )
+  guard workbook.get_auto_filter("Orders") is Some(filter) else {
+    fail("expected an auto filter over the header row")
+  }
+  assert_eq(filter.range_ref, "A1:D1")
+
+  // Four validations, in the order the spec declares them.
+  let validations = workbook.get_data_validations("Orders")
+  assert_eq(validations.length(), 4)
+  assert_eq(validations[0].sqref, "B2:B200")
+  assert_eq(validations[0].validation_type, "list")
+  // The drop-down reads its choices from the other sheet, absolutely.
+  assert_eq(validations[0].formula1, "'Statuses'!$A$1:$A$3")
+  assert_eq(validations[0].error_style, Some("stop"))
+  assert_eq(validations[1].validation_type, "whole")
+  assert_eq(validations[1].operator, "between")
+  assert_false(validations[1].allow_blank)
+  assert_eq(validations[2].validation_type, "date")
+  // 2026-01-01 as a 1900-epoch serial.
+  assert_eq(validations[2].formula1, "46023")
+  assert_eq(validations[3].validation_type, "textLength")
+
+  // One link out of the workbook, one into it.
+  guard workbook.get_cell_hyperlink("Orders", "A2") is Some(external) else {
+    fail("expected a link out of the workbook")
+  }
+  assert_eq(external.target, "https://example.com/orders/1001")
+  guard workbook.get_cell_hyperlink("Orders", "B1") is Some(internal) else {
+    fail("expected a link into the workbook")
+  }
+  assert_eq(internal.location, Some("Statuses!A1"))
+  assert_eq(internal.tooltip, Some("The tracked statuses"))
 }
 
 ///|

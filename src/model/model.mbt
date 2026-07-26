@@ -189,6 +189,14 @@ pub(all) struct Sheet {
   mut gridlines : Bool?
   /// The tab's color; `None` keeps Excel's default (no color).
   mut tab_color : @units.Color?
+  /// The range Excel puts filter dropdowns over (its top row is the header);
+  /// `None` leaves the sheet unfiltered. A sheet has at most one.
+  mut filter : CellRange?
+  /// Data validations, in declaration order. Ranges may overlap — Excel keeps
+  /// them all, and the last one written wins where they do.
+  validations : Array[Validation]
+  /// Hyperlinks, one per cell, in declaration order.
+  links : Array[Link]
 } derive(Eq, Debug)
 
 ///|
@@ -285,6 +293,9 @@ pub fn Sheet::new(
     panes: None,
     gridlines: None,
     tab_color: None,
+    filter: None,
+    validations: [],
+    links: [],
   }
 }
 
@@ -310,6 +321,33 @@ pub fn Sheet::set_gridlines(self : Sheet, shown : Bool) -> Unit {
 /// Color the sheet's tab.
 pub fn Sheet::set_tab_color(self : Sheet, color : @units.Color) -> Unit {
   self.tab_color = Some(color)
+}
+
+///|
+/// Put Excel's filter dropdowns over a range, whose top row is read as the
+/// header. Replaces any previous one: Excel keeps a single auto filter per
+/// sheet.
+pub fn Sheet::set_filter(self : Sheet, range : CellRange) -> Unit {
+  self.filter = Some(range)
+}
+
+///|
+/// Add a data validation over a range. Appended in call order so emission is
+/// deterministic.
+pub fn Sheet::add_validation(self : Sheet, validation : Validation) -> Unit {
+  self.validations.push(validation)
+}
+
+///|
+/// Link a cell to a URL or an in-workbook location. The cell keeps whatever
+/// value it was given; a link adds no text of its own.
+pub fn Sheet::add_link(
+  self : Sheet,
+  at : @units.CellRef,
+  target : LinkTarget,
+  tip? : String,
+) -> Unit {
+  self.links.push({ at, target, tip })
 }
 
 ///|

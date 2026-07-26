@@ -102,6 +102,7 @@ pub fn load(
     raise schema_error(file~, "missing required key 'sheets'")
   }
   read_active_sheet(root, workbook, file~)
+  check_cross_sheet_references(workbook, file~)
   guard workbook.sheets.iter().any(sheet => sheet.visibility is Visible) else {
     raise schema_error(
       file~,
@@ -230,10 +231,13 @@ fn load_sheet(
           expect_color(value, file~, what="'tab_color'", context="sheet"),
         )
       "print" => sheet.set_page_setup(load_page_setup(value, file~))
+      "filter" => load_filter(value, sheet, file~)
+      "validations" => load_validations(value, sheet, file~)
+      "links" => load_links(value, sheet, file~)
       _ =>
         raise schema_error(
           file~,
-          "unknown key '\{key}' in sheet (expected 'name', 'cells', 'data', 'columns', 'rows', 'merges', 'visibility', 'freeze', 'split', 'gridlines', 'tab_color', or 'print')",
+          "unknown key '\{key}' in sheet (expected 'name', 'cells', 'data', 'columns', 'rows', 'merges', 'visibility', 'freeze', 'split', 'gridlines', 'tab_color', 'print', 'filter', 'validations', or 'links')",
         )
     }
   }

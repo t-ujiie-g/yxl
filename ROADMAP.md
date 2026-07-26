@@ -235,12 +235,29 @@ The **active phase** is the first phase with any unchecked box.
       either separator. CI covers all three platforms.
 
 ### Phase 9 — Richer Excel features (leverage mbtexcel, additive)
+The items here are independent, so they land in whatever order pays best rather
+than top to bottom. The first slice deliberately took everything that needs **no
+new architecture** — no drawing parts, no binary assets, no reader seam — which
+is why validation, filters, and links arrived before charts.
 - [ ] Charts, images, **Excel tables** (structured tables / ListObjects,
-      `add_table`)
+      `add_table`). Images need bytes from disk, so they also need the include
+      reader to carry binary — the first thing here that is not just schema
 - [ ] **Pivot tables** (`add_pivot_table`) — the heaviest item here (source data,
       cache, field layout); may land late or as a stretch
-- [ ] Data validation, conditional formatting, hyperlinks, comments
-- [ ] Auto filter (`set_auto_filter`)
+- [x] **Data validation** — drop-downs (inline choices or sourced from cells,
+      including another sheet), and `whole` / `decimal` / `text_length` / `date`
+      comparisons across all eight OOXML operators, with Excel's "Ignore blank",
+      input prompt, and error dialog. A bound is typed (`Number` or a `DateTime`
+      whose serial the emitter computes), never a bare string
+- [x] **Hyperlinks** — out of the workbook (`url`) or into it (`to`), with a
+      tooltip. A link decorates a cell; it never supplies its text
+- [ ] Conditional formatting, comments — the rest of the group above. Both are
+      range-keyed the same way, so the schema shape is already settled
+- [x] Auto filter (`set_auto_filter`) — `filter: <range>`. Per-column criteria
+      are deferred: the backend takes them as its own little expression language
+      (`x > 5`), and passing that through unvalidated would turn a typo into a
+      backend `EmitError` instead of a diagnostic (ADR-006). They need a
+      structured schema that compiles *to* those strings inside `emit`
 - [ ] Sheet / workbook protection, incl. password-based encryption
       (`protect_sheet` / `write_with_password`)
 - [ ] Workbook metadata: document properties (title/author/company/custom) and
@@ -692,6 +709,36 @@ silently reading the wrong file).
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-26** — **Validation, filters, and links** — the first Phase 9 slice.
+  A sheet gains three keys that *decorate* cells rather than fill them:
+  `validations:`, `filter:`, and `links:`. Grouped because they share that
+  property and need no new architecture — no drawing part, no binary asset, no
+  reader seam — which is why they landed before charts.
+
+  **`validations:`** covers drop-downs, whose choices are either written inline
+  or sourced from cells (`list: { from: "Statuses!A1:A3" }`, another sheet
+  included), and `whole` / `decimal` / `text_length` / `date` comparisons across
+  all eight OOXML operators, each with Excel's "Ignore blank", input prompt, and
+  error dialog. A bound is typed — a number, or a `DateTime` whose serial the
+  *emitter* computes, since the epoch is a workbook property the loader does not
+  know. Integral bounds are written as integers, so the stored formula reads
+  `46023` and not `46023.0`.
+
+  **`filter:`** is `set_auto_filter` over a range. **`links:`** takes a bare URL
+  for the common case, or `{ to: … }` for an in-workbook target — never inferred
+  from shape, because `Summary!A1` and a URL are both just text. A link supplies
+  no display text: Excel shows the cell's own value, so recording one would
+  store a string nobody sees.
+
+  Two diagnostics are worth naming, both for failures Excel reports as *nothing
+  at all*. A **sheet named** by `to:` or by a list's `from:` must be declared —
+  otherwise the drop-down comes up empty and the link goes nowhere, and the
+  workbook looks fine until someone clicks. That check runs after the whole spec
+  is loaded, since a lookup sheet is routinely the last tab. And an **inline
+  list over Excel's 255-character limit** is refused with its actual length and
+  a pointer to `from:`, rather than being handed to the backend, which would
+  fail far from the spec that caused it.
 
 - **2026-07-26** — **The release path is rehearsed on every pull request.**
   Tagging v0.1.1 failed on Windows: packaging ended in `shasum -a 256`, and Git
