@@ -357,3 +357,15 @@ test "conditional formats keep declaration order, which is priority order" {
   assert_eq(formats[0].at.top_left.to_a1(), "A1")
   assert_true(formats[1].rule is Unique)
 }
+
+///|
+test "a conditional bound must be a scalar" {
+  assert_eq(
+    schema_message(
+      conditional_spec("cell: { at_least: [1, 2] }\n        style: good"),
+    ),
+    Some(
+      "spec.yaml: conditional 'B2:B9' 'at_least' must be text, a number, or a boolean",
+    ),
+  )
+}

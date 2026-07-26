@@ -228,9 +228,12 @@ fn load_rank_rule(
     count = Some(expect_count(node, file~, what~))
   }
   let count = count.unwrap()
-  // Excel's own dialog caps the rank at 1000, and a percentage at 100. Checked
-  // before narrowing, so an absurd number cannot wrap into range.
-  let limit = if percent { 100L } else { 1000L }
+  // Checked before narrowing, so an absurd number cannot wrap into range.
+  let limit = if percent {
+    @model.max_rank_percent.to_int64()
+  } else {
+    @model.max_rank_count.to_int64()
+  }
   guard count >= 1L && count <= limit else {
     raise schema_error(
       file~,

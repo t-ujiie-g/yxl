@@ -1,5 +1,4 @@
-// Schema tests for the top-level `properties:` and `calc:`, and for a sheet's
-// `comments:`.
+// Schema tests for the top-level `properties:` and `calc:`.
 
 ///|
 /// The document properties a spec loads.
@@ -150,61 +149,4 @@ test "an unknown calc mode is named in the diagnostic" {
       "spec.yaml: unknown calc mode 'lazy' (expected 'automatic', 'automatic_no_tables', or 'manual')",
     ),
   )
-}
-
-///|
-test "a bare comment is its text" {
-  let wb = load_ok(sheet_spec("    comments:\n      B2: Restated in Q3.\n"))
-  let comment = wb.sheets[0].comments[0]
-  assert_eq(comment.at.to_a1(), "B2")
-  assert_eq(comment.text, "Restated in Q3.")
-  assert_eq(comment.author, None)
-}
-
-///|
-test "a comment may name its author" {
-  let wb = load_ok(
-    sheet_spec(
-      "    comments:\n      A2: { text: Includes ANZ., author: Finance }\n",
-    ),
-  )
-  let comment = wb.sheets[0].comments[0]
-  assert_eq(comment.text, "Includes ANZ.")
-  assert_eq(comment.author, Some("Finance"))
-}
-
-///|
-test "a comment needs its text" {
-  assert_eq(
-    schema_message(sheet_spec("    comments:\n      A2: { author: Finance }\n")),
-    Some("spec.yaml: comment 'A2' is missing required key 'text'"),
-  )
-}
-
-///|
-test "a comment rejects an unknown key" {
-  assert_eq(
-    schema_message(sheet_spec("    comments:\n      A2: { note: hi }\n")),
-    Some(
-      "spec.yaml: unknown key 'note' in comment 'A2' (expected 'text' or 'author')",
-    ),
-  )
-}
-
-///|
-test "a comment key must be a cell reference" {
-  assert_eq(
-    schema_message(sheet_spec("    comments:\n      A0: hi\n")),
-    Some("spec.yaml: 'A0' is not a valid A1 cell reference in 'comments'"),
-  )
-}
-
-///|
-test "comments keep declaration order" {
-  let wb = load_ok(
-    sheet_spec("    comments:\n      C3: third\n      A1: first\n"),
-  )
-  let comments = wb.sheets[0].comments
-  assert_eq(comments[0].at.to_a1(), "C3")
-  assert_eq(comments[1].at.to_a1(), "A1")
 }

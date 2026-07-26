@@ -13,6 +13,10 @@ pub let max_outline_level : Int
 
 pub let max_page_scale : Int
 
+pub let max_rank_count : Int
+
+pub let max_rank_percent : Int
+
 pub let max_validation_list_length : Int
 
 pub let min_page_scale : Int
