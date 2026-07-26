@@ -202,6 +202,9 @@ pub(all) struct Sheet {
   conditional_formats : Array[ConditionalFormat]
   /// Notes attached to cells, in declaration order.
   comments : Array[Comment]
+  /// What a reader may still do once the sheet is protected; `None` leaves the
+  /// sheet unprotected.
+  mut protection : SheetProtection?
 } derive(Eq, Debug)
 
 ///|
@@ -235,6 +238,8 @@ pub(all) struct Workbook {
   mut properties : DocumentProperties?
   /// How Excel recalculates on open; `None` keeps its defaults.
   mut calc : CalcSettings?
+  /// What a reader may not do to the workbook itself; `None` leaves it open.
+  mut protection : WorkbookProtection?
 } derive(Eq, Debug)
 
 ///|
@@ -252,6 +257,7 @@ pub fn Workbook::new(
     active_sheet: None,
     properties: None,
     calc: None,
+    protection: None,
   }
 }
 
@@ -269,6 +275,15 @@ pub fn Workbook::set_properties(
   properties : DocumentProperties,
 ) -> Unit {
   self.properties = Some(properties)
+}
+
+///|
+/// Lock the workbook's structure, its windows, or both.
+pub fn Workbook::set_protection(
+  self : Workbook,
+  protection : WorkbookProtection,
+) -> Unit {
+  self.protection = Some(protection)
 }
 
 ///|
@@ -324,6 +339,7 @@ pub fn Sheet::new(
     links: [],
     conditional_formats: [],
     comments: [],
+    protection: None,
   }
 }
 
@@ -374,6 +390,16 @@ pub fn Sheet::add_conditional_format(
   format : ConditionalFormat,
 ) -> Unit {
   self.conditional_formats.push(format)
+}
+
+///|
+/// Protect the sheet. Only cells whose style says `locked` are frozen by it,
+/// which is every cell unless a style says otherwise.
+pub fn Sheet::set_protection(
+  self : Sheet,
+  protection : SheetProtection,
+) -> Unit {
+  self.protection = Some(protection)
 }
 
 ///|

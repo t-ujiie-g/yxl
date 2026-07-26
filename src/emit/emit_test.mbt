@@ -88,6 +88,7 @@ test "a full style round-trips its attributes and identical styles share one id"
   let sheet = wb.add_sheet("S")
   let style : @model.Style = {
     number_format: Some("0.00"),
+    protection: None,
     font: Some({
       bold: Some(true),
       italic: Some(true),

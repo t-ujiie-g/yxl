@@ -88,3 +88,69 @@ pub(all) struct CalcSettings {
   /// mode — useful where the spec supplied no cached values.
   on_load : Bool?
 } derive(Eq, Debug)
+
+///|
+/// What a reader of a protected sheet may still do. Excel's "Protect Sheet"
+/// dialog is a list of tick-boxes, and this is that list: `true` allows the
+/// action, `false` blocks it.
+///
+/// The defaults are Excel's own — selecting cells stays allowed, everything
+/// else is blocked — so `protect: {}` behaves the way ticking nothing in that
+/// dialog does.
+pub(all) struct SheetProtection {
+  /// Excel's sheet-protection password. **Not encryption**: it stops accidental
+  /// edits and is trivially removed. `None` protects the sheet without one.
+  password : String?
+  select_locked_cells : Bool
+  select_unlocked_cells : Bool
+  format_cells : Bool
+  format_columns : Bool
+  format_rows : Bool
+  insert_columns : Bool
+  insert_rows : Bool
+  insert_hyperlinks : Bool
+  delete_columns : Bool
+  delete_rows : Bool
+  sort : Bool
+  auto_filter : Bool
+  pivot_tables : Bool
+  edit_objects : Bool
+  edit_scenarios : Bool
+} derive(Eq, Debug)
+
+///|
+/// Sheet protection as Excel's dialog opens it: the sheet is locked, but a
+/// reader may still select any cell.
+pub fn SheetProtection::new() -> SheetProtection {
+  {
+    password: None,
+    select_locked_cells: true,
+    select_unlocked_cells: true,
+    format_cells: false,
+    format_columns: false,
+    format_rows: false,
+    insert_columns: false,
+    insert_rows: false,
+    insert_hyperlinks: false,
+    delete_columns: false,
+    delete_rows: false,
+    sort: false,
+    auto_filter: false,
+    pivot_tables: false,
+    edit_objects: false,
+    edit_scenarios: false,
+  }
+}
+
+///|
+/// What a reader may not do to the *workbook* — as opposed to a sheet's cells.
+/// At least one of the two is set; protecting neither would write nothing.
+pub(all) struct WorkbookProtection {
+  /// Stop sheets being added, removed, renamed, reordered, or unhidden.
+  structure : Bool
+  /// Stop the workbook's windows being moved or resized. Excel for Windows has
+  /// ignored this since 2013; it is written for older readers.
+  windows : Bool
+  /// As on a sheet, this is not encryption.
+  password : String?
+} derive(Eq, Debug)

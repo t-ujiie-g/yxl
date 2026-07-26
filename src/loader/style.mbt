@@ -73,6 +73,7 @@ fn load_style(
   let mut fill = None
   let mut borders = None
   let mut align = None
+  let mut protection = None
   let mut base = None
   for entry in entries {
     let (key, node) = entry
@@ -81,6 +82,8 @@ fn load_style(
       "fill" => fill = Some(load_fill(node, file~, context~))
       "border" => borders = Some(load_borders(node, file~, context~))
       "align" => align = Some(load_alignment(node, file~, context~))
+      "protection" =>
+        protection = Some(load_cell_protection(node, file~, context~))
       "extends" =>
         base = Some(
           find_base(expect_string(node, file~, context="\{context} 'extends'")),
@@ -88,11 +91,18 @@ fn load_style(
       _ =>
         raise schema_error(
           file~,
-          "unknown key '\{key}' in \{context} style (expected 'font', 'fill', 'border', 'align', or 'extends')",
+          "unknown key '\{key}' in \{context} style (expected 'font', 'fill', 'border', 'align', 'protection', or 'extends')",
         )
     }
   }
-  let style : @model.Style = { font, fill, borders, align, number_format: None }
+  let style : @model.Style = {
+    font,
+    fill,
+    borders,
+    align,
+    number_format: None,
+    protection,
+  }
   match base {
     Some(base) => style.over(base)
     None => style
@@ -371,4 +381,38 @@ fn load_border_style(
         "\{context} has an unknown border style '\{other}' (expected 'thin', 'medium', 'thick', 'dashed', 'dotted', 'double', or 'hair')",
       )
   }
+}
+
+///|
+/// A style's `protection:` — what sheet protection does to a cell wearing it.
+/// Neither key does anything until the sheet itself is protected.
+fn load_cell_protection(
+  node : @yaml.Node,
+  file~ : String,
+  context~ : String,
+) -> @model.CellProtection raise @diag.SchemaError {
+  let what = "\{context} style 'protection'"
+  let mut locked = None
+  let mut hidden = None
+  for entry in expect_map(node, file~, context=what) {
+    let (key, value) = entry
+    match key {
+      "locked" =>
+        locked = Some(expect_bool(value, file~, context="\{what} 'locked'"))
+      "hidden" =>
+        hidden = Some(expect_bool(value, file~, context="\{what} 'hidden'"))
+      _ =>
+        raise schema_error(
+          file~,
+          "unknown key '\{key}' in \{what} (expected 'locked' or 'hidden')",
+        )
+    }
+  }
+  guard locked is Some(_) || hidden is Some(_) else {
+    raise schema_error(
+      file~,
+      "\{what} sets nothing (expected 'locked' or 'hidden')",
+    )
+  }
+  { locked, hidden }
 }

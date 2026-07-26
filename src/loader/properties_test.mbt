@@ -150,3 +150,153 @@ test "an unknown calc mode is named in the diagnostic" {
     ),
   )
 }
+
+///|
+/// Sheet protection a spec loads.
+fn loaded_sheet_protection(body : String) -> @model.SheetProtection raise {
+  load_ok(sheet_spec(body)).sheets[0].protection.unwrap()
+}
+
+///|
+test "protect on its own applies Excel's own defaults" {
+  let protection = loaded_sheet_protection("    protect: {}\n")
+  assert_eq(protection.password, None)
+  // Excel's dialog opens with both selection boxes ticked and nothing else.
+  assert_true(protection.select_locked_cells)
+  assert_true(protection.select_unlocked_cells)
+  assert_false(protection.format_cells)
+  assert_false(protection.sort)
+}
+
+///|
+test "an allowance grants or blocks exactly what it names" {
+  let protection = loaded_sheet_protection(
+    "    protect:\n      allow:\n        sort: true\n        format_cells: true\n        select_locked_cells: false\n",
+  )
+  assert_true(protection.sort)
+  assert_true(protection.format_cells)
+  assert_false(protection.select_locked_cells)
+  // Untouched allowances keep their defaults.
+  assert_true(protection.select_unlocked_cells)
+  assert_false(protection.format_rows)
+}
+
+///|
+test "every allowance Excel's dialog offers is accepted" {
+  for
+    name in [
+      "select_locked_cells", "select_unlocked_cells", "format_cells", "format_columns",
+      "format_rows", "insert_columns", "insert_rows", "insert_hyperlinks", "delete_columns",
+      "delete_rows", "sort", "auto_filter", "pivot_tables", "edit_objects", "edit_scenarios",
+    ] {
+    let source = sheet_spec(
+      "    protect:\n      allow:\n        \{name}: true\n",
+    )
+    assert_eq(schema_message(source), None)
+  }
+}
+
+///|
+test "a misspelt allowance is a diagnostic, not a permission that never applies" {
+  guard schema_message(
+      sheet_spec("    protect:\n      allow:\n        sorting: true\n"),
+    )
+    is Some(message) else {
+    fail("expected a diagnostic")
+  }
+  assert_true(
+    message.has_prefix(
+      "spec.yaml: unknown allowance 'sorting' in sheet 'protect'",
+    ),
+  )
+  assert_true(message.contains("'sort'"))
+}
+
+///|
+test "a sheet protection password loads" {
+  let protection = loaded_sheet_protection(
+    "    protect:\n      password: \"s3cret\"\n",
+  )
+  assert_eq(protection.password, Some("s3cret"))
+}
+
+///|
+test "sheet protect rejects an unknown key" {
+  assert_eq(
+    schema_message(sheet_spec("    protect:\n      locked: true\n")),
+    Some(
+      "spec.yaml: unknown key 'locked' in sheet 'protect' (expected 'password' or 'allow')",
+    ),
+  )
+}
+
+///|
+test "workbook protection loads what it locks" {
+  let wb = load_ok(
+    "protect:\n  structure: true\n  password: pw\nsheets:\n  - name: S\n",
+  )
+  let protection = wb.protection.unwrap()
+  assert_true(protection.structure)
+  assert_false(protection.windows)
+  assert_eq(protection.password, Some("pw"))
+}
+
+///|
+test "workbook protection that locks nothing is a diagnostic" {
+  assert_eq(
+    schema_message("protect:\n  windows: false\nsheets:\n  - name: S\n"),
+    Some(
+      "spec.yaml: 'protect' locks nothing (expected 'structure' or 'windows')",
+    ),
+  )
+}
+
+///|
+test "workbook protect rejects an unknown key" {
+  assert_eq(
+    schema_message("protect:\n  cells: true\nsheets:\n  - name: S\n"),
+    Some(
+      "spec.yaml: unknown key 'cells' in 'protect' (expected 'structure', 'windows', or 'password')",
+    ),
+  )
+}
+
+///|
+test "a style's protection loads both halves" {
+  let wb = load_ok(
+    sheet_spec(
+      "    cells:\n      A1: { value: 1, style: { protection: { locked: false, hidden: true } } }\n",
+    ),
+  )
+  let protection = wb.sheets[0].cells[0].style.unwrap().protection.unwrap()
+  assert_eq(protection.locked, Some(false))
+  assert_eq(protection.hidden, Some(true))
+}
+
+///|
+test "a style's protection that sets nothing is a diagnostic" {
+  assert_eq(
+    schema_message(
+      sheet_spec(
+        "    cells:\n      A1: { value: 1, style: { protection: {} } }\n",
+      ),
+    ),
+    Some(
+      "spec.yaml: cell 'A1' style 'protection' sets nothing (expected 'locked' or 'hidden')",
+    ),
+  )
+}
+
+///|
+test "a style's protection rejects an unknown key" {
+  assert_eq(
+    schema_message(
+      sheet_spec(
+        "    cells:\n      A1: { value: 1, style: { protection: { frozen: true } } }\n",
+      ),
+    ),
+    Some(
+      "spec.yaml: unknown key 'frozen' in cell 'A1' style 'protection' (expected 'locked' or 'hidden')",
+    ),
+  )
+}

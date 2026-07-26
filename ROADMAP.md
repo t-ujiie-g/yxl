@@ -266,8 +266,14 @@ is why validation, filters, and links arrived before charts.
       (`x > 5`), and passing that through unvalidated would turn a typo into a
       backend `EmitError` instead of a diagnostic (ADR-006). They need a
       structured schema that compiles *to* those strings inside `emit`
-- [ ] Sheet / workbook protection, incl. password-based encryption
-      (`protect_sheet` / `write_with_password`)
+- [x] **Sheet / workbook protection** — `protect:` at both levels, plus
+      `protection: { locked, hidden }` in a style, without which protection
+      cannot leave a form's input cells editable. Excel's own defaults apply,
+      and a misspelt allowance is a diagnostic. **File encryption**
+      (`write_with_password`) is *not* included: it changes the emitter's
+      signature and needs the CLI to carry a secret, which wants its own
+      decision — a protection password is only anti-accident, and the spec says
+      so plainly
 - [x] **Workbook metadata**: document properties (title, subject, author,
       keywords, description, category, status, language, version, company) and
       properties of the author's own devising under `custom:`, plus the
@@ -722,6 +728,42 @@ silently reading the wrong file).
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-26** — **Protection**, at three levels: the workbook's structure,
+  a sheet's cells, and — the one that makes the other two useful — a style's
+  `protection: { locked, hidden }`. Excel locks every cell by default, so
+  protecting a sheet freezes all of it; unlocking a style is the only way to
+  build a form somebody can fill in, and shipping sheet protection without it
+  would have been shipping half a feature.
+
+  A sheet's `allow:` grants what a reader may still do, and anything unnamed
+  keeps Excel's default — selection allowed, everything else blocked, exactly
+  what its own dialog opens with. **The polarity was worth checking rather than
+  assuming**: OOXML's `sheetProtection` attributes mark what is *locked*, while
+  the backend's options (and ours) name what is *allowed*, and getting that
+  backwards would have produced workbooks that quietly permitted everything.
+  Verified in the emitted XML.
+
+  **`with_protection` does not exist in the backend.** It builds a style by
+  seeding from one attribute and layering the rest with `with_*` builders, and
+  protection has only a from-scratch constructor — so a style cannot carry both
+  a number format and cell protection. Rather than drop one silently, the
+  emitter refuses, names the number format so the author can find the style,
+  and the spec documents the limit. It is the first place `emit` raises a
+  diagnostic of its own rather than wrapping the backend's, so the seam's error
+  wrapping now passes ours through untouched.
+
+  **File encryption is deliberately excluded.** `write_with_password` changes
+  the emitter's signature and needs the CLI to carry a secret; that wants its
+  own decision. A *protection* password is only anti-accident — Excel stores a
+  hash, removes it for anyone who asks, and the file's contents are readable
+  regardless — so the spec says so outright and points at `${…}` + `--set`
+  rather than inviting a password into a version-controlled file.
+
+  One testing limit recorded: the backend's reader does not surface a sheet
+  password's hash, so the round-trip test asserts only that adding one disturbs
+  nothing else. That the hash reaches the file was read out of the XML by hand;
+  asserting it would need a zip reader the test packages do not have.
 
 - **2026-07-26** — **Refactoring pass over the whole tree.** No behaviour
   changed; 257 tests pass.

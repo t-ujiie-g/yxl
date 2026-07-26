@@ -23,6 +23,7 @@ params: {...}          # named values substituted as ${name}   → §7
 defs: {...}            # named styles, values, and formulas    → §6
 properties: {...}      # what the file says about itself       → §11
 calc: {...}            # when Excel recalculates               → §11
+protect: {...}         # lock the workbook's structure         → §12
 date1904: false        # use Excel's 1904 date epoch
 default_font: Calibri  # the workbook's default font face
 ```
@@ -35,6 +36,7 @@ default_font: Calibri  # the workbook's default font face
 | `defs` | mapping | §6. |
 | `properties` | mapping | Document properties. §11. |
 | `calc` | mapping | Calculation settings. §11. |
+| `protect` | mapping | Workbook protection. §12. |
 | `date1904` | boolean | `true` selects the 1904 epoch. Affects how dates serialize. |
 | `default_font` | text | Face name only; size and colour are per-style. |
 
@@ -60,6 +62,7 @@ sheets:
     links: {...}       # → §10
     conditional: [...] # → §10
     comments: {...}    # → §10
+    protect: {...}     # → §12
 ```
 
 | Key | Type | Notes |
@@ -80,6 +83,7 @@ sheets:
 | `links` | mapping | Hyperlinks, by cell. §10. |
 | `conditional` | sequence | Formatting decided by the value. §10. |
 | `comments` | mapping | Notes, by cell. §10. |
+| `protect` | mapping | Sheet protection. §12. |
 
 Sheet keys apply **in the order written**, so where a `data:` table and `cells:`
 overlap, whichever comes last wins.
@@ -205,6 +209,7 @@ defs:
 | `font` | `{ bold, italic, underline, strike, size, name, color }` — all optional. |
 | `fill` | A hex `RRGGBB`, or `{ color: RRGGBB }`. Solid fills only. |
 | `border` | A style name for all four edges (`border: thin`), or a mapping of `all` / `left` / `right` / `top` / `bottom`, each a style name or `{ style, color }`. Styles: `thin`, `medium`, `thick`, `dashed`, `dotted`, `double`, `hair`. |
+| `protection` | `{ locked, hidden }` — what sheet protection does to a cell wearing this style. §12. |
 | `align` | `{ horizontal, vertical, wrap }`. Horizontal: `left`, `center`, `right`, `fill`, `justify`, `distributed`. Vertical: `top`, `middle`, `bottom`, `justify`, `distributed`. |
 
 A cell's own `format` layers on top of a referenced style.
@@ -499,7 +504,57 @@ values the spec supplied, which is worth setting where recalculation is slow;
 `on_load: true` forces one full pass regardless, which is what you want where
 the spec supplied no cached values at all.
 
-## 12. Diagnostics
+## 12. Protection
+
+```yaml
+protect:                    # the workbook itself
+  structure: true           # no adding, removing, renaming, reordering sheets
+  windows: false
+  password: "${wb_password}"
+
+defs:
+  styles:
+    entry:
+      protection: { locked: false }   # this is what makes a form fillable
+
+sheets:
+  - name: Orders
+    protect:                # the sheet's cells
+      password: "${sheet_password}"
+      allow:
+        sort: true
+        auto_filter: true
+        select_locked_cells: false
+```
+
+**Excel locks every cell by default**, so protecting a sheet freezes all of it.
+The way to leave a form's input boxes editable is to give *them* a style with
+`protection: { locked: false }`. `hidden: true` additionally keeps the cell's
+formula out of the formula bar — the value still shows, and the file still
+contains the formula.
+
+A sheet's `allow:` names what a reader may still do; anything unnamed keeps
+Excel's default, which is **selection allowed, everything else blocked** —
+exactly what its own "Protect Sheet" dialog opens with. The full list:
+`select_locked_cells`, `select_unlocked_cells`, `format_cells`,
+`format_columns`, `format_rows`, `insert_columns`, `insert_rows`,
+`insert_hyperlinks`, `delete_columns`, `delete_rows`, `sort`, `auto_filter`,
+`pivot_tables`, `edit_objects`, `edit_scenarios`. A misspelt one is an error,
+not a permission that silently never applies.
+
+> **A protection password is not encryption.** It stops accidents and is
+> trivially removed; Excel stores a hash, not the word, and the file's contents
+> are readable either way. A spec is usually version-controlled, so write the
+> password as a parameter (§7) and pass it with `--set` rather than committing
+> it. Encrypting the *file* is not supported.
+
+### One combination the backend cannot express
+
+A style may carry **either** a number format **or** cell protection, not both.
+The build fails saying so, naming the format, rather than dropping one
+silently. Split them into two styles, or drop the format.
+
+## 13. Diagnostics
 
 A failed build prints one diagnostic and exits non-zero. YAML **syntax** errors
 carry a line and column with the source quoted:

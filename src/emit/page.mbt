@@ -16,7 +16,7 @@ fn apply_page_setup(
   backend : @xlsx.Workbook,
   sheet_name : String,
   page : @model.PageSetup,
-) -> Unit raise @xlsx.XlsxError {
+) -> Unit raise {
   let orientation = page.orientation.map(orientation_code)
   let (adjust_to, fit_to_width, fit_to_height) = match page.scale {
     Some(Percent(percent)) => (Some(percent), None, None)

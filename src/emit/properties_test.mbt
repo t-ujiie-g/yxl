@@ -133,3 +133,129 @@ test "notes are emitted in declaration order" {
   assert_eq(comments[0].cell, "C3")
   assert_eq(comments[1].cell, "A1")
 }
+
+///|
+test "sheet protection round-trips as allowances, not as locks" {
+  let (wb, sheet) = fixture()
+  sheet.set_protection({
+    ..@model.SheetProtection::new(),
+    sort: true,
+    format_cells: true,
+    select_locked_cells: false,
+  })
+  let reopened = @xlsx.read(@emit.to_bytes(wb)[:])
+  let protection = reopened.get_sheet_protection("S")
+  // What was granted comes back granted, and what was not stays blocked — the
+  // backend's options are allowances, as the model's are, and OOXML's
+  // attributes are the inverse of both.
+  assert_true(protection.sort)
+  assert_true(protection.format_cells)
+  assert_false(protection.select_locked_cells)
+  assert_true(protection.select_unlocked_cells)
+  assert_false(protection.format_rows)
+}
+
+///|
+test "an unprotected sheet stays unprotected" {
+  let (wb, _) = fixture()
+  let protection = @xlsx.read(@emit.to_bytes(wb)[:]).get_sheet_protection("S")
+  // Nothing granted and nothing blocked: the sheet carries no protection at all.
+  assert_false(protection.sort)
+  assert_false(protection.select_locked_cells)
+}
+
+///|
+/// A password does not come back out: Excel stores a hash rather than the word,
+/// and the backend's reader does not surface it. What can be asserted is that
+/// adding one disturbs nothing else — the allowances still say what they said.
+/// That the hash reaches the file (`password="F533"` in `sheetProtection`) was
+/// read out of the XML by hand; asserting it here would need a zip reader the
+/// test packages do not have.
+test "a sheet password leaves the allowances alone" {
+  let (wb, sheet) = fixture()
+  sheet.set_protection({
+    ..@model.SheetProtection::new(),
+    sort: true,
+    password: Some("s3cret"),
+  })
+  let protection = @xlsx.read(@emit.to_bytes(wb)[:]).get_sheet_protection("S")
+  assert_true(protection.sort)
+  assert_true(protection.select_locked_cells)
+  assert_false(protection.format_cells)
+}
+
+///|
+test "cell protection round-trips through the style" {
+  let (wb, sheet) = fixture()
+  let unlocked : @model.Style = {
+    ..@model.Style::empty(),
+    protection: Some({ locked: Some(false), hidden: None }),
+  }
+  sheet.set(@units.CellRef::new(col=1, row=1), Number(1.0), style=unlocked)
+  let reopened = @xlsx.read(@emit.to_bytes(wb)[:])
+  guard reopened.get_cell_style("S", "A1") is Some(id) else {
+    fail("expected a style on A1")
+  }
+  guard reopened.get_style(id).protection is Some(protection) else {
+    fail("expected the style to carry protection")
+  }
+  assert_eq(protection.locked, Some(false))
+}
+
+///|
+/// Excel locks every cell and hides no formula by default, so a style asking
+/// for exactly that changes nothing — and the backend gives us only one seed
+/// slot, which such a style must not occupy.
+test "a style asking only for Excel's defaults leaves the seed slot free" {
+  let (wb, sheet) = fixture()
+  let default_protection : @model.Style = {
+    ..@model.Style::number_format("0.0%"),
+    protection: Some({ locked: Some(true), hidden: Some(false) }),
+  }
+  sheet.set(
+    @units.CellRef::new(col=1, row=1),
+    Number(0.085),
+    style=default_protection,
+  )
+  // Would raise if the redundant protection had taken the number format's place.
+  let reopened = @xlsx.read(@emit.to_bytes(wb)[:])
+  assert_true(reopened.get_cell_style("S", "A1") is Some(_))
+}
+
+///|
+/// The backend seeds a style from one attribute and layers the rest with
+/// `with_*` builders, and it has no `with_protection` — so protection can only
+/// be the seed, and a style needing a number format as well cannot be built.
+/// Refused with something the author can act on rather than silently dropped.
+test "a style cannot carry both a number format and real cell protection" {
+  let (wb, sheet) = fixture()
+  let clash : @model.Style = {
+    ..@model.Style::number_format("0.0%"),
+    protection: Some({ locked: Some(false), hidden: None }),
+  }
+  sheet.set(@units.CellRef::new(col=1, row=1), Number(0.085), style=clash)
+  let message = try {
+    @emit.to_bytes(wb) |> ignore
+    None
+  } catch {
+    @diag.EmitError(diagnostic) => Some(diagnostic.render())
+  }
+  guard message is Some(message) else { fail("expected an emit error") }
+  assert_true(
+    message.has_prefix(
+      "the Excel backend cannot put a number format and cell protection in one style",
+    ),
+  )
+  // And it names the format, so the author can find the style that clashed.
+  assert_true(message.contains("'0.0%'"))
+}
+
+///|
+test "workbook protection round-trips" {
+  let (wb, _) = fixture()
+  wb.set_protection({ structure: true, windows: false, password: None })
+  let reopened = @xlsx.read(@emit.to_bytes(wb)[:])
+  // The backend keeps its `WorkbookProtection` abstract, so the assertion is
+  // that one exists at all; what it says is checked in the file itself.
+  assert_true(reopened.workbook_protection is Some(_))
+}

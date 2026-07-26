@@ -20,6 +20,9 @@ pub fn MbtexcelEmitter::new() -> MbtexcelEmitter {
 ///|
 pub impl Emitter for MbtexcelEmitter with fn emit(_self, wb) {
   build_workbook(wb) catch {
+    // A limit of the backend that we describe ourselves, already worded for
+    // the reader; it passes through rather than being wrapped again.
+    @diag.EmitError(_) as ours => raise ours
     err => {
       // Upcast to `Error` for its `Show`; the concrete `XlsxError` has none.
       let reason : Error = err
@@ -39,8 +42,9 @@ pub fn to_bytes(wb : @model.Workbook) -> Bytes raise @diag.EmitError {
 
 ///|
 /// Drive the backend: workbook-wide settings, one sheet per model sheet, then
-/// serialize. Raises the backend's own error; the seam boundary wraps it.
-fn build_workbook(wb : @model.Workbook) -> Bytes raise @xlsx.XlsxError {
+/// serialize. Raises the backend's own error, which the seam boundary wraps,
+/// or an `@diag.EmitError` where we have something better to say than it does.
+fn build_workbook(wb : @model.Workbook) -> Bytes raise {
   let backend = @xlsx.Workbook::new()
   // Excel stores dates as serials relative to the workbook's epoch, so the
   // backend's flag must match the serials we compute (@units date system).
@@ -57,6 +61,9 @@ fn build_workbook(wb : @model.Workbook) -> Bytes raise @xlsx.XlsxError {
   }
   if wb.calc is Some(calc) {
     apply_calc(backend, calc)
+  }
+  if wb.protection is Some(protection) {
+    apply_workbook_protection(backend, protection)
   }
   // One cache each for the whole workbook, so a style shared across sheets is
   // registered once (ADR-004). Cell styles and conditional formats live in
@@ -104,7 +111,7 @@ fn emit_sheet(
   style_ids : Map[@model.Style, Int],
   dxf_ids : Map[@model.Style, Int],
   date_system : @units.DateSystem,
-) -> Unit raise @xlsx.XlsxError {
+) -> Unit raise {
   // Column and row bands: one backend call per property per column/row in the
   // span. A band's default style shares the cell style cache, so a column style
   // equal to a cell style reuses the same id (ADR-004).
@@ -184,6 +191,9 @@ fn emit_sheet(
   for comment in sheet.comments {
     apply_comment(backend, sheet.name, comment)
   }
+  if sheet.protection is Some(protection) {
+    apply_sheet_protection(backend, sheet.name, protection)
+  }
   // Links come after the merges: the backend redirects a link landing inside a
   // merged region to that region's anchor cell, which it can only do once the
   // merge is registered.
@@ -201,7 +211,7 @@ fn emit_cell(
   cell : @model.Cell,
   style_ids : Map[@model.Style, Int],
   date_system : @units.DateSystem,
-) -> Unit raise @xlsx.XlsxError {
+) -> Unit raise {
   let reference = cell.pos.to_a1()
   match cell.value {
     Text(text) => backend.set_cell_value(sheet_name, reference, String(text))

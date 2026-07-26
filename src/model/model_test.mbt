@@ -91,6 +91,7 @@ test "Style::over keeps what the overriding style leaves unset" {
     }),
     align: Some({ horizontal: Some(Left), vertical: None, wrap: Some(true) }),
     number_format: Some("0.00"),
+    protection: None,
   }
   let over : @model.Style = {
     ..@model.Style::empty(),

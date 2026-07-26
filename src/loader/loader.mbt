@@ -92,11 +92,13 @@ pub fn load(
       "active" => () // resolved below, once every sheet name is known
       "properties" => workbook.set_properties(load_properties(value, file~))
       "calc" => workbook.set_calc(load_calc(value, file~))
+      "protect" =>
+        workbook.set_protection(load_workbook_protection(value, file~))
       "params" => () // consumed by the substitution pass
       _ =>
         raise schema_error(
           file~,
-          "unknown top-level key '\{key}' (expected 'sheets', 'active', 'params', 'date1904', 'default_font', 'defs', 'properties', or 'calc')",
+          "unknown top-level key '\{key}' (expected 'sheets', 'active', 'params', 'date1904', 'default_font', 'defs', 'properties', 'calc', or 'protect')",
         )
     }
   }
@@ -238,10 +240,11 @@ fn load_sheet(
       "links" => load_links(value, sheet, file~)
       "conditional" => load_conditional_formats(value, sheet, file~, defs~)
       "comments" => load_comments(value, sheet, file~)
+      "protect" => sheet.set_protection(load_sheet_protection(value, file~))
       _ =>
         raise schema_error(
           file~,
-          "unknown key '\{key}' in sheet (expected 'name', 'cells', 'data', 'columns', 'rows', 'merges', 'visibility', 'freeze', 'split', 'gridlines', 'tab_color', 'print', 'filter', 'validations', 'links', 'conditional', or 'comments')",
+          "unknown key '\{key}' in sheet (expected 'name', 'cells', 'data', 'columns', 'rows', 'merges', 'visibility', 'freeze', 'split', 'gridlines', 'tab_color', 'print', 'filter', 'validations', 'links', 'conditional', 'comments', or 'protect')",
         )
     }
   }

@@ -10,7 +10,7 @@ fn apply_filter(
   backend : @xlsx.Workbook,
   sheet_name : String,
   range : @model.CellRange,
-) -> Unit raise @xlsx.XlsxError {
+) -> Unit raise {
   backend.set_auto_filter(sheet_name, plain_range(range), [])
 }
 
@@ -22,7 +22,7 @@ fn apply_validation(
   sheet_name : String,
   validation : @model.Validation,
   date_system : @units.DateSystem,
-) -> Unit raise @xlsx.XlsxError {
+) -> Unit raise {
   let dv = @xlsx.DataValidation::new(validation.allow_blank)
   dv.set_sqref(plain_range(validation.at))
   match validation.rule {
@@ -54,7 +54,7 @@ fn apply_link(
   backend : @xlsx.Workbook,
   sheet_name : String,
   link : @model.Link,
-) -> Unit raise @xlsx.XlsxError {
+) -> Unit raise {
   let (target, link_type) = match link.target {
     Url(url) => (url, @xlsx.HyperlinkType::External)
     Location(location) => (location, @xlsx.HyperlinkType::Location)
@@ -79,7 +79,7 @@ fn apply_conditional_format(
   format : @model.ConditionalFormat,
   dxf_ids : Map[@model.Style, Int],
   date_system : @units.DateSystem,
-) -> Unit raise @xlsx.XlsxError {
+) -> Unit raise {
   let options = conditional_options(format.rule, date_system)
   options.set_stop_if_true(format.stop_if_true)
   if format.style is Some(style) {
@@ -204,7 +204,7 @@ fn apply_comment(
   backend : @xlsx.Workbook,
   sheet_name : String,
   comment : @model.Comment,
-) -> Unit raise @xlsx.XlsxError {
+) -> Unit raise {
   backend.add_comment(sheet_name, {
     cell: comment.at.to_a1(),
     author: comment.author.unwrap_or(""),
