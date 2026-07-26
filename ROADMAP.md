@@ -508,6 +508,22 @@ added as sugar over the same expansion, but `$include` stays the contract.
 
 Reverse-chronological. One entry per user-visible or structural change.
 
+- **2026-07-26** — **Phase 7: style inheritance (`extends:`).** A style
+  definition may extend another — `header: { extends: base, font: { bold: true } }`
+  — and so may an inline `style:` mapping. The merge reaches *inside* a font, an
+  alignment, and the four border edges, so a child that sets `bold` keeps the
+  base's face and size; a fill and a number format are single values with no
+  parts to blend, so setting either replaces it. Added `@model.Style::over` (plus
+  `Font`/`Alignment`/`Borders::over`), which is the whole public-API delta.
+
+  This is the roadmap's "first construct that can let one definition reference
+  another", so **cyclic-reference detection lands for definitions** as promised
+  in Phase 5: `a -> b -> a` (and a style extending itself) is reported with the
+  chain. Resolution is depth-first and memoized, which also buys *forward
+  references* — a style may extend one declared later, so the block reads in
+  whatever order suits the author — while the walk keeps declaration order so a
+  broken spec reports the same error every time. 122 tests green.
+
 - **2026-07-26** — **Phase 7: external data sources (CSV / JSON).** A sheet
   takes a `data:` list, each entry anchoring a table at a cell:
   `- { at: A2, csv: data/sales.csv }`. Fields become **ordinary cells at load

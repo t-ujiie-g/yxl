@@ -57,15 +57,58 @@ fn load_defs(
 }
 
 ///|
+/// Read `defs.styles`. A definition may `extends:` another declared style —
+/// including one declared *later*, so the block reads in whatever order suits
+/// the author — which is resolved depth-first and memoized as each name lands in
+/// `defs.styles`. Declaration order is kept for the walk so a spec with an error
+/// reports the same one every time.
 fn load_style_defs(
   node : @yaml.Node,
   defs : Defs,
   file~ : String,
 ) -> Unit raise @diag.SchemaError {
-  for entry in expect_map(node, file~, context="'defs.styles'") {
-    let (name, style_node) = entry
-    defs.styles[name] = load_style(style_node, file~, context="style '\{name}'")
+  let declared = expect_map(node, file~, context="'defs.styles'")
+  for entry in declared {
+    let (name, _) = entry
+    resolve_style_def(name, declared, defs, file~, chain=[]) |> ignore
   }
+}
+
+///|
+/// Resolve one style definition, following `extends:` first. `chain` is the
+/// names being resolved, outermost first: it both detects a cycle and renders
+/// it. A resolved style is memoized in `defs.styles`, so a shared base is
+/// parsed once however many styles extend it.
+fn resolve_style_def(
+  name : String,
+  declared : Array[(String, @yaml.Node)],
+  defs : Defs,
+  file~ : String,
+  chain~ : Array[String],
+) -> @model.Style raise @diag.SchemaError {
+  if defs.styles.get(name) is Some(resolved) {
+    return resolved
+  }
+  guard !chain.contains(name) else {
+    raise schema_error(
+      file~,
+      "style inheritance cycle: \{render_cycle(chain, name)}",
+    )
+  }
+  guard find_key(declared, name) is Some(node) else {
+    // Only reachable through an `extends:`; the walk itself starts on declared
+    // names, so `chain` names whoever asked for this one.
+    let from = chain[chain.length() - 1]
+    raise schema_error(
+      file~,
+      "style '\{from}' extends undefined style '\{name}'",
+    )
+  }
+  let style = load_style(node, file~, context="style '\{name}'", find_base=base => {
+    resolve_style_def(base, declared, defs, file~, chain=[..chain, name])
+  })
+  defs.styles[name] = style
+  style
 }
 
 ///|

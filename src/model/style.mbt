@@ -37,6 +37,82 @@ pub fn Style::is_empty(self : Style) -> Bool {
 }
 
 ///|
+/// Lay `self` over `base`: every attribute `self` sets wins, and everything it
+/// leaves unset shows through from `base`. This is what one style inheriting
+/// another means — a `header` that extends a `base` adds bold without restating
+/// the face and size.
+///
+/// The merge reaches *inside* a font, an alignment, and the four border edges,
+/// so setting `font: { bold: true }` over a base font keeps the base's size.
+/// A fill and a number format are single values with no parts to merge, so
+/// setting either replaces it outright.
+pub fn Style::over(self : Style, base : Style) -> Style {
+  {
+    font: merge_option(base.font, self.font, Font::over),
+    align: merge_option(base.align, self.align, Alignment::over),
+    borders: merge_option(base.borders, self.borders, Borders::over),
+    fill: or_else(base.fill, self.fill),
+    number_format: or_else(base.number_format, self.number_format),
+  }
+}
+
+///|
+/// `over` if both sides are set, otherwise whichever one is.
+fn[T] merge_option(base : T?, over : T?, merge : (T, T) -> T) -> T? {
+  match (base, over) {
+    (Some(base), Some(over)) => Some(merge(over, base))
+    (None, over) => over
+    (base, None) => base
+  }
+}
+
+///|
+/// The overriding value if set, else the base's.
+fn[T] or_else(base : T?, over : T?) -> T? {
+  match over {
+    Some(_) => over
+    None => base
+  }
+}
+
+///|
+/// A font laid over another, attribute by attribute.
+pub fn Font::over(self : Font, base : Font) -> Font {
+  {
+    bold: or_else(base.bold, self.bold),
+    italic: or_else(base.italic, self.italic),
+    underline: or_else(base.underline, self.underline),
+    strike: or_else(base.strike, self.strike),
+    size: or_else(base.size, self.size),
+    name: or_else(base.name, self.name),
+    color: or_else(base.color, self.color),
+  }
+}
+
+///|
+/// An alignment laid over another, attribute by attribute.
+pub fn Alignment::over(self : Alignment, base : Alignment) -> Alignment {
+  {
+    horizontal: or_else(base.horizontal, self.horizontal),
+    vertical: or_else(base.vertical, self.vertical),
+    wrap: or_else(base.wrap, self.wrap),
+  }
+}
+
+///|
+/// Borders laid over others, edge by edge; an edge the overriding style sets
+/// replaces that edge whole (a `Border` is a style plus a color, not parts to
+/// blend).
+pub fn Borders::over(self : Borders, base : Borders) -> Borders {
+  {
+    left: or_else(base.left, self.left),
+    right: or_else(base.right, self.right),
+    top: or_else(base.top, self.top),
+    bottom: or_else(base.bottom, self.bottom),
+  }
+}
+
+///|
 /// A font: bold/italic/underline/strike toggles, a point size, a face name, and
 /// a color. Each is optional; an unset attribute inherits the workbook default.
 pub(all) struct Font {

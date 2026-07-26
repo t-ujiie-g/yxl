@@ -71,6 +71,59 @@ test "Style::is_empty distinguishes the default style from any set attribute" {
 }
 
 ///|
+test "Style::over keeps what the overriding style leaves unset" {
+  let base : @model.Style = {
+    font: Some({
+      bold: Some(false),
+      italic: None,
+      underline: None,
+      strike: None,
+      size: Some(11.0),
+      name: Some("Calibri"),
+      color: None,
+    }),
+    fill: Some({ color: red() }),
+    borders: Some({
+      left: Some({ style: Thin, color: None }),
+      right: None,
+      top: None,
+      bottom: None,
+    }),
+    align: Some({ horizontal: Some(Left), vertical: None, wrap: Some(true) }),
+    number_format: Some("0.00"),
+  }
+  let over : @model.Style = {
+    ..@model.Style::empty(),
+    font: Some({
+      bold: Some(true),
+      italic: None,
+      underline: None,
+      strike: None,
+      size: None,
+      name: None,
+      color: None,
+    }),
+    align: Some({ horizontal: Some(Center), vertical: None, wrap: None }),
+  }
+  let merged = over.over(base)
+  let font = merged.font.unwrap()
+  // The merge reaches inside the font: `bold` is overridden, the rest shows
+  // through.
+  assert_eq(font.bold, Some(true))
+  assert_eq(font.size, Some(11.0))
+  assert_eq(font.name, Some("Calibri"))
+  assert_eq(merged.align.unwrap().horizontal, Some(Center))
+  assert_eq(merged.align.unwrap().wrap, Some(true))
+  // Untouched parts of the base survive whole.
+  assert_eq(merged.fill, base.fill)
+  assert_eq(merged.borders, base.borders)
+  assert_eq(merged.number_format, Some("0.00"))
+  // Over the empty style, either side is itself.
+  assert_eq(over.over(@model.Style::empty()), over)
+  assert_eq(@model.Style::empty().over(base), base)
+}
+
+///|
 test "band setters record an inclusive span and only the properties given" {
   let sheet = @model.Sheet::new("S")
   sheet.set_column_band(first=2, last=4, width=12.0, hidden=true)

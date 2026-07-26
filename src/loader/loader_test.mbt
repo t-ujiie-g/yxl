@@ -381,7 +381,7 @@ test "load rejects invalid style attributes" {
       "sheets:\n  - name: S\n    cells:\n      A1: { value: 1, style: { glow: true } }\n",
     ),
     Some(
-      "spec.yaml: unknown key 'glow' in cell 'A1' style (expected 'font', 'fill', 'border', or 'align')",
+      "spec.yaml: unknown key 'glow' in cell 'A1' style (expected 'font', 'fill', 'border', 'align', or 'extends')",
     ),
   )
 }
@@ -1439,6 +1439,123 @@ test "load rejects malformed data entries and unusable tables" {
     Some(
       "x.json: row 1 has a field that is an array or object; a cell holds a string, number, boolean, or null",
     ),
+  )
+}
+
+///|
+test "a style extends another, overriding attribute by attribute" {
+  let workbook = load_ok(
+    (
+      #|defs:
+      #|  styles:
+      #|    base:
+      #|      font: { name: Calibri, size: 11, color: "111111" }
+      #|      align: { horizontal: left, wrap: true }
+      #|      border: { all: thin }
+      #|    header:
+      #|      extends: base
+      #|      font: { bold: true, color: "FFFFFF" }
+      #|      fill: "1F3864"
+      #|      align: { horizontal: center }
+      #|sheets:
+      #|  - name: S
+      #|    cells:
+      #|      A1: { value: x, style: header }
+      #|      A2: { value: y, style: base }
+      #|
+    ),
+  )
+  let header = workbook.sheets[0].cells[0].style.unwrap()
+  let font = header.font.unwrap()
+  // Set by the child.
+  assert_eq(font.bold, Some(true))
+  assert_eq(font.color, @units.Color::parse("FFFFFF"))
+  // Left alone by the child, so the base shows through — the merge reaches
+  // inside the font rather than replacing it whole.
+  assert_eq(font.name, Some("Calibri"))
+  assert_eq(font.size, Some(11.0))
+  // Same for alignment; `wrap` survives while `horizontal` is overridden.
+  assert_eq(header.align.unwrap().horizontal, Some(Center))
+  assert_eq(header.align.unwrap().wrap, Some(true))
+  // Borders come through untouched, and the child's own fill is added.
+  assert_true(header.borders.unwrap().left is Some(_))
+  assert_eq(header.fill.unwrap().color, @units.Color::parse("1F3864").unwrap())
+  // The base itself is unchanged by having been extended.
+  let base = workbook.sheets[0].cells[1].style.unwrap()
+  assert_eq(base.font.unwrap().bold, None)
+  assert_eq(base.fill, None)
+}
+
+///|
+test "extends resolves forward references and works on an inline style" {
+  // `child` is declared before the `parent` it extends.
+  let forward = load_ok(
+    (
+      #|defs:
+      #|  styles:
+      #|    child: { extends: parent, font: { bold: true } }
+      #|    parent: { font: { size: 20 } }
+      #|sheets:
+      #|  - name: S
+      #|    cells:
+      #|      A1: { value: x, style: child }
+      #|
+    ),
+  )
+  let font = forward.sheets[0].cells[0].style.unwrap().font.unwrap()
+  assert_eq(font.bold, Some(true))
+  assert_eq(font.size, Some(20.0))
+  // A chain of three, and an inline style extending a declared one.
+  let chain = load_ok(
+    (
+      #|defs:
+      #|  styles:
+      #|    a: { font: { name: Arial } }
+      #|    b: { extends: a, font: { size: 9 } }
+      #|    c: { extends: b, font: { italic: true } }
+      #|sheets:
+      #|  - name: S
+      #|    cells:
+      #|      A1: { value: x, style: c }
+      #|      A2: { value: y, style: { extends: a, font: { bold: true } } }
+      #|
+    ),
+  )
+  let deep = chain.sheets[0].cells[0].style.unwrap().font.unwrap()
+  assert_eq(deep.name, Some("Arial"))
+  assert_eq(deep.size, Some(9.0))
+  assert_eq(deep.italic, Some(true))
+  let inline = chain.sheets[0].cells[1].style.unwrap().font.unwrap()
+  assert_eq(inline.name, Some("Arial"))
+  assert_eq(inline.bold, Some(true))
+}
+
+///|
+test "load rejects style inheritance cycles and a dangling extends" {
+  assert_eq(
+    schema_message(
+      "defs:\n  styles:\n    a: { extends: b }\n    b: { extends: a }\nsheets:\n  - name: S\n",
+    ),
+    Some("spec.yaml: style inheritance cycle: a -> b -> a"),
+  )
+  // A style extending itself is the shortest cycle.
+  assert_eq(
+    schema_message(
+      "defs:\n  styles:\n    a: { extends: a }\nsheets:\n  - name: S\n",
+    ),
+    Some("spec.yaml: style inheritance cycle: a -> a"),
+  )
+  assert_eq(
+    schema_message(
+      "defs:\n  styles:\n    a: { extends: nope }\nsheets:\n  - name: S\n",
+    ),
+    Some("spec.yaml: style 'a' extends undefined style 'nope'"),
+  )
+  assert_eq(
+    schema_message(
+      "sheets:\n  - name: S\n    cells:\n      A1: { value: x, style: { extends: nope } }\n",
+    ),
+    Some("spec.yaml: cell 'A1' extends undefined style 'nope'"),
   )
 }
 

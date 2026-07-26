@@ -29,7 +29,19 @@ fn combine_style(
             "\{context} references undefined style '\{name}'",
           )
       }
-    Some(node) => load_style(node, file~, context~)
+    // An inline style may still `extends:` a declared one; by now every
+    // definition is resolved, so the base is a plain lookup.
+    Some(node) =>
+      load_style(node, file~, context~, find_base=name => {
+        match defs.styles.get(name) {
+          Some(style) => style
+          None =>
+            raise schema_error(
+              file~,
+              "\{context} extends undefined style '\{name}'",
+            )
+        }
+      })
     None => @model.Style::empty()
   }
   let combined = match number_format {
@@ -46,17 +58,22 @@ fn combine_style(
 ///|
 /// Parse a `style:` mapping into a model style (without a number format, which
 /// the caller supplies from the `format:` shorthand). Keys are `font`, `fill`,
-/// `border`, and `align`; anything else is a diagnostic.
+/// `border`, `align`, and `extends`; anything else is a diagnostic.
+///
+/// `extends: <name>` names a style to inherit: `find_base` resolves the name (to
+/// a declared definition), and everything this mapping sets is laid over it.
 fn load_style(
   node : @yaml.Node,
   file~ : String,
   context~ : String,
+  find_base~ : (String) -> @model.Style raise @diag.SchemaError,
 ) -> @model.Style raise @diag.SchemaError {
   let entries = expect_map(node, file~, context="\{context} style")
   let mut font = None
   let mut fill = None
   let mut borders = None
   let mut align = None
+  let mut base = None
   for entry in entries {
     let (key, node) = entry
     match key {
@@ -64,14 +81,22 @@ fn load_style(
       "fill" => fill = Some(load_fill(node, file~, context~))
       "border" => borders = Some(load_borders(node, file~, context~))
       "align" => align = Some(load_alignment(node, file~, context~))
+      "extends" =>
+        base = Some(
+          find_base(expect_string(node, file~, context="\{context} 'extends'")),
+        )
       _ =>
         raise schema_error(
           file~,
-          "unknown key '\{key}' in \{context} style (expected 'font', 'fill', 'border', or 'align')",
+          "unknown key '\{key}' in \{context} style (expected 'font', 'fill', 'border', 'align', or 'extends')",
         )
     }
   }
-  { font, fill, borders, align, number_format: None }
+  let style : @model.Style = { font, fill, borders, align, number_format: None }
+  match base {
+    Some(base) => style.over(base)
+    None => style
+  }
 }
 
 ///|
