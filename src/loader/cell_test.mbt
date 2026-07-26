@@ -196,6 +196,7 @@ test "load builds sheets and typed cells from a minimal spec" {
       #|      validations: [],
       #|      links: [],
       #|      conditional_formats: [],
+      #|      comments: [],
       #|    },
       #|    {
       #|      name: "Second",
@@ -212,12 +213,15 @@ test "load builds sheets and typed cells from a minimal spec" {
       #|      validations: [],
       #|      links: [],
       #|      conditional_formats: [],
+      #|      comments: [],
       #|    },
       #|  ],
       #|  date_system: Date1900,
       #|  default_font: None,
       #|  defined_names: [],
       #|  active_sheet: None,
+      #|  properties: None,
+      #|  calc: None,
       #|}
     ),
   )

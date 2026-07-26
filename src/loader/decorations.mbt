@@ -78,6 +78,47 @@ fn load_link(
 }
 
 ///|
+/// A sheet's `comments:` — a mapping of cell reference to note. The value is
+/// either the text on its own or a mapping naming the author too.
+fn load_comments(
+  node : @yaml.Node,
+  sheet : @model.Sheet,
+  file~ : String,
+) -> Unit raise @diag.SchemaError {
+  for entry in expect_map(node, file~, context="'comments'") {
+    let (reference, value) = entry
+    let cell = expect_cell_ref(reference, file~, what="'comments'")
+    let context = "comment '\{reference}'"
+    if value is @yaml.Str(text) {
+      sheet.add_comment(cell, text)
+      continue
+    }
+    let mut text = None
+    let mut author = None
+    for inner in expect_map(value, file~, context~) {
+      let (key, value) = inner
+      match key {
+        "text" =>
+          text = Some(expect_string(value, file~, context="\{context} 'text'"))
+        "author" =>
+          author = Some(
+            expect_string(value, file~, context="\{context} 'author'"),
+          )
+        _ =>
+          raise schema_error(
+            file~,
+            "unknown key '\{key}' in \{context} (expected 'text' or 'author')",
+          )
+      }
+    }
+    guard text is Some(text) else {
+      raise schema_error(file~, "\{context} is missing required key 'text'")
+    }
+    sheet.add_comment(cell, text, author?)
+  }
+}
+
+///|
 /// A sheet's `validations:` — a sequence of rules, each over a range.
 fn load_validations(
   node : @yaml.Node,

@@ -200,6 +200,8 @@ pub(all) struct Sheet {
   /// Conditional formats, in declaration order — which is priority order, so an
   /// earlier rule wins where two match the same cell.
   conditional_formats : Array[ConditionalFormat]
+  /// Notes attached to cells, in declaration order.
+  comments : Array[Comment]
 } derive(Eq, Debug)
 
 ///|
@@ -229,6 +231,10 @@ pub(all) struct Workbook {
   /// The sheet selected when the workbook opens, by name (`None` selects the
   /// first sheet). The emitter resolves it to Excel's `activeTab` index.
   mut active_sheet : String?
+  /// What the workbook says about itself; `None` writes no properties.
+  mut properties : DocumentProperties?
+  /// How Excel recalculates on open; `None` keeps its defaults.
+  mut calc : CalcSettings?
 } derive(Eq, Debug)
 
 ///|
@@ -244,6 +250,8 @@ pub fn Workbook::new(
     default_font,
     defined_names: [],
     active_sheet: None,
+    properties: None,
+    calc: None,
   }
 }
 
@@ -252,6 +260,21 @@ pub fn Workbook::new(
 /// workbook's sheets; callers validate that (the loader raises a diagnostic).
 pub fn Workbook::set_active_sheet(self : Workbook, name : String) -> Unit {
   self.active_sheet = Some(name)
+}
+
+///|
+/// Set what the workbook says about itself.
+pub fn Workbook::set_properties(
+  self : Workbook,
+  properties : DocumentProperties,
+) -> Unit {
+  self.properties = Some(properties)
+}
+
+///|
+/// Set how Excel recalculates the workbook.
+pub fn Workbook::set_calc(self : Workbook, calc : CalcSettings) -> Unit {
+  self.calc = Some(calc)
 }
 
 ///|
@@ -300,6 +323,7 @@ pub fn Sheet::new(
     validations: [],
     links: [],
     conditional_formats: [],
+    comments: [],
   }
 }
 
@@ -350,6 +374,17 @@ pub fn Sheet::add_conditional_format(
   format : ConditionalFormat,
 ) -> Unit {
   self.conditional_formats.push(format)
+}
+
+///|
+/// Attach a note to a cell. The cell keeps whatever value it was given.
+pub fn Sheet::add_comment(
+  self : Sheet,
+  at : @units.CellRef,
+  text : String,
+  author? : String,
+) -> Unit {
+  self.comments.push({ at, text, author })
 }
 
 ///|

@@ -63,6 +63,17 @@ pub(all) enum Bound {
   Text(String)
 } derive(Eq, @debug.Debug)
 
+pub(all) enum CalcMode {
+  Automatic
+  AutomaticNoTables
+  Manual
+} derive(Eq, @debug.Debug)
+
+pub(all) struct CalcSettings {
+  mode : CalcMode?
+  on_load : Bool?
+} derive(Eq, @debug.Debug)
+
 pub(all) struct Cell {
   pos : @units.CellRef
   value : CellValue
@@ -82,6 +93,12 @@ pub(all) enum CellValue {
   Error(String)
   Formula(formula~ : String, cached~ : CellValue?)
   RichText(Array[RichRun])
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Comment {
+  at : @units.CellRef
+  text : String
+  author : String?
 } derive(Eq, @debug.Debug)
 
 pub(all) enum Comparison {
@@ -114,10 +131,30 @@ pub(all) enum ConditionalRule {
   IconSet(style~ : String, reverse~ : Bool, icons_only~ : Bool)
 } derive(Eq, @debug.Debug)
 
+pub(all) struct CustomProperty {
+  name : String
+  value : PropertyValue
+} derive(Eq, @debug.Debug)
+
 pub(all) struct DefinedName {
   name : String
   refers_to : CellValue
 } derive(Eq, @debug.Debug)
+
+pub(all) struct DocumentProperties {
+  title : String?
+  subject : String?
+  author : String?
+  keywords : String?
+  description : String?
+  category : String?
+  status : String?
+  language : String?
+  version : String?
+  company : String?
+  custom : Array[CustomProperty]
+} derive(Eq, @debug.Debug)
+pub fn DocumentProperties::empty() -> Self
 
 pub(all) struct Fill {
   color : @units.Color
@@ -188,6 +225,12 @@ pub(all) enum Panes {
   Split(x~ : Double, y~ : Double)
 } derive(Eq, @debug.Debug)
 
+pub(all) enum PropertyValue {
+  Number(Double)
+  Bool(Bool)
+  Text(String)
+} derive(Eq, @debug.Debug)
+
 pub(all) struct RichRun {
   text : String
   font : Font?
@@ -208,7 +251,9 @@ pub(all) struct Sheet {
   validations : Array[Validation]
   links : Array[Link]
   conditional_formats : Array[ConditionalFormat]
+  comments : Array[Comment]
 } derive(Eq, @debug.Debug)
+pub fn Sheet::add_comment(Self, @units.CellRef, String, author? : String) -> Unit
 pub fn Sheet::add_conditional_format(Self, ConditionalFormat) -> Unit
 pub fn Sheet::add_link(Self, @units.CellRef, LinkTarget, tip? : String) -> Unit
 pub fn Sheet::add_validation(Self, Validation) -> Unit
@@ -305,11 +350,15 @@ pub(all) struct Workbook {
   default_font : String?
   defined_names : Array[DefinedName]
   mut active_sheet : String?
+  mut properties : DocumentProperties?
+  mut calc : CalcSettings?
 } derive(Eq, @debug.Debug)
 pub fn Workbook::add_defined_name(Self, String, CellValue) -> Unit
 pub fn Workbook::add_sheet(Self, String, visibility? : SheetVisibility) -> Sheet
 pub fn Workbook::new(date_system? : @units.DateSystem, default_font? : String) -> Self
 pub fn Workbook::set_active_sheet(Self, String) -> Unit
+pub fn Workbook::set_calc(Self, CalcSettings) -> Unit
+pub fn Workbook::set_properties(Self, DocumentProperties) -> Unit
 
 // Type aliases
 
