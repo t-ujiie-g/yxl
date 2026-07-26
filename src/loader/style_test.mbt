@@ -46,6 +46,7 @@ test "load parses a full style: font, fill, border, alignment, and number format
         top: Some({ style: Thin, color: None }),
         bottom: Some({ style: Double, color: @units.Color::parse("000000") }),
       }),
+      protection: None,
     }),
   )
 }
@@ -79,7 +80,7 @@ test "load rejects invalid style attributes" {
       "sheets:\n  - name: S\n    cells:\n      A1: { value: 1, style: { glow: true } }\n",
     ),
     Some(
-      "spec.yaml: unknown key 'glow' in cell 'A1' style (expected 'font', 'fill', 'border', 'align', or 'extends')",
+      "spec.yaml: unknown key 'glow' in cell 'A1' style (expected 'font', 'fill', 'border', 'align', 'protection', or 'extends')",
     ),
   )
 }

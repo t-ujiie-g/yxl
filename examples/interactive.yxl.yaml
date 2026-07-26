@@ -5,9 +5,29 @@
 # perfectly legal, and a link never supplies the text you see. The cell's value
 # still comes from `cells:`.
 
+# Nobody may add, remove, rename or reorder sheets. Not encryption — it stops
+# accidents, and Excel removes it for anyone who asks.
+protect:
+  structure: true
+
+defs:
+  styles:
+    # Sheet protection freezes every cell *except* those a style unlocks, so
+    # this is what makes a form fillable.
+    entry:
+      fill: "FFF2CC"
+      protection: { locked: false }
+
 sheets:
   - name: Orders
     freeze: A2               # the header row stays put while orders scroll
+
+    # The sheet is locked; a reader may still sort and filter it, and may type
+    # into the cells wearing `entry`.
+    protect:
+      allow:
+        sort: true
+        auto_filter: true
     filter: A1:D1            # Excel's filter dropdowns, over the header
     columns:
       - at: A
@@ -22,13 +42,13 @@ sheets:
       B1: Status
       C1: Quantity
       D1: Due
-      A2: "ORD-1001"
-      B2: Sent
-      C2: 12
+      A2: { value: "ORD-1001", style: entry }
+      B2: { value: Sent, style: entry }
+      C2: { value: 12, style: entry }
       D2: { value: "2026-08-31", type: date }
-      A3: "ORD-1002"
-      B3: Draft
-      C3: 400
+      A3: { value: "ORD-1002", style: entry }
+      B3: { value: Draft, style: entry }
+      C3: { value: 400, style: entry }
       D3: { value: "2026-09-15", type: date }
 
     comments:

@@ -125,3 +125,116 @@ fn load_calc(
   }
   { mode, on_load }
 }
+
+///|
+/// The allowances a sheet's `protect:` may grant, in the order Excel's own
+/// "Protect Sheet" dialog lists them.
+const PROTECT_ALLOWANCES : String = "'select_locked_cells', 'select_unlocked_cells', 'format_cells', 'format_columns', 'format_rows', 'insert_columns', 'insert_rows', 'insert_hyperlinks', 'delete_columns', 'delete_rows', 'sort', 'auto_filter', 'pivot_tables', 'edit_objects', or 'edit_scenarios'"
+
+///|
+/// A sheet's `protect:` — the sheet is locked, and `allow:` names what a reader
+/// may still do. Excel's defaults apply to anything not named.
+fn load_sheet_protection(
+  node : @yaml.Node,
+  file~ : String,
+) -> @model.SheetProtection raise @diag.SchemaError {
+  let protection = @model.SheetProtection::new()
+  let mut password = None
+  let mut allow : Array[(String, Bool)] = []
+  for entry in expect_map(node, file~, context="sheet 'protect'") {
+    let (key, value) = entry
+    match key {
+      "password" =>
+        password = Some(
+          expect_string(value, file~, context="sheet 'protect' 'password'"),
+        )
+      "allow" => allow = load_allowances(value, file~)
+      _ =>
+        raise schema_error(
+          file~,
+          "unknown key '\{key}' in sheet 'protect' (expected 'password' or 'allow')",
+        )
+    }
+  }
+  let with_allowances = allow.fold(init=protection, (protection, entry) => {
+    let (name, allowed) = entry
+    match name {
+      "select_locked_cells" => { ..protection, select_locked_cells: allowed }
+      "select_unlocked_cells" =>
+        { ..protection, select_unlocked_cells: allowed }
+      "format_cells" => { ..protection, format_cells: allowed }
+      "format_columns" => { ..protection, format_columns: allowed }
+      "format_rows" => { ..protection, format_rows: allowed }
+      "insert_columns" => { ..protection, insert_columns: allowed }
+      "insert_rows" => { ..protection, insert_rows: allowed }
+      "insert_hyperlinks" => { ..protection, insert_hyperlinks: allowed }
+      "delete_columns" => { ..protection, delete_columns: allowed }
+      "delete_rows" => { ..protection, delete_rows: allowed }
+      "sort" => { ..protection, sort: allowed }
+      "auto_filter" => { ..protection, auto_filter: allowed }
+      "pivot_tables" => { ..protection, pivot_tables: allowed }
+      "edit_objects" => { ..protection, edit_objects: allowed }
+      _ => { ..protection, edit_scenarios: allowed }
+    }
+  })
+  { ..with_allowances, password, }
+}
+
+///|
+/// The `allow:` mapping, validated key by key so a misspelt allowance is a
+/// diagnostic rather than a permission that silently never applies.
+fn load_allowances(
+  node : @yaml.Node,
+  file~ : String,
+) -> Array[(String, Bool)] raise @diag.SchemaError {
+  let allowances = []
+  for entry in expect_map(node, file~, context="sheet 'protect' 'allow'") {
+    let (key, value) = entry
+    guard PROTECT_ALLOWANCES.contains("'\{key}'") else {
+      raise schema_error(
+        file~,
+        "unknown allowance '\{key}' in sheet 'protect' (expected \{PROTECT_ALLOWANCES})",
+      )
+    }
+    allowances.push(
+      (key, expect_bool(value, file~, context="sheet 'protect' allow '\{key}'")),
+    )
+  }
+  allowances
+}
+
+///|
+/// The top-level `protect:` — what a reader may not do to the workbook itself.
+fn load_workbook_protection(
+  node : @yaml.Node,
+  file~ : String,
+) -> @model.WorkbookProtection raise @diag.SchemaError {
+  let mut structure = false
+  let mut windows = false
+  let mut password = None
+  for entry in expect_map(node, file~, context="'protect'") {
+    let (key, value) = entry
+    match key {
+      "structure" =>
+        structure = expect_bool(value, file~, context="'protect' 'structure'")
+      "windows" =>
+        windows = expect_bool(value, file~, context="'protect' 'windows'")
+      "password" =>
+        password = Some(
+          expect_string(value, file~, context="'protect' 'password'"),
+        )
+      _ =>
+        raise schema_error(
+          file~,
+          "unknown key '\{key}' in 'protect' (expected 'structure', 'windows', or 'password')",
+        )
+    }
+  }
+  guard structure || windows else {
+    raise schema_error(
+      file~,
+      "'protect' locks nothing (expected 'structure' or 'windows')",
+    )
+  }
+  { structure, windows, password }
+}

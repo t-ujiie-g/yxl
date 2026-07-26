@@ -39,6 +39,7 @@ fn highlight() -> @model.Style {
     borders: None,
     align: None,
     number_format: None,
+    protection: None,
   }
 }
 

@@ -1,7 +1,8 @@
 ///|
-/// A cell's visual style: any combination of a font, a solid fill, borders, an
-/// alignment, and an Excel number-format code. Every field is optional; `None`
-/// throughout is the default (`General`) style. Styles are compared and hashed
+/// A cell's style: any combination of a font, a solid fill, borders, an
+/// alignment, an Excel number-format code, and what sheet protection does to
+/// the cell. Every field is optional; `None` throughout is the default
+/// (`General`) style. Styles are compared and hashed
 /// structurally so the emitter can intern identical styles to a single Excel
 /// `cellXfs` id (ADR-004) — declare a look once, reference it many times, emit
 /// it once.
@@ -14,13 +15,50 @@ pub(all) struct Style {
   /// is part of the style (not a separate cell attribute) so it interns with
   /// the rest of the look.
   number_format : String?
+  /// What sheet protection does to a cell wearing this style. Excel keeps this
+  /// in the style rather than on the cell, so it interns with the rest.
+  protection : CellProtection?
 } derive(Eq, Hash, Debug)
+
+///|
+/// A cell's half of sheet protection — Excel's Format Cells → Protection tab.
+/// Neither field does anything until the sheet is protected.
+///
+/// Excel locks every cell by default, so protecting a sheet freezes all of it;
+/// the way to leave a form's input boxes editable is to give *them* a style
+/// with `locked: false`.
+pub(all) struct CellProtection {
+  /// `false` lets a protected sheet's cell still be edited.
+  locked : Bool?
+  /// `true` hides the cell's formula from the formula bar while protected. The
+  /// value still shows, and the file still contains the formula.
+  hidden : Bool?
+} derive(Eq, Hash, Debug)
+
+///|
+/// Lay `self` over `base`, field by field.
+fn CellProtection::over(
+  self : CellProtection,
+  base : CellProtection,
+) -> CellProtection {
+  {
+    locked: or_else(base.locked, self.locked),
+    hidden: or_else(base.hidden, self.hidden),
+  }
+}
 
 ///|
 /// The empty style — every attribute defaulted. Equal to a `Style` with all
 /// `None` fields, so it interns with any other empty style.
 pub fn Style::empty() -> Style {
-  { font: None, fill: None, borders: None, align: None, number_format: None }
+  {
+    font: None,
+    fill: None,
+    borders: None,
+    align: None,
+    number_format: None,
+    protection: None,
+  }
 }
 
 ///|
@@ -53,6 +91,11 @@ pub fn Style::over(self : Style, base : Style) -> Style {
     borders: merge_option(base.borders, self.borders, Borders::over),
     fill: or_else(base.fill, self.fill),
     number_format: or_else(base.number_format, self.number_format),
+    protection: merge_option(
+      base.protection,
+      self.protection,
+      CellProtection::over,
+    ),
   }
 }
 

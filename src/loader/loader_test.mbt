@@ -58,7 +58,7 @@ test "load rejects an unknown top-level key" {
   assert_eq(
     schema_message("sheetz:\n  - name: S\n"),
     Some(
-      "spec.yaml: unknown top-level key 'sheetz' (expected 'sheets', 'active', 'params', 'date1904', 'default_font', 'defs', 'properties', or 'calc')",
+      "spec.yaml: unknown top-level key 'sheetz' (expected 'sheets', 'active', 'params', 'date1904', 'default_font', 'defs', 'properties', 'calc', or 'protect')",
     ),
   )
 }
@@ -68,7 +68,7 @@ test "load requires the sheets key" {
   assert_eq(
     schema_message("title: report\n"),
     Some(
-      "spec.yaml: unknown top-level key 'title' (expected 'sheets', 'active', 'params', 'date1904', 'default_font', 'defs', 'properties', or 'calc')",
+      "spec.yaml: unknown top-level key 'title' (expected 'sheets', 'active', 'params', 'date1904', 'default_font', 'defs', 'properties', 'calc', or 'protect')",
     ),
   )
   assert_eq(
@@ -98,7 +98,7 @@ test "load rejects an unknown key inside a sheet" {
   assert_eq(
     schema_message("sheets:\n  - name: S\n    color: red\n"),
     Some(
-      "spec.yaml: unknown key 'color' in sheet (expected 'name', 'cells', 'data', 'columns', 'rows', 'merges', 'visibility', 'freeze', 'split', 'gridlines', 'tab_color', 'print', 'filter', 'validations', 'links', 'conditional', or 'comments')",
+      "spec.yaml: unknown key 'color' in sheet (expected 'name', 'cells', 'data', 'columns', 'rows', 'merges', 'visibility', 'freeze', 'split', 'gridlines', 'tab_color', 'print', 'filter', 'validations', 'links', 'conditional', 'comments', or 'protect')",
     ),
   )
 }

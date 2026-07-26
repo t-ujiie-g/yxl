@@ -148,6 +148,18 @@ test "the interactive example decorates the cells it says it does" {
   assert_eq(comments.length(), 2)
   assert_eq(comments[0].cell, "C3")
   assert_eq(comments[1].author, "Finance")
+
+  // The sheet is locked but still sortable and filterable, and the cells the
+  // form is filled in through are unlocked — which is what makes it a form.
+  let protection = workbook.get_sheet_protection("Orders")
+  assert_true(protection.sort)
+  assert_true(protection.auto_filter)
+  assert_false(protection.format_cells)
+  guard workbook.get_cell_style("Orders", "B2") is Some(id) else {
+    fail("expected a style on an entry cell")
+  }
+  assert_eq(workbook.get_style(id).protection.unwrap().locked, Some(false))
+  assert_true(workbook.workbook_protection is Some(_))
 }
 
 ///|
