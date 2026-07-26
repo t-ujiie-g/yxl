@@ -39,8 +39,10 @@ jobs:
             target: linux-x86_64
           - os: macos-latest # Apple silicon
             target: macos-arm64
-          - os: macos-13 # Intel; an arm64 binary will not run here
-            target: macos-x86_64
+          # No Intel macOS build: the free `macos-13` runner is retired, and its
+          # successors (`macos-15-intel` / `-large`) are larger runners whose
+          # billing was not confirmed. Intel Macs build from source — an arm64
+          # binary cannot run there, so shipping one would be worse than none.
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v5

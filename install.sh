@@ -60,10 +60,11 @@ case "$arch" in
   *) die "unsupported architecture '$arch' — build from source: https://github.com/$REPO#from-source" ;;
 esac
 target="$os-$arch"
-# Releases carry these three; anything else builds from source. An arm64 binary
-# cannot run on an Intel Mac, so there is no fallback to substitute here.
+# Releases carry these two; anything else builds from source. In particular an
+# arm64 binary cannot run on an Intel Mac, so there is no fallback to substitute
+# for a missing macos-x86_64 build.
 case "$target" in
-  linux-x86_64 | macos-arm64 | macos-x86_64) ;;
+  linux-x86_64 | macos-arm64) ;;
   *) die "no released binary for $target — build from source: https://github.com/$REPO#from-source" ;;
 esac
 

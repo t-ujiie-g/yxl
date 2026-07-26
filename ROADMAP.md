@@ -632,8 +632,9 @@ Reverse-chronological. One entry per user-visible or structural change.
     on `PATH`. It then *runs* `yxl version`, which catches a binary that matches
     the platform's name but not the machine. Two deliberate departures from the
     reference: a checksum failure **aborts** rather than warning, and there is no
-    "use the arm64 build on Intel macOS" fallback — that cannot work, so the
-    release matrix gained a real `macos-x86_64` target instead. Verified against
+    "use the arm64 build on Intel macOS" fallback — that cannot work. (A real
+    `macos-x86_64` target was added and then removed before any release; see the
+    entry above.) Verified against
     a local stand-in release: a good install, a tampered tarball (refused), a
     missing version, and an unsupported platform.
 
