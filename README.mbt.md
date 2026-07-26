@@ -85,6 +85,42 @@ Excel updates every reference. An unknown key, a bad cell reference, a dangling
 `$ref`, or a cycle among includes, styles, or parameters fails the build with a
 diagnostic naming the file, never a silently dropped value.
 
+## Install
+
+`yxl` is a native binary. With [MoonBit](https://www.moonbitlang.com/download)
+installed:
+
+```bash
+git clone https://github.com/t-ujiie-g/yxl.git
+cd yxl
+moon build --target native --release
+```
+
+The binary lands in `_build/native/release/build/cmd/main/main.exe`; copy it
+somewhere on your `PATH` as `yxl`:
+
+```bash
+install -m 755 _build/native/release/build/cmd/main/main.exe ~/.local/bin/yxl
+yxl version   # yxl 0.1.0
+```
+
+## Using it
+
+```bash
+yxl build report.yxl.yaml -o report.xlsx     # compile
+yxl build report.yxl.yaml --check            # validate, write nothing
+yxl build report.yxl.yaml -o r.xlsx --set region=EMEA
+yxl help                                     # full usage
+```
+
+Exit codes are stable across releases:
+
+| Code | Meaning |
+|---|---|
+| `0` | success |
+| `1` | the spec is invalid, or a file could not be read or written |
+| `2` | the command line itself was wrong |
+
 ## How it works
 
 ```

@@ -192,14 +192,22 @@ The **active phase** is the first phase with any unchecked box.
       detection** (deferred from Phase 5) landed with both
 
 ### Phase 8 — CLI UX
-- [ ] Rich diagnostics rendered with file/line/col and carets — needs per-node
-      provenance in the `yaml` tree (ADR-010), which would also let a `data:`
-      path resolve against the file it was written in rather than the root spec.
-      The parser library's `YamlError` does carry `mark` (line/col) and `info`;
-      `yaml/parse.mbt` currently renders it through `Show`, which yields only a
-      type name
-- [ ] `--check` (validate only), `--watch`, stdin/stdout, `--version`, help
-- [ ] Stable exit codes; native binary packaging + install docs
+- [~] Rich diagnostics rendered with file/line/col and carets — **done for YAML
+      syntax errors** (the library's `YamlError` carries `mark` and `info`, now
+      destructured into a real `Span`; `Diagnostic::render_in` quotes the line
+      and points a caret). **Schema errors still carry only their file**: that
+      needs per-node provenance in the `yaml` tree, which the parser's *sealed*
+      event API blocks (ADR-010) — the same missing piece that makes a `data:`
+      path resolve against the root spec rather than its own file. Resolving it
+      means vendoring or replacing the parser: an open decision (§8 Q7)
+- [x] `--check` (validate only), `--version`, help — landed
+- [ ] `--watch`, stdin/stdout — **blocked, not deferred by choice**: the
+      dependency set has no sleep/timer and no stdin. `--watch` would have to
+      busy-spin, and there is nothing to read a spec from a pipe with. Both need
+      either `moonbitlang/async` (a large dependency — ADR) or a native FFI stub
+      (§8 Q7)
+- [x] Stable exit codes (0 / 1 / 2, documented in `yxl help` and the README, and
+      exercised end-to-end); native binary build + install docs
 
 ### Phase 9 — Richer Excel features (leverage mbtexcel, additive)
 - [ ] Charts, images, **Excel tables** (structured tables / ListObjects,
@@ -507,6 +515,19 @@ on the command line says so instead of quietly doing nothing.
   tables remain their own Phase 7 item.
 - **Q5 — Reverse import.** Is `xlsx → yxl.yaml` in scope for v1, or a post-v1
   stretch? (Currently a stretch — §6 Phase 10.)
+- **Q7 — The parser's sealed API: vendor, replace, or live with it?** Two
+  Phase 8 items and one Phase 7 wart share a single root cause: the YAML
+  parser's value tree carries no positions, and its position-carrying event API
+  is a **sealed** trait we cannot implement (ADR-010, ADR-014). Consequences
+  today: schema errors name a file but no line; a `data:` path resolves against
+  the root spec rather than the file it was written in. Options: (a) vendor the
+  parser and open the trait, (b) write our own YAML parser behind the existing
+  seam, (c) accept it — the messages already name the construct ("cell 'A1'",
+  "column 'B'"), which for a structured document may be as findable as a line.
+  Separately, `--watch` and stdin/stdout need a sleep and a stdin the current
+  dependencies do not have — `moonbitlang/async` would supply both but is a
+  large dependency (ADR required).
+
 - **Q6 — Distribution.** Native binary only, or also a wasm CLI? A wasm target
   would favor a lighter backend (`moon-xlsx`) via the ADR-002 seam.
 
@@ -540,6 +561,37 @@ on the command line says so instead of quietly doing nothing.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-26** — **Phase 8: diagnostics with position, `--check`, `--version`,
+  help, install docs.** YAML syntax errors used to read `invalid YAML:
+  moonbit-community/yaml.YamlError.YamlError` — the library's error was rendered
+  through `Show`, which yields a type name. It is a `pub suberror` carrying
+  `mark` (line/col) and `info`, so it is now destructured into a real
+  `@diag.Span`, and the span machinery built back in Phase 1 finally carries
+  something. `Diagnostic::render_in(source)` adds the quoted line and a caret:
+
+  ```text
+  report.yaml:5:8: invalid YAML: while parsing a block mapping, ...
+    |
+  5 |      B1: y
+    |        ^
+  ```
+
+  The CLI gained `--check` (run the whole pipeline, write nothing — so a spec
+  that passes is one `build` accepts), `version`/`--version`/`-V`,
+  `help`/`--help`/`-h`, and a bare `yxl` now prints usage instead of erroring.
+  `--check` with `-o` is a usage error rather than a silently unwritten file.
+  Exit codes 0/1/2 are documented in both the usage text and the README, and
+  verified end-to-end. The README gained install steps whose paths were checked
+  against a real `--release` build, and CI now fails if `moon.mod`'s version and
+  the constant `yxl version` prints ever drift.
+
+  **Two sub-items are blocked, not skipped.** `--watch` and stdin/stdout need a
+  sleep/timer and a stdin that the dependency set does not have: `--watch` would
+  busy-spin at full CPU, and nothing can read a spec from a pipe. Both want
+  `moonbitlang/async` (a large dependency, so an ADR) or a native FFI stub.
+  Likewise, carets for *schema* errors need per-node provenance the sealed
+  parser API withholds. Recorded together as **§8 Q7**. 134 tests green.
 
 - **2026-07-26** — **Refactor pass (whole tree), after Phase 7.** No behaviour
   change; 129 tests green throughout. The only public-API delta is three

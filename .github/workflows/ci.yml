@@ -34,6 +34,15 @@ jobs:
           moon info
           git diff --exit-code
 
+      # `yxl version` reads a constant, which nothing else forces to match the
+      # package metadata. Fail here rather than ship a binary that lies.
+      - name: Version drift (moon.mod vs. the CLI constant)
+        run: |
+          declared=$(grep -E '^version = ' moon.mod | cut -d'"' -f2)
+          reported=$(grep -E '^pub let version : String = ' src/cli/cli.mbt | cut -d'"' -f2)
+          echo "moon.mod: $declared, cli: $reported"
+          test "$declared" = "$reported"
+
       # The product target is native (ADR-003): the CLI reads/writes files on
       # disk. Test and build on native.
       - name: Test (native)

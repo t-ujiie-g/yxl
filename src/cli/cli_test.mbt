@@ -28,12 +28,8 @@ test "parse_args accepts build with input and -o output, in either order" {
 ///|
 test "parse_args rejects malformed command lines" {
   assert_eq(
-    usage_message([]),
-    Some("no command given (usage: yxl build <in.yaml> -o <out.xlsx>)"),
-  )
-  assert_eq(
     usage_message(["serve"]),
-    Some("unknown command 'serve' (expected 'build')"),
+    Some("unknown command 'serve' (expected 'build', 'help', or 'version')"),
   )
   assert_eq(
     usage_message(["build", "-o", "out.xlsx"]),
@@ -123,6 +119,50 @@ test "golden: --set overrides a declared parameter" {
   assert_eq(overridden.get_cell("EMEA", "A1"), Some("Tax for EMEA"))
   // The override stays a number cell, as the default was.
   assert_true(overridden.get_cell_value_raw("EMEA", "B1") is Some(Numeric(0.2)))
+}
+
+///|
+test "parse_args recognises help, version, and --check" {
+  // A bare `yxl` is a request for help, not an error.
+  assert_eq(@cli.parse_args([]), Help)
+  for spelling in ["help", "--help", "-h"] {
+    assert_eq(@cli.parse_args([spelling]), Help)
+  }
+  for spelling in ["version", "--version", "-V"] {
+    assert_eq(@cli.parse_args([spelling]), Version)
+  }
+  assert_eq(
+    @cli.parse_args(["build", "in.yaml", "--check", "--set", "a=1"]),
+    Check(input="in.yaml", params={ "a": "1" }),
+  )
+}
+
+///|
+test "parse_args rejects --check with an output path" {
+  // `--check` writes nothing, so `-o` would promise a file that never appears.
+  assert_eq(
+    usage_message(["build", "in.yaml", "--check", "-o", "out.xlsx"]),
+    Some("'--check' writes nothing, so it cannot take '-o'"),
+  )
+  // Without `--check`, an output is still required.
+  assert_eq(
+    usage_message(["build", "in.yaml"]),
+    Some("no output file given (use -o <out.xlsx>)"),
+  )
+}
+
+///|
+test "the usage text lists every command and exit code" {
+  // Help is what a bare `yxl` prints, so it must stay in step with the parser.
+  for command in ["build", "help", "version"] {
+    assert_true(@cli.usage.contains(command))
+  }
+  for option in ["-o", "--check", "--set"] {
+    assert_true(@cli.usage.contains(option))
+  }
+  for code in ["0", "1", "2"] {
+    assert_true(@cli.usage.contains("  \{code}  "))
+  }
 }
 
 ///|

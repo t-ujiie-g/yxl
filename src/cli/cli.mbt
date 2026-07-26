@@ -14,24 +14,55 @@ pub let exit_error : Int = 1
 pub let exit_usage : Int = 2
 
 ///|
-/// A parsed command line. Only `build` exists today. `params` carries the
-/// `--set name=value` overrides, in the order given.
+/// The version this binary reports. Kept in step with `moon.mod`'s `version`;
+/// CI fails the build if the two drift.
+pub let version : String = "0.1.0"
+
+///|
+/// What the command line asked for. `params` carries the `--set name=value`
+/// overrides. `Check` validates a spec and writes nothing, so — unlike `Build` —
+/// it has no output path to carry.
 pub(all) enum Command {
   Build(input~ : String, output~ : String, params~ : Map[String, String])
+  Check(input~ : String, params~ : Map[String, String])
+  Version
+  Help
 } derive(Eq, Debug)
+
+///|
+/// The full usage text, shown by `yxl help` and on a bare `yxl`.
+pub let usage : String =
+  #|yxl — compile a YAML workbook spec into a real .xlsx
+  #|
+  #|Usage:
+  #|  yxl build <spec.yaml> -o <out.xlsx> [--set name=value]...
+  #|  yxl build <spec.yaml> --check [--set name=value]...
+  #|  yxl help | --help | -h
+  #|  yxl version | --version | -V
+  #|
+  #|Options:
+  #|  -o, --output <file>   where to write the workbook
+  #|      --check           validate the spec and write nothing
+  #|      --set name=value  override a parameter the spec declares (repeatable)
+  #|
+  #|Exit codes:
+  #|  0  success
+  #|  1  the spec is invalid, or a file could not be read or written
+  #|  2  the command line itself was wrong
 
 ///|
 /// Parse arguments (the program name already removed) into a `Command`. A
 /// malformed command line is a `@diag.CliError`.
 pub fn parse_args(args : ArrayView[String]) -> Command raise @diag.CliError {
   match args {
-    [] =>
-      raise usage_error(
-        "no command given (usage: yxl build <in.yaml> -o <out.xlsx>)",
-      )
+    [] => Help
+    ["help" | "--help" | "-h", ..] => Help
+    ["version" | "--version" | "-V", ..] => Version
     ["build", .. rest] => parse_build(rest)
     [other, ..] =>
-      raise usage_error("unknown command '\{other}' (expected 'build')")
+      raise usage_error(
+        "unknown command '\{other}' (expected 'build', 'help', or 'version')",
+      )
   }
 }
 
@@ -39,6 +70,7 @@ pub fn parse_args(args : ArrayView[String]) -> Command raise @diag.CliError {
 fn parse_build(args : ArrayView[String]) -> Command raise @diag.CliError {
   let mut input = None
   let mut output = None
+  let mut check = false
   let params : Map[String, String] = Map([])
   let mut i = 0
   while i < args.length() {
@@ -52,6 +84,10 @@ fn parse_build(args : ArrayView[String]) -> Command raise @diag.CliError {
         }
         output = Some(args[i + 1])
         i += 2
+      }
+      "--check" => {
+        check = true
+        i += 1
       }
       "--set" => {
         guard i + 1 < args.length() else {
@@ -76,6 +112,14 @@ fn parse_build(args : ArrayView[String]) -> Command raise @diag.CliError {
     }
   }
   guard input is Some(input) else { raise usage_error("no input file given") }
+  if check {
+    // `--check` writes nothing, so naming an output would promise a file that
+    // never appears.
+    guard output is None else {
+      raise usage_error("'--check' writes nothing, so it cannot take '-o'")
+    }
+    return Check(input~, params~)
+  }
   guard output is Some(output) else {
     raise usage_error("no output file given (use -o <out.xlsx>)")
   }

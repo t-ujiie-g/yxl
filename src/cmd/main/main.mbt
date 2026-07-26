@@ -19,7 +19,36 @@ fn run() -> Int {
   }
   match command {
     Build(input~, output~, params~) => build(input, output, params)
+    Check(input~, params~) => check(input, params)
+    Version => {
+      println("yxl \{@cli.version}")
+      @cli.exit_ok
+    }
+    Help => {
+      println(@cli.usage)
+      @cli.exit_ok
+    }
   }
+}
+
+///|
+/// Compile `input` without writing anything: the whole pipeline runs, so a spec
+/// that passes here is one `build` would accept.
+fn check(input : String, params : Map[String, String]) -> Int {
+  let source = @fs.read_file_to_string(input) catch {
+    @fs.IOError(reason) => {
+      report("cannot read \{input}: \{reason}")
+      return @cli.exit_error
+    }
+  }
+  (@cli.compile(source, file=input, resolve=read_included, params~) |> ignore) catch {
+    err => {
+      report(@cli.error_message(err, source~))
+      return @cli.exit_error
+    }
+  }
+  report("\{input}: ok")
+  @cli.exit_ok
 }
 
 ///|

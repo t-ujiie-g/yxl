@@ -20,11 +20,18 @@ pub let exit_usage : Int
 
 pub fn parse_args(ArrayView[String]) -> Command raise @diag.CliError
 
+pub let usage : String
+
+pub let version : String
+
 // Errors
 
 // Types and methods
 pub(all) enum Command {
   Build(input~ : String, output~ : String, params~ : Map[String, String])
+  Check(input~ : String, params~ : Map[String, String])
+  Version
+  Help
 } derive(Eq, @debug.Debug)
 
 // Type aliases
