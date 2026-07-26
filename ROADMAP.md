@@ -183,13 +183,20 @@ The **active phase** is the first phase with any unchecked box.
 - [x] Includes / data–format separation — `{ $include: path }` wherever a node
       may stand, resolved through a reader the CLI injects (ADR-014). A YAML
       `!include` tag is **not** possible: the parser drops unknown tags silently
-- [ ] External data sources (CSV/JSON tables feeding a sheet region)
+- [x] External data sources — a sheet `data:` list anchors a CSV or JSON table
+      at a cell; fields become ordinary cells, styled by the existing
+      `columns:` / `rows:` bands rather than by the data block
 - [ ] Lightweight templating / parameterization — the first construct that can
       let one definition reference another, so **cyclic-reference detection**
       (deferred from Phase 5) lands here
 
 ### Phase 8 — CLI UX
-- [ ] Rich diagnostics rendered with file/line/col and carets
+- [ ] Rich diagnostics rendered with file/line/col and carets — needs per-node
+      provenance in the `yaml` tree (ADR-010), which would also let a `data:`
+      path resolve against the file it was written in rather than the root spec.
+      The parser library's `YamlError` does carry `mark` (line/col) and `info`;
+      `yaml/parse.mbt` currently renders it through `Show`, which yields only a
+      type name
 - [ ] `--check` (validate only), `--watch`, stdin/stdout, `--version`, help
 - [ ] Stable exit codes; native binary packaging + install docs
 
@@ -500,6 +507,37 @@ added as sugar over the same expansion, but `$include` stays the contract.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-26** — **Phase 7: external data sources (CSV / JSON).** A sheet
+  takes a `data:` list, each entry anchoring a table at a cell:
+  `- { at: A2, csv: data/sales.csv }`. Fields become **ordinary cells at load
+  time** — the model stays the final grid, and nothing below the loader knows the
+  values came from elsewhere. Formatting is deliberately *not* duplicated in the
+  data block: a region is styled with the `columns:` / `rows:` bands that already
+  exist, which is what makes data and formatting separable (ADR-005). Where a
+  `data:` table and `cells:` overlap, the later key wins.
+
+  CSV is parsed in-tree (RFC 4180: quoted fields, doubled inner quotes, embedded
+  commas and newlines, CRLF, ragged rows) rather than by a new dependency. Since
+  CSV carries no types, a bare field is read as a number or boolean when it looks
+  like one and text otherwise, while a **quoted** field stays text — the same
+  quoting rule YAML scalars already follow here, so `"007"` survives as text. An
+  empty field writes no cell at all rather than empty text.
+
+  JSON uses `moonbitlang/core`'s parser. An array of arrays maps straight to
+  rows; an array of objects **requires `columns:`** naming the fields to take and
+  their order, because JSON object key order is not dependable and silently
+  deriving a layout from it would break determinism (§3.1). `null` is a blank
+  cell; a missing named field is a diagnostic rather than a guessed blank.
+
+  **Known limitation, documented in `table.mbt`:** a data path resolves against
+  the spec passed to `yxl build`, not against the file the `data:` entry was
+  written in — includes expand into one tree before any key is read, and the tree
+  carries no per-node provenance. A data path inside an included file in another
+  directory therefore fails to resolve, loudly and with the path it tried, never
+  silently reading the wrong file. Per-node provenance (the same missing piece as
+  source spans, ADR-010) would make both rules agree; noted on the Phase 8
+  diagnostics item. 118 tests green.
 
 - **2026-07-26** — **Phase 7 started: includes / data–format separation.** A
   spec may now be split across files: `{ $include: path }` stands wherever a node

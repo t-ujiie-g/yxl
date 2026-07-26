@@ -7,6 +7,8 @@ import {
   "t-ujiie-g/yxl/units",
   "t-ujiie-g/yxl/diag",
   "moonbitlang/core/string",
+  // JSON data tables; the format has a parser in core, unlike CSV.
+  "moonbitlang/core/json",
 }
 
 // `debug_inspect` renders the workbook model (which derives `Debug`) in tests.

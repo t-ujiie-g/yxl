@@ -4,15 +4,19 @@
 /// (the sheet Excel opens on), `date1904` (the 1904 date system), `default_font`
 /// (the workbook default font face), and `defs` (named definitions — see
 /// `load_defs`). Sheets appear in Excel in declaration order. Each sheet has a
-/// `name` and optional `cells` (an A1-reference mapping), `merges`, `columns` /
-/// `rows` (bands carrying a default style, a size, visibility, and outline
-/// grouping — see `load_columns`), the presentation keys `visibility`,
-/// `freeze` / `split`, `gridlines`, and `tab_color`, and a `print:` block (see
-/// `load_page_setup`). A cell value is a
-/// scalar shorthand or an expanded mapping with a `value`, `formula`, or `rich`
-/// run list, plus optional `type`, `format`, and `style` (see `load_cell`). A
-/// style is referenced by bareword name and a value/formula by `{ $ref: name }`
-/// (ADR-012).
+/// `name` and optional `cells` (an A1-reference mapping), `data` (external CSV /
+/// JSON tables — see `load_data`), `merges`, `columns` / `rows` (bands carrying
+/// a default style, a size, visibility, and outline grouping — see
+/// `load_columns`), the presentation keys `visibility`, `freeze` / `split`,
+/// `gridlines`, and `tab_color`, and a `print:` block (see `load_page_setup`).
+/// A cell value is a scalar shorthand or an expanded mapping with a `value`,
+/// `formula`, or `rich` run list, plus optional `type`, `format`, and `style`
+/// (see `load_cell`). A style is referenced by bareword name and a value/formula
+/// by `{ $ref: name }` (ADR-012). Any node may instead be `{ $include: path }`,
+/// read through `resolve` (ADR-014).
+///
+/// Sheet keys apply in the order written, so where a `data:` table and `cells:`
+/// overlap, whichever comes last wins.
 ///
 /// ```yaml
 /// default_font: Calibri
@@ -38,6 +42,9 @@
 ///       B1: { value: 0.5, format: "0.00%", style: header }
 ///       C1: { formula: "SUM(B1:B1)", style: { font: { italic: true } } }
 ///       D1: { rich: ["plain ", { text: bold, font: { bold: true } }] }
+///     data:
+///       - at: A3
+///         csv: data/sales.csv
 ///     print:
 ///       area: A1:D50
 ///       orientation: landscape
@@ -71,7 +78,7 @@ pub fn load(
     match key {
       "sheets" => {
         seen_sheets = true
-        load_sheets(value, workbook, file~, defs~)
+        load_sheets(value, workbook, file~, defs~, resolve~)
       }
       "date1904" => () // consumed by read_date_system
       "default_font" => () // consumed by read_default_font
@@ -155,11 +162,12 @@ fn load_sheets(
   workbook : @model.Workbook,
   file~ : String,
   defs~ : Defs,
-) -> Unit raise @diag.SchemaError {
+  resolve~ : IncludeResolver,
+) -> Unit raise {
   let items = expect_seq(node, file~, context="'sheets'")
   let seen_names = []
   for item in items {
-    let name = load_sheet(item, workbook, file~, defs~)
+    let name = load_sheet(item, workbook, file~, defs~, resolve~)
     guard !seen_names.contains(name) else {
       raise schema_error(file~, "duplicate sheet name '\{name}'")
     }
@@ -174,7 +182,8 @@ fn load_sheet(
   workbook : @model.Workbook,
   file~ : String,
   defs~ : Defs,
-) -> String raise @diag.SchemaError {
+  resolve~ : IncludeResolver,
+) -> String raise {
   let entries = expect_map(node, file~, context="a sheet")
   // `name` and `visibility` are read up front because the sheet cannot be
   // created without them; every other key then applies to the sheet in place.
@@ -199,6 +208,7 @@ fn load_sheet(
     match key {
       "name" | "visibility" => () // consumed above
       "cells" => load_cells(value, sheet, file~, defs~)
+      "data" => load_data(value, sheet, file~, resolve~)
       "columns" => load_columns(value, sheet, file~, defs~)
       "rows" => load_rows(value, sheet, file~, defs~)
       "merges" => load_merges(value, sheet, file~)
@@ -216,7 +226,7 @@ fn load_sheet(
       _ =>
         raise schema_error(
           file~,
-          "unknown key '\{key}' in sheet (expected 'name', 'cells', 'columns', 'rows', 'merges', 'visibility', 'freeze', 'split', 'gridlines', 'tab_color', or 'print')",
+          "unknown key '\{key}' in sheet (expected 'name', 'cells', 'data', 'columns', 'rows', 'merges', 'visibility', 'freeze', 'split', 'gridlines', 'tab_color', or 'print')",
         )
     }
   }
