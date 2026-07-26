@@ -35,6 +35,12 @@ tick + changelog.
 **Do not** create separate planning / decision / analysis docs. Everything goes
 into `ROADMAP.md`.
 
+*User-facing* documentation is the exception, and there are exactly three homes
+for it: `README.md` (what yxl is, install, a taste), `docs/spec.md` (the spec
+format reference), and `examples/` (the worked cookbook, compiled by CI — §6).
+Keep them in step with the code in the same change; a doc that lies is worse
+than a missing one.
+
 ## 2. MoonBit skills
 
 This project relies on the **MoonBit official skills** (`moonbit-orientation`,
@@ -72,6 +78,22 @@ git clone --recurse-submodules https://github.com/moonbitlang/skills.git \
   it.
 
 ## 4. Workflow
+
+### Branching and releases
+`main` is **protected — never commit or push to it directly.** Work on a branch
+and open a pull request; CI must be green before merge.
+
+```bash
+git switch -c <kind>/<short-description>   # feat/, fix/, chore/, docs/, refactor/
+# … work, commit …
+git push -u origin HEAD
+gh pr create --fill
+```
+
+A release is a **tag push**, not a merge: tagging a commit on `main` as
+`vX.Y.Z` runs `.github/workflows/release.yml`, which refuses to build unless the
+tag, `moon.mod`'s `version`, and the constant `yxl version` prints all agree —
+so bumping a version means editing both files in the PR *before* tagging.
 
 ### Before starting
 1. Read the relevant `ROADMAP.md` phase and any ADR you're about to touch.

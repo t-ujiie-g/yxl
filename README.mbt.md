@@ -88,22 +88,37 @@ diagnostic naming the file, never a silently dropped value.
 
 ## Install
 
-`yxl` is a native binary. With [MoonBit](https://www.moonbitlang.com/download)
-installed:
+```bash
+curl -fsSL https://raw.githubusercontent.com/t-ujiie-g/yxl/main/install.sh | sh
+```
+
+That fetches the [latest release](https://github.com/t-ujiie-g/yxl/releases) for
+your platform, **verifies its SHA-256**, and installs `yxl` into
+`~/.local/bin`. Pin a version or choose a directory with:
+
+```bash
+YXL_VERSION=0.1.0 YXL_INSTALL_DIR=/usr/local/bin \
+  curl -fsSL https://raw.githubusercontent.com/t-ujiie-g/yxl/main/install.sh | sh
+```
+
+Prebuilt binaries cover **Linux x86_64** and **macOS** (arm64 and x86_64). Piping
+a script into a shell is worth doing deliberately — [read
+`install.sh`](./install.sh) first if you would rather, or install by hand from
+the release assets, or build from source:
+
+### From source
+
+With [MoonBit](https://www.moonbitlang.com/download) installed:
 
 ```bash
 git clone https://github.com/t-ujiie-g/yxl.git
 cd yxl
 moon build --target native --release
-```
-
-The binary lands in `_build/native/release/build/cmd/main/main.exe`; copy it
-somewhere on your `PATH` as `yxl`:
-
-```bash
 install -m 755 _build/native/release/build/cmd/main/main.exe ~/.local/bin/yxl
-yxl version   # yxl 0.1.0
 ```
+
+macOS marks downloaded binaries as quarantined; if Gatekeeper objects, clear it
+with `xattr -d com.apple.quarantine ~/.local/bin/yxl`.
 
 ## Using it
 
@@ -113,6 +128,8 @@ yxl build report.yxl.yaml --check            # validate, write nothing
 yxl build report.yxl.yaml -o r.xlsx --set region=EMEA
 yxl help                                     # full usage
 ```
+
+The full schema is in [`docs/spec.md`](./docs/spec.md).
 
 Exit codes are stable across releases:
 
@@ -177,10 +194,15 @@ moon info                   # regenerate the .mbti interface files
 moon build --target native  # build the CLI
 ```
 
+`main` is protected: land changes through a pull request, and CI must be green.
+Tagging a commit `vX.Y.Z` builds the binaries and publishes the release — the
+tag, `moon.mod`, and the version `yxl version` reports must agree, or the release
+job stops before building.
+
 Direction, phase scope, architecture decisions (ADRs), and the changelog all
 live in the single source of truth, [`ROADMAP.md`](./ROADMAP.md). Contributor and
 AI-agent conventions are in [`AGENTS.md`](./AGENTS.md) (`CLAUDE.md` is a symlink
-to it).
+to it); the spec format is [`docs/spec.md`](./docs/spec.md).
 
 ## License
 
