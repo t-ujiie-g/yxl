@@ -207,6 +207,8 @@ pub(all) struct Sheet {
   tables : Array[Table]
   /// Charts anchored on the sheet, in declaration order.
   charts : Array[Chart]
+  /// Images anchored on the sheet, in declaration order.
+  images : Array[Image]
   /// What a reader may still do once the sheet is protected; `None` leaves the
   /// sheet unprotected.
   mut protection : SheetProtection?
@@ -346,6 +348,7 @@ pub fn Sheet::new(
     comments: [],
     tables: [],
     charts: [],
+    images: [],
     protection: None,
   }
 }
@@ -411,6 +414,12 @@ pub fn Sheet::add_table(self : Sheet, table : Table) -> Unit {
 /// keep whatever they hold.
 pub fn Sheet::add_chart(self : Sheet, chart : Chart) -> Unit {
   self.charts.push(chart)
+}
+
+///|
+/// Anchor an image on the sheet. Like a chart, it floats above the grid.
+pub fn Sheet::add_image(self : Sheet, image : Image) -> Unit {
+  self.images.push(image)
 }
 
 ///|

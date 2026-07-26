@@ -4,6 +4,7 @@
 fn schema_message(
   source : String,
   files? : Map[String, String] = Map([]),
+  binaries? : Map[String, Bytes] = Map([]),
   params? : Map[String, String] = Map([]),
 ) -> String? raise {
   let document = @yaml.parse(source, file="spec.yaml")
@@ -12,6 +13,7 @@ fn schema_message(
       document,
       file="spec.yaml",
       resolve=memory_files(files),
+      read_bytes=memory_binaries(binaries),
       params~,
     )
     |> ignore
@@ -28,12 +30,14 @@ fn schema_message(
 fn load_ok(
   source : String,
   files? : Map[String, String] = Map([]),
+  binaries? : Map[String, Bytes] = Map([]),
   params? : Map[String, String] = Map([]),
 ) -> @model.Workbook raise {
   @loader.load(
     @yaml.parse(source, file="spec.yaml"),
     file="spec.yaml",
     resolve=memory_files(files),
+    read_bytes=memory_binaries(binaries),
     params~,
   )
 }
@@ -49,6 +53,18 @@ fn memory_files(files : Map[String, String]) -> @loader.IncludeResolver {
         raise @diag.SchemaError(
           @diag.Diagnostic::new("no such included file '\{path}'"),
         )
+    }
+  }
+}
+
+///|
+/// The same, for the files a spec cannot hold as text: an image's bytes.
+fn memory_binaries(files : Map[String, Bytes]) -> @loader.BytesResolver {
+  (_from, path) => {
+    match files.get(path) {
+      Some(data) => { name: path, data }
+      None =>
+        raise @diag.SchemaError(@diag.Diagnostic::new("no such file '\{path}'"))
     }
   }
 }
@@ -98,7 +114,7 @@ test "load rejects an unknown key inside a sheet" {
   assert_eq(
     schema_message("sheets:\n  - name: S\n    color: red\n"),
     Some(
-      "spec.yaml: unknown key 'color' in sheet (expected 'name', 'cells', 'data', 'columns', 'rows', 'merges', 'visibility', 'freeze', 'split', 'gridlines', 'tab_color', 'print', 'filter', 'validations', 'links', 'conditional', 'comments', 'tables', 'charts', or 'protect')",
+      "spec.yaml: unknown key 'color' in sheet (expected 'name', 'cells', 'data', 'columns', 'rows', 'merges', 'visibility', 'freeze', 'split', 'gridlines', 'tab_color', 'print', 'filter', 'validations', 'links', 'conditional', 'comments', 'tables', 'charts', 'images', or 'protect')",
     ),
   )
 }

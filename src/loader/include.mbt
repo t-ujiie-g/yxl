@@ -44,6 +44,31 @@ fn no_includes(from : String, path : String) -> Included raise {
 }
 
 ///|
+/// What a binary file resolved to: its bytes, and the name to call it in
+/// diagnostics — again the path the resolver actually opened.
+pub(all) struct IncludedBytes {
+  name : String
+  data : Bytes
+}
+
+///|
+/// How the loader obtains a file it cannot read as text — today only an image.
+/// The same seam as `IncludeResolver` and for the same reason: the compiler core
+/// opens nothing itself (ADR-003). Kept apart from it because a text resolver
+/// has no bytes to give and a binary one no source text.
+pub type BytesResolver = (String, String) -> IncludedBytes raise
+
+///|
+/// The binary resolver a caller that cannot read files gets. Reaching it means
+/// the spec named an image in a context with no way to load one.
+fn no_binaries(from : String, path : String) -> IncludedBytes raise {
+  raise schema_error(
+    file=from,
+    "cannot read '\{path}' — this caller provides no way to read files",
+  )
+}
+
+///|
 /// Replace every `{ $include: path }` node with the document it names, itself
 /// expanded. `chain` is the files currently being expanded, innermost last; it
 /// both detects cycles and renders them.

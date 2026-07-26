@@ -256,8 +256,12 @@ is why validation, filters, and links arrived before charts.
       stores them, sheet-qualified and absolute. Deferred: 3-D variants, stock
       and bubble charts (each wants an extra range or a shape the spec cannot
       describe), combo charts, per-series colors and markers, and chart sheets
-- [ ] Images. They need bytes from disk, so they also need the include reader to
-      carry binary — the first thing here that is not just schema
+- [x] **Images** — `images:` anchored at a cell, with alt text, a scale, an
+      offset in pixels, and Excel's three anchor kinds. The first thing in this
+      phase that is not just schema: a spec names a file it cannot hold as text,
+      so the loader gained a second resolver (`BytesResolver`) beside the one
+      `$include` uses, and the CLI supplies both. Deferred: a hyperlink on an
+      image, cell-embedded ("place in cell") images, and shapes
 - [ ] **Pivot tables** (`add_pivot_table`) — the heaviest item here (source data,
       cache, field layout); may land late or as a stretch
 - [x] **Data validation** — drop-downs (inline choices or sourced from cells,
@@ -744,6 +748,38 @@ silently reading the wrong file).
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-27** — **Images**, and the seam they needed. `images:` anchors a
+  picture at a cell, with alt text, a scale, an offset in pixels, and Excel's
+  three anchor kinds — spelled the way its "Size and Properties" pane spells
+  them (`move`, `move_and_size`, `fixed`) rather than as OOXML's `oneCell` /
+  `twoCell` / `absolute`.
+
+  **This is the first spec key that names a file the loader cannot read as
+  text**, and the include resolver has no bytes to give. Rather than widen
+  `Included` — which would make every text resolver invent bytes it does not
+  have — the loader gained a second seam of the same shape: `BytesResolver`,
+  defaulting to one that refuses with a diagnostic. The CLI supplies both, and
+  the core still opens nothing itself (ADR-003). Tests pass an in-memory map,
+  so nothing but the `examples` package touches the disk.
+
+  The bytes travel into the model and then into the package, so a compiled
+  workbook carries the picture and no longer needs the file. The format comes
+  from the file's extension, because that is what Excel decodes by — it never
+  inspects the bytes — so an unknown extension, a name with no extension, and
+  an empty file are each diagnostics rather than a workbook Excel opens with a
+  broken-image box.
+
+  One backend detail worth recording: `add_picture_from_bytes` wants the format
+  as a *suffix*, dot included (`.png`). Passing `png` fails with
+  `UnsupportedFeature`, which says nothing about the dot; the model keeps the
+  bare extension and the emitter adds the dot at the seam.
+
+  Verified in the package: `xl/media/image1.png` byte-identical to the source,
+  a `twoCellAnchor` for `move_and_size` at col 3 / row 1 (D2) with `colOff`
+  38100 EMU = 4 px, the alt text in `descr`, and the drawn size — 16 px scaled
+  ×2 = 304800 EMU — worked out by the backend from the image's own dimensions.
+  `examples/layout.yxl.yaml` now carries a logo (`examples/assets/logo.png`).
 
 - **2026-07-27** — **Charts.** `charts:` anchors a chart at a cell: fourteen
   kinds, one or more series, a title, legend placement, a size in pixels, and

@@ -50,6 +50,16 @@ sheets:
       B3: 2400000
       C3: 1200000
       D3: reviewed
+    # A picture floats above the grid: `at` positions its top-left corner, and
+    # the cells under it keep whatever they hold. Its bytes are read while the
+    # spec compiles, so the workbook carries the image itself.
+    images:
+      - at: E1
+        file: assets/logo.png
+        alt: Example Ltd logo
+        scale: 0.5
+        offset: { x: 4, y: 4 }
+
     print:
       area: A1:C3
       orientation: landscape

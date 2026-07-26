@@ -64,6 +64,7 @@ pub fn load(
   document : @yaml.Node,
   file~ : String,
   resolve? : IncludeResolver = no_includes,
+  read_bytes? : BytesResolver = no_binaries,
   params? : Map[String, String] = Map([]),
 ) -> @model.Workbook raise {
   // Two pre-passes collapse a multi-file, parameterized spec into the single
@@ -84,7 +85,7 @@ pub fn load(
     match key {
       "sheets" => {
         seen_sheets = true
-        load_sheets(value, workbook, file~, defs~, resolve~)
+        load_sheets(value, workbook, file~, defs~, resolve~, read_bytes~)
       }
       "date1904" => () // consumed by read_date_system
       "default_font" => () // consumed by read_default_font
@@ -176,11 +177,12 @@ fn load_sheets(
   file~ : String,
   defs~ : Defs,
   resolve~ : IncludeResolver,
+  read_bytes~ : BytesResolver,
 ) -> Unit raise {
   let items = expect_seq(node, file~, context="'sheets'")
   let seen_names = []
   for item in items {
-    let name = load_sheet(item, workbook, file~, defs~, resolve~)
+    let name = load_sheet(item, workbook, file~, defs~, resolve~, read_bytes~)
     guard !seen_names.contains(name) else {
       raise schema_error(file~, "duplicate sheet name '\{name}'")
     }
@@ -196,6 +198,7 @@ fn load_sheet(
   file~ : String,
   defs~ : Defs,
   resolve~ : IncludeResolver,
+  read_bytes~ : BytesResolver,
 ) -> String raise {
   let entries = expect_map(node, file~, context="a sheet")
   // `name` and `visibility` are read up front because the sheet cannot be
@@ -243,11 +246,12 @@ fn load_sheet(
       "comments" => load_comments(value, sheet, file~)
       "tables" => load_tables(value, sheet, file~)
       "charts" => load_charts(value, sheet, file~)
+      "images" => load_images(value, sheet, file~, read_bytes~)
       "protect" => sheet.set_protection(load_sheet_protection(value, file~))
       _ =>
         raise schema_error(
           file~,
-          "unknown key '\{key}' in sheet (expected 'name', 'cells', 'data', 'columns', 'rows', 'merges', 'visibility', 'freeze', 'split', 'gridlines', 'tab_color', 'print', 'filter', 'validations', 'links', 'conditional', 'comments', 'tables', 'charts', or 'protect')",
+          "unknown key '\{key}' in sheet (expected 'name', 'cells', 'data', 'columns', 'rows', 'merges', 'visibility', 'freeze', 'split', 'gridlines', 'tab_color', 'print', 'filter', 'validations', 'links', 'conditional', 'comments', 'tables', 'charts', 'images', or 'protect')",
         )
     }
   }

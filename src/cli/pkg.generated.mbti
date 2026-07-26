@@ -8,7 +8,7 @@ import {
 }
 
 // Values
-pub fn compile(String, file~ : String, resolve? : (String, String) -> @loader.Included raise, params? : Map[String, String]) -> Bytes raise
+pub fn compile(String, file~ : String, resolve? : (String, String) -> @loader.Included raise, read_bytes? : (String, String) -> @loader.IncludedBytes raise, params? : Map[String, String]) -> Bytes raise
 
 pub fn error_message(Error, source? : String) -> String
 

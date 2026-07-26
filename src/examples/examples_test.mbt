@@ -88,6 +88,16 @@ fn included(from : String, path : String) -> @loader.Included raise {
 }
 
 ///|
+/// The same, for a file the spec names but cannot hold as text: an image.
+fn included_bytes(from : String, path : String) -> @loader.IncludedBytes raise {
+  let name = match from.rev_find("/") {
+    Some(slash) => from[:slash + 1].to_owned() + path
+    None => path
+  }
+  { name, data: @fs.read_file_to_bytes(name) }
+}
+
+///|
 test "every example compiles and holds what it promises" {
   for promise in promises() {
     let path = "\{EXAMPLES}/\{promise.spec}"
@@ -95,6 +105,7 @@ test "every example compiles and holds what it promises" {
       @fs.read_file_to_string(path),
       file=path,
       resolve=included,
+      read_bytes=included_bytes,
       params=promise.params,
     )
     let workbook = @xlsx.read(bytes[:])
@@ -112,7 +123,12 @@ test "every example compiles and holds what it promises" {
 test "the interactive example decorates the cells it says it does" {
   let path = "\{EXAMPLES}/interactive.yxl.yaml"
   let workbook = @xlsx.read(
-    @cli.compile(@fs.read_file_to_string(path), file=path, resolve=included)[:],
+    @cli.compile(
+      @fs.read_file_to_string(path),
+      file=path,
+      resolve=included,
+      read_bytes=included_bytes,
+    )[:],
   )
   guard workbook.get_auto_filter("Orders") is Some(filter) else {
     fail("expected an auto filter over the header row")
@@ -171,7 +187,12 @@ test "the interactive example decorates the cells it says it does" {
 test "the charts example draws what its comments describe" {
   let path = "\{EXAMPLES}/charts.yxl.yaml"
   let workbook = @xlsx.read(
-    @cli.compile(@fs.read_file_to_string(path), file=path, resolve=included)[:],
+    @cli.compile(
+      @fs.read_file_to_string(path),
+      file=path,
+      resolve=included,
+      read_bytes=included_bytes,
+    )[:],
   )
   guard workbook.sheet("Figures") is Some(figures) else {
     fail("expected the Figures sheet")
@@ -202,7 +223,12 @@ test "the charts example draws what its comments describe" {
 test "the modular example declares its data region a table" {
   let path = "\{EXAMPLES}/modular.yxl.yaml"
   let workbook = @xlsx.read(
-    @cli.compile(@fs.read_file_to_string(path), file=path, resolve=included)[:],
+    @cli.compile(
+      @fs.read_file_to_string(path),
+      file=path,
+      resolve=included,
+      read_bytes=included_bytes,
+    )[:],
   )
   let tables = workbook.get_tables("Sales")
   assert_eq(tables.length(), 1)
@@ -221,7 +247,12 @@ test "the modular example declares its data region a table" {
 test "the layout example carries its document properties and calc mode" {
   let path = "\{EXAMPLES}/layout.yxl.yaml"
   let workbook = @xlsx.read(
-    @cli.compile(@fs.read_file_to_string(path), file=path, resolve=included)[:],
+    @cli.compile(
+      @fs.read_file_to_string(path),
+      file=path,
+      resolve=included,
+      read_bytes=included_bytes,
+    )[:],
   )
   let core = workbook.get_doc_props()
   assert_eq(core.title, "Regional summary")
@@ -236,6 +267,16 @@ test "the layout example carries its document properties and calc mode" {
   let calc = workbook.get_calc_props()
   assert_eq(calc.calc_mode, Some("manual"))
   assert_eq(calc.full_calc_on_load, Some(true))
+
+  // And the logo, whose bytes travelled from disk into the package.
+  let images = workbook.get_pictures("Summary", "E1")
+  assert_eq(images.length(), 1)
+  assert_eq(images[0].extension, "png")
+  assert_eq(images[0].alt_text, "Example Ltd logo")
+  assert_eq(
+    images[0].data,
+    @fs.read_file_to_bytes("\{EXAMPLES}/assets/logo.png"),
+  )
 }
 
 ///|
@@ -245,7 +286,12 @@ test "the layout example carries its document properties and calc mode" {
 test "the styling example's conditional formats share their declared looks" {
   let path = "\{EXAMPLES}/styling.yxl.yaml"
   let workbook = @xlsx.read(
-    @cli.compile(@fs.read_file_to_string(path), file=path, resolve=included)[:],
+    @cli.compile(
+      @fs.read_file_to_string(path),
+      file=path,
+      resolve=included,
+      read_bytes=included_bytes,
+    )[:],
   )
   let formats = workbook.get_conditional_formats("Report")
   guard formats.get("B2:B3") is Some(over_revenue) else {
