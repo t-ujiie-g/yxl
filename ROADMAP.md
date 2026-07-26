@@ -233,11 +233,13 @@ The **active phase** is the first phase with any unchecked box.
 - [ ] Stretch: `xlsx → yxl.yaml` reverse import (§8 Q5)
 
 ### v1.0 — Stability gate
-- [ ] Schema freeze (breaking budget spent here); documented spec reference
+- [ ] Schema freeze (breaking budget spent here). The **spec reference** it
+      freezes is written: [`docs/spec.md`](./docs/spec.md)
 - [x] Stand up Tier 2: an `examples/` corpus that CI compiles and asserts on
       (§5), which is also what stops the README and cookbook drifting
 - [ ] Tier-3 manual: Excel / LibreOffice / Google Sheets open cleanly
-- [ ] Cookbook + CLI docs complete
+- [ ] Cookbook + CLI docs complete — `examples/` and `docs/spec.md` exist and CI
+      keeps them honest; what remains is filling them out as Phase 9 lands
 - [ ] Release policy: v1.0.0 ships when the schema + CLI are stable
 
 ---
@@ -599,6 +601,44 @@ silently reading the wrong file).
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-26** — **Release automation, the spec reference, and a PR-only
+  `main`.** Three pieces of project plumbing, none of them compiler changes:
+
+  - **`docs/spec.md`** — the exhaustive reference for `*.yxl.yaml`: every
+    top-level key, sheet key, cell form, style attribute, band, print setting,
+    include, data table, and parameter rule, plus the diagnostics and exit
+    codes. Written *against the code*, then checked by compiling a spec that
+    exercises nearly every key in it, and by confirming that each construct the
+    page calls an error really is one. Doing that caught one mistake: the page
+    listed seven Excel error literals where the loader accepts ten. This is the
+    "documented spec reference" the v1.0 gate asks for.
+  - **`.github/workflows/release.yml`** — a **tag push** (`v*`) builds and
+    publishes; merging a PR only runs CI, because a release should be a
+    deliberate act. The first job refuses to build unless the tag, `moon.mod`,
+    and the version `yxl version` reports agree, so a mistagged release stops
+    before it produces binaries. Then Linux x86_64 and macOS arm64 tarballs
+    (binary + README + LICENSE + examples, each with a `.sha256`), tested before
+    packaging, published with `gh` — no third-party action in the release path.
+  - **`main` is PR-only.** Recorded in `AGENTS.md §4` with the branch/PR/tag
+    commands, and in the README. `AGENTS.md §1`'s "no separate docs" rule now
+    names its three user-facing exceptions (README, `docs/spec.md`, `examples/`)
+    so the spec reference is not mistaken for the planning doc the rule forbids.
+
+  - **`install.sh`** — a one-line install, the shape a MoonBit CLI user expects
+    (`bit`'s installer was the reference): detect OS/arch, resolve the latest
+    release (or `YXL_VERSION`), download, **verify the SHA-256**, and place the
+    binary in `YXL_INSTALL_DIR` (default `~/.local/bin`), warning if that is not
+    on `PATH`. It then *runs* `yxl version`, which catches a binary that matches
+    the platform's name but not the machine. Two deliberate departures from the
+    reference: a checksum failure **aborts** rather than warning, and there is no
+    "use the arm64 build on Intel macOS" fallback — that cannot work, so the
+    release matrix gained a real `macos-x86_64` target instead. Verified against
+    a local stand-in release: a good install, a tampered tarball (refused), a
+    missing version, and an unsupported platform.
+
+  README's install section now leads with the one-liner and keeps building from
+  source as the second path.
 
 - **2026-07-26** — **Verification tier 2 stood up: the `examples/` corpus.** §5
   had promised this tier since Phase 0 and nothing had ever enforced it. There

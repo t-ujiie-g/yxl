@@ -1,0 +1,108 @@
+name: Release
+
+# A release is a deliberate act, so pushing a tag triggers it — merging a PR
+# only runs CI. The tag is the version: `v0.1.0` publishes 0.1.0, and the first
+# job refuses to build if the tag, `moon.mod`, and the version the CLI reports
+# disagree.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write # to create the release and upload its assets
+
+jobs:
+  verify-version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Tag, moon.mod, and `yxl version` agree
+        env:
+          # Through the environment rather than inline, so the tag is data.
+          TAG: ${{ github.ref_name }}
+        run: |
+          tagged=${TAG#v}
+          declared=$(grep -E '^version = ' moon.mod | cut -d'"' -f2)
+          reported=$(grep -E '^pub let version : String = ' src/cli/cli.mbt | cut -d'"' -f2)
+          echo "tag: $tagged, moon.mod: $declared, cli: $reported"
+          test "$tagged" = "$declared"
+          test "$tagged" = "$reported"
+
+  build:
+    needs: verify-version
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: linux-x86_64
+          - os: macos-latest # Apple silicon
+            target: macos-arm64
+          - os: macos-13 # Intel; an arm64 binary will not run here
+            target: macos-x86_64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install MoonBit
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+
+      - name: Update registry index
+        run: moon update
+
+      # The binary is the product; a release that fails its own tests is worse
+      # than no release.
+      - name: Test (native)
+        run: moon test --target native
+
+      - name: Build (native, release)
+        run: moon build --target native --release
+
+      - name: Package
+        env:
+          TAG: ${{ github.ref_name }}
+          TARGET: ${{ matrix.target }}
+        run: |
+          version=${TAG#v}
+          staging="yxl-$version-$TARGET"
+          mkdir "$staging"
+          cp _build/native/release/build/cmd/main/main.exe "$staging/yxl"
+          chmod +x "$staging/yxl"
+          cp README.md LICENSE "$staging/"
+          cp -r examples "$staging/"
+          tar czf "$staging.tar.gz" "$staging"
+          shasum -a 256 "$staging.tar.gz" > "$staging.tar.gz.sha256"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: yxl-${{ matrix.target }}
+          path: |
+            *.tar.gz
+            *.tar.gz.sha256
+          if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      # `gh` ships on the runner, so the release needs no third-party action.
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$TAG" \
+            --title "$TAG" \
+            --generate-notes \
+            --verify-tag \
+            artifacts/*
