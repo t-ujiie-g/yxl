@@ -163,6 +163,24 @@ test "the interactive example decorates the cells it says it does" {
 }
 
 ///|
+/// The `modular` example claims the region its CSV fills arrives as an Excel
+/// table. The table is not a cell value either, so it is asserted here.
+test "the modular example declares its data region a table" {
+  let path = "\{EXAMPLES}/modular.yxl.yaml"
+  let workbook = @xlsx.read(
+    @cli.compile(@fs.read_file_to_string(path), file=path, resolve=included)[:],
+  )
+  let tables = workbook.get_tables("Sales")
+  assert_eq(tables.length(), 1)
+  assert_eq(tables[0].name, "Revenue")
+  assert_eq(tables[0].range_ref, "A1:B4")
+  assert_eq(tables[0].style_name, "TableStyleMedium2")
+  // The column names come from the header row the spec writes, not from the CSV
+  // — the data starts at A2.
+  assert_eq(tables[0].columns, ["Region", "Revenue"])
+}
+
+///|
 /// The `layout` example claims to say what the file is and how Excel should
 /// recalculate it. Neither is a cell value, so the promise table cannot carry
 /// them either.

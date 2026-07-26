@@ -202,6 +202,9 @@ pub(all) struct Sheet {
   conditional_formats : Array[ConditionalFormat]
   /// Notes attached to cells, in declaration order.
   comments : Array[Comment]
+  /// Excel tables over the sheet's regions, in declaration order. Ranges may not
+  /// overlap — Excel refuses a workbook whose tables do.
+  tables : Array[Table]
   /// What a reader may still do once the sheet is protected; `None` leaves the
   /// sheet unprotected.
   mut protection : SheetProtection?
@@ -339,6 +342,7 @@ pub fn Sheet::new(
     links: [],
     conditional_formats: [],
     comments: [],
+    tables: [],
     protection: None,
   }
 }
@@ -390,6 +394,13 @@ pub fn Sheet::add_conditional_format(
   format : ConditionalFormat,
 ) -> Unit {
   self.conditional_formats.push(format)
+}
+
+///|
+/// Declare a region of the sheet an Excel table. The cells it covers are written
+/// as usual; this only says what the region is.
+pub fn Sheet::add_table(self : Sheet, table : Table) -> Unit {
+  self.tables.push(table)
 }
 
 ///|

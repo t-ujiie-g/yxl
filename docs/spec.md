@@ -21,9 +21,9 @@ sheets: [...]          # the workbook's sheets, in tab order
 active: Summary        # the sheet Excel opens on (default: the first)
 params: {...}          # named values substituted as ${name}   → §7
 defs: {...}            # named styles, values, and formulas    → §6
-properties: {...}      # what the file says about itself       → §11
-calc: {...}            # when Excel recalculates               → §11
-protect: {...}         # lock the workbook's structure         → §12
+properties: {...}      # what the file says about itself       → §12
+calc: {...}            # when Excel recalculates               → §12
+protect: {...}         # lock the workbook's structure         → §13
 date1904: false        # use Excel's 1904 date epoch
 default_font: Calibri  # the workbook's default font face
 ```
@@ -34,9 +34,9 @@ default_font: Calibri  # the workbook's default font face
 | `active` | text | Must name a declared, **visible** sheet. |
 | `params` | mapping | §7. |
 | `defs` | mapping | §6. |
-| `properties` | mapping | Document properties. §11. |
-| `calc` | mapping | Calculation settings. §11. |
-| `protect` | mapping | Workbook protection. §12. |
+| `properties` | mapping | Document properties. §12. |
+| `calc` | mapping | Calculation settings. §12. |
+| `protect` | mapping | Workbook protection. §13. |
 | `date1904` | boolean | `true` selects the 1904 epoch. Affects how dates serialize. |
 | `default_font` | text | Face name only; size and colour are per-style. |
 
@@ -62,7 +62,8 @@ sheets:
     links: {...}       # → §10
     conditional: [...] # → §10
     comments: {...}    # → §10
-    protect: {...}     # → §12
+    tables: [...]      # → §11
+    protect: {...}     # → §13
 ```
 
 | Key | Type | Notes |
@@ -83,7 +84,8 @@ sheets:
 | `links` | mapping | Hyperlinks, by cell. §10. |
 | `conditional` | sequence | Formatting decided by the value. §10. |
 | `comments` | mapping | Notes, by cell. §10. |
-| `protect` | mapping | Sheet protection. §12. |
+| `tables` | sequence | Excel tables over the sheet's regions. §11. |
+| `protect` | mapping | Sheet protection. §13. |
 
 Sheet keys apply **in the order written**, so where a `data:` table and `cells:`
 overlap, whichever comes last wins.
@@ -209,7 +211,7 @@ defs:
 | `font` | `{ bold, italic, underline, strike, size, name, color }` — all optional. |
 | `fill` | A hex `RRGGBB`, or `{ color: RRGGBB }`. Solid fills only. |
 | `border` | A style name for all four edges (`border: thin`), or a mapping of `all` / `left` / `right` / `top` / `bottom`, each a style name or `{ style, color }`. Styles: `thin`, `medium`, `thick`, `dashed`, `dotted`, `double`, `hair`. |
-| `protection` | `{ locked, hidden }` — what sheet protection does to a cell wearing this style. §12. |
+| `protection` | `{ locked, hidden }` — what sheet protection does to a cell wearing this style. §13. |
 | `align` | `{ horizontal, vertical, wrap }`. Horizontal: `left`, `center`, `right`, `fill`, `justify`, `distributed`. Vertical: `top`, `middle`, `bottom`, `justify`, `distributed`. |
 
 A cell's own `format` layers on top of a referenced style.
@@ -469,7 +471,54 @@ Excel keeps these looks in a table of its own, separate from the styles cells
 wear, but they are declared the same way and shared the same way: a look used by
 ten rules is stored once.
 
-## 11. Document properties and calculation
+## 11. Tables
+
+An *Excel table* (a "ListObject") declares a region to **be** a table rather than
+merely look like one: it arrives with filter buttons, banded shading, a name
+formulas can use (`=SUM(Revenue[Revenue])`), and it grows over any row typed
+beneath it.
+
+```yaml
+tables:
+  - at: A1:B4              # required; the top row is the header
+    name: Revenue          # what formulas call it (default: Table1, Table2, …)
+    style: TableStyleMedium2
+    banded_rows: true      # shade alternate rows       (default: true)
+    banded_columns: false  # shade alternate columns    (default: false)
+    first_column: false    # emphasize the first column (default: false)
+    last_column: false     # emphasize the last column  (default: false)
+```
+
+| Key | Type | Notes |
+|---|---|---|
+| `at` | range | **Required.** Includes the header row, so it spans at least two rows. |
+| `name` | text | Excel's defined-name rules: starts with a letter or `_`, then letters, digits, `.` and `_` — **no spaces** — and never looks like a cell reference. Unique across the workbook, ignoring case. |
+| `style` | text | One of Excel's built-ins: `TableStyleLight1`–`TableStyleLight21`, `TableStyleMedium1`–`TableStyleMedium28`, `TableStyleDark1`–`TableStyleDark11`. |
+| `banded_rows`, `banded_columns`, `first_column`, `last_column` | boolean | The four toggles of Excel's "Table Design" ribbon. What each does depends on the style, which supplies the colours. |
+
+The cells stay ordinary cells — write them with `cells:` or `data:` as usual;
+`tables:` only says what the region is. **The top row must name every column, as
+text**, and no two names may repeat (Excel compares them ignoring case). A
+number is not a column name: quote it if that is what you meant.
+
+```yaml
+cells:
+  A1: Region      # ← the column names
+  B1: Revenue
+  A2: APAC
+  B2: 2400000
+tables:
+  - at: A1:B2
+    name: Revenue
+```
+
+A table may not overlap another table or the sheet's own `filter:` — a table
+carries its own filter buttons, so it needs no separate one. Excel repairs (or
+refuses) a workbook that breaks any of this, so `yxl` refuses the spec first.
+
+A table with its header row turned off is not expressible yet.
+
+## 12. Document properties and calculation
 
 ```yaml
 properties:
@@ -504,7 +553,7 @@ values the spec supplied, which is worth setting where recalculation is slow;
 `on_load: true` forces one full pass regardless, which is what you want where
 the spec supplied no cached values at all.
 
-## 12. Protection
+## 13. Protection
 
 ```yaml
 protect:                    # the workbook itself
@@ -554,7 +603,7 @@ A style may carry **either** a number format **or** cell protection, not both.
 The build fails saying so, naming the format, rather than dropping one
 silently. Split them into two styles, or drop the format.
 
-## 13. Diagnostics
+## 14. Diagnostics
 
 A failed build prints one diagnostic and exits non-zero. YAML **syntax** errors
 carry a line and column with the source quoted:

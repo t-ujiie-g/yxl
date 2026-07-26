@@ -1,4 +1,4 @@
-// External CSV and JSON data tables (`table.mbt`).
+// External CSV and JSON data tables (`data.mbt`).
 
 ///|
 test "a CSV table lands at its anchor, typed field by field" {

@@ -9,6 +9,8 @@ import {
 // Values
 pub let icon_set_styles : Array[String]
 
+pub fn is_table_style(String) -> Bool
+
 pub let max_outline_level : Int
 
 pub let max_page_scale : Int
@@ -20,6 +22,8 @@ pub let max_rank_percent : Int
 pub let max_validation_list_length : Int
 
 pub let min_page_scale : Int
+
+pub let table_style_families : Array[(String, Int)]
 
 // Errors
 
@@ -261,11 +265,13 @@ pub(all) struct Sheet {
   links : Array[Link]
   conditional_formats : Array[ConditionalFormat]
   comments : Array[Comment]
+  tables : Array[Table]
   mut protection : SheetProtection?
 } derive(Eq, @debug.Debug)
 pub fn Sheet::add_comment(Self, @units.CellRef, String, author? : String) -> Unit
 pub fn Sheet::add_conditional_format(Self, ConditionalFormat) -> Unit
 pub fn Sheet::add_link(Self, @units.CellRef, LinkTarget, tip? : String) -> Unit
+pub fn Sheet::add_table(Self, Table) -> Unit
 pub fn Sheet::add_validation(Self, Validation) -> Unit
 pub fn Sheet::merge(Self, @units.CellRef, @units.CellRef) -> Unit
 pub fn Sheet::new(String, visibility? : SheetVisibility) -> Self
@@ -322,6 +328,16 @@ pub fn Style::empty() -> Self
 pub fn Style::is_empty(Self) -> Bool
 pub fn Style::number_format(String) -> Self
 pub fn Style::over(Self, Self) -> Self
+
+pub(all) struct Table {
+  at : CellRange
+  name : String?
+  style : String?
+  banded_rows : Bool
+  banded_columns : Bool
+  first_column : Bool
+  last_column : Bool
+} derive(Eq, @debug.Debug)
 
 pub(all) enum TextMatch {
   Contains
