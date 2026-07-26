@@ -32,7 +32,8 @@ is declarative authoring for people who'd rather edit YAML than write code.
 > specs, external CSV/JSON data, parameters, validations, conditional
 > formatting, hyperlinks, notes, protection, Excel tables, charts, images, and
 > pivot tables all compile, and the CLI has `--check`, `--set`, and stable exit
-> codes. Still ahead: performance work and the schema freeze —
+> codes. Still ahead: shapes, sparklines, form controls and the rest of Phase 9's
+> second slice, then performance work and the schema freeze —
 > **the schema may change until v1.0.** See [`ROADMAP.md`](./ROADMAP.md) for the
 > phase plan and the living changelog.
 
