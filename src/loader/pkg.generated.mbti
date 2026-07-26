@@ -7,7 +7,7 @@ import {
 }
 
 // Values
-pub fn load(@yaml.Node, file~ : String, resolve? : (String, String) -> Included raise) -> @model.Workbook raise
+pub fn load(@yaml.Node, file~ : String, resolve? : (String, String) -> Included raise, params? : Map[String, String]) -> @model.Workbook raise
 
 // Errors
 

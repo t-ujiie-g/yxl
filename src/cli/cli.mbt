@@ -14,9 +14,10 @@ pub let exit_error : Int = 1
 pub let exit_usage : Int = 2
 
 ///|
-/// A parsed command line. Only `build` exists today.
+/// A parsed command line. Only `build` exists today. `params` carries the
+/// `--set name=value` overrides, in the order given.
 pub(all) enum Command {
-  Build(input~ : String, output~ : String)
+  Build(input~ : String, output~ : String, params~ : Map[String, String])
 } derive(Eq, Debug)
 
 ///|
@@ -38,6 +39,7 @@ pub fn parse_args(args : ArrayView[String]) -> Command raise @diag.CliError {
 fn parse_build(args : ArrayView[String]) -> Command raise @diag.CliError {
   let mut input = None
   let mut output = None
+  let params : Map[String, String] = Map([])
   let mut i = 0
   while i < args.length() {
     match args[i] {
@@ -49,6 +51,17 @@ fn parse_build(args : ArrayView[String]) -> Command raise @diag.CliError {
           raise usage_error("'-o' was given more than once")
         }
         output = Some(args[i + 1])
+        i += 2
+      }
+      "--set" => {
+        guard i + 1 < args.length() else {
+          raise usage_error("'--set' needs a 'name=value' argument")
+        }
+        let (name, value) = parse_setting(args[i + 1])
+        guard !params.contains(name) else {
+          raise usage_error("'--set \{name}=' was given more than once")
+        }
+        params[name] = value
         i += 2
       }
       option if option.has_prefix("-") =>
@@ -66,7 +79,20 @@ fn parse_build(args : ArrayView[String]) -> Command raise @diag.CliError {
   guard output is Some(output) else {
     raise usage_error("no output file given (use -o <out.xlsx>)")
   }
-  Build(input~, output~)
+  Build(input~, output~, params~)
+}
+
+///|
+/// Split a `--set` argument on its first `=`. The name must be non-empty; the
+/// value may be (`--set note=` sets it to the empty string).
+fn parse_setting(argument : String) -> (String, String) raise @diag.CliError {
+  guard argument.split_once("=") is Some((name, value)) else {
+    raise usage_error("'--set \{argument}' must be 'name=value'")
+  }
+  guard !name.is_empty() else {
+    raise usage_error("'--set \{argument}' has no parameter name")
+  }
+  (name.to_owned(), value.to_owned())
 }
 
 ///|
@@ -77,13 +103,17 @@ fn parse_build(args : ArrayView[String]) -> Command raise @diag.CliError {
 ///
 /// `resolve` supplies the source of any `$include`; without it a spec that uses
 /// one is a diagnostic. Reading files stays the caller's job — that is what
-/// keeps this function I/O-free (ADR-003).
+/// keeps this function I/O-free (ADR-003). `params` overrides the spec's
+/// declared parameter defaults (the CLI's `--set`).
 pub fn compile(
   source : String,
   file~ : String,
   resolve? : @loader.IncludeResolver,
+  params? : Map[String, String],
 ) -> Bytes raise {
-  @emit.to_bytes(@loader.load(@yaml.parse(source, file~), file~, resolve?))
+  @emit.to_bytes(
+    @loader.load(@yaml.parse(source, file~), file~, resolve?, params?),
+  )
 }
 
 ///|

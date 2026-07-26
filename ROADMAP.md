@@ -186,9 +186,10 @@ The **active phase** is the first phase with any unchecked box.
 - [x] External data sources — a sheet `data:` list anchors a CSV or JSON table
       at a cell; fields become ordinary cells, styled by the existing
       `columns:` / `rows:` bands rather than by the data block
-- [ ] Lightweight templating / parameterization — the first construct that can
-      let one definition reference another, so **cyclic-reference detection**
-      (deferred from Phase 5) lands here
+- [x] Lightweight templating / parameterization — style `extends:` (a definition
+      referencing another) and a top-level `params:` block substituted as
+      `${name}`, overridable with the CLI's `--set` (ADR-015). **Cyclic-reference
+      detection** (deferred from Phase 5) landed with both
 
 ### Phase 8 — CLI UX
 - [ ] Rich diagnostics rendered with file/line/col and carets — needs per-node
@@ -449,6 +450,38 @@ treats it as relative to the including file, so a spec directory can be moved
 wholesale. Should the parser ever gain an open event API, `!include` could be
 added as sugar over the same expansion, but `$include` stays the contract.
 
+### ADR-015 — Parameters are `${name}`; a lone placeholder keeps its type
+**Status:** Accepted.
+**Context:** Phase 7 wants one spec to build many workbooks. The project's other
+directives are single-key mappings (`$ref`, `$include`), but a parameter's main
+use — composing a sheet name or a title out of parts (`"${quarter} ${region}"`)
+— cannot be expressed by substituting a whole node.
+**Decision:** A top-level `params:` block declares names with defaults;
+`${name}` inside **any string** substitutes one, in mapping keys as well as
+values, so a cell reference or a sheet name may be parameterized. Substitution
+is a pre-pass over the document tree (after include expansion, so included files
+see the parameters), leaving the schema readers below unaware parameters exist.
+A default may itself use `${other}`; that makes cycles possible, and they are
+detected and reported with the chain.
+
+Two rules make the mechanism carry types rather than only text:
+- A string that is **exactly one placeholder** takes the parameter's own type,
+  so `B1: "${rate}"` is a number cell, not the text `0.08`.
+- A `--set` value arrives from a command line as text and is read as **the
+  scalar it looks like** — the same inference CSV fields get, since neither
+  carries types. Without this, `--set rate=0.15` would silently turn a number
+  cell into a text one.
+
+**Trade-offs / consequences:** `$$` is a literal `$`, and a `$` beginning
+neither escape is itself, which leaves Excel's absolute references (`$A$1`)
+untouched. The two meanings collide only when a literal `$` *immediately*
+precedes a placeholder: `$B$${n}` reads its middle `$$` as the escape, and the
+author writes `$B$$${n}` instead. The substitution pass runs **even when no
+parameters are declared**, so a stray `${nope}` is a diagnostic rather than a
+literal reaching a cell (ADR-006) — a spec that wants a literal `${` writes
+`$${`. Setting a name the spec does not declare is likewise an error, so a typo
+on the command line says so instead of quietly doing nothing.
+
 ## 8. Open questions
 
 - **Q1 — YAML parser.** ✅ **Decided (ADR-009), refined (ADR-010):** depend on
@@ -507,6 +540,28 @@ added as sugar over the same expansion, but `$include` stays the contract.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-26** — **Phase 7 complete: parameterization (`params:` / `--set`).**
+  A spec declares parameters with defaults and substitutes them as `${name}` in
+  any string — values *and* mapping keys, so a sheet name, a cell reference, or a
+  title composed of parts can all be parameterized. `yxl build … --set
+  region=EMEA` overrides a default without editing the spec: one spec, many
+  workbooks (ADR-015). A default may use another parameter, so **parameter cycles
+  are detected** and reported with the chain, alongside the style-inheritance
+  cycles.
+
+  Two rules keep types intact: a string that is exactly one placeholder takes the
+  parameter's own type (`B1: "${rate}"` is a number cell), and a `--set` value is
+  read as the scalar it looks like — the same inference CSV fields get, which is
+  now one shared `infer_scalar`. Without the second, `--set rate=0.15` would
+  quietly turn a number cell into text.
+
+  A bug caught while testing: the pass originally short-circuited when a spec
+  declared no parameters, which let a stray `${nope}` survive as a literal into a
+  cell. It now always runs, so an unbacked placeholder is a diagnostic (ADR-006).
+
+  `Command::Build` gained `params`, and `compile`/`load` an optional `params~`.
+  129 tests green. **Phase 7 is complete.**
 
 - **2026-07-26** — **Phase 7: style inheritance (`extends:`).** A style
   definition may extend another — `header: { extends: base, font: { bold: true } }`

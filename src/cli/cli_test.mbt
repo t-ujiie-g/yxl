@@ -17,7 +17,7 @@ test "parse_args accepts build with input and -o output, in either order" {
       ["build", "-o", "out.xlsx", "in.yaml"],
       ["build", "--output", "out.xlsx", "in.yaml"],
     ] {
-    guard @cli.parse_args(args) is Build(input~, output~) else {
+    guard @cli.parse_args(args) is Build(input~, output~, ..) else {
       fail("expected a Build command")
     }
     assert_eq(input, "in.yaml")
@@ -59,6 +59,70 @@ test "parse_args rejects malformed command lines" {
     usage_message(["build", "in.yaml", "-x", "-o", "o.xlsx"]),
     Some("unknown option '-x'"),
   )
+}
+
+///|
+test "parse_args collects repeated --set overrides" {
+  guard @cli.parse_args([
+      "build", "in.yaml", "-o", "out.xlsx", "--set", "region=EMEA", "--set", "rate=0.15",
+      "--set", "note=",
+    ])
+    is Build(params~, ..) else {
+    fail("expected a Build command")
+  }
+  assert_eq(params.get("region"), Some("EMEA"))
+  assert_eq(params.get("rate"), Some("0.15"))
+  // A value may be empty; only the name may not.
+  assert_eq(params.get("note"), Some(""))
+}
+
+///|
+test "parse_args rejects malformed --set arguments" {
+  assert_eq(
+    usage_message(["build", "in.yaml", "-o", "o.xlsx", "--set"]),
+    Some("'--set' needs a 'name=value' argument"),
+  )
+  assert_eq(
+    usage_message(["build", "in.yaml", "-o", "o.xlsx", "--set", "region"]),
+    Some("'--set region' must be 'name=value'"),
+  )
+  assert_eq(
+    usage_message(["build", "in.yaml", "-o", "o.xlsx", "--set", "=EMEA"]),
+    Some("'--set =EMEA' has no parameter name"),
+  )
+  assert_eq(
+    usage_message([
+      "build", "in.yaml", "-o", "o.xlsx", "--set", "a=1", "--set", "a=2",
+    ]),
+    Some("'--set a=' was given more than once"),
+  )
+}
+
+///|
+/// Golden round-trip for a parameterized spec: one spec, two workbooks.
+test "golden: --set overrides a declared parameter" {
+  let source =
+    #|params:
+    #|  region: APAC
+    #|  rate: 0.08
+    #|sheets:
+    #|  - name: "${region}"
+    #|    cells:
+    #|      A1: "Tax for ${region}"
+    #|      B1: "${rate}"
+    #|
+  let default_build = @xlsx.read(@cli.compile(source, file="spec.yaml")[:])
+  assert_eq(default_build.get_cell("APAC", "A1"), Some("Tax for APAC"))
+  assert_eq(default_build.get_cell("APAC", "B1"), Some("0.08"))
+  let overridden = @xlsx.read(
+    @cli.compile(source, file="spec.yaml", params={
+      "region": "EMEA",
+      "rate": "0.2",
+    })[:],
+  )
+  assert_eq(overridden.get_cell("EMEA", "A1"), Some("Tax for EMEA"))
+  // The override stays a number cell, as the default was.
+  assert_true(overridden.get_cell_value_raw("EMEA", "B1") is Some(Numeric(0.2)))
 }
 
 ///|
@@ -203,7 +267,7 @@ test "compile surfaces a schema error carrying the file name" {
   assert_eq(
     caught,
     Some(
-      "spec.yaml: unknown top-level key 'title' (expected 'sheets', 'active', 'date1904', 'default_font', or 'defs')",
+      "spec.yaml: unknown top-level key 'title' (expected 'sheets', 'active', 'params', 'date1904', 'default_font', or 'defs')",
     ),
   )
 }

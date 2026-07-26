@@ -1,9 +1,10 @@
 ///|
 /// Load a parsed YAML document into a workbook model, validating the schema. The
 /// spec is a mapping with a `sheets` sequence plus optional top-level `active`
-/// (the sheet Excel opens on), `date1904` (the 1904 date system), `default_font`
-/// (the workbook default font face), and `defs` (named definitions — see
-/// `load_defs`). Sheets appear in Excel in declaration order. Each sheet has a
+/// (the sheet Excel opens on), `params` (named values with defaults, substituted
+/// as `${name}` and overridable through `params~` — see `substitute_params`),
+/// `date1904` (the 1904 date system), `default_font` (the workbook default font
+/// face), and `defs` (named definitions — see `load_defs`). Sheets appear in Excel in declaration order. Each sheet has a
 /// `name` and optional `cells` (an A1-reference mapping), `data` (external CSV /
 /// JSON tables — see `load_data`), `merges`, `columns` / `rows` (bands carrying
 /// a default style, a size, visibility, and outline grouping — see
@@ -21,6 +22,8 @@
 /// ```yaml
 /// default_font: Calibri
 /// active: Sheet1
+/// params:
+///   region: APAC
 /// defs:
 ///   styles:
 ///     header: { font: { bold: true } }
@@ -50,7 +53,7 @@
 ///       orientation: landscape
 ///       fit: { width: 1 }
 ///       header: "&C&\"Arial,Bold\"Quarterly report"
-///   - name: Scratch
+///   - name: "${region} scratch"
 ///     visibility: hidden
 /// ```
 ///
@@ -61,10 +64,13 @@ pub fn load(
   document : @yaml.Node,
   file~ : String,
   resolve? : IncludeResolver = no_includes,
+  params? : Map[String, String] = Map([]),
 ) -> @model.Workbook raise {
-  // Multi-file specs collapse to one tree before any key is interpreted, so
-  // every reader below is unaware that more than one file existed (ADR-005).
+  // Two pre-passes collapse a multi-file, parameterized spec into the single
+  // plain tree every reader below sees (ADR-005, ADR-014). Includes expand
+  // first, so an included file may use the parameters too.
   let document = expand_includes(document, file~, resolve~, chain=[file])
+  let document = substitute_params(document, file~, overrides=params)
   let root = expect_map(document, file~, context="the top level")
   let workbook = @model.Workbook::new(
     date_system=read_date_system(root, file~),
@@ -84,10 +90,11 @@ pub fn load(
       "default_font" => () // consumed by read_default_font
       "defs" => () // consumed by load_defs
       "active" => () // resolved below, once every sheet name is known
+      "params" => () // consumed by the substitution pass
       _ =>
         raise schema_error(
           file~,
-          "unknown top-level key '\{key}' (expected 'sheets', 'active', 'date1904', 'default_font', or 'defs')",
+          "unknown top-level key '\{key}' (expected 'sheets', 'active', 'params', 'date1904', 'default_font', or 'defs')",
         )
     }
   }

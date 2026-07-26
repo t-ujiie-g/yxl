@@ -18,20 +18,20 @@ fn run() -> Int {
     }
   }
   match command {
-    Build(input~, output~) => build(input, output)
+    Build(input~, output~, params~) => build(input, output, params)
   }
 }
 
 ///|
 /// Read `input`, compile it, and write the `.xlsx` bytes to `output`.
-fn build(input : String, output : String) -> Int {
+fn build(input : String, output : String, params : Map[String, String]) -> Int {
   let source = @fs.read_file_to_string(input) catch {
     @fs.IOError(reason) => {
       report("cannot read \{input}: \{reason}")
       return @cli.exit_error
     }
   }
-  let bytes = @cli.compile(source, file=input, resolve=read_included) catch {
+  let bytes = @cli.compile(source, file=input, resolve=read_included, params~) catch {
     err => {
       report(@cli.error_message(err))
       return @cli.exit_error
