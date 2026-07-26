@@ -24,10 +24,17 @@ fn plain_image() -> @model.Image {
 }
 
 ///|
-/// The sole image the round-tripped workbook anchors at `D2`.
+/// The sole image the round-tripped workbook carries.
+///
+/// The sheet's own `images()` is read rather than the workbook's
+/// `get_pictures`: the latter also looks for images *inside* cells, a path that
+/// drags Excel's formula evaluator into the link — and MSVC cannot parse the C
+/// its thousand-armed dispatch generates (`fatal error C1026`). Drawing
+/// pictures are what `yxl` emits, so this is the accessor that matches anyway.
 fn only_image(wb : @model.Workbook) -> @xlsx.Image raise {
   let reopened = @xlsx.read(@emit.to_bytes(wb)[:])
-  let images = reopened.get_pictures("S", "D2")
+  guard reopened.sheet("S") is Some(sheet) else { fail("expected the sheet") }
+  let images = sheet.images()
   assert_eq(images.length(), 1)
   images[0]
 }
@@ -93,5 +100,6 @@ test "two images on one sheet keep their own anchors" {
     at: @units.CellRef::parse_a1("H10").unwrap(),
   })
   let reopened = @xlsx.read(@emit.to_bytes(wb)[:])
-  assert_eq(reopened.get_picture_cells("S"), ["D2", "H10"])
+  guard reopened.sheet("S") is Some(read) else { fail("expected the sheet") }
+  assert_eq(read.images().map(image => image.reference), ["D2", "H10"])
 }

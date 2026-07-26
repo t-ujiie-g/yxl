@@ -724,6 +724,19 @@ silently reading the wrong file).
   is manual and scheduled for the v1.0 gate. Mitigation: automate the cheap half
   (LibreOffice headless, or `openpyxl`, over the `examples/` outputs) rather than
   wait for v1.0. Raised in the post-v0.1.0 review.
+- **MSVC cannot compile the backend's formula evaluator.** MoonBit's native
+  backend hands each test executable to the platform C compiler as one
+  translation unit, and `mbtexcel`'s formula dispatch — a `match` with a
+  thousand-odd arms — becomes C that MSVC refuses with `fatal error C1026:
+  parser stack overflow, program too complex`. It only bites when the evaluator
+  survives dead-code elimination, which happens the moment anything in a package
+  reaches it, however indirectly: `Workbook::get_pictures` does, because it also
+  looks for images *inside* cells. Ubuntu and macOS (clang) compile it fine, so
+  this shows up as a Windows-only CI failure in a package whose own code never
+  mentions formulas. Mitigation for now: prefer the backend reader that matches
+  what `yxl` actually emits (`Worksheet::images()`, `Worksheet::charts()`) over
+  the whole-workbook lookups. If a needed API drags the evaluator in, the escape
+  hatch is `MOON_CC=clang-cl` on the Windows runner. Found in Phase 9's images.
 - **A headline the schema does not earn.** §1 leads with "diffable", and a
   `cells:`-keyed spec is not, under row insertion. Mitigation: Phase 11's inline
   tables, before the schema freeze; until then §1 and the README say which half
@@ -774,6 +787,17 @@ Reverse-chronological. One entry per user-visible or structural change.
   as a *suffix*, dot included (`.png`). Passing `png` fails with
   `UnsupportedFeature`, which says nothing about the dot; the model keeps the
   bare extension and the emitter adds the dot at the seam.
+
+  **And one Windows-only CI failure worth the note in §9.** Reading the result
+  back with `Workbook::get_pictures` turned the Windows build red with
+  `fatal error C1026: parser stack overflow` — pointing at `mbtexcel`'s formula
+  builtins, which nothing here calls. That reader also looks for images *inside*
+  cells, which reaches the formula evaluator, which stops it being dead-code
+  eliminated, whose thousand-armed dispatch MSVC then cannot parse. Confirmed by
+  the symbol tables: the two failing test binaries carried `FormulaParser`, the
+  passing ones did not. Reading `Worksheet::images()` instead — the drawing
+  pictures, which is what `yxl` emits — is both the fix and the better-matched
+  API, and matches how the chart tests already read charts.
 
   Verified in the package: `xl/media/image1.png` byte-identical to the source,
   a `twoCellAnchor` for `move_and_size` at col 3 / row 1 (D2) with `colOff`

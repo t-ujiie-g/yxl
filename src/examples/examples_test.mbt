@@ -269,8 +269,12 @@ test "the layout example carries its document properties and calc mode" {
   assert_eq(calc.full_calc_on_load, Some(true))
 
   // And the logo, whose bytes travelled from disk into the package.
-  let images = workbook.get_pictures("Summary", "E1")
+  guard workbook.sheet("Summary") is Some(summary) else {
+    fail("expected the Summary sheet")
+  }
+  let images = summary.images()
   assert_eq(images.length(), 1)
+  assert_eq(images[0].reference, "E1")
   assert_eq(images[0].extension, "png")
   assert_eq(images[0].alt_text, "Example Ltd logo")
   assert_eq(
