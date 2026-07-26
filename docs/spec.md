@@ -21,6 +21,8 @@ sheets: [...]          # the workbook's sheets, in tab order
 active: Summary        # the sheet Excel opens on (default: the first)
 params: {...}          # named values substituted as ${name}   → §7
 defs: {...}            # named styles, values, and formulas    → §6
+properties: {...}      # what the file says about itself       → §11
+calc: {...}            # when Excel recalculates               → §11
 date1904: false        # use Excel's 1904 date epoch
 default_font: Calibri  # the workbook's default font face
 ```
@@ -31,6 +33,8 @@ default_font: Calibri  # the workbook's default font face
 | `active` | text | Must name a declared, **visible** sheet. |
 | `params` | mapping | §7. |
 | `defs` | mapping | §6. |
+| `properties` | mapping | Document properties. §11. |
+| `calc` | mapping | Calculation settings. §11. |
 | `date1904` | boolean | `true` selects the 1904 epoch. Affects how dates serialize. |
 | `default_font` | text | Face name only; size and colour are per-style. |
 
@@ -55,6 +59,7 @@ sheets:
     validations: [...] # → §10
     links: {...}       # → §10
     conditional: [...] # → §10
+    comments: {...}    # → §10
 ```
 
 | Key | Type | Notes |
@@ -74,6 +79,7 @@ sheets:
 | `validations` | sequence | What cells will accept. §10. |
 | `links` | mapping | Hyperlinks, by cell. §10. |
 | `conditional` | sequence | Formatting decided by the value. §10. |
+| `comments` | mapping | Notes, by cell. §10. |
 
 Sheet keys apply **in the order written**, so where a `data:` table and `cells:`
 overlap, whichever comes last wins.
@@ -306,7 +312,7 @@ that is missing is an error.
 > It fails loudly with the path it tried, never silently reading the wrong file.
 > (ADR-016 — the tree carries no per-node provenance.)
 
-## 10. Validation, filters, links, and conditional formatting
+## 10. Validation, filters, links, notes, and conditional formatting
 
 These decorate cells rather than fill them. A validation over an empty range is
 legal, and a link supplies no text of its own — the value you see still comes
@@ -383,6 +389,22 @@ A sheet named by `to:` or by a validation's `from:` must be declared, or the
 build fails — Excel reports neither, so a typo would otherwise ship as a
 drop-down that comes up empty or a link that goes nowhere.
 
+### Notes
+
+```yaml
+comments:
+  C3: "Bulk order — check stock before confirming."
+  B1: { text: "Sourced from the Statuses sheet.", author: Finance }
+```
+
+A note (Excel's older name for it is a comment) appears on hover. Like a link,
+it decorates the cell: the value shown is still the cell's own.
+
+| Key | Notes |
+|---|---|
+| `text` | **Required** in the expanded form; a bare value is the text. |
+| `author` | Shown above the text. A note always carries one in the file, so leaving it out does not omit it — Excel writes a generic name instead. |
+
 ### Conditional formatting
 
 Formatting decided by the value rather than the address.
@@ -442,7 +464,42 @@ Excel keeps these looks in a table of its own, separate from the styles cells
 wear, but they are declared the same way and shared the same way: a look used by
 ten rules is stored once.
 
-## 11. Diagnostics
+## 11. Document properties and calculation
+
+```yaml
+properties:
+  title: Quarterly report
+  subject: Regional sales
+  author: Finance team          # Excel's "creator"
+  keywords: "sales, q3"
+  description: Revenue by region.
+  category: Reports
+  status: Final                 # Excel's "content status"
+  language: en-GB
+  version: "1.2"
+  company: Example Ltd
+  custom:                       # names of your own devising
+    Cost centre: 4210
+    Reviewed: true
+
+calc:
+  mode: manual                  # automatic | automatic_no_tables | manual
+  on_load: true                 # recalculate once when the workbook opens
+```
+
+Every `properties:` key is optional, and one left out is left out of the file —
+a reader can tell "not said" from "said to be blank". A `custom:` value keeps
+its YAML type: `4210` is a number, `true` a boolean, anything else text. Write a
+date as text; Excel's date type here wants a full timestamp with a zone, and one
+written without would have to be guessed at.
+
+`calc:` only tells Excel what to do **on open** — `yxl` emits formulas and never
+evaluates them (§3). `mode: manual` leaves a workbook showing whatever cached
+values the spec supplied, which is worth setting where recalculation is slow;
+`on_load: true` forces one full pass regardless, which is what you want where
+the spec supplied no cached values at all.
+
+## 12. Diagnostics
 
 A failed build prints one diagnostic and exits non-zero. YAML **syntax** errors
 carry a line and column with the source quoted:

@@ -2,6 +2,24 @@
 # several sheets, and how the whole thing prints.
 active: Summary        # the tab Excel opens on
 
+# What the file says about itself — Excel's info pane, and any search that
+# indexes it. `custom:` holds names of your own devising.
+properties:
+  title: Regional summary
+  author: Finance team
+  subject: Q3 revenue and cost by region
+  status: Final
+  company: Example Ltd
+  custom:
+    Cost centre: 4210
+    Reviewed: true
+
+# yxl emits formulas and never evaluates them, so this only tells Excel what to
+# do on open: recalculate everything once, then leave it alone.
+calc:
+  mode: manual
+  on_load: true
+
 sheets:
   - name: Summary
     freeze: A3         # rows 1-2 stay put while the data scrolls

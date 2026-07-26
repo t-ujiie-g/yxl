@@ -192,6 +192,19 @@ pub(all) enum LinkTarget {
 } derive(Eq, Debug)
 
 ///|
+/// A note attached to a cell — what Excel now calls a *note* and older versions
+/// called a comment: a box that appears on hover, with the author's name above
+/// the text.
+pub(all) struct Comment {
+  at : @units.CellRef
+  text : String
+  /// Shown above the text, as Excel writes the name of whoever typed it. A
+  /// note always carries one in the file, so `None` does not omit it — it
+  /// leaves the backend to write its generic default.
+  author : String?
+} derive(Eq, Debug)
+
+///|
 /// A hyperlink on one cell, with an optional hover tooltip.
 ///
 /// A link does not give the cell its text — Excel displays the cell's own value

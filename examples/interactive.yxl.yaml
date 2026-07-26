@@ -31,6 +31,12 @@ sheets:
       C3: 400
       D3: { value: "2026-09-15", type: date }
 
+    comments:
+      # A note appears on hover. It decorates the cell like a link does: the
+      # value you see is still the cell's own.
+      C3: "Bulk order — check stock before confirming."
+      B1: { text: "Sourced from the Statuses sheet.", author: Finance }
+
     links:
       # A bare value is a link out of the workbook. The cell keeps its own text.
       A2: https://example.com/orders/1001

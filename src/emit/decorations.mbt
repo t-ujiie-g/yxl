@@ -197,6 +197,26 @@ fn conditional_criteria(
 }
 
 ///|
+/// Attach a note to a cell. The backend takes rich-text paragraphs as well as
+/// plain text; the spec offers only the latter, so the paragraph list is empty
+/// and Excel draws the note in its default font.
+fn apply_comment(
+  backend : @xlsx.Workbook,
+  sheet_name : String,
+  comment : @model.Comment,
+) -> Unit raise @xlsx.XlsxError {
+  backend.add_comment(sheet_name, {
+    cell: comment.at.to_a1(),
+    author: comment.author.unwrap_or(""),
+    author_id: None,
+    text: comment.text,
+    paragraph: [],
+    width: None,
+    height: None,
+  })
+}
+
+///|
 /// A range as the plain `A1:B9` reference Excel uses for an `sqref` or an auto
 /// filter — relative, and never sheet-qualified, since both are stored inside
 /// the sheet they apply to.

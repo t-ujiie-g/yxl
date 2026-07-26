@@ -259,7 +259,8 @@ is why validation, filters, and links arrived before charts.
       rules share is stored once (ADR-004). Deferred, as demand warrants: time
       periods (`today`, `last week`), above/below average, blanks/errors, and
       per-stop control of where a scale or bar anchors its endpoints
-- [ ] Comments — the last of the range-keyed group
+- [x] **Comments (notes)** — the last of the range-keyed group. `comments:`
+      takes the text on its own or `{ text, author }`
 - [x] Auto filter (`set_auto_filter`) — `filter: <range>`. Per-column criteria
       are deferred: the backend takes them as its own little expression language
       (`x > 5`), and passing that through unvalidated would turn a typo into a
@@ -267,8 +268,13 @@ is why validation, filters, and links arrived before charts.
       structured schema that compiles *to* those strings inside `emit`
 - [ ] Sheet / workbook protection, incl. password-based encryption
       (`protect_sheet` / `write_with_password`)
-- [ ] Workbook metadata: document properties (title/author/company/custom) and
-      calculation mode (`set_core_properties` / `set_calc_props`)
+- [x] **Workbook metadata**: document properties (title, subject, author,
+      keywords, description, category, status, language, version, company) and
+      properties of the author's own devising under `custom:`, plus the
+      calculation mode and a forced recalculation on open. A custom value keeps
+      its YAML type, and a whole number reaches the file as an integer. Excel's
+      *date* custom-property type is deliberately not exposed: it wants a full
+      timestamp with a zone, which a bare date would have to guess at (ADR-006)
 - [ ] Further additive extras as demand warrants: sparklines, shapes, form
       controls, slicers, sheet backgrounds, duration cells
 
@@ -716,6 +722,37 @@ silently reading the wrong file).
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-26** — **Notes, document properties, and calculation settings** —
+  the rest of Phase 9's schema-only features, leaving only the ones that need
+  new machinery (tables, charts, images, pivots, protection).
+
+  **`comments:`** completes the range-keyed group: text on its own, or
+  `{ text, author }`. A note decorates a cell exactly as a link does — the value
+  shown is still the cell's own. Leaving the author out does *not* omit it: the
+  file always carries one, so Excel writes a generic name. The model says so
+  and a test pins it, because the tempting doc comment ("`None` leaves it out")
+  would have been wrong.
+
+  **`properties:`** is what the file says about itself — title, subject, author,
+  keywords, description, category, status, language, version, company, and any
+  number of `custom:` names of the author's own devising. An unset key is left
+  out of the file rather than written empty, so a reader can tell "not said"
+  from "said to be blank". A custom value keeps its YAML type, and a whole
+  number reaches the file as `<vt:i4>4210</vt:i4>` rather than a float. Excel's
+  *date* custom-property type is deliberately not exposed: it wants a full
+  timestamp with a zone, and a bare `2026-01-01` would have to be guessed at
+  (ADR-006) — write it as text until that is settled.
+
+  **`calc:`** takes `mode` (automatic / automatic_no_tables / manual) and
+  `on_load`. It only tells Excel what to do on open; `yxl` still never evaluates
+  a formula.
+
+  One deletion worth recording: the loader had grown a duplicate-name check for
+  custom properties that **could never fire** — the YAML parser rejects a
+  repeated mapping key first, and with a line and column this layer cannot
+  supply (ADR-016). Removed, and the test rewritten to assert the guarantee
+  where it is actually enforced.
 
 - **2026-07-26** — **Conditional formatting.** A sheet's `conditional:` takes
   rules that decide formatting from the *value* rather than the address: `cell`

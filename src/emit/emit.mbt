@@ -52,6 +52,12 @@ fn build_workbook(wb : @model.Workbook) -> Bytes raise @xlsx.XlsxError {
   if wb.default_font is Some(name) {
     backend.set_default_font(name)
   }
+  if wb.properties is Some(properties) {
+    apply_properties(backend, properties)
+  }
+  if wb.calc is Some(calc) {
+    apply_calc(backend, calc)
+  }
   // One cache each for the whole workbook, so a style shared across sheets is
   // registered once (ADR-004). Cell styles and conditional formats live in
   // separate Excel tables, so they cannot share a cache.
@@ -174,6 +180,9 @@ fn emit_sheet(
   }
   for format in sheet.conditional_formats {
     apply_conditional_format(backend, sheet.name, format, dxf_ids, date_system)
+  }
+  for comment in sheet.comments {
+    apply_comment(backend, sheet.name, comment)
   }
   // Links come after the merges: the backend redirects a link landing inside a
   // merged region to that region's anchor cell, which it can only do once the

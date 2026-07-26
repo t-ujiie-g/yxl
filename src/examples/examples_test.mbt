@@ -142,6 +142,36 @@ test "the interactive example decorates the cells it says it does" {
   }
   assert_eq(internal.location, Some("Statuses!A1"))
   assert_eq(internal.tooltip, Some("The tracked statuses"))
+
+  // Two notes, the second naming its author.
+  let comments = workbook.get_comments("Orders")
+  assert_eq(comments.length(), 2)
+  assert_eq(comments[0].cell, "C3")
+  assert_eq(comments[1].author, "Finance")
+}
+
+///|
+/// The `layout` example claims to say what the file is and how Excel should
+/// recalculate it. Neither is a cell value, so the promise table cannot carry
+/// them either.
+test "the layout example carries its document properties and calc mode" {
+  let path = "\{EXAMPLES}/layout.yxl.yaml"
+  let workbook = @xlsx.read(
+    @cli.compile(@fs.read_file_to_string(path), file=path, resolve=included)[:],
+  )
+  let core = workbook.get_doc_props()
+  assert_eq(core.title, "Regional summary")
+  assert_eq(core.creator, "Finance team")
+  assert_eq(core.content_status, "Final")
+  assert_eq(workbook.get_app_props().company, "Example Ltd")
+  let custom = workbook.get_custom_props()
+  assert_eq(custom.length(), 2)
+  assert_eq(custom[0].name, "Cost centre")
+  assert_true(custom[0].value is Some(Integer(4210)))
+  assert_true(custom[1].value is Some(Boolean(true)))
+  let calc = workbook.get_calc_props()
+  assert_eq(calc.calc_mode, Some("manual"))
+  assert_eq(calc.full_calc_on_load, Some(true))
 }
 
 ///|

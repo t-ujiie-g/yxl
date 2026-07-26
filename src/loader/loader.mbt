@@ -90,11 +90,13 @@ pub fn load(
       "default_font" => () // consumed by read_default_font
       "defs" => () // consumed by load_defs
       "active" => () // resolved below, once every sheet name is known
+      "properties" => workbook.set_properties(load_properties(value, file~))
+      "calc" => workbook.set_calc(load_calc(value, file~))
       "params" => () // consumed by the substitution pass
       _ =>
         raise schema_error(
           file~,
-          "unknown top-level key '\{key}' (expected 'sheets', 'active', 'params', 'date1904', 'default_font', or 'defs')",
+          "unknown top-level key '\{key}' (expected 'sheets', 'active', 'params', 'date1904', 'default_font', 'defs', 'properties', or 'calc')",
         )
     }
   }
@@ -235,10 +237,11 @@ fn load_sheet(
       "validations" => load_validations(value, sheet, file~)
       "links" => load_links(value, sheet, file~)
       "conditional" => load_conditional_formats(value, sheet, file~, defs~)
+      "comments" => load_comments(value, sheet, file~)
       _ =>
         raise schema_error(
           file~,
-          "unknown key '\{key}' in sheet (expected 'name', 'cells', 'data', 'columns', 'rows', 'merges', 'visibility', 'freeze', 'split', 'gridlines', 'tab_color', 'print', 'filter', 'validations', 'links', or 'conditional')",
+          "unknown key '\{key}' in sheet (expected 'name', 'cells', 'data', 'columns', 'rows', 'merges', 'visibility', 'freeze', 'split', 'gridlines', 'tab_color', 'print', 'filter', 'validations', 'links', 'conditional', or 'comments')",
         )
     }
   }
