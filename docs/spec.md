@@ -51,6 +51,9 @@ sheets:
     gridlines: true
     tab_color: "1F77B4"
     print: {...}       # → §5
+    filter: A1:D1      # → §10
+    validations: [...] # → §10
+    links: {...}       # → §10
 ```
 
 | Key | Type | Notes |
@@ -66,6 +69,9 @@ sheets:
 | `gridlines` | boolean | The on-screen grid, *not* cell borders. |
 | `tab_color` | hex `RRGGBB` | |
 | `print` | mapping | §5. |
+| `filter` | range | Excel's auto filter. §10. |
+| `validations` | sequence | What cells will accept. §10. |
+| `links` | mapping | Hyperlinks, by cell. §10. |
 
 Sheet keys apply **in the order written**, so where a `data:` table and `cells:`
 overlap, whichever comes last wins.
@@ -298,7 +304,84 @@ that is missing is an error.
 > It fails loudly with the path it tried, never silently reading the wrong file.
 > (ADR-016 — the tree carries no per-node provenance.)
 
-## 10. Diagnostics
+## 10. Validation, filters, and links
+
+These decorate cells rather than fill them. A validation over an empty range is
+legal, and a link supplies no text of its own — the value you see still comes
+from `cells:` or `data:`.
+
+### Auto filter
+
+```yaml
+filter: A1:D1        # the header row Excel hangs its dropdowns off
+```
+
+One per sheet. Excel reads the range's top row as the header and filters what
+lies beneath it. Per-column criteria are not expressible yet.
+
+### Validations
+
+```yaml
+validations:
+  - at: B2:B200
+    list: [Draft, Sent, Paid]          # the choices themselves
+  - at: C2:C200
+    list: { from: "Statuses!A1:A3" }   # or the cells holding them
+    allow_blank: false
+    prompt: { title: Status, body: "Pick one." }
+    error: { title: "Not a status", body: "Choose from the list.", style: stop }
+  - at: D2:D200
+    whole: { between: [1, 1000] }
+  - at: E2:E200
+    decimal: { at_least: 0 }
+  - at: F2:F200
+    text_length: { at_most: 12 }
+  - at: G2:G200
+    date: { at_least: "2026-01-01" }
+```
+
+| Key | Notes |
+|---|---|
+| `at` | **Required.** The range the rule covers. |
+| `list` | A sequence of choices, or `{ from: range }` naming the cells holding them. |
+| `whole` / `decimal` / `text_length` / `date` | A comparison (below). `text_length` measures the text; `whole` refuses a fractional bound. |
+| `allow_blank` | Excel's "Ignore blank", **default `true`**. |
+| `prompt` | `{ title, body }` — shown when the cell is selected. |
+| `error` | `{ title, body, style }` — shown when a value is refused. |
+
+Exactly one rule per entry. The comparison is exactly one of `between`,
+`not_between` (each `[low, high]`), `equals`, `not_equals`, `at_least`,
+`at_most`, `greater_than`, `less_than`. `error.style` is `stop` (the default,
+which refuses the value), `warning`, or `information` (which let it through).
+
+A `date` bound is written as a date (`YYYY-MM-DD`); every other kind takes a
+number. An inline `list` is stored as one comma-joined string and must fit
+Excel's 255-character limit — over that, source it from cells instead.
+
+### Links
+
+```yaml
+links:
+  A2: https://example.com/orders/1001         # outside the workbook
+  B1: { to: "Statuses!A1", tip: "The statuses" }   # inside it
+  C1: { url: "https://example.com", tip: "The dashboard" }
+```
+
+A bare value is a URL. `to:` is an in-workbook target — `Sheet!A1` or a defined
+name — and is *not* inferred from shape, since `Summary!A1` and a URL are both
+just text.
+
+| Key | Notes |
+|---|---|
+| `url` | A target outside the workbook. Exactly one of `url` / `to`. |
+| `to` | A target inside it. |
+| `tip` | The hover tooltip. |
+
+A sheet named by `to:` or by a validation's `from:` must be declared, or the
+build fails — Excel reports neither, so a typo would otherwise ship as a
+drop-down that comes up empty or a link that goes nowhere.
+
+## 11. Diagnostics
 
 A failed build prints one diagnostic and exits non-zero. YAML **syntax** errors
 carry a line and column with the source quoted:

@@ -1,0 +1,73 @@
+# A workbook people type into: drop-downs that constrain what they enter,
+# filters over the header row, and links out to the source and back to a key.
+#
+# These decorate cells rather than fill them — a validation on an empty cell is
+# perfectly legal, and a link never supplies the text you see. The cell's value
+# still comes from `cells:`.
+
+sheets:
+  - name: Orders
+    freeze: A2               # the header row stays put while orders scroll
+    filter: A1:D1            # Excel's filter dropdowns, over the header
+    columns:
+      - at: A
+        width: 12
+      - at: B-C
+        width: 14
+      - at: D
+        width: 12
+        format: "yyyy-mm-dd"
+    cells:
+      A1: Order
+      B1: Status
+      C1: Quantity
+      D1: Due
+      A2: "ORD-1001"
+      B2: Sent
+      C2: 12
+      D2: { value: "2026-08-31", type: date }
+      A3: "ORD-1002"
+      B3: Draft
+      C3: 400
+      D3: { value: "2026-09-15", type: date }
+
+    links:
+      # A bare value is a link out of the workbook. The cell keeps its own text.
+      A2: https://example.com/orders/1001
+      # `to:` goes somewhere inside it; the sheet must exist, or the build fails
+      # rather than leaving a link that quietly goes nowhere.
+      B1: { to: "Statuses!A1", tip: "The tracked statuses" }
+
+    validations:
+      # A drop-down sourced from cells: the choices live on their own sheet, so
+      # editing them there changes every cell that offers them.
+      - at: B2:B200
+        list: { from: "Statuses!A1:A3" }
+        prompt: { title: Status, body: "Pick one of the tracked statuses." }
+        error:
+          title: "Not a tracked status"
+          body: "Choose from the list; add new ones on the Statuses sheet."
+          style: stop        # stop refuses it; warning and information let it through
+
+      # A whole number in a range. `allow_blank: false` is Excel's "Ignore
+      # blank", unticked — every order line needs a quantity.
+      - at: C2:C200
+        whole: { between: [1, 1000] }
+        allow_blank: false
+
+      # Dates compare as dates; the bound is written the way a date cell is.
+      - at: D2:D200
+        date: { at_least: "2026-01-01" }
+
+      # `text_length` measures the text, not its value, so this caps the code
+      # at twelve characters.
+      - at: A2:A200
+        text_length: { at_most: 12 }
+
+  # The vocabulary the drop-down above reads. A lookup sheet like this is
+  # routinely hidden; it is left visible here so the example shows its workings.
+  - name: Statuses
+    cells:
+      A1: Draft
+      A2: Sent
+      A3: Paid

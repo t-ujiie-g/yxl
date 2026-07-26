@@ -163,6 +163,18 @@ fn emit_sheet(
   if sheet.page is Some(page) {
     apply_page_setup(backend, sheet.name, page)
   }
+  if sheet.filter is Some(range) {
+    apply_filter(backend, sheet.name, range)
+  }
+  for validation in sheet.validations {
+    apply_validation(backend, sheet.name, validation, date_system)
+  }
+  // Links come after the merges: the backend redirects a link landing inside a
+  // merged region to that region's anchor cell, which it can only do once the
+  // merge is registered.
+  for link in sheet.links {
+    apply_link(backend, sheet.name, link)
+  }
 }
 
 ///|
