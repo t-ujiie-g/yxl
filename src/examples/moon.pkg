@@ -1,0 +1,12 @@
+// Verification tier 2: the `examples/` corpus compiled and checked. This package
+// holds no product code — it exists so the cookbook has a test that reads the
+// spec files from disk and re-opens the workbooks they compile to, which neither
+// the I/O-free `cli` (ADR-003) nor the executable entry point should host.
+import {
+  "t-ujiie-g/yxl/cli",
+  // For the include resolver's return type.
+  "t-ujiie-g/yxl/loader",
+  // Reading the corpus, and re-opening what it compiles to.
+  "moonbitlang/x/fs",
+  "bobzhang/mbtexcel/xlsx",
+} for "test"

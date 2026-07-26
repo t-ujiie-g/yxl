@@ -29,10 +29,11 @@ is declarative authoring for people who'd rather edit YAML than write code.
 
 > ⚠️ **Status: pre-release, schema not yet frozen.** `yxl build` works today —
 > values, formulas, dates, rich text, styles, layout, print setup, multi-file
-> specs, external CSV/JSON data, and parameters all compile. CLI polish (rich
-> diagnostics with line/column, `--check`, `--watch`) is still ahead, and the
-> schema may change until v1.0. See [`ROADMAP.md`](./ROADMAP.md) for the phase
-> plan and the living changelog.
+> specs, external CSV/JSON data, and parameters all compile, and the CLI has
+> `--check`, `--set`, and stable exit codes. Still ahead: the richer Excel
+> features (charts, tables, conditional formatting, …) and the schema freeze —
+> **the schema may change until v1.0.** See [`ROADMAP.md`](./ROADMAP.md) for the
+> phase plan and the living changelog.
 
 ## A taste
 
@@ -121,6 +122,23 @@ Exit codes are stable across releases:
 | `1` | the spec is invalid, or a file could not be read or written |
 | `2` | the command line itself was wrong |
 
+## Examples
+
+[`examples/`](./examples) is a worked cookbook, and CI compiles every file in it
+so the pages cannot drift from the compiler:
+
+| Example | Shows |
+|---|---|
+| [`quickstart.yxl.yaml`](./examples/quickstart.yxl.yaml) | cell kinds, number formats, a formula |
+| [`styling.yxl.yaml`](./examples/styling.yxl.yaml) | declare-once styles, `extends`, defined names, rich text |
+| [`layout.yxl.yaml`](./examples/layout.yxl.yaml) | merges, frozen headers, sized and grouped bands, sheet visibility, print setup |
+| [`modular.yxl.yaml`](./examples/modular.yxl.yaml) | `$include` and CSV / JSON `data:` tables |
+| [`parameters.yxl.yaml`](./examples/parameters.yxl.yaml) | `params:` with `${}` and `--set` |
+
+```bash
+yxl build examples/quickstart.yxl.yaml -o quickstart.xlsx
+```
+
 ## How it works
 
 ```
@@ -147,6 +165,7 @@ the CLI touches disk. The Excel backend sits behind a seam so it can be swapped
 | `loader` | Document tree → model: schema validation, reference resolution |
 | `emit` | Model → `.xlsx` bytes (mbtexcel-backed), style/string interning |
 | `cli` (`cmd/main`) | Argument parsing, file I/O, exit codes |
+| `examples` | Test-only: compiles the `examples/` cookbook and asserts on it |
 
 ## Development
 

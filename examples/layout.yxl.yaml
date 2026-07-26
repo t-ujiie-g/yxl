@@ -1,0 +1,49 @@
+# Laying the grid out: merged titles, frozen headers, sized and grouped bands,
+# several sheets, and how the whole thing prints.
+active: Summary        # the tab Excel opens on
+
+sheets:
+  - name: Summary
+    freeze: A3         # rows 1-2 stay put while the data scrolls
+    tab_color: "1F77B4"
+    gridlines: false   # the on-screen grid, not cell borders
+    merges: [A1:C1]
+    columns:
+      - at: A
+        width: 20
+      - at: B-C
+        width: 12
+        format: "#,##0"
+      # A collapsible group: Excel draws an outline bracket over D-E, and both
+      # start out hidden.
+      - at: D-E
+        group: 1
+        hidden: true
+    rows:
+      - at: 1
+        height: 28
+    cells:
+      A1: Regional summary
+      A2: Region
+      B2: Revenue
+      C2: Cost
+      D2: Internal note
+      A3: APAC
+      B3: 2400000
+      C3: 1200000
+      D3: reviewed
+    print:
+      area: A1:C3
+      orientation: landscape
+      fit: { width: 1 }          # shrink to one page across
+      margins: { top: 0.75, bottom: 0.75, left: 0.7, right: 0.7 }
+      header: "&CRegional summary"
+      footer: "&LPage &P of &N"
+
+  - name: Detail
+    cells:
+      A1: Everything above, in full.
+
+  # A workbook needs at least one visible sheet; the rest may hide.
+  - name: Scratch
+    visibility: hidden

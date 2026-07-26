@@ -49,4 +49,16 @@ jobs:
         run: moon test --target native
 
       - name: Build CLI (native)
-        run: moon build --target native
+        run: moon build --target native --release
+
+      # Tier 2 (ROADMAP §5). `moon test` already compiles the corpus in-process
+      # and asserts on the cells; this runs the shipped binary over the same
+      # files, which is what exercises the on-disk include/data path resolution
+      # and the exit codes a user actually sees.
+      - name: Examples compile with the built binary
+        run: |
+          yxl=_build/native/release/build/cmd/main/main.exe
+          for spec in examples/*.yxl.yaml; do
+            echo "--- $spec"
+            "$yxl" build "$spec" --check
+          done

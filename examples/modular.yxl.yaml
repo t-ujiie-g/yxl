@@ -1,0 +1,24 @@
+# A spec split across files. `$include` pastes another document wherever a node
+# belongs, and `data:` feeds a region straight from a CSV or JSON file — so the
+# numbers live in the format they arrive in, and the formatting lives here.
+defs:
+  styles:
+    $include: modular/theme.yaml
+
+sheets:
+  - name: Sales
+    columns:
+      $include: modular/columns.yaml
+    cells:
+      A1: { value: Region, style: header }
+      B1: { value: Revenue, style: header }
+      A6: { value: Total, style: total }
+      B6: { formula: "SUM(B2:B4)", style: total }
+    data:
+      # Rows land at the anchor and run down and right from it.
+      - at: A2
+        csv: modular/sales.csv
+      - at: D1
+        json: modular/notes.json
+        # JSON object keys have no dependable order, so name the fields to take.
+        columns: [label, count]

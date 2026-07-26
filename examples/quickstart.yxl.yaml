@@ -1,0 +1,27 @@
+# The smallest useful spec: cells of each kind, and a formula Excel computes on
+# open. Build it with:
+#
+#   yxl build examples/quickstart.yxl.yaml -o quickstart.xlsx
+#
+sheets:
+  - name: Sales
+    cells:
+      # A bare scalar is the cell's value; YAML's own types carry over, so
+      # `Region` is text, `2400000` a number, and `true` a boolean.
+      A1: Region
+      B1: Revenue
+      A2: APAC
+      B2: 2400000
+      A3: EMEA
+      B3: 1750000
+
+      # A quoted number stays text — useful for codes with leading zeros.
+      A4: "007"
+
+      # The expanded form adds a number format, a style, or a type.
+      B4: { value: 0.085, format: "0.0%" }
+
+      # yxl emits formulas; Excel evaluates them. `value:` is the cached result
+      # shown until it does.
+      A5: Total
+      B5: { formula: "SUM(B2:B3)", value: 4150000 }

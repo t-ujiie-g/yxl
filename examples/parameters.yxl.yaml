@@ -1,0 +1,26 @@
+# One spec, many workbooks. Defaults live here; `--set` overrides them per run:
+#
+#   yxl build examples/parameters.yxl.yaml -o q3-apac.xlsx
+#   yxl build examples/parameters.yxl.yaml -o q4-emea.xlsx \
+#     --set region=EMEA --set quarter=Q4
+#
+params:
+  region: APAC
+  quarter: Q3
+  rate: 0.085
+  # A default may be built from other parameters.
+  title: "${quarter} ${region} summary"
+
+sheets:
+  # Parameters substitute in values *and* in keys — so a sheet name works too.
+  - name: "${region}"
+    cells:
+      A1: "${title}"
+      A3: Tax rate
+      # A string that is exactly one placeholder keeps the parameter's type, so
+      # this is a number cell rather than the text "0.085".
+      B3: { value: "${rate}", format: "0.0%" }
+      A4: Quarter
+      B4: "${quarter}"
+      # `$$` is a literal `$`, so Excel's absolute references are safe to write.
+      A6: { formula: "SUM($B$3:$B$3)" }

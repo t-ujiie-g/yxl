@@ -87,18 +87,20 @@ ADR-008). Dependencies point *downward*; lower packages never import higher.
 | ~~`resolve`~~ | **Never built.** Reference resolution fitted in `loader` and interning in `emit`, so ADR-012/ADR-013 folded this package away rather than add a stage with nothing of its own to do |
 | `emit` | `model` → `.xlsx` bytes through the emitter seam; the `mbtexcel`-backed implementation lives here |
 | `cli` (`cmd/main`) | Argument parsing, file read/write, `--check`, `--set`, exit codes, help |
+| `examples` | No product code: the tier-2 test that compiles the `examples/` cookbook and asserts on its output (§5) |
 
 ## 5. Verification tiers
 
 - **Tier 1 — In-repo MoonBit tests** (native). Unit + golden + round-trip tests.
   The bar for every phase. The compiler core is I/O-free so it tests on strings
   and bytes.
-- **Tier 2 — Example specs** (CI). **Not yet established:** there is no
-  `examples/` directory, so nothing enforces this tier today; the compile
-  boundary is covered by Tier-1 golden tests instead. Standing it up — every
-  `examples/*.yxl.yaml` compiles in CI, its output re-opened and asserted — is a
-  v1.0-gate task, and it is what would keep the README and cookbook from drifting
-  (`AGENTS.md §6`).
+- **Tier 2 — Example specs** (CI). The `examples/` corpus is the cookbook, and
+  it is tested twice over. `src/examples` compiles every `examples/*.yxl.yaml`
+  in-process, re-opens the workbook, and asserts named cells hold what the
+  example's comments claim — plus a coverage check both ways, so an example with
+  no assertions, or an assertion naming a spec that is gone, fails. CI then runs
+  the **shipped binary** over the same files, which is what exercises the on-disk
+  include/data path resolution and the real exit codes.
 - **Tier 3 — Real applications** (manual, at the v1.0 gate). Open `yxl` output in
   Microsoft Excel, LibreOffice Calc, and Google Sheets.
 
@@ -232,7 +234,7 @@ The **active phase** is the first phase with any unchecked box.
 
 ### v1.0 — Stability gate
 - [ ] Schema freeze (breaking budget spent here); documented spec reference
-- [ ] Stand up Tier 2: an `examples/` corpus that CI compiles and asserts on
+- [x] Stand up Tier 2: an `examples/` corpus that CI compiles and asserts on
       (§5), which is also what stops the README and cookbook drifting
 - [ ] Tier-3 manual: Excel / LibreOffice / Google Sheets open cleanly
 - [ ] Cookbook + CLI docs complete
@@ -597,6 +599,30 @@ silently reading the wrong file).
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-26** — **Verification tier 2 stood up: the `examples/` corpus.** §5
+  had promised this tier since Phase 0 and nothing had ever enforced it. There
+  are now five worked examples, each one a cookbook page whose comments explain
+  the feature it demonstrates: `quickstart` (cell kinds, formats, a formula),
+  `styling` (declare-once styles, `extends`, a defined name, rich text),
+  `layout` (merges, freeze, sized and grouped bands, sheet visibility, print
+  setup), `modular` (`$include` plus CSV and JSON `data:` tables across a
+  sub-directory), and `parameters` (`params:` with `${}` and `--set`).
+
+  They are tested twice. A new `src/examples` package — no product code, just
+  the test — compiles each spec in-process, re-opens the workbook, and asserts
+  named cells hold what the example claims, with a **coverage check both ways**:
+  an example with no assertions fails, and so does an assertion naming a spec
+  that no longer exists. CI then runs the **shipped binary** over the same
+  corpus, which is what exercises the on-disk include/data path resolution and
+  the exit codes a user sees.
+
+  Verified by breaking things on purpose: changing a cell's value, adding an
+  example with no assertions, and putting an unknown key in an included file
+  each fail the suite. The test lives in its own package because the toolchain
+  now warns that main packages will stop generating blackbox tests, and because
+  neither the I/O-free `cli` (ADR-003) nor the executable entry point should
+  host a test that reads files. 136 tests green.
 
 - **2026-07-26** — **Phase 8 complete: three scope decisions, and a roadmap
   tidy.** What was left of the phase is settled by decision rather than code:

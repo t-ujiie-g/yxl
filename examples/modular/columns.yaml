@@ -1,0 +1,6 @@
+# Included into a sheet's `columns:` — the layout, kept beside the theme.
+- at: A
+  width: 18
+- at: B
+  width: 14
+  format: "#,##0"

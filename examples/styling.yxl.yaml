@@ -1,0 +1,51 @@
+# Declaring a look once and reusing it. Every cell wearing `header` compiles to
+# the *same* Excel style id, so the workbook carries one copy however many cells
+# use it.
+defs:
+  styles:
+    # A base others extend. `extends` merges attribute by attribute, so a child
+    # that sets `bold` keeps this face and size.
+    base:
+      font: { name: Calibri, size: 11 }
+
+    header:
+      extends: base
+      font: { bold: true, color: "FFFFFF" }
+      fill: "1F3864"
+      align: { horizontal: center }
+
+    total:
+      extends: base
+      font: { bold: true }
+      border: { top: { style: thin } }
+
+  values:
+    # A named value becomes an Excel *defined name*: edit it in Excel and every
+    # reference updates.
+    tax_rate: 0.085
+
+sheets:
+  - name: Report
+    columns:
+      # A band styles a whole column, so the cells need not repeat the format.
+      - at: B
+        width: 14
+        format: "#,##0"
+    cells:
+      A1: { value: Region, style: header }
+      B1: { value: Revenue, style: header }
+      A2: APAC
+      B2: 2400000
+      A3: EMEA
+      B3: 1750000
+      A4: { value: Total, style: total }
+      B4: { formula: "SUM(B2:B3)", style: total }
+
+      # A reference to the named value, and rich text mixing fonts in one cell.
+      A6: Tax rate
+      B6: { value: { $ref: tax_rate }, format: "0.0%" }
+      A8:
+        rich:
+          - "Figures are "
+          - { text: unaudited, font: { italic: true, color: "C00000" } }
+          - " as of Q3."
