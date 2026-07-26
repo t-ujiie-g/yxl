@@ -108,8 +108,11 @@ fn resolve_path(from : String, path : String) -> String {
 }
 
 ///|
-/// Print one `yxl: …` line. The single place that decides where CLI messages go
-/// (routing errors to stderr is a later refinement).
+/// Print one `yxl: …` line. The single place that decides where CLI messages go.
+/// Everything goes to *stdout*, including diagnostics: the toolchain exposes no
+/// way to write to stderr (there is no `eprintln`), so this is a limit rather
+/// than an oversight. Keeping it in one function means the day that changes is a
+/// one-line day.
 fn report(message : String) -> Unit {
   println("yxl: \{message}")
 }

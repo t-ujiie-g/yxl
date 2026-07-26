@@ -47,6 +47,10 @@ write code.
   insert/delete/move/duplicate operations for rows, columns, or cells (that is
   `mbtexcel`'s editing API — `yxl` emits the end state directly). Sheet order,
   visibility, and the active sheet are still declarative and in scope.
+- **Watching files (`--watch`).** Decided out of scope 2026-07-26: a build is a
+  single command, and a caller that wants rebuilds on change already has `make`,
+  `entr`, or an editor task. (It was also unimplementable without adding a timer
+  dependency — but the scope call stands independently of that.)
 - **Being a general xlsx library.** That is `mbtexcel`; `yxl` depends on it.
 - **xlsx → YAML round-tripping.** Reverse import is a post-v1 stretch (§8 Q5),
   not a v1 promise.
@@ -61,9 +65,10 @@ write code.
    file/line context, never a silent drop or a guess. (ADR-006)
 4. **Backend behind a seam.** Model → bytes goes through one emitter interface,
    so the Excel backend is swappable and the core stays testable. (ADR-002)
-5. **Core is I/O-free; the CLI does I/O.** `model` / `loader` / `resolve` /
-   `emit` work on strings and bytes; filesystem access lives only in `cli`.
-   (ADR-003)
+5. **Core is I/O-free; the CLI does I/O.** `model` / `loader` / `emit` work on
+   strings and bytes; filesystem access lives only in `cli`. Reading an
+   `$include` or a `data:` table goes through a resolver the CLI supplies.
+   (ADR-003, ADR-014)
 6. **Type-safe boundaries.** No bare `Int`/`String` for cell refs, colors, or
    dimensions in internal APIs.
 
@@ -79,18 +84,21 @@ ADR-008). Dependencies point *downward*; lower packages never import higher.
 | `yaml` | YAML source → a generic document tree (adopt or vendor a parser — §8 Q1); the parser sits behind a seam too |
 | `model` | The typed intermediate representation: workbook / sheet / cell / value / style / named definitions |
 | `loader` | Document tree → `model`; schema validation with diagnostics; expands `$include` through a reader the CLI injects (ADR-014) |
-| `resolve` | Resolve named references & anchors; **intern** shared values / formulas / styles (the reuse/dedup engine) |
+| ~~`resolve`~~ | **Never built.** Reference resolution fitted in `loader` and interning in `emit`, so ADR-012/ADR-013 folded this package away rather than add a stage with nothing of its own to do |
 | `emit` | `model` → `.xlsx` bytes through the emitter seam; the `mbtexcel`-backed implementation lives here |
-| `cli` (`cmd/main`) | Argument parsing, file read/write, `--check` / `--watch`, exit codes, help |
+| `cli` (`cmd/main`) | Argument parsing, file read/write, `--check`, `--set`, exit codes, help |
 
 ## 5. Verification tiers
 
 - **Tier 1 — In-repo MoonBit tests** (native). Unit + golden + round-trip tests.
   The bar for every phase. The compiler core is I/O-free so it tests on strings
   and bytes.
-- **Tier 2 — Example specs** (CI). Every `examples/*.yxl.yaml` compiles, and its
-  output is re-opened (via `mbtexcel`'s reader or an external validator) and
-  asserted against expectations.
+- **Tier 2 — Example specs** (CI). **Not yet established:** there is no
+  `examples/` directory, so nothing enforces this tier today; the compile
+  boundary is covered by Tier-1 golden tests instead. Standing it up — every
+  `examples/*.yxl.yaml` compiles in CI, its output re-opened and asserted — is a
+  v1.0-gate task, and it is what would keep the README and cookbook from drifting
+  (`AGENTS.md §6`).
 - **Tier 3 — Real applications** (manual, at the v1.0 gate). Open `yxl` output in
   Microsoft Excel, LibreOffice Calc, and Google Sheets.
 
@@ -192,20 +200,14 @@ The **active phase** is the first phase with any unchecked box.
       detection** (deferred from Phase 5) landed with both
 
 ### Phase 8 — CLI UX
-- [~] Rich diagnostics rendered with file/line/col and carets — **done for YAML
-      syntax errors** (the library's `YamlError` carries `mark` and `info`, now
+- [x] Diagnostics rendered with file/line/col and carets, **for YAML syntax
+      errors** — the library's `YamlError` carries `mark` and `info`, now
       destructured into a real `Span`; `Diagnostic::render_in` quotes the line
-      and points a caret). **Schema errors still carry only their file**: that
-      needs per-node provenance in the `yaml` tree, which the parser's *sealed*
-      event API blocks (ADR-010) — the same missing piece that makes a `data:`
-      path resolve against the root spec rather than its own file. Resolving it
-      means vendoring or replacing the parser: an open decision (§8 Q7)
-- [x] `--check` (validate only), `--version`, help — landed
-- [ ] `--watch`, stdin/stdout — **blocked, not deferred by choice**: the
-      dependency set has no sleep/timer and no stdin. `--watch` would have to
-      busy-spin, and there is nothing to read a spec from a pipe with. Both need
-      either `moonbitlang/async` (a large dependency — ADR) or a native FFI stub
-      (§8 Q7)
+      and points a caret. Schema errors name the file and the construct
+      (`cell 'A1'`, `column 'B'`) but no line: **decided out of scope**
+      (ADR-016), since per-node provenance would mean vendoring or replacing the
+      parser
+- [x] `--check` (validate only), `--version`, help
 - [x] Stable exit codes (0 / 1 / 2, documented in `yxl help` and the README, and
       exercised end-to-end); native binary build + install docs
 
@@ -230,7 +232,8 @@ The **active phase** is the first phase with any unchecked box.
 
 ### v1.0 — Stability gate
 - [ ] Schema freeze (breaking budget spent here); documented spec reference
-- [ ] Tier-2 green across the example corpus
+- [ ] Stand up Tier 2: an `examples/` corpus that CI compiles and asserts on
+      (§5), which is also what stops the README and cookbook drifting
 - [ ] Tier-3 manual: Excel / LibreOffice / Google Sheets open cleanly
 - [ ] Cookbook + CLI docs complete
 - [ ] Release policy: v1.0.0 ships when the schema + CLI are stable
@@ -490,6 +493,29 @@ literal reaching a cell (ADR-006) — a spec that wants a literal `${` writes
 `$${`. Setting a name the spec does not declare is likewise an error, so a typo
 on the command line says so instead of quietly doing nothing.
 
+### ADR-016 — Schema diagnostics name the file and the construct, not the line
+**Status:** Accepted. (Closes the deferral ADR-010 left to Phase 8; does not
+supersede it — its analysis of the parser still holds.)
+**Context:** ADR-010 deferred per-node source spans on the grounds that "rich
+file/line/col diagnostics are a Phase 8 deliverable". Phase 8 arrived. Syntax
+errors turned out to be fixable cheaply — the library's `YamlError` does carry a
+marker, which is now destructured into a real `Span` and rendered with a caret.
+*Schema* errors are the hard half: they would need every `Node` to remember
+where it came from, and the parser exposes positions only through a **sealed**
+trait, so that means vendoring the parser, upstreaming an open API, or writing
+our own.
+**Decision:** Do none of those. A schema diagnostic names the file and the
+construct it is about — `cell 'A1'`, `column 'B'`, `sheet 'Sales'`, `parameter
+'region'` — which in a structured document locates the problem about as well as
+a line number would, and the messages say what was expected. The cost of the
+alternatives is a parser fork to maintain, for a strictly cosmetic gain.
+**Consequences:** the `yaml` seam still keeps the swap possible, and
+`@diag.Diagnostic`'s span stays optional, so if this is ever revisited the change
+is additive and local. One knock-on stays documented rather than fixed: an
+external `data:` path resolves against the spec passed to `yxl build` rather than
+the file the entry was written in (it fails loudly with the path it tried, never
+silently reading the wrong file).
+
 ## 8. Open questions
 
 - **Q1 — YAML parser.** ✅ **Decided (ADR-009), refined (ADR-010):** depend on
@@ -515,18 +541,28 @@ on the command line says so instead of quietly doing nothing.
   tables remain their own Phase 7 item.
 - **Q5 — Reverse import.** Is `xlsx → yxl.yaml` in scope for v1, or a post-v1
   stretch? (Currently a stretch — §6 Phase 10.)
-- **Q7 — The parser's sealed API: vendor, replace, or live with it?** Two
-  Phase 8 items and one Phase 7 wart share a single root cause: the YAML
-  parser's value tree carries no positions, and its position-carrying event API
-  is a **sealed** trait we cannot implement (ADR-010, ADR-014). Consequences
-  today: schema errors name a file but no line; a `data:` path resolves against
-  the root spec rather than the file it was written in. Options: (a) vendor the
-  parser and open the trait, (b) write our own YAML parser behind the existing
-  seam, (c) accept it — the messages already name the construct ("cell 'A1'",
-  "column 'B'"), which for a structured document may be as findable as a line.
-  Separately, `--watch` and stdin/stdout need a sleep and a stdin the current
-  dependencies do not have — `moonbitlang/async` would supply both but is a
-  large dependency (ADR required).
+- **Q7 — The parser's sealed API: vendor, replace, or live with it?**
+  ✅ **Decided (ADR-016): live with it.** The YAML parser's value tree carries no
+  positions and its marker-carrying event API is a sealed trait (ADR-010), so
+  schema diagnostics name the file and the construct but not a line, and a
+  `data:` path resolves against the root spec rather than the file it was
+  written in. Vendoring or replacing the parser buys a line number for messages
+  that already name what they are about; not worth it before v1.0. Revisit only
+  if real use shows the file-plus-construct form is not enough.
+- **Q8 — stdin/stdout.** ✅ **Decided 2026-07-26: dropped, revisit on demand.**
+  `-o -` would let a workbook be piped straight to an uploader or mailer, and
+  `build -` would take a generated spec from a pipe. Both were dropped because
+  the workaround is one line (`yxl build s.yaml -o /tmp/r.xlsx && …`), so the
+  gain is convenience, not capability. Three costs stood against it: the
+  toolchain exposes **no stdin and no byte-level stdout** (only `println`), so
+  either half needs `moonbitlang/async` or a native FFI stub; a spec read from a
+  pipe has no directory, leaving relative `$include:` / `csv:` paths with nothing
+  to resolve against (a `--base-dir` or a ban); and writing a binary to stdout
+  requires first moving every message to stderr, for which there is likewise no
+  API (no `eprintln`). Implement if piping actually comes up — and prefer the
+  `-o -` half, which carries neither the path-resolution nor the "generate the
+  spec" motivation that `params:` / `--set` / `$include` / `data:` already
+  cover.
 
 - **Q6 — Distribution.** Native binary only, or also a wasm CLI? A wasm target
   would favor a lighter backend (`moon-xlsx`) via the ADR-002 seam.
@@ -561,6 +597,36 @@ on the command line says so instead of quietly doing nothing.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-26** — **Phase 8 complete: three scope decisions, and a roadmap
+  tidy.** What was left of the phase is settled by decision rather than code:
+
+  - **`--watch` — out of scope** (§2 non-goals). A build is a single command, and
+    anyone wanting rebuilds on change already has `make`, `entr`, or an editor
+    task. The call stands on its own; it happens to also sidestep needing a timer.
+  - **Carets for *schema* errors — out of scope** (**ADR-016**), closing the
+    deferral ADR-010 left to this phase. They would need every `Node` to remember
+    its origin, which means vendoring or replacing the parser; the messages
+    already name the file *and* the construct (`cell 'A1'`, `column 'B'`), which
+    locates the problem about as well in a structured document. The `yaml` seam
+    keeps the swap possible if that ever proves wrong.
+  - **stdin/stdout — dropped, revisit on demand** (§8 Q8). The workaround is one
+    line, so the gain is convenience rather than capability, and the toolchain
+    exposes no stdin, no byte-level stdout, and no stderr — so it would have cost
+    a large dependency or an FFI stub, plus a rule for what relative paths in a
+    piped spec resolve against.
+
+  A consequence worth recording: because there is no stderr API either, `yxl`
+  prints diagnostics to **stdout**. `main.mbt` used to call that "a later
+  refinement"; it is now noted as blocked, with the reason, rather than implying
+  someone forgot.
+
+  Tidied while there: §4 stopped listing a `resolve` package that was never built
+  (ADR-012/013 folded it into `loader` and `emit`) and stopped advertising
+  `--watch`; §3's I/O principle now describes the resolver the CLI actually
+  injects; and §5 admits **Tier 2 does not exist** — there is no `examples/`
+  directory, so nothing enforces it — with standing it up named explicitly in the
+  v1.0 gate, since that is also what would keep the README from drifting.
 
 - **2026-07-26** — **Phase 8: diagnostics with position, `--check`, `--version`,
   help, install docs.** YAML syntax errors used to read `invalid YAML:
