@@ -236,13 +236,19 @@ The **active phase** is the first phase with any unchecked box.
 
 ### Phase 9 — Richer Excel features (leverage mbtexcel, additive)
 The items here are independent, so they land in whatever order pays best rather
-than top to bottom. The first slice deliberately took everything that needs **no
-new architecture** — no drawing parts, no binary assets, no reader seam — which
-is why validation, filters, and links arrived before charts.
+than top to bottom, in **two slices**.
 
-**Every named feature below has landed.** The last bullet is a standing backlog
-— things to build when someone asks for them — not a gate, so §10's "first phase
-with an unchecked box" points at Phase 10 from here.
+The **first slice is complete**. It deliberately began with everything that
+needs *no new architecture* — no drawing parts, no binary assets, no reader
+seam — which is why validation, filters, and links arrived before charts, and
+why images (which forced a second resolver) came late.
+
+The **second slice** is what used to sit here as a single unnamed line, "extras
+as demand warrants". Every one of them is now named and scoped below, and all
+six are wanted rather than optional.
+
+#### First slice — landed
+
 - [x] **Excel tables** (structured tables / ListObjects, `add_table`) —
       `tables:` over a range whose top row names the columns, with a name
       formulas can use, one of Excel's built-in styles, and its four appearance
@@ -313,8 +319,86 @@ with an unchecked box" points at Phase 10 from here.
       its YAML type, and a whole number reaches the file as an integer. Excel's
       *date* custom-property type is deliberately not exposed: it wants a full
       timestamp with a zone, which a bare date would have to guess at (ADR-006)
-- [ ] Further additive extras as demand warrants: sparklines, shapes, form
-      controls, slicers, sheet backgrounds, duration cells
+#### Second slice — the rest of what `mbtexcel` can draw
+
+Ordered by what pays first: the two that reuse machinery already here, then the
+two that write a part of their own, then the two with the largest vocabulary or
+the most Excel verification to do. Each is independent of the others.
+
+Every one of these writes a part Excel *interprets* rather than displays, so
+each carries the obligation the pivot tables earned (§9): **open the output in
+Excel by hand** before ticking the box, not only round-trip it.
+
+- [ ] **Shapes** (`add_shape`) — a box, arrow, or callout floating over the
+      grid, optionally carrying text. `shapes:` anchored at a cell, with a
+      preset geometry, size or scale, fill and line colour, plain or rich text,
+      alt text, and the three anchor kinds. **Reuses the image vocabulary**
+      (`at`, `scale`, `offset`, `positioning`), which is most of the work
+      already done. One design point: the backend puts `shape_type` straight
+      into `prst=` unchecked, so an unknown preset makes Excel repair the file —
+      the name needs validating against DrawingML's preset geometries
+      (ECMA-376 Part 1, `ST_ShapeType`), and the spec should expose a *named*
+      subset rather than all ~180. `macro_name` stays out: `.xlsx` carries no
+      macros, and VBA is a §2 non-goal
+- [ ] **Duration cells** — an elapsed time (`26:30:00`, "26 hours 30 minutes"),
+      which Excel stores as a fraction of a day under an `[h]:mm:ss` format and
+      is *not* a time of day. The smallest item here: a `type: duration` beside
+      `type: date`, parsed in `units` into the serial we already know how to
+      write, plus the default format. `Workbook::set_cell_duration` exists but
+      takes a `@time.Duration`; computing the serial ourselves keeps
+      `moonbitlang/x/time` out of the model and matches how dates already work
+- [ ] **Sheet backgrounds** (`set_sheet_background_from_bytes`) — a watermark
+      image tiled behind a sheet's cells. Reuses the `BytesResolver` seam and
+      the format list images already brought, so it is `background: logo.png`
+      on a sheet and little else. Worth saying in the docs that Excel does not
+      print a background, which surprises people
+- [ ] **Sparklines** (`add_sparkline` / `add_sparkline_group`) — a chart inside
+      one cell, for a row of figures beside it. Line, column, and win/loss;
+      per group the cells plotted and where each lands, the markers (high, low,
+      first, last, negative), manual bounds, line weight, and colours. Written
+      as an `x14` extension, which the backend has integration tests for and
+      which Excel is strict about — verify the emitted extension list, not just
+      the round trip
+- [ ] **Form controls** (`add_form_control`) — a button, check box, option
+      button, scroll bar, spin button, group box, or label sitting over the
+      grid, linked to a cell. The value a control writes into its `cell_link`
+      is what makes a sheet a form, which is the same story `protection:
+      { locked: false }` already tells. The largest vocabulary here: seven
+      control types, each with its own meaningful subset of `checked`,
+      `min`/`max`/`increment`/`page`, size, and text. Again no `macro_name`
+- [ ] **Slicers** (`add_slicer`) — the button panel that filters an Excel table
+      (`SlicerOptions::new(name, cell, table_sheet, table_name)`), with a
+      caption, size, and header. **Last on purpose**: it is the only item that
+      depends on another feature of ours (`tables:`), it writes several linked
+      parts, and slicers over *pivot* tables touch the same cache machinery that
+      [office.mbt#264](https://github.com/moonbitlang/office.mbt/issues/264)
+      showed to be fragile. Start with table slicers; treat pivot slicers as a
+      separate decision once #264 is answered
+
+#### Not scheduled
+
+Sub-features the first slice consciously left out, gathered here so they are
+visible rather than buried in the prose above. Each is a small addition to a
+feature that already works, and any can be pulled forward on request — none is a
+gate, which is why none carries a box:
+
+- per-column auto-filter criteria — needs a structured schema that compiles
+  *to* the backend's little expression language, rather than passing a typo
+  through as an `EmitError` (ADR-006)
+- table totals rows, per-column formulas, and header-row-off tables — the
+  backend drops the range's first row for the last of these
+- chart 3-D variants, stock and bubble charts, combo charts, per-series colours
+  and markers, and chart sheets
+- conditional-format time periods (`today`, `last week`), above/below average,
+  blanks/errors, and per-stop anchoring for colour scales and data bars
+- pivot number formats per value field, sorting and manual field order,
+  calculated fields, and classic layout
+- a hyperlink on an image, and cell-embedded ("place in cell") images
+- **pivot `filters:`, and more than one pivot source per workbook** — blocked on
+  [office.mbt#264](https://github.com/moonbitlang/office.mbt/issues/264) rather
+  than on us; both become schema changes the day it is fixed
+- file encryption (`write_with_password`) — its own decision: it changes the
+  emitter's signature and needs the CLI to carry a secret
 
 ### Phase 10 — Performance & scale, and import
 - [ ] Large-spec performance; streaming where `mbtexcel` supports it
@@ -782,6 +866,33 @@ silently reading the wrong file).
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-27** — **Phase 9 reorganized into two slices.** The phase ended
+  with one unnamed line — "further additive extras as demand warrants:
+  sparklines, shapes, form controls, slicers, sheet backgrounds, duration
+  cells" — which is a backlog wearing a checkbox: nothing in it could ever be
+  said to be done, and a reader could not tell whether any of it was wanted.
+
+  All six are wanted. They are now named and scoped items in a **second slice**,
+  ordered by what pays first: shapes and duration cells (which reuse the image
+  and cell-type machinery already here), sheet backgrounds (which reuses the
+  bytes seam), sparklines, form controls, and slicers last — the only one that
+  depends on another feature of ours (`tables:`) and the one whose pivot variant
+  touches the cache machinery #264 showed to be fragile.
+
+  Each item now carries what was learned looking the API up rather than a name
+  alone: that `shape_type` reaches `prst=` unvalidated, so an unknown preset
+  makes Excel repair the file; that a duration is a fraction of a day under an
+  `[h]:mm:ss` format and can be computed the way dates already are, keeping
+  `moonbitlang/x/time` out of the model; that sparklines are an `x14` extension
+  Excel is strict about. And each carries the obligation the pivots earned —
+  **open the result in Excel by hand**, because every one of them writes a part
+  Excel interprets rather than displays.
+
+  Separately, the sub-features the first slice consciously skipped — filter
+  criteria, totals rows, 3-D charts, pivot number formats, and the rest — moved
+  out of the prose into a **Not scheduled** list with no boxes, so they are
+  visible without pretending to be planned.
 
 - **2026-07-27** — **Pivot tables**, the last of Phase 9's Excel features.
   `pivots:` names a source region, groups it down `rows` and along `columns`,
