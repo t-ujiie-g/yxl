@@ -21,7 +21,7 @@
 
 ///|
 /// One table's source file. Exactly one form may be given per entry.
-priv enum TableSource {
+priv enum DataSource {
   Csv(String)
   Json(String)
 }
@@ -41,7 +41,7 @@ fn load_data(
   resolve~ : IncludeResolver,
 ) -> Unit raise {
   for item in expect_seq(node, file~, context="'data'") {
-    load_table(item, sheet, file~, resolve~)
+    load_data_entry(item, sheet, file~, resolve~)
   }
 }
 
@@ -49,7 +49,7 @@ fn load_data(
 /// One `data:` entry: `at` (the anchor), one of `csv:` / `json:` (the source
 /// path), and, for a JSON array of objects, `columns:` naming the fields to take
 /// and their order.
-fn load_table(
+fn load_data_entry(
   node : @yaml.Node,
   sheet : @model.Sheet,
   file~ : String,

@@ -239,9 +239,18 @@ The items here are independent, so they land in whatever order pays best rather
 than top to bottom. The first slice deliberately took everything that needs **no
 new architecture** — no drawing parts, no binary assets, no reader seam — which
 is why validation, filters, and links arrived before charts.
-- [ ] Charts, images, **Excel tables** (structured tables / ListObjects,
-      `add_table`). Images need bytes from disk, so they also need the include
-      reader to carry binary — the first thing here that is not just schema
+- [x] **Excel tables** (structured tables / ListObjects, `add_table`) —
+      `tables:` over a range whose top row names the columns, with a name
+      formulas can use, one of Excel's built-in styles, and its four appearance
+      toggles. Everything Excel would repair or refuse is a diagnostic first: a
+      duplicate or malformed name, a header cell that is empty or not text, two
+      tables sharing a cell, and a table overlapping the sheet's own `filter:`.
+      Deferred: a table with its header row turned off (the backend drops the
+      range's first row for one, excelize parity, so a spec's `at` and the
+      emitted range would disagree), totals rows, and per-column formulas
+- [ ] Charts and images. Images need bytes from disk, so they also need the
+      include reader to carry binary — the first thing here that is not just
+      schema
 - [ ] **Pivot tables** (`add_pivot_table`) — the heaviest item here (source data,
       cache, field layout); may land late or as a stretch
 - [x] **Data validation** — drop-downs (inline choices or sourced from cells,
@@ -728,6 +737,48 @@ silently reading the wrong file).
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-27** — **Excel tables.** `tables:` declares a region to *be* a table
+  (a ListObject) rather than merely look like one: filter buttons, banded
+  shading, a name formulas can use (`=SUM(Revenue[Revenue])`), and a range Excel
+  extends as rows are typed beneath it. The cells stay ordinary cells — a table
+  says what a region *is*, so it composes with `cells:` and with `data:`, and
+  the `modular` example now declares the region its CSV fills a table.
+
+  **The backend derives the column names from the header cells already in the
+  sheet**, which fixes the emission order (tables after cells) and, more
+  importantly, means an empty header cell makes it *invent* `Column1` and write
+  that into the sheet — a spec's grid, edited by the compiler. So the loader
+  checks the header row instead: every column named, as text, no two the same
+  (Excel compares them ignoring case). A number is not a column name; quote it.
+
+  Four more checks that Excel would otherwise answer with a repair — silent
+  about what it dropped: a name that breaks Excel's defined-name rules, a name
+  another table already uses (workbook-wide, ignoring case), two tables sharing
+  a cell, and a table overlapping the sheet's own `filter:`. They need the
+  finished workbook, so they run beside the cross-sheet reference check rather
+  than while the entry is read.
+
+  **A one-row range is refused rather than grown.** The backend extends
+  `A1:C1` to `A1:C2`, matching Excel's own dialog; in a compiler that means
+  covering a cell the spec never mentioned, so it is a diagnostic. For the same
+  reason `header: false` is deferred: the backend *drops* the first row of a
+  headerless table's range (excelize parity, verified in its own parity tests),
+  so `at` and the emitted range would disagree.
+
+  Style names are checked against Excel's built-in set (`TableStyleLight1`–
+  `21`, `Medium1`–`28`, `Dark1`–`11`) because Excel falls back to its default
+  for a name it does not know, which would read as a backend bug rather than a
+  typo.
+
+  Renamed `loader/table.mbt` to `data.mbt` (and `load_table` to
+  `load_data_entry`): it loads `data:`, and leaving "table" on it next to the
+  new `tables:` would have been a trap.
+
+  The emitted part was read out of the file by hand, not only round-tripped:
+  `<table ref="A1:C3">` with a `tableColumn` per header, `<tableStyleInfo>`
+  carrying the four toggles, the sheet's `<tableParts>`, and the relationship
+  and content-type entries that make Excel see it (ECMA-376 §18.5).
 
 - **2026-07-26** — **Protection**, at three levels: the workbook's structure,
   a sheet's cells, and — the one that makes the other two useful — a style's

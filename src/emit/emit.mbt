@@ -182,6 +182,11 @@ fn emit_sheet(
   if sheet.filter is Some(range) {
     apply_filter(backend, sheet.name, range)
   }
+  // Tables come after the cells: the backend takes each column's name from the
+  // header cell already written there.
+  for table in sheet.tables {
+    apply_table(backend, sheet.name, table)
+  }
   for validation in sheet.validations {
     apply_validation(backend, sheet.name, validation, date_system)
   }

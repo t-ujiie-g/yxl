@@ -107,6 +107,7 @@ pub fn load(
   }
   read_active_sheet(root, workbook, file~)
   check_cross_sheet_references(workbook, file~)
+  check_tables(workbook, file~)
   guard workbook.sheets.iter().any(sheet => sheet.visibility is Visible) else {
     raise schema_error(
       file~,
@@ -240,11 +241,12 @@ fn load_sheet(
       "links" => load_links(value, sheet, file~)
       "conditional" => load_conditional_formats(value, sheet, file~, defs~)
       "comments" => load_comments(value, sheet, file~)
+      "tables" => load_tables(value, sheet, file~)
       "protect" => sheet.set_protection(load_sheet_protection(value, file~))
       _ =>
         raise schema_error(
           file~,
-          "unknown key '\{key}' in sheet (expected 'name', 'cells', 'data', 'columns', 'rows', 'merges', 'visibility', 'freeze', 'split', 'gridlines', 'tab_color', 'print', 'filter', 'validations', 'links', 'conditional', 'comments', or 'protect')",
+          "unknown key '\{key}' in sheet (expected 'name', 'cells', 'data', 'columns', 'rows', 'merges', 'visibility', 'freeze', 'split', 'gridlines', 'tab_color', 'print', 'filter', 'validations', 'links', 'conditional', 'comments', 'tables', or 'protect')",
         )
     }
   }
@@ -354,6 +356,12 @@ fn parse_range(
   let second = expect_cell_ref(right.to_owned(), file~, what=corner)
   let (top_left, bottom_right) = @units.CellRef::rect(first, second)
   { top_left, bottom_right }
+}
+
+///|
+/// A range as a diagnostic writes it: `A1:D10`.
+fn range_a1(range : @model.CellRange) -> String {
+  "\{range.top_left.to_a1()}:\{range.bottom_right.to_a1()}"
 }
 
 ///|

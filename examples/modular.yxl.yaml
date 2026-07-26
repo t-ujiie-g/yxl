@@ -22,3 +22,11 @@ sheets:
         json: modular/notes.json
         # JSON object keys have no dependable order, so name the fields to take.
         columns: [label, count]
+    # The region the CSV filled is declared an Excel table, so it arrives with
+    # filter buttons and a name formulas can use: `=SUM(Revenue[Revenue])`. Its
+    # top row names the columns, which is why `A1:B1` is written above — and the
+    # `header` style on those two cells still wins over the table's own.
+    tables:
+      - at: A1:B4
+        name: Revenue
+        style: TableStyleMedium2
