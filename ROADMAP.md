@@ -17,7 +17,10 @@ Excel-compatible `.xlsx`.
 Spreadsheets-as-code, with the properties code has:
 
 - **Diffable & reviewable.** A workbook is text under Git — meaningful diffs,
-  code review, blame, CI.
+  code review, blame, CI. *Partly delivered:* a `cells:` mapping is keyed by A1
+  address, so inserting a row rewrites every key below it and the diff looks
+  total. External `data:` tables already escape that; diff-stable **inline**
+  tables are Phase 11.
 - **DRY / single-source-of-truth ("compression").** A value, formula, or style
   written **once** and referenced many times is managed in one place — and
   compiles down to Excel's *native* sharing (shared strings, defined names,
@@ -34,6 +37,14 @@ owns the language, the reuse/dedup model, validation, and ergonomics.
 It is not another spreadsheet *library* (that is `mbtexcel`); it is a different
 product category — declarative authoring for people who'd rather edit YAML than
 write code.
+
+**The direction matters.** `yxl` *generates* workbooks: reports, statements,
+templates, anything whose shape is decided by its author and whose numbers come
+from somewhere else. It does not fit the other common case, where a spreadsheet
+*is* the human input surface and the file is the source of truth — there, edits
+happen in Excel and a spec would be perpetually stale. Saying so up front (in
+the README too) costs nothing and saves a mismatch later; `yxl import` (Phase
+10) is the bridge *into* the model, not a promise to keep both sides in step.
 
 ## 2. Non-goals
 
@@ -52,8 +63,11 @@ write code.
   `entr`, or an editor task. (It was also unimplementable without adding a timer
   dependency — but the scope call stands independently of that.)
 - **Being a general xlsx library.** That is `mbtexcel`; `yxl` depends on it.
-- **xlsx → YAML round-tripping.** Reverse import is a post-v1 stretch (§8 Q5),
-  not a v1 promise.
+- **Continuous xlsx ⇄ YAML round-tripping.** Keeping a spec and a
+  human-edited workbook in step, in both directions, is not a goal: the two
+  drift the moment someone types in Excel, and reconciling them is a different
+  product. A **one-time import** (existing workbook → a skeleton spec, to get
+  started) is a different thing and *is* planned — §6 Phase 10, §8 Q5.
 
 ## 3. Design principles
 
@@ -212,6 +226,15 @@ The **active phase** is the first phase with any unchecked box.
 - [x] `--check` (validate only), `--version`, help
 - [x] Stable exit codes (0 / 1 / 2, documented in `yxl help` and the README, and
       exercised end-to-end); native binary build + install docs
+- [ ] **A Windows binary.** Releases ship Linux x86_64 and macOS arm64; for a
+      tool whose subject is *Excel*, leaving out the platform most of its users
+      run on is the biggest gap in the product (raised in the post-v0.1.0
+      review, §11). Unknowns to settle before this is a task rather than a
+      guess: does `moon build --target native` work on `windows-latest` (the C
+      backend needs a toolchain — MSVC or MinGW), is the artifact `main.exe`,
+      and does the ZIP need a PowerShell installer since `install.sh` is
+      POSIX-only? Order this against Phase 9 — reach beats depth if the answer
+      is "it builds".
 
 ### Phase 9 — Richer Excel features (leverage mbtexcel, additive)
 - [ ] Charts, images, **Excel tables** (structured tables / ListObjects,
@@ -227,17 +250,51 @@ The **active phase** is the first phase with any unchecked box.
 - [ ] Further additive extras as demand warrants: sparklines, shapes, form
       controls, slicers, sheet backgrounds, duration cells
 
-### Phase 10 — Performance & scale (and stretch: reverse import)
+### Phase 10 — Performance & scale, and import
 - [ ] Large-spec performance; streaming where `mbtexcel` supports it
 - [ ] Benchmarks + regression guardrails in CI
-- [ ] Stretch: `xlsx → yxl.yaml` reverse import (§8 Q5)
+- [ ] **Import: an existing `.xlsx` → a skeleton spec.** Promoted from a
+      post-v1 stretch to a wanted feature (§8 Q5). Framed as a **one-way,
+      one-time migration aid**, not a round-trip contract: lossy and irreversible
+      is acceptable, which is exactly what makes it cheap enough to be worth
+      building. It is the single biggest lowering of the barrier to adoption —
+      an existing workbook becomes a starting spec instead of a retyping job.
+      Open first: the command's **name** (it emits YAML, so `import` reads from
+      yxl's side but not the file's — §8 Q9), and how much it recovers (values
+      and formulas certainly; styles interned into `defs.styles`; merges,
+      widths, and print setup if cheap). Needs a *reader* seam mirroring ADR-002,
+      since it is the first code outside `emit` to touch the backend.
+
+### Phase 11 — Authoring ergonomics (added after the v0.1.0 review, §11)
+These sharpen what §1 already claims, so they land **before the schema freeze**;
+the first item changes what a spec looks like.
+- [ ] **Diff-stable tables.** A `cells:` mapping is keyed by A1 address, so
+      inserting a row rewrites every key below it — `git diff` reports the whole
+      block as changed, which undercuts the "diffable" headline. Fix by letting a
+      `data:` entry carry its rows **inline** rather than only from a file:
+      `- { at: A2, values: [[APAC, 2400000], [EMEA, 1750000]] }`. A row insert is
+      then a one-line diff, the anchor localizes addresses to one place, and it
+      reuses the anchored-table machinery `csv:`/`json:` already go through
+      instead of inventing a second concept. `cells:` stays for scattered,
+      individually-styled cells, which is what it is good at.
+- [ ] **A JSON Schema for the spec, generated from `docs/spec.md`'s contents.**
+      Publishing one lets an author write
+      `# yaml-language-server: $schema=…` and get completion and validation in
+      VS Code — a large ergonomic return for a small artifact. Generating it
+      *from* the reference (or checking the two agree in CI) is what stops the
+      pair drifting, which is the same trick `examples/` plays for the cookbook.
 
 ### v1.0 — Stability gate
 - [ ] Schema freeze (breaking budget spent here). The **spec reference** it
       freezes is written: [`docs/spec.md`](./docs/spec.md)
 - [x] Stand up Tier 2: an `examples/` corpus that CI compiles and asserts on
       (§5), which is also what stops the README and cookbook drifting
-- [ ] Tier-3 manual: Excel / LibreOffice / Google Sheets open cleanly
+- [ ] Tier-3 manual: Excel / LibreOffice / Google Sheets open cleanly — and
+      *automate the cheap half of it first*: a workbook that makes Excel show its
+      repair dialog is the classic way an xlsx writer fails, and nothing in CI
+      would currently catch it. Opening every `examples/` output with LibreOffice
+      headless, or reading it back with `openpyxl`, would (post-v0.1.0 review,
+      §11)
 - [ ] Cookbook + CLI docs complete — `examples/` and `docs/spec.md` exist and CI
       keeps them honest; what remains is filling them out as Phase 9 lands
 - [ ] Release policy: v1.0.0 ships when the schema + CLI are stable
@@ -543,8 +600,22 @@ silently reading the wrong file).
   a plain string instead of failing (ADR-006). Because an include can replace any
   node, a `data:` / `format:` split needs no separate mechanism. External CSV/JSON
   tables remain their own Phase 7 item.
-- **Q5 — Reverse import.** Is `xlsx → yxl.yaml` in scope for v1, or a post-v1
-  stretch? (Currently a stretch — §6 Phase 10.)
+- **Q5 — Reverse import.** ✅ **Decided 2026-07-26: in scope, as a one-way
+  import.** Wanted after the v0.1.0 review: an existing workbook becomes a
+  starting spec instead of a retyping job, which is the biggest single drop in
+  the barrier to adoption. Explicitly *not* a round-trip contract — lossy and
+  irreversible is fine for a migration aid (§2, §6 Phase 10). What it recovers,
+  and what it is called, are Q9.
+- **Q9 — What is the import command called, and how much does it recover?**
+  `import` reads naturally from yxl's side ("bring this workbook in") but the
+  thing it *writes* is YAML, so the word points the wrong way for anyone reading
+  the command line. Candidates: `yxl import report.xlsx -o report.yxl.yaml`,
+  `yxl scaffold`, `yxl extract`, `yxl decompile`, or `yxl init --from`. Scope, in
+  rough order of value per effort: cell values and formulas → styles interned
+  into `defs.styles` → merges, column widths, sheet visibility → print setup.
+  Deciding where to stop matters more than the name: an import that recovers
+  everything is a round-trip by another route, and §2 says that is not the
+  product.
 - **Q7 — The parser's sealed API: vendor, replace, or live with it?**
   ✅ **Decided (ADR-016): live with it.** The YAML parser's value tree carries no
   positions and its marker-carrying event API is a sealed trait (ADR-010), so
@@ -581,6 +652,17 @@ silently reading the wrong file).
   subset and widen.
 - **Scope creep into a full spreadsheet library.** Mitigation: the §2 non-goals;
   lean on `mbtexcel` for Excel features rather than reimplementing them.
+- **A workbook Excel refuses to open cleanly.** The classic xlsx-writer failure:
+  output that our own round-trip tests read back happily, and that Excel greets
+  with a repair dialog. Nothing in CI would catch it — Tier 1 re-opens with the
+  same library that wrote the file, which cannot disagree with itself, and Tier 3
+  is manual and scheduled for the v1.0 gate. Mitigation: automate the cheap half
+  (LibreOffice headless, or `openpyxl`, over the `examples/` outputs) rather than
+  wait for v1.0. Raised in the post-v0.1.0 review.
+- **A headline the schema does not earn.** §1 leads with "diffable", and a
+  `cells:`-keyed spec is not, under row insertion. Mitigation: Phase 11's inline
+  tables, before the schema freeze; until then §1 and the README say which half
+  is delivered.
 
 ---
 
