@@ -35,6 +35,7 @@ pub struct Diagnostic {
 } derive(Eq, @debug.Debug)
 pub fn Diagnostic::new(String, span? : Span) -> Self
 pub fn Diagnostic::render(Self) -> String
+pub fn Diagnostic::render_in(Self, String) -> String
 
 pub struct Pos {
   line : Int

@@ -49,12 +49,18 @@ fn convert(value : @yamllib.Yaml, file : String) -> Node raise @diag.YamlError {
 }
 
 ///|
-/// Wrap a parser-library error as our own. The library's `YamlError` is opaque
-/// outside its package, so we render it through `Error`'s `Show`.
+/// Wrap a parser-library error as our own, keeping the position it found the
+/// problem at. The library reports lines from 1 and columns from 0; a `Pos`
+/// counts both from 1, the way an editor does.
 fn from_library_error(
   err : @yamllib.YamlError,
   file : String,
 ) -> @diag.YamlError {
-  let reason : Error = err
-  @diag.YamlError(@diag.Diagnostic::new("\{file}: invalid YAML: \{reason}"))
+  let @yamllib.YamlError(mark~, info~) = err
+  @diag.YamlError(
+    @diag.Diagnostic::new(
+      "invalid YAML: \{info}",
+      span=@diag.Span::point(file, @diag.Pos::new(mark.line, mark.col + 1)),
+    ),
+  )
 }

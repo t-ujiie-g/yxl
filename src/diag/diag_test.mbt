@@ -71,3 +71,43 @@ test "a raised subdomain error carries its span to the catch site" {
   }
   assert_eq(caught, Some("x.yaml:2:5: expected a number"))
 }
+
+///|
+test "render_in quotes the offending line and points a caret at the column" {
+  let diagnostic = @diag.Diagnostic::new(
+    "mapping values are not allowed in this context",
+    span=@diag.Span::point("report.yaml", @diag.Pos::new(2, 4)),
+  )
+  inspect(
+    diagnostic.render_in("a: b\n  c: d\n"),
+    content=(
+      #|report.yaml:2:4: mapping values are not allowed in this context
+      #|  |
+      #|2 |   c: d
+      #|  |    ^
+    ),
+  )
+}
+
+///|
+test "render_in falls back when there is no span or the line is out of range" {
+  // No span at all: just the message, as `render` gives.
+  let unanchored = @diag.Diagnostic::new("no input file given")
+  assert_eq(unanchored.render_in("a: 1\n"), "no input file given")
+  // A span pointing past the end of the source keeps the located one-liner
+  // rather than inventing a line to quote.
+  let beyond = @diag.Diagnostic::new(
+    "something",
+    span=@diag.Span::point("x.yaml", @diag.Pos::new(99, 1)),
+  )
+  assert_eq(beyond.render_in("a: 1\n"), "x.yaml:99:1: something")
+  // The gutter widens with the line number so the bars stay aligned.
+  let wide = @diag.Diagnostic::new(
+    "boom",
+    span=@diag.Span::point("x.yaml", @diag.Pos::new(10, 1)),
+  )
+  assert_eq(
+    wide.render_in("1\n2\n3\n4\n5\n6\n7\n8\n9\nten\n"),
+    "x.yaml:10:1: boom\n   |\n10 | ten\n   | ^",
+  )
+}

@@ -33,7 +33,7 @@ fn build(input : String, output : String, params : Map[String, String]) -> Int {
   }
   let bytes = @cli.compile(source, file=input, resolve=read_included, params~) catch {
     err => {
-      report(@cli.error_message(err))
+      report(@cli.error_message(err, source~))
       return @cli.exit_error
     }
   }

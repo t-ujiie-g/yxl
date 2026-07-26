@@ -103,10 +103,9 @@ test "a diagnostic in an included file names that file, not the including one" {
     schema_message("sheets:\n  $include: broken.yaml\n", files={
       "broken.yaml": "- [unclosed\n",
     }),
-    // The parser library's error renders as a bare type name today; carrying its
-    // line/col through is Phase 8's rich-diagnostics work.
+    // The diagnostic names the included file *and* the position within it.
     Some(
-      "broken.yaml: invalid YAML: moonbit-community/yaml.YamlError.YamlError",
+      "broken.yaml:2:1: invalid YAML: while parsing a flow sequence, expected ',' or ']'",
     ),
   )
 }

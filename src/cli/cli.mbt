@@ -117,15 +117,24 @@ pub fn compile(
 }
 
 ///|
-/// Render a pipeline error as a one-line message. Recognises the subdomain
-/// errors (each wraps a `@diag.Diagnostic`) and falls back to `Show` otherwise.
-pub fn error_message(err : Error) -> String {
-  match err {
-    @diag.YamlError(d) => d.render()
-    @diag.SchemaError(d) => d.render()
-    @diag.EmitError(d) => d.render()
-    @diag.CliError(d) => d.render()
-    _ => err.to_string()
+/// Render a pipeline error as a message. Recognises the subdomain errors (each
+/// wraps a `@diag.Diagnostic`) and falls back to `Show` otherwise.
+///
+/// Pass `source~` — the spec's text — to get the offending line quoted with a
+/// caret under it wherever the diagnostic carries a position. Without it, or
+/// where it carries none, the message is the plain single line.
+pub fn error_message(err : Error, source? : String) -> String {
+  let diagnostic = match err {
+    @diag.YamlError(d) | @diag.SchemaError(d) | @diag.EmitError(d) => Some(d)
+    // A usage error is about the command line, not the spec, so it never has a
+    // source position to point into.
+    @diag.CliError(d) => return d.render()
+    _ => None
+  }
+  match (diagnostic, source) {
+    (Some(d), Some(source)) => d.render_in(source)
+    (Some(d), None) => d.render()
+    (None, _) => err.to_string()
   }
 }
 

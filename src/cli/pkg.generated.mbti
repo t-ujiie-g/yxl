@@ -10,7 +10,7 @@ import {
 // Values
 pub fn compile(String, file~ : String, resolve? : (String, String) -> @loader.Included raise, params? : Map[String, String]) -> Bytes raise
 
-pub fn error_message(Error) -> String
+pub fn error_message(Error, source? : String) -> String
 
 pub let exit_error : Int
 
