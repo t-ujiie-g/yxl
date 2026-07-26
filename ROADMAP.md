@@ -239,6 +239,10 @@ The items here are independent, so they land in whatever order pays best rather
 than top to bottom. The first slice deliberately took everything that needs **no
 new architecture** — no drawing parts, no binary assets, no reader seam — which
 is why validation, filters, and links arrived before charts.
+
+**Every named feature below has landed.** The last bullet is a standing backlog
+— things to build when someone asks for them — not a gate, so §10's "first phase
+with an unchecked box" points at Phase 10 from here.
 - [x] **Excel tables** (structured tables / ListObjects, `add_table`) —
       `tables:` over a range whose top row names the columns, with a name
       formulas can use, one of Excel's built-in styles, and its four appearance
@@ -262,8 +266,16 @@ is why validation, filters, and links arrived before charts.
       so the loader gained a second resolver (`BytesResolver`) beside the one
       `$include` uses, and the CLI supplies both. Deferred: a hyperlink on an
       image, cell-embedded ("place in cell") images, and shapes
-- [ ] **Pivot tables** (`add_pivot_table`) — the heaviest item here (source data,
-      cache, field layout); may land late or as a stretch
+- [x] **Pivot tables** (`add_pivot_table`) — `pivots:` over a source region whose
+      header row names the fields, laid out across `rows` / `columns` / `values`
+      / `filters`, with all eleven of Excel's aggregations, a display name per
+      field, one of its built-in styles, and either grand total. The file
+      carries the definition and an empty cache marked "refresh on load", so
+      Excel builds the summary on open. **Two backend defects bound what is
+      accepted** (reported upstream, and §9): no `filters:` axis, and one source
+      per workbook. Deferred: number formats per value field, sorting and manual
+      field order, calculated fields, classic layout, and a pivot sourced from
+      an Excel table rather than a range
 - [x] **Data validation** — drop-downs (inline choices or sourced from cells,
       including another sheet), and `whole` / `decimal` / `text_length` / `date`
       comparisons across all eight OOXML operators, with Excel's "Ignore blank",
@@ -724,6 +736,15 @@ silently reading the wrong file).
   is manual and scheduled for the v1.0 gate. Mitigation: automate the cheap half
   (LibreOffice headless, or `openpyxl`, over the `examples/` outputs) rather than
   wait for v1.0. Raised in the post-v0.1.0 review.
+- **Backend defects that only Excel reveals.** Phase 9's pivot tables shipped
+  round-trip-green while Excel showed `#SPILL!`, because the backend writes a
+  fixed `<location>`; a second defect gives every pivot the same `cacheId`, so a
+  second source would be summarized wrongly with no error at all. Both are
+  reported upstream ([office.mbt#264](https://github.com/moonbitlang/office.mbt/issues/264)) and worked around by refusing the
+  spec (`docs/spec.md` §14).
+  Mitigation is the one already listed below — automate "does Excel open it
+  cleanly" — and, until then, **open the output by hand when a feature writes a
+  part Excel interprets rather than displays**.
 - **MSVC cannot compile the backend's formula evaluator.** MoonBit's native
   backend hands each test executable to the platform C compiler as one
   translation unit, and `mbtexcel`'s formula dispatch — a `match` with a
@@ -761,6 +782,70 @@ silently reading the wrong file).
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-27** — **Pivot tables**, the last of Phase 9's Excel features.
+  `pivots:` names a source region, groups it down `rows` and along `columns`,
+  aggregates in `values`, and offers `filters` above — with all eleven of
+  Excel's aggregations, a display name per field, its built-in styles, and
+  either grand total.
+
+  **A pivot is entirely references**, like a chart: the fields are named after
+  the *columns of the source's header row*, never after letters or indices. So
+  the checks that matter need the finished workbook, and run beside the table
+  ones: the source sheet must be declared, the region must have a header row
+  with rows beneath it and more than one column, its top row must name every
+  column as text, every field laid out must be one of those names — and the
+  pivot may not be drawn over the cells it summarizes. The backend answers each
+  of these with `InvalidPivotTable`, which says nothing about where in the spec
+  the mistake was written; the diagnostic here lists the fields the source
+  actually has.
+
+  **Two ranges, two spellings.** A chart's ranges are quoted and absolute
+  (`'Orders'!$A$1:$D$7`), because Excel resolves them as formulas. A pivot's are
+  *split* by the backend on the first `!` and each half written into the XML as
+  it stands, so quoting the sheet would name a sheet that does not exist —
+  `InvalidSheetName`, found by trying it. They go bare (`Orders!A1:D7`). That
+  split is also why a sheet whose name holds a `!` — which Excel permits — is
+  refused for a pivot: nothing downstream could tell the name from the
+  separator.
+
+  **The file carries no summary.** The cache is written empty and marked
+  `refreshOnLoad="1"`, so the numbers appear when Excel opens the workbook. That
+  is the same arrangement as a formula, which `yxl` also emits without
+  evaluating (§2), and it is what keeps a pivot honest when its source changes.
+
+  **Opening the result in Excel is what found the rest of this entry**, and is
+  the argument for the "does Excel open it cleanly" gate in §9: the round-trip
+  tests were green while one of the two pivots in the example showed `#SPILL!`.
+
+  Two defects in `bobzhang/mbtexcel`, both reported upstream as
+  [office.mbt#264](https://github.com/moonbitlang/office.mbt/issues/264):
+
+  1. **`<location>` is written with fixed attributes** — `firstHeaderRow="1"
+     firstDataRow="2" firstDataCol="1"`, and no `rowPageCount` /
+     `colPageCount`. Those values describe a pivot of rows and values only, so
+     a pivot with a **page (filter) field** contradicts its own declared
+     location and Excel cannot place it. A six-layout workbook opened in Excel
+     narrowed it precisely: rows, columns, columns-without-rows, and two row
+     fields are all correct; both layouts with a filter show `#SPILL!`.
+  2. **Every pivot is written with `cacheId="1"`** while `xl/workbook.xml`
+     numbers the caches 1, 2, … Excel resolves a pivot's cache by that number,
+     so a second pivot over a *different* source silently summarizes the
+     first's data. No error anywhere: the workbook opens, the pivot draws, the
+     numbers are wrong.
+
+  So the schema accepts only what survives: `filters:` is refused **by name**,
+  with the reason, rather than left to look like an unknown key — and every
+  pivot in a workbook must share one source, which keeps the `cacheId`
+  collision harmless. Both restrictions are documented in `docs/spec.md` §14 as
+  backend limits, not as design.
+
+  Verified in the package: `pivotTable1.xml` with `axisRow` / `axisCol` fields
+  resolved to their source positions, `<dataField fld="3" name="Total revenue"
+  subtotal="sum"/>`, `colGrandTotals="0"` where asked, the style info, and
+  `pivotCacheDefinition1.xml` pointing at `<worksheetSource ref="A1:D7"
+  sheet="Orders"/>` (ECMA-376 §18.10). New `examples/pivots.yxl.yaml`: two
+  summaries of one order log.
 
 - **2026-07-27** — **Images**, and the seam they needed. `images:` anchors a
   picture at a cell, with alt text, a scale, an offset in pixels, and Excel's

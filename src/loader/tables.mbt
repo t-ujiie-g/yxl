@@ -56,9 +56,11 @@ fn load_table(
         )
       "style" =>
         style = Some(
-          check_table_style(
+          check_numbered_style(
             expect_string(value, file~, context="\{context} 'style'"),
+            @model.table_style_families,
             file~,
+            what="table style",
             context~,
           ),
         )
@@ -148,25 +150,33 @@ fn is_name_start(ch : Char) -> Bool {
 }
 
 ///|
-/// A table style, checked against Excel's built-in set — it silently falls back
-/// to its default for a name it does not know, which would leave a misspelt
-/// style looking like a backend bug.
-fn check_table_style(
+/// A style from one of Excel's numbered built-in families, checked against them
+/// — Excel silently falls back to its default for a name it does not know,
+/// which would leave a misspelt style looking like a backend bug. Shared by
+/// tables and pivot tables, whose styles are named the same way.
+fn check_numbered_style(
   style : String,
+  families : Array[(String, Int)],
   file~ : String,
+  what~ : String,
   context~ : String,
 ) -> String raise @diag.SchemaError {
-  guard @model.is_table_style(style) else {
-    let families = @model.table_style_families.map(family => {
-      let (prefix, count) = family
-      "'\{prefix}1'-'\{prefix}\{count}'"
-    })
-    raise schema_error(
-      file~,
-      "unknown table style '\{style}' in \{context} (expected \{families.join(", ")})",
-    )
+  for family in families {
+    let (prefix, count) = family
+    for number in 1..<=count {
+      if style == "\{prefix}\{number}" {
+        return style
+      }
+    }
   }
-  style
+  let spelled = families.map(family => {
+    let (prefix, count) = family
+    "'\{prefix}1'-'\{prefix}\{count}'"
+  })
+  raise schema_error(
+    file~,
+    "unknown \{what} '\{style}' in \{context} (expected \{spelled.join(", ")})",
+  )
 }
 
 ///|

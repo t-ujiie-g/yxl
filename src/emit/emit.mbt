@@ -74,6 +74,14 @@ fn build_workbook(wb : @model.Workbook) -> Bytes raise {
     backend.new_sheet(sheet.name) |> ignore
     emit_sheet(backend, sheet, style_ids, dxf_ids, wb.date_system)
   }
+  // Pivots come after every sheet's cells: the backend reads each field's name
+  // out of the source's header row, and a pivot routinely summarizes a sheet
+  // declared after the one it sits on.
+  for sheet in wb.sheets {
+    for pivot in sheet.pivots {
+      apply_pivot(backend, sheet.name, pivot)
+    }
+  }
   // Hidden tabs come after every sheet exists: the backend rejects hiding the
   // last visible sheet, and a sheet declared later may be the visible one.
   for sheet in wb.sheets {

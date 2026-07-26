@@ -109,6 +109,7 @@ pub fn load(
   read_active_sheet(root, workbook, file~)
   check_cross_sheet_references(workbook, file~)
   check_tables(workbook, file~)
+  check_pivots(workbook, file~)
   guard workbook.sheets.iter().any(sheet => sheet.visibility is Visible) else {
     raise schema_error(
       file~,
@@ -247,11 +248,12 @@ fn load_sheet(
       "tables" => load_tables(value, sheet, file~)
       "charts" => load_charts(value, sheet, file~)
       "images" => load_images(value, sheet, file~, read_bytes~)
+      "pivots" => load_pivots(value, sheet, file~)
       "protect" => sheet.set_protection(load_sheet_protection(value, file~))
       _ =>
         raise schema_error(
           file~,
-          "unknown key '\{key}' in sheet (expected 'name', 'cells', 'data', 'columns', 'rows', 'merges', 'visibility', 'freeze', 'split', 'gridlines', 'tab_color', 'print', 'filter', 'validations', 'links', 'conditional', 'comments', 'tables', 'charts', 'images', or 'protect')",
+          "unknown key '\{key}' in sheet (expected 'name', 'cells', 'data', 'columns', 'rows', 'merges', 'visibility', 'freeze', 'split', 'gridlines', 'tab_color', 'print', 'filter', 'validations', 'links', 'conditional', 'comments', 'tables', 'charts', 'images', 'pivots', or 'protect')",
         )
     }
   }

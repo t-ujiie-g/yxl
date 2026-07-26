@@ -21,9 +21,9 @@ sheets: [...]          # the workbook's sheets, in tab order
 active: Summary        # the sheet Excel opens on (default: the first)
 params: {...}          # named values substituted as ${name}   → §7
 defs: {...}            # named styles, values, and formulas    → §6
-properties: {...}      # what the file says about itself       → §14
-calc: {...}            # when Excel recalculates               → §14
-protect: {...}         # lock the workbook's structure         → §15
+properties: {...}      # what the file says about itself       → §15
+calc: {...}            # when Excel recalculates               → §15
+protect: {...}         # lock the workbook's structure         → §16
 date1904: false        # use Excel's 1904 date epoch
 default_font: Calibri  # the workbook's default font face
 ```
@@ -34,9 +34,9 @@ default_font: Calibri  # the workbook's default font face
 | `active` | text | Must name a declared, **visible** sheet. |
 | `params` | mapping | §7. |
 | `defs` | mapping | §6. |
-| `properties` | mapping | Document properties. §14. |
-| `calc` | mapping | Calculation settings. §14. |
-| `protect` | mapping | Workbook protection. §15. |
+| `properties` | mapping | Document properties. §15. |
+| `calc` | mapping | Calculation settings. §15. |
+| `protect` | mapping | Workbook protection. §16. |
 | `date1904` | boolean | `true` selects the 1904 epoch. Affects how dates serialize. |
 | `default_font` | text | Face name only; size and colour are per-style. |
 
@@ -65,7 +65,8 @@ sheets:
     tables: [...]      # → §11
     charts: [...]      # → §12
     images: [...]      # → §13
-    protect: {...}     # → §15
+    pivots: [...]      # → §14
+    protect: {...}     # → §16
 ```
 
 | Key | Type | Notes |
@@ -89,7 +90,8 @@ sheets:
 | `tables` | sequence | Excel tables over the sheet's regions. §11. |
 | `charts` | sequence | Charts anchored on the sheet. §12. |
 | `images` | sequence | Pictures anchored on the sheet. §13. |
-| `protect` | mapping | Sheet protection. §15. |
+| `pivots` | sequence | Pivot tables placed on the sheet. §14. |
+| `protect` | mapping | Sheet protection. §16. |
 
 Sheet keys apply **in the order written**, so where a `data:` table and `cells:`
 overlap, whichever comes last wins.
@@ -215,7 +217,7 @@ defs:
 | `font` | `{ bold, italic, underline, strike, size, name, color }` — all optional. |
 | `fill` | A hex `RRGGBB`, or `{ color: RRGGBB }`. Solid fills only. |
 | `border` | A style name for all four edges (`border: thin`), or a mapping of `all` / `left` / `right` / `top` / `bottom`, each a style name or `{ style, color }`. Styles: `thin`, `medium`, `thick`, `dashed`, `dotted`, `double`, `hair`. |
-| `protection` | `{ locked, hidden }` — what sheet protection does to a cell wearing this style. §15. |
+| `protection` | `{ locked, hidden }` — what sheet protection does to a cell wearing this style. §16. |
 | `align` | `{ horizontal, vertical, wrap }`. Horizontal: `left`, `center`, `right`, `fill`, `justify`, `distributed`. Vertical: `top`, `middle`, `bottom`, `justify`, `distributed`. |
 
 A cell's own `format` layers on top of a referenced style.
@@ -617,7 +619,72 @@ diagnostics.
 The bytes are read while the spec compiles and travel into the workbook, so the
 `.xlsx` carries the picture itself and no longer needs the file.
 
-## 14. Document properties and calculation
+## 14. Pivot tables
+
+A pivot table summarizes cells that live somewhere else — usually a plain data
+sheet — grouping them down the rows and along the columns and aggregating in the
+middle. The spec says what to summarize and how; **Excel does the arithmetic**,
+and redoes it whenever the source changes.
+
+```yaml
+pivots:
+  - at: A3:F30                 # required; where the pivot is drawn
+    source: Orders!A1:D7       # required; header row first
+    rows: [Region]
+    columns: [Quarter]
+    values:
+      - field: Revenue
+        function: sum          # default
+        name: Total revenue    # Excel would say "Sum of Revenue"
+    name: RevenueByRegion
+    style: PivotStyleMedium9
+    row_grand_totals: true
+    column_grand_totals: true
+```
+
+| Key | Type | Notes |
+|---|---|---|
+| `at` | range | **Required.** The corner the pivot starts from; Excel grows it past this as it needs to. |
+| `source` | range | **Required.** `Sheet!A1:D7` names another sheet, which must be declared. Its **top row names the fields**, and there must be at least one row beneath and more than one column. |
+| `rows` / `columns` | sequence | Field names, or `{ field, name }` to relabel one. |
+| `values` | sequence | Field names (summed), or `{ field, function, name }`. |
+| `name` | text | Default: `PivotTable1`, `PivotTable2`, … |
+| `style` | text | `PivotStyleLight1`–`28`, `PivotStyleMedium1`–`28`, `PivotStyleDark1`–`28`. |
+| `row_grand_totals` / `column_grand_totals` | boolean | Both default to `true`, as Excel does. |
+
+**Functions:** `sum` (the default), `count`, `count_numbers`, `average`, `max`,
+`min`, `product`, `std_dev`, `std_dev_p`, `var`, `var_p`.
+
+Every field named on any axis must be a column of the source's header row, and
+that row must name **every** column of the range, as text — a pivot cannot refer
+to a field Excel would not find. A pivot may not be drawn over the cells it
+summarizes.
+
+> **The file carries no summary.** `yxl` writes the pivot's definition and an
+> empty cache marked "refresh on load", so the numbers appear when Excel opens
+> the workbook — the same arrangement as a formula, which `yxl` also emits
+> without evaluating.
+
+### Two limits the Excel backend imposes today
+
+Both are defects in `bobzhang/mbtexcel`, reported upstream as
+[office.mbt#264](https://github.com/moonbitlang/office.mbt/issues/264). `yxl` refuses the spec rather than emit a workbook that is
+broken or quietly wrong.
+
+**No `filters:` axis.** Excel's "Filters" box is the fourth axis a pivot can
+have. The backend writes the pivot's `<location>` without accounting for the
+filter rows above the body, and Excel answers with `#SPILL!` where the pivot
+should be. `filters:` is therefore rejected by name, with that reason. Rows,
+columns, several fields on an axis, and every aggregation are unaffected —
+each was checked in Excel.
+
+**One source per workbook.** The backend gives every pivot `cacheId="1"` while
+numbering the caches `1`, `2`, …, and Excel resolves a pivot's cache by that
+number. A second pivot over a *different* source would summarize the first
+one's data — silently, with no error anywhere. Two pivots over the **same**
+source are fine and stay correct; a second source is rejected.
+
+## 15. Document properties and calculation
 
 ```yaml
 properties:
@@ -652,7 +719,7 @@ values the spec supplied, which is worth setting where recalculation is slow;
 `on_load: true` forces one full pass regardless, which is what you want where
 the spec supplied no cached values at all.
 
-## 15. Protection
+## 16. Protection
 
 ```yaml
 protect:                    # the workbook itself
@@ -702,7 +769,7 @@ A style may carry **either** a number format **or** cell protection, not both.
 The build fails saying so, naming the format, rather than dropping one
 silently. Split them into two styles, or drop the format.
 
-## 16. Diagnostics
+## 17. Diagnostics
 
 A failed build prints one diagnostic and exits non-zero. YAML **syntax** errors
 carry a line and column with the source quoted:
