@@ -80,7 +80,7 @@ test "load rejects invalid style attributes" {
       "sheets:\n  - name: S\n    cells:\n      A1: { value: 1, style: { glow: true } }\n",
     ),
     Some(
-      "spec.yaml: unknown key 'glow' in cell 'A1' style (expected 'font', 'fill', 'border', 'align', 'protection', or 'extends')",
+      "spec.yaml: unknown key 'glow' in cell 'A1' style (expected 'font', 'fill', 'border', 'align', 'protection', 'format', or 'extends')",
     ),
   )
 }

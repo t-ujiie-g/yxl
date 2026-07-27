@@ -31,6 +31,15 @@ pub(all) suberror EmitError {
 } derive(Eq, Debug)
 
 ///|
+/// A failure in the `read` stage: an existing `.xlsx` could not be turned back
+/// into a model — it is not a workbook, or it holds something the reader cannot
+/// make sense of. The mirror of `EmitError`, for the direction `yxl extract`
+/// travels (ADR-017).
+pub(all) suberror ReadError {
+  ReadError(Diagnostic)
+} derive(Eq, Debug)
+
+///|
 /// A failure in the `cli` stage: bad arguments, or a file could not be read or
 /// written. This is the only error tied to filesystem I/O (ADR-003).
 pub(all) suberror CliError {

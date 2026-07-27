@@ -485,11 +485,17 @@ gate, which is why none carries a box:
             `TRUE` as a boolean, `007` as the number 7, and a lone `-` not at all
             — and the round trip is asserted on the whole `examples/` corpus,
             which also re-compiles to byte-identical workbooks
-      - [ ] **The reader seam and slice 1**: values, formulas, rich text, styles
-            interned into `defs.styles`, merges. This is the slice that makes
-            the feature useful at all
-      - [ ] **Slice 2 — layout**: column widths, row heights, hidden, outline
-            levels, freeze panes, gridlines, tab colour, print setup
+      - [x] **The reader seam and slice 1**: values, formulas, rich text, styles
+            interned into `defs.styles`, merges. `src/read` is the seam and
+            `src/render` the inverse of `loader`; `yxl extract` joins them and
+            checks its own output
+      - [x] **Slice 2 — layout**: column widths, row heights, hidden, outline
+            levels, freeze panes, gridlines, tab colour. **Print setup is
+            refused**, not deferred: the backend's `page_layout_with_defaults`
+            aliases a module-level default instead of copying it, so reading one
+            sheet's setup leaks it to every later sheet and to every later
+            workbook read in the same process. Becomes a plain read the day that
+            is a copy
       - [ ] **Slice 3 — decoration**: comments, links, validations, conditional
             formats, tables, auto filter
       - [ ] **CSV extraction**, which also settles one-file vs. many: a
@@ -927,7 +933,9 @@ Phase 11's inline `values:` lands. `$include` splitting is never inferred.
   stalls and real users hit it.
 
 - **Q9 — What is the import command called, and how much does it recover?**
-  ✅ **Decided 2026-07-27 (ADR-017): `yxl extract`, bounded by the schema.**
+  ✅ **Decided 2026-07-27 (ADR-017), and implemented 2026-07-28: `yxl extract`,
+  bounded by the schema.** `docs/spec.md` §22 is the user-facing account of what
+  it recovers and what it does not.
   `import` was rejected as pointing the wrong way — what the command *writes* is
   YAML. `extract` reads from the file's side and claims neither completeness
   (`decompile`) nor scaffolding (`scaffold`).
@@ -1055,6 +1063,52 @@ Phase 11's inline `values:` lands. `$include` splitting is never inferred.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-28** — **`yxl extract` works**: an existing workbook becomes a
+  starting spec. Two new packages complete the pipeline in the other direction —
+  `src/read` is the reader seam (the mirror of `emit`, and now the only other
+  place the backend is touched, ADR-002) and `src/render` the inverse of
+  `loader`. `cli.extract` joins them, and `cmd/main` gains the subcommand.
+  Recovered: values, formulas, mixed-font rich text, styles **interned** into
+  `defs.styles`, merges, column and row bands with adjacent equal ones collapsed
+  back into one entry, panes, gridlines, tab colours, sheet order and visibility,
+  the active tab, and the date system. `docs/spec.md` §22 says what is not, and
+  why.
+
+  **The verify pass earned its place immediately.** ADR-017 asked `extract` to
+  compile its own output and compare; the first run on `examples/quickstart`
+  reported that the spec would not compile at all, and the second and third runs
+  found two more. Every one was a real defect that reading the output would not
+  have caught as quickly: `format:` written *inside* an inline style, where the
+  schema puts it beside one; and `format:` inside a `defs.styles` entry, which
+  the schema did not accept **at all**.
+
+  That second one turned out to be a **schema gap rather than an extract bug**,
+  and the same shape as the formula column: `model.Style` has a number format,
+  `defs.styles` could not set one, so a "percent" style could be declared
+  nowhere and had to be repeated at every cell wearing it — exactly the copying
+  ADR-004 exists to stop. `format` is now a style attribute (`docs/spec.md` §6),
+  which an author wanted independently.
+
+  Three things the output made obvious once it existed, none of which a test
+  would have failed on: every piece of text came back as a one-run `rich:` block,
+  because the backend answers `get_cell_rich_text` for *any* shared string;
+  every sheet grew a `print:` block of Excel's own defaults; and a hidden column
+  past the last populated cell was lost, because the bands were read by scanning
+  the used rectangle rather than by reading the `<col>` records. Fixed, and the
+  last of those is now a test — a scan would pass every other assertion.
+
+  **Print setup is refused rather than deferred.** The backend's
+  `page_layout_with_defaults` (and its margins twin) does `let merged =
+  default_page_layout` — an alias of a module-level mutable struct, not a copy —
+  then writes the sheet's own values into it. Reading one sheet's setup therefore
+  leaks it to every later sheet, and to every later workbook read in the same
+  process. A spec built on that would claim the wrong orientation, so it is a
+  named refusal with the reason, as top-level `protect:` is.
+
+  Verified on the corpus: all ten examples extract, and the eight that need no
+  external files are asserted to extract with an empty self-check *and* to
+  compile again on their own.
 
 - **2026-07-28** — **A YAML writer**, the first slice of `extract` (ADR-017) and
   the one everything else waits on: `src/yaml` could only ever read, so nothing

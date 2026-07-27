@@ -310,6 +310,7 @@ defs:
 | `fill` | A hex `RRGGBB`, or `{ color: RRGGBB }`. Solid fills only. |
 | `border` | A style name for all four edges (`border: thin`), or a mapping of `all` / `left` / `right` / `top` / `bottom`, each a style name or `{ style, color }`. Styles: `thin`, `medium`, `thick`, `dashed`, `dotted`, `double`, `hair`. |
 | `protection` | `{ locked, hidden }` — what sheet protection does to a cell wearing this style. §16. |
+| `format` | An Excel number-format code, as on a cell. A `format:` written beside the reference layers over this one. |
 | `align` | `{ horizontal, vertical, wrap }`. Horizontal: `left`, `center`, `right`, `fill`, `justify`, `distributed`. Vertical: `top`, `middle`, `bottom`, `justify`, `distributed`. |
 
 A cell's own `format` layers on top of a referenced style.
@@ -1066,3 +1067,54 @@ the reader looks, the data stays where it lives.
 same cache machinery whose defects already bound `pivots:` (§14); they stay
 out until [office.mbt#264](https://github.com/moonbitlang/office.mbt/issues/264)
 is resolved.
+
+## 22. Going the other way: `yxl extract`
+
+An existing workbook becomes a starting spec instead of a retyping job.
+
+```
+yxl extract report.xlsx -o report.yxl.yaml
+```
+
+This is a **one-way migration aid, not a round trip**. What the spec format can
+say is recovered; what it cannot is dropped, and each kind of loss is named once
+on the way out. Treat the result as a starting point and edit it — that is what
+it is for.
+
+### What it recovers
+
+Cell values, formulas, and mixed-font rich text. Styles, **interned**: a look
+worn by forty cells becomes one `defs.styles` entry, because the file kept the
+sharing even though it lost the name. Merged ranges. Column and row bands —
+widths, heights, hidden, outline levels — with adjacent equal ones collapsed
+back into a single entry. Frozen and split panes, gridlines, tab colours, sheet
+order, hidden sheets, the active tab, and the 1904 date system.
+
+### What it does not, and why
+
+- **Names are invented, because the file has none.** A style is given a
+  descriptive name only on strong evidence — bold on a fill is `header`, a lone
+  percentage format is `percent` — and a neutral `style`, `style_2`, … otherwise.
+  A wrong name misleads where a meaningless one merely says nothing, and renaming
+  means replacing every reference rather than one definition.
+- **A number is left a number**, even under a date format. `type: date` would be
+  a guess about intent, and the number plus its format compiles back to the
+  identical cell.
+- **A formula's cached result is left behind.** Excel recomputes it on open.
+- **A shared formula is recovered at its master cell only.** The reader does not
+  expose which cells follow it, so the rest arrive as the values they cached.
+  A `formulas:` range (§3) is the spelling to restore by hand.
+- **Charts, images, shapes, pivots, slicers, sparklines, controls, comments,
+  links, validations, conditional formats, tables, and filters are not
+  recovered** — they are in the file, and reading them is future work rather
+  than a limit of the format.
+- **Print setup is not recovered.** The Excel backend cannot report it per
+  sheet: reading one sheet's setup leaks it to every later sheet, so a spec built
+  on it would claim the wrong orientation.
+
+### It checks its own work
+
+Every extraction compiles the spec it produced and compares the cells against
+the ones it read. A mismatch is reported and the exit code says so — the spec is
+still written, because a starting point with a known gap beats none, but it
+tells you rather than leaving it to be found in Excel.

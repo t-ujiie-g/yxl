@@ -25,6 +25,9 @@ pub let version : String = "0.2.0"
 pub(all) enum Command {
   Build(input~ : String, output~ : String, params~ : Map[String, String])
   Check(input~ : String, params~ : Map[String, String])
+  /// The other direction (ADR-017): read a workbook and write the spec that
+  /// would rebuild it.
+  Extract(input~ : String, output~ : String)
   Version
   Help
 } derive(Eq, Debug)
@@ -37,13 +40,18 @@ pub let usage : String =
   #|Usage:
   #|  yxl build <spec.yaml> -o <out.xlsx> [--set name=value]...
   #|  yxl build <spec.yaml> --check [--set name=value]...
+  #|  yxl extract <book.xlsx> -o <spec.yxl.yaml>
   #|  yxl help | --help | -h
   #|  yxl version | --version | -V
   #|
   #|Options:
-  #|  -o, --output <file>   where to write the workbook
+  #|  -o, --output <file>   where to write the workbook, or the spec
   #|      --check           validate the spec and write nothing
   #|      --set name=value  override a parameter the spec declares (repeatable)
+  #|
+  #|`extract` is a one-way migration aid: it recovers what the spec format can
+  #|express and says what it could not, then checks its own output by compiling
+  #|it back. Treat the result as a starting point, not as a copy.
   #|
   #|Exit codes:
   #|  0  success
@@ -59,9 +67,10 @@ pub fn parse_args(args : ArrayView[String]) -> Command raise @diag.CliError {
     ["help" | "--help" | "-h", ..] => Help
     ["version" | "--version" | "-V", ..] => Version
     ["build", .. rest] => parse_build(rest)
+    ["extract", .. rest] => parse_extract(rest)
     [other, ..] =>
       raise usage_error(
-        "unknown command '\{other}' (expected 'build', 'help', or 'version')",
+        "unknown command '\{other}' (expected 'build', 'extract', 'help', or 'version')",
       )
   }
 }
@@ -124,6 +133,45 @@ fn parse_build(args : ArrayView[String]) -> Command raise @diag.CliError {
     raise usage_error("no output file given (use -o <out.xlsx>)")
   }
   Build(input~, output~, params~)
+}
+
+///|
+/// `extract <book.xlsx> -o <spec.yxl.yaml>`. Simpler than `build`: nothing to
+/// parameterize, and nothing useful to do without somewhere to put the result.
+fn parse_extract(args : ArrayView[String]) -> Command raise @diag.CliError {
+  let mut input = None
+  let mut output = None
+  let mut i = 0
+  while i < args.length() {
+    match args[i] {
+      "-o" | "--output" => {
+        guard i + 1 < args.length() else {
+          raise usage_error("'\{args[i]}' needs a file argument")
+        }
+        guard output is None else {
+          raise usage_error("'-o' was given more than once")
+        }
+        output = Some(args[i + 1])
+        i += 2
+      }
+      option if option.has_prefix("-") =>
+        raise usage_error("unknown option '\{option}'")
+      positional => {
+        guard input is None else {
+          raise usage_error("more than one input file given")
+        }
+        input = Some(positional)
+        i += 1
+      }
+    }
+  }
+  guard input is Some(input) else {
+    raise usage_error("no input workbook given")
+  }
+  guard output is Some(output) else {
+    raise usage_error("no output file given (use -o <spec.yxl.yaml>)")
+  }
+  Extract(input~, output~)
 }
 
 ///|

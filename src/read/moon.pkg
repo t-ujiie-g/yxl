@@ -1,0 +1,18 @@
+// The reader seam (ADR-017), the mirror of `emit`: .xlsx bytes -> a `model`
+// workbook. Together with `emit` these are the ONLY two packages that import the
+// Excel backend, so the backend stays swappable from both directions and the
+// rest of the pipeline never sees it (ADR-002).
+//
+// Pure: bytes in, model out. Opening the file is the CLI's job (ADR-003).
+import {
+  "t-ujiie-g/yxl/model",
+  "t-ujiie-g/yxl/units",
+  "t-ujiie-g/yxl/diag",
+  "bobzhang/mbtexcel/xlsx",
+}
+
+// The tests build a model, compile it with `emit`, and read the bytes back —
+// the only way to assert on a real `.xlsx` without carrying a fixture file.
+import {
+  "t-ujiie-g/yxl/emit",
+} for "test"

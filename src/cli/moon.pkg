@@ -6,6 +6,9 @@ import {
   "t-ujiie-g/yxl/yaml",
   "t-ujiie-g/yxl/loader",
   "t-ujiie-g/yxl/emit",
+  "t-ujiie-g/yxl/read",
+  "t-ujiie-g/yxl/render",
+  "t-ujiie-g/yxl/model",
   "t-ujiie-g/yxl/diag",
 }
 

@@ -16,6 +16,10 @@ pub(all) suberror EmitError {
   EmitError(Diagnostic)
 } derive(Eq, @debug.Debug)
 
+pub(all) suberror ReadError {
+  ReadError(Diagnostic)
+} derive(Eq, @debug.Debug)
+
 pub(all) suberror ResolveError {
   ResolveError(Diagnostic)
 } derive(Eq, @debug.Debug)

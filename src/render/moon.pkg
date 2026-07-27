@@ -1,0 +1,13 @@
+// The inverse of `loader`: a `model` workbook back into the document tree the
+// `yaml` seam writes. Pure — no filesystem, no Excel backend — so it tests on
+// values alone, like the rest of the compiler core (ADR-003).
+//
+// This is where the *names* are invented. The file a spec compiled to kept every
+// bit of sharing and lost every name (ADR-017), so a style used on forty cells
+// arrives here as one style and no word for it; naming it is the last thing
+// between a recovered spec and one somebody would keep.
+import {
+  "t-ujiie-g/yxl/model",
+  "t-ujiie-g/yxl/units",
+  "t-ujiie-g/yxl/yaml",
+}

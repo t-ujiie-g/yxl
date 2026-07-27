@@ -55,3 +55,28 @@ test "a rewritten example still compiles to the same workbook" {
     assert_eq(from_rewritten, from_original)
   }
 }
+
+///|
+test "every example extracts back into a spec that checks out" {
+  // The corpus is the only place `extract` meets specs a person wrote rather
+  // than ones a test built to suit it. The assertion is on the *self-check*: a
+  // warning means the extracted spec does not rebuild what it was read from,
+  // which is the one thing `extract` promises (ADR-017).
+  for
+    name in [
+      "quickstart.yxl.yaml", "styling.yxl.yaml", "layout.yxl.yaml", "charts.yxl.yaml",
+      "pivots.yxl.yaml", "shapes.yxl.yaml", "sparklines.yxl.yaml", "interactive.yxl.yaml",
+    ] {
+    let path = "\{EXAMPLES}/\{name}"
+    let bytes = @cli.compile(
+      @fs.read_file_to_string(path),
+      file=path,
+      resolve=included,
+      read_bytes=included_bytes,
+    )
+    let extracted = @cli.extract(bytes, file=path)
+    assert_eq((name, extracted.warnings), (name, []))
+    // And the spec really is one: it loads and compiles on its own.
+    @cli.compile(extracted.spec, file="extracted-\{name}") |> ignore
+  }
+}
