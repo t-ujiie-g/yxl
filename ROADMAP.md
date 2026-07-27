@@ -360,11 +360,16 @@ Excel by hand** before ticking the box, not only round-trip it.
       `moonbitlang/x/time` out of the model and matches how dates already
       work. The golden test proves the backend renders `[h]:mm:ss` past 24
       (`1.5` displays as `36:00:00`)
-- [ ] **Sheet backgrounds** (`set_sheet_background_from_bytes`) — a watermark
-      image tiled behind a sheet's cells. Reuses the `BytesResolver` seam and
-      the format list images already brought, so it is `background: logo.png`
-      on a sheet and little else. Worth saying in the docs that Excel does not
-      print a background, which surprises people
+- [x] **Sheet backgrounds** (`set_sheet_background`) — a watermark image tiled
+      behind a sheet's cells. Reused the `BytesResolver` seam and the format
+      list images already brought, so it was `background: logo.png` on a sheet
+      and little else, exactly as sized: one model struct, one loader function
+      sharing the images' format/emptiness diagnostics, one emitter line. The
+      backend validates the extension against the same thirteen formats and
+      its reader hands the background back (`Worksheet::sheet_background`), so
+      the round trip asserts bytes, extension, and content type. The docs say
+      what surprises people: Excel shows a background on screen and never
+      prints it
 - [ ] **Sparklines** (`add_sparkline` / `add_sparkline_group`) — a chart inside
       one cell, for a row of figures beside it. Line, column, and win/loss;
       per group the cells plotted and where each lands, the markers (high, low,
@@ -894,6 +899,16 @@ silently reading the wrong file).
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-27** — **Sheet backgrounds.** `background: assets/logo.png` on a
+  sheet tiles the image behind its cells, like a watermark. The smallest kind
+  of feature this project gets to land: the `BytesResolver` seam, the format
+  list, and the extension/emptiness diagnostics all arrived with images, so
+  this is one model struct, one loader function, and one emitter line. The
+  backend reader hands the background straight back, so the round trip asserts
+  bytes, extension, and content type; the layout example gained the watermark,
+  and the docs say the thing that surprises people — Excel shows a background
+  on screen and **never prints it**.
 
 - **2026-07-27** — **Duration cells.** `type: duration` beside `type: date`:
   `H:MM` or `H:MM:SS`, hours unbounded — `26:30:00` is twenty-six and a half

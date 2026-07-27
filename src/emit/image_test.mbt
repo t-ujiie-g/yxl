@@ -103,3 +103,19 @@ test "two images on one sheet keep their own anchors" {
   guard reopened.sheet("S") is Some(read) else { fail("expected the sheet") }
   assert_eq(read.images().map(image => image.reference), ["D2", "H10"])
 }
+
+///|
+test "a background round-trips as the sheet's tiled image" {
+  let (wb, sheet) = fixture()
+  sheet.set_background({ data: tiny_png, format: "png" })
+  let reopened = reopen(wb)
+  guard reopened.sheet("S") is Some(reopened_sheet) else {
+    fail("expected the sheet")
+  }
+  guard reopened_sheet.sheet_background() is Some(background) else {
+    fail("expected a background")
+  }
+  assert_eq(background.extension, "png")
+  assert_eq(background.content_type, "image/png")
+  assert_eq(background.data, tiny_png)
+}

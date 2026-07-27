@@ -364,6 +364,29 @@ test "the styling example's conditional formats share their declared looks" {
 }
 
 ///|
+/// The `layout` example tiles a watermark behind its summary. A background is
+/// not a cell value, so the promise table cannot carry it.
+test "the layout example carries its background" {
+  let path = "\{EXAMPLES}/layout.yxl.yaml"
+  let workbook = @xlsx.read(
+    @cli.compile(
+      @fs.read_file_to_string(path),
+      file=path,
+      resolve=included,
+      read_bytes=included_bytes,
+    )[:],
+  )
+  guard workbook.sheet("Summary") is Some(summary) else {
+    fail("expected the Summary sheet")
+  }
+  guard summary.sheet_background() is Some(background) else {
+    fail("expected a background")
+  }
+  assert_eq(background.extension, "png")
+  assert_true(background.data.length() > 0)
+}
+
+///|
 /// The `shapes` example claims three drawings. A shape is not a cell value, so
 /// the promise table cannot carry it.
 test "the shapes example floats what its comments describe" {

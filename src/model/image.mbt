@@ -48,6 +48,27 @@ pub let image_formats : Array[String] = [
 ]
 
 ///|
+/// A sheet's background: an image tiled behind the cells, like a watermark.
+/// Excel shows it on screen but never prints it. Same arrangement as an
+/// `Image`: the bytes are read while the spec loads, so the emitter writes
+/// from memory alone (ADR-003).
+pub(all) struct SheetBackground {
+  /// The file's bytes, as read.
+  data : Bytes
+  /// The image's format, as a lower-case extension without the dot (`png`).
+  format : String
+} derive(Eq, Debug)
+
+///|
+/// Tile an image behind the sheet's cells.
+pub fn Sheet::set_background(
+  self : Sheet,
+  background : SheetBackground,
+) -> Unit {
+  self.background = Some(background)
+}
+
+///|
 /// A ceiling on a drawing's size or offset in pixels — charts and images alike —
 /// well past any usable value: it exists so an absurd number is a diagnostic
 /// rather than a drawing Excel cannot place.

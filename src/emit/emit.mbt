@@ -204,6 +204,9 @@ fn emit_sheet(
   for shape in sheet.shapes {
     apply_shape(backend, sheet.name, shape)
   }
+  if sheet.background is Some(background) {
+    apply_background(backend, sheet.name, background)
+  }
   for validation in sheet.validations {
     apply_validation(backend, sheet.name, validation, date_system)
   }

@@ -104,6 +104,26 @@ fn load_image(
 }
 
 ///|
+/// A sheet's `background: <path>` — an image tiled behind the cells. The same
+/// trip an `images:` file makes: format from the extension, bytes through the
+/// resolver, an empty file refused.
+fn load_background(
+  node : @yaml.Node,
+  sheet : @model.Sheet,
+  file~ : String,
+  read_bytes~ : BytesResolver,
+) -> Unit raise {
+  let context = "sheet 'background'"
+  let path = expect_string(node, file~, context~)
+  let format = image_format(path, file~, context~)
+  let read = read_bytes(file, path)
+  guard read.data.length() > 0 else {
+    raise schema_error(file~, "\{context} reads '\{read.name}', which is empty")
+  }
+  sheet.set_background({ data: read.data, format })
+}
+
+///|
 /// An image's format, taken from its file name. Excel decides how to decode the
 /// bytes by this and never inspects them, so a `.png` holding a JPEG is a file
 /// Excel will not draw — a mislabelled file is beyond what can be checked here,

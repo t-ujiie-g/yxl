@@ -25,6 +25,9 @@ sheets:
     freeze: A3         # rows 1-2 stay put while the data scrolls
     tab_color: "1F77B4"
     gridlines: false   # the on-screen grid, not cell borders
+    # An image tiled behind the cells, like a watermark. Excel shows a
+    # background on screen but never prints it.
+    background: assets/logo.png
     merges: [A1:C1]
     columns:
       - at: A
