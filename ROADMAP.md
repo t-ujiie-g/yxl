@@ -896,9 +896,9 @@ Reverse-chronological. One entry per user-visible or structural change.
 
 - **2026-07-27** — **Pivot tables**, the last of Phase 9's Excel features.
   `pivots:` names a source region, groups it down `rows` and along `columns`,
-  aggregates in `values`, and offers `filters` above — with all eleven of
-  Excel's aggregations, a display name per field, its built-in styles, and
-  either grand total.
+  and aggregates in `values` — with all eleven of Excel's aggregations, a
+  display name per field, its built-in styles, and either grand total. (A
+  `filters` axis is refused for the backend defect described below.)
 
   **A pivot is entirely references**, like a chart: the fields are named after
   the *columns of the source's header row*, never after letters or indices. So

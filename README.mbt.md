@@ -32,8 +32,8 @@ is declarative authoring for people who'd rather edit YAML than write code.
 > specs, external CSV/JSON data, parameters, validations, conditional
 > formatting, hyperlinks, notes, protection, Excel tables, charts, images, and
 > pivot tables all compile, and the CLI has `--check`, `--set`, and stable exit
-> codes. Still ahead: shapes, sparklines, form controls and the rest of Phase 9's
-> second slice, then performance work and the schema freeze —
+> codes. Still ahead: shapes, sparklines, form controls, slicers, sheet
+> backgrounds and duration cells, then performance work and the schema freeze —
 > **the schema may change until v1.0.** See [`ROADMAP.md`](./ROADMAP.md) for the
 > phase plan and the living changelog.
 
@@ -151,6 +151,7 @@ be in any script.
 yxl build report.yxl.yaml -o report.xlsx     # compile
 yxl build report.yxl.yaml --check            # validate, write nothing
 yxl build report.yxl.yaml -o r.xlsx --set region=EMEA
+yxl version                                  # print the version
 yxl help                                     # full usage
 ```
 
@@ -176,9 +177,9 @@ so the pages cannot drift from the compiler:
 | [`layout.yxl.yaml`](./examples/layout.yxl.yaml) | merges, frozen headers, sized and grouped bands, sheet visibility, print setup, document properties, an image |
 | [`modular.yxl.yaml`](./examples/modular.yxl.yaml) | `$include`, CSV / JSON `data:`, and an Excel table over the region they fill |
 | [`parameters.yxl.yaml`](./examples/parameters.yxl.yaml) | `params:` with `${}` and `--set` |
-| [`interactive.yxl.yaml`](./examples/interactive.yxl.yaml) | drop-downs and other validations, an auto filter, hyperlinks, notes |
+| [`interactive.yxl.yaml`](./examples/interactive.yxl.yaml) | drop-downs and other validations, an auto filter, hyperlinks, notes, sheet protection |
 | [`charts.yxl.yaml`](./examples/charts.yxl.yaml) | column, pie, and bar charts, series named from cells, one plotting another sheet |
-| [`pivots.yxl.yaml`](./examples/pivots.yxl.yaml) | two pivot tables over one source: rows, columns, filters, and two aggregations |
+| [`pivots.yxl.yaml`](./examples/pivots.yxl.yaml) | two pivot tables over one source: rows, columns, and two aggregations |
 
 ```bash
 yxl build examples/quickstart.yxl.yaml -o quickstart.xlsx
