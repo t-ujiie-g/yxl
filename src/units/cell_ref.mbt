@@ -90,8 +90,6 @@ fn column_letters(col : Int) -> String {
     n = (n - 1) / 26
   }
   let sb = StringBuilder::new()
-  for i = letters.length() - 1; i >= 0; i = i - 1 {
-    sb.write_char(letters[i])
-  }
+  letters.rev_each(letter => sb.write_char(letter))
   sb.to_string()
 }

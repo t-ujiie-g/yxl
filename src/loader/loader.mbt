@@ -164,10 +164,8 @@ fn read_default_font(
   root : Array[(String, @yaml.Node)],
   file~ : String,
 ) -> String? raise @diag.SchemaError {
-  match find_key(root, "default_font") {
-    Some(value) => Some(expect_string(value, file~, context="'default_font'"))
-    None => None
-  }
+  guard find_key(root, "default_font") is Some(value) else { return None }
+  Some(expect_string(value, file~, context="'default_font'"))
 }
 
 ///|

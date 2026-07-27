@@ -77,18 +77,20 @@ pub fn resolve_path(from : String, path : String) -> String {
 }
 
 ///|
-/// Everything up to and including the last separator in `from`, or `None` when
-/// it names a file with no directory part.
+/// Everything up to and including the last separator in `from` — the later of
+/// the two characters `is_separator` names — or `None` when it names a file
+/// with no directory part.
 fn directory_of(from : String) -> String? {
-  let chars = from.iter().to_array()
-  for index = chars.length() - 1; index >= 0; index = index - 1 {
-    if is_separator(chars[index]) {
-      let directory = StringBuilder::new()
-      for taken in 0..<(index + 1) {
-        directory.write_char(chars[taken])
+  let cut = match (from.rev_find("/"), from.rev_find("\\")) {
+    (Some(slash), Some(backslash)) =>
+      if slash > backslash {
+        slash
+      } else {
+        backslash
       }
-      return Some(directory.to_string())
-    }
+    (Some(slash), None) => slash
+    (None, Some(backslash)) => backslash
+    (None, None) => return None
   }
-  None
+  Some(from[:cut + 1].to_owned())
 }
