@@ -224,7 +224,7 @@ test "bounds are whole, ordered; a weight is positive; kinds are named" {
     fail("expected a diagnostic")
   }
   assert_eq(
-    message, "spec.yaml: unknown sparkline type 'bars' in sparkline at 'F2' (expected 'line', 'column', 'win_loss')",
+    message, "spec.yaml: unknown sparkline type 'bars' in sparkline at 'F2' (expected 'line', 'column', or 'win_loss')",
   )
 }
 

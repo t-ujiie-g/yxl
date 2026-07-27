@@ -12,6 +12,66 @@ fn schema_error(file~ : String, message : String) -> @diag.SchemaError {
 }
 
 ///|
+/// The spellings a diagnostic offers, in the house form: `'a'`, `'a' or 'b'`,
+/// `'a', 'b', or 'c'`. Every "you wrote something that is not one of these"
+/// message renders its list through here, so an author meets one shape of
+/// suggestion whatever they misspelt.
+fn or_list(items : Array[String]) -> String {
+  match items {
+    [] => ""
+    [only] => only
+    [first, last] => "\{first} or \{last}"
+    [.. rest, last] => "\{rest.join(", ")}, or \{last}"
+  }
+}
+
+///|
+/// A value from a spelling table, or a diagnostic listing every spelling the
+/// table holds. `what` names the kind being spelled ("horizontal alignment"),
+/// `context` its owner — the same pair every unknown-key diagnostic uses, so a
+/// misspelt *value* reads like a misspelt *key*.
+fn[T] named(
+  table : Array[(String, T)],
+  written : String,
+  file~ : String,
+  what~ : String,
+  context~ : String,
+) -> T raise @diag.SchemaError {
+  for entry in table {
+    let (spelling, value) = entry
+    if spelling == written {
+      return value
+    }
+  }
+  raise unknown_value(
+    written,
+    file~,
+    what~,
+    context~,
+    expected=table.map(entry => {
+      let (spelling, _) = entry
+      "'\{spelling}'"
+    }),
+  )
+}
+
+///|
+/// The diagnostic behind `named`, for the tables whose membership test is not a
+/// lookup — a bare list of allowed names, or a family of numbered styles.
+fn unknown_value(
+  written : String,
+  file~ : String,
+  what~ : String,
+  context~ : String,
+  expected~ : Array[String],
+) -> @diag.SchemaError {
+  schema_error(
+    file~,
+    "unknown \{what} '\{written}' in \{context} (expected \{or_list(expected)})",
+  )
+}
+
+///|
 /// The value of the first `key` entry in a mapping's entries, or `None`.
 fn find_key(entries : Array[(String, @yaml.Node)], key : String) -> @yaml.Node? {
   for entry in entries {
@@ -124,6 +184,78 @@ fn expect_cell_ref(
     )
   }
   cell
+}
+
+///|
+/// Parse a `TopLeft:BottomRight` range string (e.g. `A1:B2`) into a canonical
+/// range — corners may be given in any order. `what` names the range's role in
+/// the diagnostics (e.g. `"merge range"`).
+fn parse_range(
+  text : String,
+  file~ : String,
+  what~ : String,
+) -> @model.CellRange raise @diag.SchemaError {
+  guard text.split_once(":") is Some((left, right)) else {
+    raise schema_error(file~, "\{what} '\{text}' must be 'TopLeft:BottomRight'")
+  }
+  let corner = "\{what} '\{text}'"
+  let first = expect_cell_ref(left.to_owned(), file~, what=corner)
+  let second = expect_cell_ref(right.to_owned(), file~, what=corner)
+  let (top_left, bottom_right) = @units.CellRef::rect(first, second)
+  { top_left, bottom_right }
+}
+
+///|
+/// The `at:` that anchors a chart, image, shape, slicer, control, or `data:`
+/// table to one cell. `subject` names the construct before its address is known
+/// ("a chart", "an image"), `noun` after — which is all that separates the
+/// dozen constructs that open this way.
+fn anchor_cell(
+  entries : Array[(String, @yaml.Node)],
+  file~ : String,
+  subject~ : String,
+  noun~ : String,
+) -> @units.CellRef raise @diag.SchemaError {
+  let text = expect_string(
+    required_at(entries, file~, subject~),
+    file~,
+    context="\{noun} 'at'",
+  )
+  expect_cell_ref(text, file~, what="\{noun} 'at'")
+}
+
+///|
+/// The `at:` that anchors a table, pivot, validation, or conditional format to a
+/// *region*. The range counterpart of `anchor_cell`; `noun` names the range's
+/// role in the diagnostics ("table range").
+fn anchor_range(
+  entries : Array[(String, @yaml.Node)],
+  file~ : String,
+  subject~ : String,
+  noun~ : String,
+) -> @model.CellRange raise @diag.SchemaError {
+  let text = expect_string(
+    required_at(entries, file~, subject~),
+    file~,
+    context="\{noun} 'at'",
+  )
+  parse_range(text, file~, what="\{noun} range")
+}
+
+///|
+/// The `at:` node itself, or the diagnostic for its absence. Split out so the
+/// one construct that reads its anchor differently — a band selector, which is a
+/// column letter or a row number rather than a cell — words the omission the
+/// same way as the rest.
+fn required_at(
+  entries : Array[(String, @yaml.Node)],
+  file~ : String,
+  subject~ : String,
+) -> @yaml.Node raise @diag.SchemaError {
+  guard find_key(entries, "at") is Some(node) else {
+    raise schema_error(file~, "\{subject} is missing required key 'at'")
+  }
+  node
 }
 
 ///|

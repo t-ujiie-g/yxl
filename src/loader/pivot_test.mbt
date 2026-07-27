@@ -115,7 +115,7 @@ test "a style outside Excel's set is a diagnostic naming the families" {
       "      - at: A1:E20\n        source: Orders!A1:D3\n        rows: [Region]\n        values: [Revenue]\n        style: PivotStyleLight29\n",
     ),
     Some(
-      "spec.yaml: unknown pivot style 'PivotStyleLight29' in pivot 'A1:E20' (expected 'PivotStyleLight1'-'PivotStyleLight28', 'PivotStyleMedium1'-'PivotStyleMedium28', 'PivotStyleDark1'-'PivotStyleDark28')",
+      "spec.yaml: unknown pivot style 'PivotStyleLight29' in pivot 'A1:E20' (expected 'PivotStyleLight1'-'PivotStyleLight28', 'PivotStyleMedium1'-'PivotStyleMedium28', or 'PivotStyleDark1'-'PivotStyleDark28')",
     ),
   )
 }

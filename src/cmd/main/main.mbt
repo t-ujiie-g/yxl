@@ -36,18 +36,8 @@ fn run() -> Int {
 /// that passes here is one `build` would accept.
 fn check(input : String, params : Map[String, String]) -> Int {
   guard read_source(input) is Some(source) else { return @cli.exit_error }
-  (@cli.compile(
-    source,
-    file=input,
-    resolve=read_included,
-    read_bytes=read_included_bytes,
-    params~,
-  )
-  |> ignore) catch {
-    err => {
-      report(@cli.error_message(err, source~))
-      return @cli.exit_error
-    }
+  guard compile(input, source, params) is Some(_) else {
+    return @cli.exit_error
   }
   report("\{input}: ok")
   @cli.exit_ok
@@ -57,17 +47,8 @@ fn check(input : String, params : Map[String, String]) -> Int {
 /// Read `input`, compile it, and write the `.xlsx` bytes to `output`.
 fn build(input : String, output : String, params : Map[String, String]) -> Int {
   guard read_source(input) is Some(source) else { return @cli.exit_error }
-  let bytes = @cli.compile(
-    source,
-    file=input,
-    resolve=read_included,
-    read_bytes=read_included_bytes,
-    params~,
-  ) catch {
-    err => {
-      report(@cli.error_message(err, source~))
-      return @cli.exit_error
-    }
+  guard compile(input, source, params) is Some(bytes) else {
+    return @cli.exit_error
   }
   @fs.write_bytes_to_file(output, bytes) catch {
     @fs.IOError(reason) => {
@@ -77,6 +58,32 @@ fn build(input : String, output : String, params : Map[String, String]) -> Int {
   }
   report("wrote \{output}")
   @cli.exit_ok
+}
+
+///|
+/// Run the whole pipeline over a spec already read, wiring in the two disk-side
+/// resolvers. A failure is reported against the source — so the offending line
+/// is quoted — and returns `None`. `build` and `check` differ only in what they
+/// do with the bytes that come back.
+fn compile(
+  input : String,
+  source : String,
+  params : Map[String, String],
+) -> Bytes? {
+  Some(
+    @cli.compile(
+      source,
+      file=input,
+      resolve=read_included,
+      read_bytes=read_included_bytes,
+      params~,
+    ),
+  ) catch {
+    err => {
+      report(@cli.error_message(err, source~))
+      None
+    }
+  }
 }
 
 ///|

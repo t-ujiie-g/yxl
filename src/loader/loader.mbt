@@ -184,25 +184,6 @@ fn load_merges(
 }
 
 ///|
-/// Parse a `TopLeft:BottomRight` range string (e.g. `A1:B2`) into a canonical
-/// range — corners may be given in any order. `what` names the range's role in
-/// the diagnostics (e.g. `"merge range"`).
-fn parse_range(
-  text : String,
-  file~ : String,
-  what~ : String,
-) -> @model.CellRange raise @diag.SchemaError {
-  guard text.split_once(":") is Some((left, right)) else {
-    raise schema_error(file~, "\{what} '\{text}' must be 'TopLeft:BottomRight'")
-  }
-  let corner = "\{what} '\{text}'"
-  let first = expect_cell_ref(left.to_owned(), file~, what=corner)
-  let second = expect_cell_ref(right.to_owned(), file~, what=corner)
-  let (top_left, bottom_right) = @units.CellRef::rect(first, second)
-  { top_left, bottom_right }
-}
-
-///|
 fn load_cells(
   node : @yaml.Node,
   sheet : @model.Sheet,

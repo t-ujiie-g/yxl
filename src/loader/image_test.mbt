@@ -90,7 +90,7 @@ test "an unknown positioning is a diagnostic naming the three there are" {
       "      - at: D2\n        file: logo.png\n        positioning: floating\n",
     ),
     Some(
-      "spec.yaml: unknown image positioning 'floating' in image at 'D2' (expected 'move', 'move_and_size', 'fixed')",
+      "spec.yaml: unknown image positioning 'floating' in image at 'D2' (expected 'move', 'move_and_size', or 'fixed')",
     ),
   )
 }
@@ -273,7 +273,7 @@ test "a background refuses a formatless name, a foreign format, an empty file" {
       "notes.txt": logo,
     }),
     Some(
-      "spec.yaml: sheet 'background' names 'notes.txt', whose format 'txt' Excel does not store (expected bmp, emf, emz, gif, ico, jpeg, jpg, png, svg, tif, tiff, wmf, wmz)",
+      "spec.yaml: sheet 'background' names 'notes.txt', whose format 'txt' Excel does not store (expected bmp, emf, emz, gif, ico, jpeg, jpg, png, svg, tif, tiff, wmf, or wmz)",
     ),
   )
   assert_eq(

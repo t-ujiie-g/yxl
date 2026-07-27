@@ -195,19 +195,17 @@ fn load_sparkline_cell(
   file~ : String,
 ) -> @model.SparklineCell raise @diag.SchemaError {
   let entries = expect_map(node, file~, context="a sparkline 'cells' entry")
-  let mut at = None
+  let at = anchor_cell(
+    entries,
+    file~,
+    subject="a sparkline 'cells' entry",
+    noun="a sparkline cell",
+  )
   let mut data = None
   for entry in entries {
     let (key, value) = entry
     match key {
-      "at" =>
-        at = Some(
-          expect_cell_ref(
-            expect_string(value, file~, context="a sparkline cell 'at'"),
-            file~,
-            what="a sparkline cell 'at'",
-          ),
-        )
+      "at" => () // consumed above
       "data" =>
         data = Some(
           parse_sheet_range(
@@ -222,12 +220,6 @@ fn load_sparkline_cell(
           "unknown key '\{key}' in a sparkline 'cells' entry (expected 'at' or 'data')",
         )
     }
-  }
-  guard at is Some(at) else {
-    raise schema_error(
-      file~,
-      "a sparkline 'cells' entry is missing required key 'at'",
-    )
   }
   guard data is Some(data) else {
     raise schema_error(

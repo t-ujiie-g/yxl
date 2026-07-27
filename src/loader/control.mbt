@@ -36,14 +36,7 @@ fn load_control(
   file~ : String,
 ) -> @model.FormControl raise @diag.SchemaError {
   let entries = expect_map(node, file~, context="a control")
-  guard find_key(entries, "at") is Some(at_node) else {
-    raise schema_error(file~, "a control is missing required key 'at'")
-  }
-  let at = expect_cell_ref(
-    expect_string(at_node, file~, context="control 'at'"),
-    file~,
-    what="control 'at'",
-  )
+  let at = anchor_cell(entries, file~, subject="a control", noun="control")
   let context = "control at '\{at.to_a1()}'"
   let mut kind = None
   let mut kind_written = ""

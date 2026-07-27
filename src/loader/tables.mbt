@@ -26,14 +26,7 @@ fn load_table(
   file~ : String,
 ) -> @model.Table raise @diag.SchemaError {
   let entries = expect_map(node, file~, context="a table")
-  guard find_key(entries, "at") is Some(at_node) else {
-    raise schema_error(file~, "a table is missing required key 'at'")
-  }
-  let at = parse_range(
-    expect_string(at_node, file~, context="table 'at'"),
-    file~,
-    what="table range",
-  )
+  let at = anchor_range(entries, file~, subject="a table", noun="table")
   let context = "table '\{at.to_a1()}'"
   // Excel's own defaults, as its "Format as Table" applies them.
   let mut name = None
@@ -167,13 +160,17 @@ fn check_numbered_style(
       }
     }
   }
-  let spelled = families.map(family => {
-    let (prefix, count) = family
-    "'\{prefix}1'-'\{prefix}\{count}'"
-  })
-  raise schema_error(
+  raise unknown_value(
+    style,
     file~,
-    "unknown \{what} '\{style}' in \{context} (expected \{spelled.join(", ")})",
+    what~,
+    context~,
+    // A family is a range rather than a spelling: listing all 60-odd table
+    // styles one by one would bury the mistake it is meant to point at.
+    expected=families.map(family => {
+      let (prefix, count) = family
+      "'\{prefix}1'-'\{prefix}\{count}'"
+    }),
   )
 }
 
@@ -238,17 +235,7 @@ fn check_header_row(
   context~ : String,
 ) -> Unit raise @diag.SchemaError {
   let row = table.at.top_left.row
-  let headers : Map[Int, String] = Map([])
-  for cell in sheet.cells {
-    guard cell.pos.row == row &&
-      cell.pos.col >= table.at.top_left.col &&
-      cell.pos.col <= table.at.bottom_right.col else {
-      continue
-    }
-    if cell.value is Text(text) && text != "" {
-      headers[cell.pos.col] = text
-    }
-  }
+  let headers = header_row(sheet, table.at)
   let seen : Map[String, Int] = Map([])
   for col in table.at.top_left.col..<=table.at.bottom_right.col {
     let reference = @units.CellRef::new(col~, row~).to_a1()
@@ -267,6 +254,51 @@ fn check_header_row(
     }
     seen[key] = col
   }
+}
+
+///|
+/// The column names written across the top row of `range`, keyed by column. A
+/// table, a pivot's source, and the table a slicer filters all identify their
+/// columns this way, so all three read the row through here.
+///
+/// Only a non-empty *text* cell names a column: a number there reads as data,
+/// and an empty string names nothing. Columns the row leaves out are simply
+/// absent from the map — what to say about them is each caller's own rule.
+fn header_row(
+  sheet : @model.Sheet,
+  range : @model.CellRange,
+) -> Map[Int, String] {
+  let row = range.top_left.row
+  let headers : Map[Int, String] = Map([])
+  for cell in sheet.cells {
+    guard cell.pos.row == row &&
+      cell.pos.col >= range.top_left.col &&
+      cell.pos.col <= range.bottom_right.col else {
+      continue
+    }
+    if cell.value is Text(text) && text != "" {
+      headers[cell.pos.col] = text
+    }
+  }
+  headers
+}
+
+///|
+/// The same header row as a list, left to right — the order a diagnostic should
+/// name the columns in, and the order Excel shows them in. Left implicit by the
+/// map, which is unordered.
+fn header_names(
+  sheet : @model.Sheet,
+  range : @model.CellRange,
+) -> Array[String] {
+  let headers = header_row(sheet, range)
+  let names = []
+  for col in range.top_left.col..<=range.bottom_right.col {
+    if headers.get(col) is Some(name) {
+      names.push(name)
+    }
+  }
+  names
 }
 
 ///|

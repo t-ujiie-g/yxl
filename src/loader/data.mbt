@@ -56,13 +56,11 @@ fn load_data_entry(
   resolve~ : IncludeResolver,
 ) -> Unit raise {
   let entries = expect_map(node, file~, context="a 'data' entry")
-  guard find_key(entries, "at") is Some(at_node) else {
-    raise schema_error(file~, "a 'data' entry is missing required key 'at'")
-  }
-  let anchor = expect_cell_ref(
-    expect_string(at_node, file~, context="a 'data' entry 'at'"),
+  let anchor = anchor_cell(
+    entries,
     file~,
-    what="'data'",
+    subject="a 'data' entry",
+    noun="a 'data' entry",
   )
   let mut source = None
   let mut columns = None

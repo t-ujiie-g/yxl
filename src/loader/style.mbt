@@ -3,8 +3,8 @@
 // separately as a `format:` shorthand and folded into the style by the caller.
 // `context` names the owner of the style for diagnostics (e.g. `"cell 'A1'"` or
 // `"column 'B'"`), so the same parser serves cell, column, and row styles.
-// Structural loading and the shared `expect_*`/`schema_error` helpers live in
-// `loader.mbt`.
+// Structural loading lives in `loader.mbt`; the shared
+// `expect_*`/`named`/`schema_error` vocabulary lives in `expect.mbt`.
 
 ///|
 /// Fold a `style:` mapping and a `format:` number-format shorthand into one
@@ -263,7 +263,7 @@ fn load_halign(
   file~ : String,
   context~ : String,
 ) -> @model.HAlign raise @diag.SchemaError {
-  spelled(
+  named(
     horizontal_alignments,
     expect_string(node, file~, context="\{context} horizontal align"),
     file~,
@@ -278,39 +278,12 @@ fn load_valign(
   file~ : String,
   context~ : String,
 ) -> @model.VAlign raise @diag.SchemaError {
-  spelled(
+  named(
     vertical_alignments,
     expect_string(node, file~, context="\{context} vertical align"),
     file~,
     what="vertical alignment",
     context~,
-  )
-}
-
-///|
-/// Like `named`, but worded as the style diagnostics always have been:
-/// "`context` has an unknown `what` …", with an "or" before the last spelling.
-fn[T] spelled(
-  table : Array[(String, T)],
-  written : String,
-  file~ : String,
-  what~ : String,
-  context~ : String,
-) -> T raise @diag.SchemaError {
-  for entry in table {
-    let (spelling, value) = entry
-    if spelling == written {
-      return value
-    }
-  }
-  let quoted = table.map(entry => {
-    let (spelling, _) = entry
-    "'\{spelling}'"
-  })
-  let last = quoted.unsafe_pop()
-  raise schema_error(
-    file~,
-    "\{context} has an unknown \{what} '\{written}' (expected \{quoted.join(", ")}, or \{last})",
   )
 }
 
@@ -415,7 +388,7 @@ fn load_border_style(
   file~ : String,
   context~ : String,
 ) -> @model.BorderStyle raise @diag.SchemaError {
-  spelled(
+  named(
     border_styles,
     expect_string(node, file~, context="\{context} border style"),
     file~,

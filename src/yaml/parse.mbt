@@ -4,9 +4,11 @@
 /// `@diag.YamlError`. When the source holds more than one document, only the
 /// first is used; an empty source is the null document.
 ///
-/// The current parser exposes no source positions to external callers (ADR-010),
-/// so diagnostics name the file but not yet a line/col — rich positional
-/// diagnostics are a later addition, and the seam keeps that change local.
+/// A syntax error carries the line and column the parser stopped at. A *node*
+/// carries none: the library exposes positions only on the error, not on the
+/// tree it returns (ADR-010), so a diagnostic raised further down the pipeline —
+/// an unknown key, a bad cell reference — names the file alone. Per-node spans
+/// wait for a parser swap, which this seam keeps local.
 pub fn parse(source : String, file~ : String) -> Node raise @diag.YamlError {
   let documents = @yamllib.Yaml::load_from_string(source) catch {
     err => raise from_library_error(err, file)

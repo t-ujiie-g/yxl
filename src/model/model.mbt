@@ -1,8 +1,7 @@
 ///|
-/// A cell's value in the minimal model: text, a number, a boolean, or a
-/// date/time. A `Date` is stored as civil components; the emitter renders it to
-/// an Excel serial using the workbook's date system. Richer kinds (formulas,
-/// error literals) arrive later.
+/// A cell's value: text, a number, a boolean, a date/time, an Excel error
+/// literal, a formula, or rich text. A `Date` is stored as civil components; the
+/// emitter renders it to an Excel serial using the workbook's date system.
 pub(all) enum CellValue {
   Text(String)
   Number(Double)

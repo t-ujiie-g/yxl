@@ -64,7 +64,7 @@ test "load rejects invalid style attributes" {
       "sheets:\n  - name: S\n    cells:\n      A1: { value: 1, style: { align: { horizontal: middle } } }\n",
     ),
     Some(
-      "spec.yaml: cell 'A1' has an unknown horizontal alignment 'middle' (expected 'left', 'center', 'right', 'fill', 'justify', or 'distributed')",
+      "spec.yaml: unknown horizontal alignment 'middle' in cell 'A1' (expected 'left', 'center', 'right', 'fill', 'justify', or 'distributed')",
     ),
   )
   assert_eq(
@@ -72,7 +72,7 @@ test "load rejects invalid style attributes" {
       "sheets:\n  - name: S\n    cells:\n      A1: { value: 1, style: { border: wavy } }\n",
     ),
     Some(
-      "spec.yaml: cell 'A1' has an unknown border style 'wavy' (expected 'thin', 'medium', 'thick', 'dashed', 'dotted', 'double', or 'hair')",
+      "spec.yaml: unknown border style 'wavy' in cell 'A1' (expected 'thin', 'medium', 'thick', 'dashed', 'dotted', 'double', or 'hair')",
     ),
   )
   assert_eq(
@@ -98,7 +98,7 @@ test "a style must be a name or a mapping, and an unknown vertical alignment is 
       "sheets:\n  - name: S\n    cells:\n      A1: { value: 1, style: { align: { vertical: sideways } } }\n",
     ),
     Some(
-      "spec.yaml: cell 'A1' has an unknown vertical alignment 'sideways' (expected 'top', 'middle', 'bottom', 'justify', or 'distributed')",
+      "spec.yaml: unknown vertical alignment 'sideways' in cell 'A1' (expected 'top', 'middle', 'bottom', 'justify', or 'distributed')",
     ),
   )
 }

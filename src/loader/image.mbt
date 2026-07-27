@@ -33,14 +33,7 @@ fn load_image(
   read_bytes~ : BytesResolver,
 ) -> @model.Image raise {
   let entries = expect_map(node, file~, context="an image")
-  guard find_key(entries, "at") is Some(at_node) else {
-    raise schema_error(file~, "an image is missing required key 'at'")
-  }
-  let at = expect_cell_ref(
-    expect_string(at_node, file~, context="image 'at'"),
-    file~,
-    what="image 'at'",
-  )
+  let at = anchor_cell(entries, file~, subject="an image", noun="image")
   let context = "image at '\{at.to_a1()}'"
   let mut path = None
   let mut alt_text = None
@@ -143,7 +136,7 @@ fn image_format(
   guard @model.image_formats.contains(format) else {
     raise schema_error(
       file~,
-      "\{context} names '\{path}', whose format '\{format}' Excel does not store (expected \{@model.image_formats.join(", ")})",
+      "\{context} names '\{path}', whose format '\{format}' Excel does not store (expected \{or_list(@model.image_formats)})",
     )
   }
   format

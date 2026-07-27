@@ -89,7 +89,7 @@ test "a control needs its anchor and its kind, and kinds are named" {
     fail("expected a diagnostic")
   }
   assert_eq(
-    message, "spec.yaml: unknown control kind 'dial' in control at 'B2' (expected 'button', 'check_box', 'option_button', 'scroll_bar', 'spin_button', 'group_box', 'label')",
+    message, "spec.yaml: unknown control kind 'dial' in control at 'B2' (expected 'button', 'check_box', 'option_button', 'scroll_bar', 'spin_button', 'group_box', or 'label')",
   )
 }
 

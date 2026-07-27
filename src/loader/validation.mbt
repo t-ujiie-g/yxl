@@ -28,13 +28,11 @@ fn load_validation(
   file~ : String,
 ) -> @model.Validation raise @diag.SchemaError {
   let entries = expect_map(node, file~, context="a validation")
-  guard find_key(entries, "at") is Some(at_node) else {
-    raise schema_error(file~, "a validation is missing required key 'at'")
-  }
-  let at = parse_range(
-    expect_string(at_node, file~, context="validation 'at'"),
+  let at = anchor_range(
+    entries,
     file~,
-    what="validation range",
+    subject="a validation",
+    noun="validation",
   )
   let context = "validation '\{at.to_a1()}'"
   let mut rule : @model.ValidationRule? = None

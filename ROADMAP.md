@@ -951,6 +951,39 @@ silently reading the wrong file).
 
 Reverse-chronological. One entry per user-visible or structural change.
 
+- **2026-07-27** — **A refactoring pass over the whole tree**, whose one
+  user-visible half is that **"you wrote something that is not one of these" now
+  reads the same wherever it is raised**. Five spellings of that diagnostic had
+  accumulated — two near-identical helpers (`named`, `spelled`) plus three
+  hand-rolled copies — differing in whether the context came first, whether the
+  last item got an "or", and whether the list was introduced by "one of". All
+  five are one `named`/`unknown_value` pair now, wording the mistake the way the
+  unknown-*key* diagnostics always have: `unknown <what> '<x>' in <context>
+  (expected 'a', 'b', or 'c')`. A single `or_list` renders every such list, so
+  the Oxford "or" can no longer be present in one message and absent in the next.
+  Eight test expectations moved with it; `docs/spec.md` quotes none of them.
+
+  The structural half is that the loader's **shared vocabulary is now where
+  `expect.mbt` says it is**: `named` lived in `chart.mbt` though six files used
+  it, and `parse_range` in `loader.mbt` though seven did. Beside them are three
+  new helpers for shapes that were being written out longhand — `anchor_cell` /
+  `anchor_range` / `required_at` collapse the twelve verbatim copies of the
+  required-`at:` preamble, and `header_row` / `header_names` the three copies of
+  "read the column names off the top row" that tables, pivots, and slicers each
+  kept. The slicer's copy had drifted: it counted an empty string as a column
+  name, where the other two required non-empty text; it now agrees, and the
+  order the names are listed back in is column order by construction rather than
+  by luck. `.mbti` is unchanged throughout — every one of these is private.
+
+  Also: `Bytes?`-returning `compile` shared by the CLI's `build` and `check`;
+  two doc comments that had gone stale (the model's cell value claimed formulas
+  and error literals were still to come, with both in the enum below it; the
+  YAML seam claimed diagnostics carried no line/col, when a *syntax* error does
+  — ADR-010 defers per-*node* spans, which is now what it says); and
+  `is_absolute` no longer materializes a whole path's characters to look at
+  three of them. No dead code, no file over 500 lines wanting a split, and no
+  deprecation warnings were found — `moon check --deny-warn` was already clean.
+
 - **2026-07-27** — **A compile benchmark**, opening the performance phase.
   `moon bench src/cli --target native --release` times a generated spec through
   the whole pipeline and through parse, load, and emit separately, so a
