@@ -62,11 +62,41 @@ jobs:
 
       # The product target is native (ADR-003): the CLI reads/writes files on
       # disk. Test and build on native.
+      #
+      # This is also where the scaling guardrail runs (src/cli/scaling_test.mbt):
+      # it compiles one spec at two sizes and fails if the cost stops being
+      # linear. It rides along here rather than in a step of its own because it
+      # asserts on a *ratio* measured within a single run, which needs no
+      # calibration per platform — so getting it on all three runners costs
+      # nothing extra.
       - name: Test (native)
         run: moon test --target native
 
       - name: Build CLI (native)
         run: moon build --target native --release
+
+      # The other half of the performance item, and the half that does *not*
+      # gate: the figures themselves. A hosted runner's absolute milliseconds
+      # cannot be compared against a laptop's, so nothing here is asserted —
+      # what it buys is that a PR touching the pipeline arrives with its parse /
+      # load / emit split already measured, in the job summary, instead of
+      # depending on a reviewer to run it. One platform is enough for that;
+      # Linux is the cheapest of the three.
+      - name: Benchmark (figures only, no threshold)
+        if: runner.os == 'Linux'
+        run: |
+          moon bench src/cli --target native --release | tee bench.txt
+          {
+            echo '### Compile benchmark'
+            echo
+            echo 'Absolute times are this runner'"'"'s and are not comparable'
+            echo 'across machines. The scaling guardrail in `moon test` is what'
+            echo 'actually gates.'
+            echo
+            echo '```'
+            cat bench.txt
+            echo '```'
+          } >>"$GITHUB_STEP_SUMMARY"
 
       # Tier 2 (ROADMAP §5). `moon test` already compiles the corpus in-process
       # and asserts on the cells; this runs the shipped binary over the same

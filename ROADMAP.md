@@ -454,15 +454,23 @@ gate, which is why none carries a box:
       cliff to chase and no case for streaming until a spec size appears that
       the flat cost cannot carry. What remains here is therefore *evidence
       first* — a real workbook that is too slow — not speculative optimisation
-- [ ] Benchmarks + regression guardrails in CI. **Benchmarks exist**:
+- [x] Benchmarks + regression guardrails in CI. **Benchmarks**:
       `src/cli/compile_bench_test.mbt` generates a spec of `bench_rows` × 5
       cells and times the whole pipeline plus each stage on its own
       (`moon bench src/cli --target native --release`). Baseline at 400 rows on
       an M-series laptop: 6.35 ms total = 2.54 parse + 1.26 load + 2.43 emit, so
       parse and emit are the two halves worth attacking and the loader is
-      already cheap. The **guardrail** is what is left: CI has no threshold, and
-      a hosted runner's variance means one needs a tolerance band rather than a
-      fixed number
+      already cheap. CI runs this on Linux and puts the figures in the job
+      summary, asserting nothing — a runner's absolute milliseconds are not
+      comparable to a laptop's.
+      **Guardrail**: `src/cli/scaling_test.mbt` is the part that gates. It
+      sidesteps the tolerance-band problem by asserting a *ratio* measured
+      within one run rather than a wall-clock number, so the machine's speed
+      cancels and the same threshold serves all three runners: 16× the rows must
+      cost at most 26× the time (linear measures 16). It rides along in
+      `moon test`, costs ~0.8 s, and is **calibrated against an injected
+      quadratic** rather than reasoned about — see the §11 entry for why the
+      textbook figure (`factor²`) is the wrong number to threshold on
 - [ ] **Import: an existing `.xlsx` → a skeleton spec.** Promoted from a
       post-v1 stretch to a wanted feature (§8 Q5). Framed as a **one-way,
       one-time migration aid**, not a round-trip contract: lossy and irreversible
@@ -950,6 +958,31 @@ silently reading the wrong file).
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-27** — **A performance guardrail that CI can actually enforce**,
+  closing the second Phase 10 item. The obstacle was never writing a benchmark
+  — one has existed since the entry below — but that a hosted runner is several
+  times slower than a laptop and varies run to run, so no wall-clock threshold
+  is both safe and useful. The way out is to assert a **ratio measured inside a
+  single run**: compile one spec at 400 and at 6 400 rows and compare. Whatever
+  slows the large spec slows the small one too, so the machine cancels, one
+  number serves all three runners, and what is being guarded is the *shape* of
+  the curve rather than a point on it. A constant-factor slowdown deliberately
+  does not trip it; `moon bench` reports that, and CI now puts those figures in
+  the job summary without asserting on them.
+
+  **The number was calibrated, and calibrating it is what saved the check from
+  being decorative.** The obvious reasoning — quadratic costs `factor²`, so a
+  ceiling anywhere below that catches it — is wrong here, because the
+  pipeline's linear work still dominates at these sizes and dilutes the
+  quadratic term. Injecting a real regression (a linear scan of the sheet's
+  cells inside the per-cell loop) moved the ratio at a factor of 8 from 7.0 to
+  only **15.0** — so the ceiling of 20 that the textbook argument suggests would
+  have let a genuinely quadratic loader through, and this entry would have
+  claimed a guardrail that guarded nothing. Widening the factor to 16 separates
+  the two properly: **16.0 clean against 42.6 with the scan**, with the ceiling
+  at 26 sitting a little over 1.6× from each. The healthy pipeline measures
+  15.8–16.2 across runs, i.e. almost exactly linear.
 
 - **2026-07-27** — **A refactoring pass over the whole tree**, whose one
   user-visible half is that **"you wrote something that is not one of these" now
