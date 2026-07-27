@@ -28,12 +28,12 @@ the validator, and the CLI on top. It is not another spreadsheet *library* — i
 is declarative authoring for people who'd rather edit YAML than write code.
 
 > ⚠️ **Status: pre-release, schema not yet frozen.** `yxl build` works today —
-> values, formulas, dates, rich text, styles, layout, print setup, multi-file
-> specs, external CSV/JSON data, parameters, validations, conditional
+> values, formulas, dates, durations, rich text, styles, layout, print setup,
+> multi-file specs, external CSV/JSON data, parameters, validations, conditional
 > formatting, hyperlinks, notes, protection, Excel tables, charts, images,
 > shapes, and pivot tables all compile, and the CLI has `--check`, `--set`, and
-> stable exit codes. Still ahead: sparklines, form controls, slicers, sheet
-> backgrounds and duration cells, then performance work and the schema freeze —
+> stable exit codes. Still ahead: sparklines, form controls, slicers, and sheet
+> backgrounds, then performance work and the schema freeze —
 > **the schema may change until v1.0.** See [`ROADMAP.md`](./ROADMAP.md) for the
 > phase plan and the living changelog.
 

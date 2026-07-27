@@ -25,3 +25,8 @@ sheets:
       # shown until it does.
       A5: Total
       B5: { formula: "SUM(B2:B3)", value: 4150000 }
+
+      # An elapsed time, not a time of day: `type: duration` stores a fraction
+      # of a day under an `[h]` format, so the hours keep counting past 24.
+      A6: Hours logged
+      B6: { value: "36:00:00", type: duration }

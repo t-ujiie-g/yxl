@@ -112,6 +112,7 @@ cells:
   B2: { formula: "SUM(B1:B1)", value: 2400000 }
   C2: { value: "2026-07-23", type: date }
   D2: { $ref: tax_rate }                      # a named value → §6
+  E2: { value: "26:30:00", type: duration }   # an elapsed time, not a clock time
   A3:
     rich:
       - "Plain then "
@@ -127,13 +128,19 @@ YAML's own types carry over: a bare `1` is a number, a quoted `"1"` is text.
 | `value` | A scalar, or `{ $ref: name }` naming a `defs.values` entry. |
 | `formula` | A formula body; a leading `=` is accepted and stripped. Or `{ $ref: name }` naming a `defs.formulas` entry. With `value:`, that value is the **cached result** Excel shows until it recomputes. |
 | `rich` | A sequence of runs: a plain string, or `{ text:, font: }`. Mixes fonts inside one cell. |
-| `type` | `text` \| `number` \| `bool` \| `date` \| `error` — coerces the value. Cannot be combined with `formula`. |
+| `type` | `text` \| `number` \| `bool` \| `date` \| `duration` \| `error` — coerces the value. Cannot be combined with `formula`. |
 | `format` | An Excel number-format code, e.g. `"#,##0.00"`, `"0.0%"`. |
 | `style` | A style name (bareword) or an inline style mapping. §6. |
 
 `type: date` accepts `YYYY-MM-DD` or `YYYY-MM-DD HH:MM:SS` and stores an Excel
 serial. Without an explicit `format`, a date defaults to `yyyy-mm-dd` and a
 date-time to `yyyy-mm-dd hh:mm:ss`.
+
+`type: duration` accepts `H:MM` or `H:MM:SS` — an *elapsed* time, so the hours
+may exceed 23 (`26:30:00` is twenty-six and a half hours). Excel stores it as a
+plain number, the length as a fraction of a day; the default format `[h]:mm:ss`
+is what makes it display as hours, because `[h]` keeps counting past 24 instead
+of rolling into days.
 
 `type: error` accepts Excel's error literals: `#DIV/0!`, `#N/A`, `#NAME?`,
 `#NULL!`, `#NUM!`, `#REF!`, `#VALUE!`, `#SPILL!`, `#CALC!`, and
