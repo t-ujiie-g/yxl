@@ -944,3 +944,9 @@ it — anything else is a diagnostic naming where the key belongs:
 
 No `macro:` — an `.xlsx` carries no macros, and a button without one is a
 caption that clicks. Assigning behavior is Excel's side of the contract.
+
+> **On a protected sheet, unlock the linked cell.** Excel writes a control's
+> value into its `link` like any other edit, so a locked target makes the
+> control show "the cell is on a protected sheet" instead of working. Give the
+> linked cell a style with `protection: { locked: false }` (§16), exactly as
+> for typed-into entry cells.

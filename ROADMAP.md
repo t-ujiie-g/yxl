@@ -971,6 +971,10 @@ Reverse-chronological. One entry per user-visible or structural change.
   without one is a caption that clicks — the spec says so rather than
   accepting a key that does nothing. The interactive example gained a
   "Rush order" check box and a priority spin button beside its form rows.
+  One trap the manual check caught: on a protected sheet Excel writes a
+  control's value into its `link` like any other edit, so a locked target
+  makes the control refuse — the linked cell needs `locked: false` exactly
+  as a typed-into cell does, and `docs/spec.md` §20 now says so.
 
 - **2026-07-27** — **Sparklines.** `sparklines:` puts a chart inside a cell —
   a line, a column per point, or win/loss — for the row of figures beside it.

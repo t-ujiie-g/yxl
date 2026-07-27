@@ -12,6 +12,10 @@ defs:
     entry:
       fill: "FFF2CC"
       protection: { locked: false }
+    # The same unlocking without the highlight — for cells a *control* writes
+    # into, which protection would otherwise refuse.
+    linked:
+      protection: { locked: false }
 
 sheets:
   - name: Orders
@@ -45,6 +49,11 @@ sheets:
       B3: { value: Draft, style: entry }
       C3: { value: 400, style: entry }
       D3: { value: "2026-09-15", type: date }
+      # The cells the controls below write into. On a protected sheet a
+      # control can only write into an *unlocked* cell, so each wears the
+      # `linked` style.
+      G2: { value: false, style: linked }
+      H4: { value: 3, style: linked }
 
     comments:
       # A note appears on hover. It decorates the cell like a link does: the
@@ -53,14 +62,16 @@ sheets:
       B1: { text: "Sourced from the Statuses sheet.", author: Finance }
 
     controls:
-      # A form control writes into its linked cell — ticking the box makes F2
-      # TRUE, and formulas elsewhere can act on it.
+      # A form control writes into its linked cell — ticking the box makes G2
+      # TRUE, and formulas elsewhere can act on it. The linked cell is
+      # unlocked above, or the protected sheet would refuse the write.
       - at: F2
         kind: check_box
         text: Rush order
         link: G2
+        size: { width: 110, height: 20 }
       # A spin button steps its cell through a range; here it drives a
-      # priority in H2 from 1 to 5.
+      # priority in H4 from 1 to 5.
       - at: F4
         kind: spin_button
         link: H4
@@ -68,6 +79,7 @@ sheets:
         max: 5
         step: 1
         value: 3
+        size: { width: 24, height: 40 }
 
     links:
       # A bare value is a link out of the workbook. The cell keeps its own text.
