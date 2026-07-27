@@ -65,6 +65,7 @@ sheets:
     tables: [...]      # → §11
     charts: [...]      # → §12
     images: [...]      # → §13
+    shapes: [...]      # → §18
     pivots: [...]      # → §14
     protect: {...}     # → §16
 ```
@@ -90,6 +91,7 @@ sheets:
 | `tables` | sequence | Excel tables over the sheet's regions. §11. |
 | `charts` | sequence | Charts anchored on the sheet. §12. |
 | `images` | sequence | Pictures anchored on the sheet. §13. |
+| `shapes` | sequence | Boxes and other geometries floating over the sheet. §18. |
 | `pivots` | sequence | Pivot tables placed on the sheet. §14. |
 | `protect` | mapping | Sheet protection. §16. |
 
@@ -790,3 +792,47 @@ parser exposes no per-node positions (ADR-016).
 | `0` | success |
 | `1` | the spec is invalid, or a file could not be read or written |
 | `2` | the command line itself was wrong |
+
+## 18. Shapes
+
+A shape — a box, star, or other preset geometry — floats above the grid,
+optionally carrying text: `at` positions its top-left corner, and the cells
+under it keep whatever they hold.
+
+```yaml
+shapes:
+  - at: E2
+    kind: cloud                     # required — see the geometry list below
+    text: Approved                  # or a list of lines, each with its own font
+    size: { width: 240, height: 120 }
+    fill: "1F77B4"
+    line: { color: "333333", width: 2 }
+    alt: An approval stamp
+    positioning: move               # move | move_and_size | fixed
+```
+
+| Key | Type | Notes |
+|---|---|---|
+| `at` | cell | **Required.** |
+| `kind` | bareword | **Required.** One of the geometries below. |
+| `text` | text or list | A plain string, or a sequence of lines — each a string or `{ text, font }`, the font written as a style's `font:` (§4 of the styling keys). Each entry is its own *line*: one font covers one line. |
+| `size` | `{ width, height }` | **Both required**, in whole pixels. Unset, the shape is 160 × 160. |
+| `fill` | hex color | The fill; unset keeps the theme default. |
+| `line` | hex color or `{ color, width }` | The outline. `width` is in points and must be above `0`; a bare hex is just the color. |
+| `alt` | text | What a screen reader announces; Excel's "Alt Text". |
+| `positioning` | bareword | The same three anchors an image takes (§13). |
+
+**Geometries.** `kind` is one of: `rectangle`, `ellipse`, `triangle`,
+`diamond`, `parallelogram`, `trapezoid`, `pentagon`, `hexagon`, `octagon`,
+`decagon`, `star_5`, `plus`, `chevron`, `cube`, `can`, `donut`, `frame`,
+`heart`, `moon`, `sun`, `cloud`, `pie`, `line`. Each maps to a DrawingML
+preset (ECMA-376 §20.1.10.56); an unknown name is a diagnostic.
+
+**Backend limits.** The Excel backend lowercases the geometry token it writes
+into the file, and DrawingML's tokens are case-sensitive — `roundRect` written
+as `roundrect` is a geometry Excel does not recognize. The kinds whose token
+carries a capital are therefore *refused by name*, with the reason: the
+rounded rectangle, the right triangle, the eight straight arrows, and the four
+callouts. They become plain schema additions the day the backend keeps the
+token's case. An offset in from the anchor cell (which images take) is not
+available either: the backend's shape constructor does not accept one.

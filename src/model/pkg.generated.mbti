@@ -31,7 +31,11 @@ pub let min_page_scale : Int
 
 pub let pivot_style_families : Array[(String, Int)]
 
+pub let shape_presets : Array[(String, String)]
+
 pub let table_style_families : Array[(String, Int)]
+
+pub let unwritable_shape_presets : Array[(String, String)]
 
 // Errors
 
@@ -372,6 +376,24 @@ pub(all) enum SeriesName {
   FromCell(sheet~ : String?, at~ : @units.CellRef)
 } derive(Eq, @debug.Debug)
 
+pub(all) struct Shape {
+  at : @units.CellRef
+  preset : String
+  text : ShapeText?
+  width : Int?
+  height : Int?
+  fill : @units.Color?
+  line_color : @units.Color?
+  line_width : Double?
+  alt_text : String?
+  positioning : ImagePositioning
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ShapeText {
+  Plain(String)
+  Lines(Array[RichRun])
+} derive(Eq, @debug.Debug)
+
 pub(all) struct Sheet {
   name : String
   cells : Array[Cell]
@@ -391,6 +413,7 @@ pub(all) struct Sheet {
   tables : Array[Table]
   charts : Array[Chart]
   images : Array[Image]
+  shapes : Array[Shape]
   pivots : Array[Pivot]
   mut protection : SheetProtection?
 } derive(Eq, @debug.Debug)
@@ -400,6 +423,7 @@ pub fn Sheet::add_conditional_format(Self, ConditionalFormat) -> Unit
 pub fn Sheet::add_image(Self, Image) -> Unit
 pub fn Sheet::add_link(Self, @units.CellRef, LinkTarget, tip? : String) -> Unit
 pub fn Sheet::add_pivot(Self, Pivot) -> Unit
+pub fn Sheet::add_shape(Self, Shape) -> Unit
 pub fn Sheet::add_table(Self, Table) -> Unit
 pub fn Sheet::add_validation(Self, Validation) -> Unit
 pub fn Sheet::merge(Self, @units.CellRef, @units.CellRef) -> Unit

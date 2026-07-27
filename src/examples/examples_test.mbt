@@ -76,6 +76,10 @@ fn promises() -> Array[Promise] {
     // pivots: likewise — the summary is Excel's work, the data is the spec's.
     promise("pivots.yxl.yaml", "Summary", "A1", "Revenue by region and quarter"),
     promise("pivots.yxl.yaml", "Orders", "D7", "3300000"),
+    // shapes: the cells beneath the drawings are ordinary cells; the shapes
+    // themselves are asserted separately below.
+    promise("shapes.yxl.yaml", "Board", "A1", "Quarterly review"),
+    promise("shapes.yxl.yaml", "Board", "B4", "2400000"),
   ]
 }
 
@@ -355,6 +359,38 @@ test "the styling example's conditional formats share their declared looks" {
   assert_eq(over_revenue[2].format, None)
   assert_eq(formats.get("C2:C3").unwrap()[0].format_type, "3_color_scale")
   assert_eq(formats.get("D2:D3").unwrap()[0].icon_style, "3TrafficLights1")
+}
+
+///|
+/// The `shapes` example claims three drawings. A shape is not a cell value, so
+/// the promise table cannot carry it.
+test "the shapes example floats what its comments describe" {
+  let path = "\{EXAMPLES}/shapes.yxl.yaml"
+  let workbook = @xlsx.read(
+    @cli.compile(
+      @fs.read_file_to_string(path),
+      file=path,
+      resolve=included,
+      read_bytes=included_bytes,
+    )[:],
+  )
+  guard workbook.sheet("Board") is Some(board) else {
+    fail("expected the Board sheet")
+  }
+  let shapes = board.shapes()
+  assert_eq(shapes.length(), 3)
+  assert_eq(shapes[0].shape_type, "cloud")
+  assert_eq(shapes[0].cell, "D1")
+  assert_eq(shapes[0].fill_color, "D6E9F8")
+  assert_eq(shapes[0].line_color, "1F77B4")
+  assert_eq(shapes[0].paragraph[0].text, "Approved")
+  assert_eq(shapes[0].format.alt_text, Some("An approval stamp"))
+  // The chevron's two lines, in order.
+  assert_eq(shapes[1].shape_type, "chevron")
+  assert_eq(shapes[1].paragraph.map(run => run.text), ["Next", "quarter"])
+  // The star is pinned to the sheet.
+  assert_eq(shapes[2].shape_type, "star5")
+  assert_true(shapes[2].format.positioning is Some(Absolute))
 }
 
 ///|

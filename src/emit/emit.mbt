@@ -201,6 +201,9 @@ fn emit_sheet(
   for image in sheet.images {
     apply_image(backend, sheet.name, image)
   }
+  for shape in sheet.shapes {
+    apply_shape(backend, sheet.name, shape)
+  }
   for validation in sheet.validations {
     apply_validation(backend, sheet.name, validation, date_system)
   }

@@ -329,16 +329,24 @@ Every one of these writes a part Excel *interprets* rather than displays, so
 each carries the obligation the pivot tables earned (§9): **open the output in
 Excel by hand** before ticking the box, not only round-trip it.
 
-- [ ] **Shapes** (`add_shape`) — a box, arrow, or callout floating over the
-      grid, optionally carrying text. `shapes:` anchored at a cell, with a
-      preset geometry, size or scale, fill and line colour, plain or rich text,
-      alt text, and the three anchor kinds. **Reuses the image vocabulary**
-      (`at`, `scale`, `offset`, `positioning`), which is most of the work
-      already done. One design point: the backend puts `shape_type` straight
-      into `prst=` unchecked, so an unknown preset makes Excel repair the file —
-      the name needs validating against DrawingML's preset geometries
-      (ECMA-376 Part 1, `ST_ShapeType`), and the spec should expose a *named*
-      subset rather than all ~180. `macro_name` stays out: `.xlsx` carries no
+- [x] **Shapes** (`add_shape`) — a geometry floating over the grid, optionally
+      carrying text. `shapes:` anchored at a cell, with a named preset
+      geometry, a pixel size, fill and line colour, plain text or a list of
+      lines each in its own font (the backend writes one paragraph per run, so
+      one font covers one line), alt text, and the three anchor kinds images
+      spell. The anticipated design point — the backend puts `shape_type`
+      straight into `prst=` unchecked — turned out a step worse: it also
+      **lowercases the token**, and `ST_ShapeType` is case-sensitive, so
+      `roundRect` reaches the file as a geometry Excel does not recognize. The
+      accepted subset is therefore the ~23 presets whose token has no capitals
+      (rectangle, ellipse, the polygons, star_5, plus, chevron, cloud, …), a
+      test pins that invariant, and the camel-case kinds an author will reach
+      for — the rounded rectangle, right triangle, the eight arrows, the four
+      callouts — are refused *by name* with the reason, the pivots-`filters:`
+      arrangement (reported upstream, §9). Not available from the backend:
+      an `offset` (its shape constructor takes none, unlike pictures) and a
+      `scale` (dropped deliberately — a shape has no natural size to scale;
+      `size` says it directly). `macro_name` stays out: `.xlsx` carries no
       macros, and VBA is a §2 non-goal
 - [ ] **Duration cells** — an elapsed time (`26:30:00`, "26 hours 30 minutes"),
       which Excel stores as a fraction of a day under an `[h]:mm:ss` format and
@@ -397,6 +405,10 @@ gate, which is why none carries a box:
 - **pivot `filters:`, and more than one pivot source per workbook** — blocked on
   [office.mbt#264](https://github.com/moonbitlang/office.mbt/issues/264) rather
   than on us; both become schema changes the day it is fixed
+- **shape geometries whose DrawingML token carries a capital** — the rounded
+  rectangle, right triangle, the eight straight arrows, and the four callouts —
+  blocked on the backend lowercasing `prst` (§9); each becomes one more row in
+  the preset table the day it keeps the token's case
 - file encryption (`write_with_password`) — its own decision: it changes the
   emitter's signature and needs the CLI to carry a secret
 
@@ -829,6 +841,17 @@ silently reading the wrong file).
   Mitigation is the one already listed below — automate "does Excel open it
   cleanly" — and, until then, **open the output by hand when a feature writes a
   part Excel interprets rather than displays**.
+- **The backend lowercases a shape's `prst` token.** `write.mbt` passes
+  `shape_type` through `.to_lower()`, and DrawingML's `ST_ShapeType` enum is
+  case-sensitive — `roundRect` written as `roundrect` is a geometry Excel does
+  not recognize. Found in Phase 9's shapes by dumping the drawing part rather
+  than trusting the round trip (the backend's own reader accepts what its
+  writer produced, so tests stay green). Worked around by accepting only
+  presets whose token has no capitals and refusing the rest by name; a test
+  pins the no-capitals invariant. Two smaller reader defects found alongside,
+  affecting only what tests can assert: a text run written with
+  `xml:space="preserve"` is invisible to the reader (it splits on the literal
+  `<a:t>`), and no run's font is read back. All reported upstream.
 - **MSVC cannot compile the backend's formula evaluator.** MoonBit's native
   backend hands each test executable to the platform C compiler as one
   translation unit, and `mbtexcel`'s formula dispatch — a `match` with a
@@ -866,6 +889,39 @@ silently reading the wrong file).
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-27** — **Shapes**, opening Phase 9's second slice. `shapes:` floats
+  a preset geometry over the grid at a cell, with a pixel `size`, a `fill` and
+  a `line` colour (the line optionally with a width in points), `alt` text,
+  and the three anchor kinds images spell. `text:` is a plain string or a list
+  of lines — a *list gives one font per line*, because the backend writes each
+  run as its own paragraph, and saying so in the schema is honester than
+  calling it rich text.
+
+  **The geometry table is the story.** The roadmap had anticipated validating
+  `kind` against DrawingML's `ST_ShapeType` because the backend writes the
+  token unchecked; dumping the emitted drawing part showed it also *lowercases*
+  it, and the enum is case-sensitive — `roundRect` reaches the file as
+  `roundrect`, a geometry Excel does not recognize. So the accepted table
+  holds only presets whose token has no capitals — rectangle, ellipse, the
+  polygons through decagon, star_5, plus, chevron, cube, can, donut, frame,
+  heart, moon, sun, cloud, pie, line — a test pins the no-capitals invariant,
+  and the camel-case kinds an author will reach for (the rounded rectangle,
+  right triangle, eight arrows, four callouts) are refused **by name** with
+  the reason, exactly as a pivot's `filters:` is. Reported upstream, with two
+  reader defects found alongside (§9): a run written `xml:space="preserve"`
+  never reads back, and no run's font does.
+
+  Also not in the schema, by the backend's shape: an `offset` (the shape
+  constructor takes none, unlike pictures) and a `scale` (dropped on purpose —
+  a shape has no natural size to scale; `size` says it directly).
+
+  Verified in the package: `prstGeom prst="cloud"`, the solid fill, the line
+  colour and width in EMU, and one `<a:p>` per text line. New
+  `examples/shapes.yxl.yaml`: a cloud stamp over a report, a chevron with a
+  bold headline over a plain line, a star pinned with `positioning: fixed`.
+  **Awaiting the second slice's standing obligation — open the output in
+  Excel by hand — before this is called fully done.**
 
 - **2026-07-27** — **A full pass of the AGENTS.md §8 refactoring checklist**,
   behavior-preserving throughout. What it found, by lens:

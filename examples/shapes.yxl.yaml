@@ -1,0 +1,45 @@
+# Shapes: a geometry floating above the grid, optionally carrying text. The
+# cells underneath keep whatever they hold — a shape decorates, it never
+# stores.
+sheets:
+  - name: Board
+    columns:
+      - at: A-B
+        width: 16
+    cells:
+      A1: Quarterly review
+      A3: Region
+      B3: Revenue
+      A4: APAC
+      B4: 2400000
+      A5: EMEA
+      B5: 1750000
+
+    shapes:
+      # A stamp over the corner of the report. `size` is in pixels; unset, a
+      # shape is 160 × 160.
+      - at: D1
+        kind: cloud
+        text: Approved
+        size: { width: 220, height: 110 }
+        fill: "D6E9F8"
+        line: { color: "1F77B4", width: 2 }
+        alt: An approval stamp
+
+      # Text as a list writes each entry on its own line, in its own font —
+      # here a bold headline over a plain one.
+      - at: D6
+        kind: chevron
+        text:
+          - { text: "Next", font: { bold: true } }
+          - "quarter"
+        size: { width: 220, height: 90 }
+        fill: "FFF2CC"
+
+      # With nothing but a geometry, the theme's colours and the default size
+      # apply. `positioning: fixed` pins it to the sheet, so inserting rows
+      # above will not move it.
+      - at: D10
+        kind: star_5
+        positioning: fixed
+        alt: A decorative star

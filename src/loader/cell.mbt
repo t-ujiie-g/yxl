@@ -184,17 +184,19 @@ fn load_rich_text(
   }
   let runs = []
   for item in items {
-    runs.push(load_rich_run(item, file~, reference~))
+    runs.push(load_rich_run(item, file~, owner="cell '\{reference}'"))
   }
   @model.RichText(runs)
 }
 
 ///|
 /// One rich-text run: a plain string (no font) or a `{ text, font }` mapping.
+/// `owner` names the construct the run belongs to (`cell 'A1'`,
+/// `shape at 'B2'`) in the diagnostics.
 fn load_rich_run(
   node : @yaml.Node,
   file~ : String,
-  reference~ : String,
+  owner~ : String,
 ) -> @model.RichRun raise @diag.SchemaError {
   match node {
     @yaml.Str(text) => { text, font: None }
@@ -209,36 +211,29 @@ fn load_rich_run(
               expect_string(
                 node,
                 file~,
-                context="cell '\{reference}' rich text run 'text'",
+                context="\{owner} rich text run 'text'",
               ),
             )
           "font" =>
             font = Some(
-              load_font(
-                node,
-                file~,
-                context="cell '\{reference}' rich text run",
-              ),
+              load_font(node, file~, context="\{owner} rich text run"),
             )
           _ =>
             raise schema_error(
               file~,
-              "unknown key '\{key}' in cell '\{reference}' rich text run (expected 'text' or 'font')",
+              "unknown key '\{key}' in \{owner} rich text run (expected 'text' or 'font')",
             )
         }
       }
       guard text is Some(text) else {
-        raise schema_error(
-          file~,
-          "cell '\{reference}' rich text run needs a 'text'",
-        )
+        raise schema_error(file~, "\{owner} rich text run needs a 'text'")
       }
       { text, font }
     }
     _ =>
       raise schema_error(
         file~,
-        "cell '\{reference}' rich text run must be text or a mapping",
+        "\{owner} rich text run must be text or a mapping",
       )
   }
 }
