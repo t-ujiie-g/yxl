@@ -4,6 +4,23 @@ test "a fresh workbook has no sheets" {
 }
 
 ///|
+test "sheet finds a declared sheet by name and misses an undeclared one" {
+  let wb = @model.Workbook::new()
+  wb.add_sheet("Sales") |> ignore
+  assert_eq(wb.sheet("Sales").unwrap().name, "Sales")
+  assert_true(wb.sheet("Notes") is None)
+}
+
+///|
+test "to_a1 writes a range as its unqualified corners" {
+  let range : @model.CellRange = {
+    top_left: @units.CellRef::new(col=1, row=1),
+    bottom_right: @units.CellRef::new(col=4, row=10),
+  }
+  assert_eq(range.to_a1(), "A1:D10")
+}
+
+///|
 test "add_sheet appends a sheet whose edits are visible in the workbook" {
   let wb = @model.Workbook::new()
   let sheet = wb.add_sheet("Sheet1")

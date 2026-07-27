@@ -70,6 +70,20 @@ test "a list source may name this sheet by omitting one" {
 }
 
 ///|
+test "a sourced list takes exactly the one key 'from'" {
+  assert_eq(
+    schema_message(
+      sheet_spec(
+        "    validations:\n      - at: B2:B9\n        list: { from: E1:E3, sheet: S }\n",
+      ),
+    ),
+    Some(
+      "spec.yaml: validation 'B2:B9' 'list' as a mapping takes exactly one key, 'from'",
+    ),
+  )
+}
+
+///|
 test "a list sourced from an undeclared sheet is a diagnostic" {
   assert_eq(
     schema_message(
@@ -174,6 +188,28 @@ test "a date validation rejects a bound that is not a date" {
       ),
     ),
     Some("spec.yaml: validation 'D2:D9' 'at_least' must be text"),
+  )
+}
+
+///|
+test "a date validation rejects text that is not a date" {
+  assert_eq(
+    schema_message(
+      sheet_spec(
+        "    validations:\n      - at: D2:D9\n        date: { at_least: soon }\n",
+      ),
+    ),
+    Some(
+      "spec.yaml: validation 'D2:D9' 'at_least' is not a date: 'soon' (expected YYYY-MM-DD or YYYY-MM-DD HH:MM:SS)",
+    ),
+  )
+}
+
+///|
+test "the validations key itself must be a sequence" {
+  assert_eq(
+    schema_message(sheet_spec("    validations: 5\n")),
+    Some("spec.yaml: 'validations' must be a sequence"),
   )
 }
 

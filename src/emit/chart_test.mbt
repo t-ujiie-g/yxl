@@ -6,7 +6,7 @@
 /// The sole chart the round-tripped workbook carries, as its anchor, its size in
 /// EMU, and its XML.
 fn only_chart(wb : @model.Workbook) -> @xlsx.Chart raise {
-  let reopened = @xlsx.read(@emit.to_bytes(wb)[:])
+  let reopened = reopen(wb)
   guard reopened.sheet("S") is Some(sheet) else { fail("expected the sheet") }
   let charts = sheet.charts()
   assert_eq(charts.length(), 1)
@@ -176,7 +176,7 @@ test "two charts on one sheet keep their own anchors" {
     ..one_series(Line),
     at: @units.CellRef::parse_a1("D20").unwrap(),
   })
-  let reopened = @xlsx.read(@emit.to_bytes(wb)[:])
+  let reopened = reopen(wb)
   guard reopened.sheet("S") is Some(read) else { fail("expected the sheet") }
   let charts = read.charts()
   assert_eq(charts.length(), 2)

@@ -102,6 +102,41 @@ test "a data table composes with band formatting and with plain cells" {
 }
 
 ///|
+test "a JSON file that does not parse is a diagnostic naming the file" {
+  assert_eq(
+    schema_message(
+      "sheets:\n  - name: S\n    data:\n      - at: A1\n        json: x.json\n",
+      files={ "x.json": "[1,]" },
+    ),
+    Some("x.json: invalid JSON: Invalid character ']' at line 1, column 3"),
+  )
+}
+
+///|
+test "columns given while a row is an array is a diagnostic" {
+  assert_eq(
+    schema_message(
+      "sheets:\n  - name: S\n    data:\n      - at: A1\n        json: x.json\n        columns: [a]\n",
+      files={ "x.json": "[[1]]" },
+    ),
+    Some(
+      "x.json: 'columns' names the fields of JSON objects, but row 1 is an array",
+    ),
+  )
+}
+
+///|
+test "a JSON row that is a bare scalar is a diagnostic" {
+  assert_eq(
+    schema_message(
+      "sheets:\n  - name: S\n    data:\n      - at: A1\n        json: x.json\n",
+      files={ "x.json": "[1]" },
+    ),
+    Some("x.json: row 1 of a JSON table must be an array or an object"),
+  )
+}
+
+///|
 test "load rejects malformed data entries and unusable tables" {
   assert_eq(
     schema_message("sheets:\n  - name: S\n    data:\n      - csv: x.csv\n"),

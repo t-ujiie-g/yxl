@@ -20,9 +20,16 @@ fn range(top_left : String, bottom_right : String) -> @model.CellRange {
 }
 
 ///|
+/// Compile the model and re-open the bytes with the backend reader — the
+/// round-trip every emit test performs.
+fn reopen(wb : @model.Workbook) -> @xlsx.Workbook raise {
+  @xlsx.read(@emit.to_bytes(wb)[:])
+}
+
+///|
 /// The sole validation the round-tripped workbook carries.
 fn only_validation(wb : @model.Workbook) -> @xlsx.DataValidation raise {
-  let reopened = @xlsx.read(@emit.to_bytes(wb)[:])
+  let reopened = reopen(wb)
   let validations = reopened.get_data_validations("S")
   assert_eq(validations.length(), 1)
   validations[0]
@@ -33,7 +40,7 @@ test "an auto filter round-trips as a range over the sheet" {
   let (wb, sheet) = fixture()
   sheet.set(@units.CellRef::new(col=1, row=1), Text("Region"))
   sheet.set_filter(range("A1", "C50"))
-  let reopened = @xlsx.read(@emit.to_bytes(wb)[:])
+  let reopened = reopen(wb)
   guard reopened.get_auto_filter("S") is Some(filter) else {
     fail("expected an auto filter")
   }
@@ -239,7 +246,7 @@ test "validations are emitted in declaration order" {
     prompt: None,
     error: None,
   })
-  let reopened = @xlsx.read(@emit.to_bytes(wb)[:])
+  let reopened = reopen(wb)
   let validations = reopened.get_data_validations("S")
   assert_eq(validations.length(), 2)
   assert_eq(validations[0].sqref, "A1:A9")
@@ -255,7 +262,7 @@ test "an external link round-trips with its tooltip" {
     Url("https://example.com/q3"),
     tip="The Q3 report",
   )
-  let reopened = @xlsx.read(@emit.to_bytes(wb)[:])
+  let reopened = reopen(wb)
   guard reopened.get_cell_hyperlink("S", "A1") is Some(link) else {
     fail("expected a hyperlink")
   }
@@ -271,7 +278,7 @@ test "an in-workbook link round-trips as a location" {
   let (wb, sheet) = fixture()
   wb.add_sheet("Summary") |> ignore
   sheet.add_link(@units.CellRef::new(col=2, row=3), Location("Summary!A1"))
-  let reopened = @xlsx.read(@emit.to_bytes(wb)[:])
+  let reopened = reopen(wb)
   guard reopened.get_cell_hyperlink("S", "B3") is Some(link) else {
     fail("expected a hyperlink")
   }

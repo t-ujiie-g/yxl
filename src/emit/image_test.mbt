@@ -32,7 +32,7 @@ fn plain_image() -> @model.Image {
 /// its thousand-armed dispatch generates (`fatal error C1026`). Drawing
 /// pictures are what `yxl` emits, so this is the accessor that matches anyway.
 fn only_image(wb : @model.Workbook) -> @xlsx.Image raise {
-  let reopened = @xlsx.read(@emit.to_bytes(wb)[:])
+  let reopened = reopen(wb)
   guard reopened.sheet("S") is Some(sheet) else { fail("expected the sheet") }
   let images = sheet.images()
   assert_eq(images.length(), 1)
@@ -99,7 +99,7 @@ test "two images on one sheet keep their own anchors" {
     ..plain_image(),
     at: @units.CellRef::parse_a1("H10").unwrap(),
   })
-  let reopened = @xlsx.read(@emit.to_bytes(wb)[:])
+  let reopened = reopen(wb)
   guard reopened.sheet("S") is Some(read) else { fail("expected the sheet") }
   assert_eq(read.images().map(image => image.reference), ["D2", "H10"])
 }
