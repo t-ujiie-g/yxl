@@ -17,6 +17,8 @@ pub let max_drawing_pixels : Int
 
 pub let max_form_control_value : Int
 
+pub let max_formula_range_cells : Int
+
 pub let max_image_scale : Double
 
 pub let max_outline_level : Int
@@ -269,6 +271,11 @@ pub(all) enum FormControlKind {
   Label
 } derive(Eq, @debug.Debug)
 
+pub(all) struct FormulaRange {
+  at : CellRange
+  formula : String
+} derive(Eq, @debug.Debug)
+
 pub(all) enum HAlign {
   Left
   Center
@@ -447,12 +454,14 @@ pub(all) struct Sheet {
   controls : Array[FormControl]
   slicers : Array[Slicer]
   pivots : Array[Pivot]
+  formulas : Array[FormulaRange]
   mut protection : SheetProtection?
 } derive(Eq, @debug.Debug)
 pub fn Sheet::add_chart(Self, Chart) -> Unit
 pub fn Sheet::add_comment(Self, @units.CellRef, String, author? : String) -> Unit
 pub fn Sheet::add_conditional_format(Self, ConditionalFormat) -> Unit
 pub fn Sheet::add_control(Self, FormControl) -> Unit
+pub fn Sheet::add_formula(Self, FormulaRange) -> Unit
 pub fn Sheet::add_image(Self, Image) -> Unit
 pub fn Sheet::add_link(Self, @units.CellRef, LinkTarget, tip? : String) -> Unit
 pub fn Sheet::add_pivot(Self, Pivot) -> Unit

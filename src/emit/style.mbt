@@ -21,13 +21,18 @@
 /// The band styles are still set on the column and row records as well, so the
 /// empty cells around the written ones look the same.
 fn effective_style(sheet : @model.Sheet, cell : @model.Cell) -> @model.Style? {
-  let inherited = layer(
-    band_covering(sheet.columns, cell.pos.col),
-    band_covering(sheet.rows, cell.pos.row),
-  )
   // Innermost wins: the cell over its row, the row over its column. A cell with
   // no style of its own simply inherits whatever the bands leave.
-  layer(inherited_onto(inherited, cell.value), cell.style)
+  layer(inherited_onto(band_style_at(sheet, cell.pos), cell.value), cell.style)
+}
+
+///|
+/// What the bands alone say about one position — the column's, with the row's
+/// laid over it. Split out for the cells a *formula range* fills, which the
+/// backend creates and which are therefore in no `cells` array to be styled
+/// with the rest.
+fn band_style_at(sheet : @model.Sheet, at : @units.CellRef) -> @model.Style? {
+  layer(band_covering(sheet.columns, at.col), band_covering(sheet.rows, at.row))
 }
 
 ///|

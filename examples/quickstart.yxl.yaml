@@ -10,6 +10,7 @@ sheets:
       # `Region` is text, `2400000` a number, and `true` a boolean.
       A1: Region
       B1: Revenue
+      C1: Commission
       A2: APAC
       B2: 2400000
       A3: EMEA
@@ -30,3 +31,12 @@ sheets:
       # of a day under an `[h]` format, so the hours keep counting past 24.
       A6: Hours logged
       B6: { value: "36:00:00", type: duration }
+
+    # A calculation column: one formula that moves. It is written as it applies
+    # at the range's top-left cell, so C3 gets `B3*0.05` without being spelled
+    # out — and adding a region means editing the range, not pasting a line.
+    # This compiles to Excel's own shared formula: one stored formula, not one
+    # per row.
+    formulas:
+      - at: C2:C3
+        formula: "B2*0.05"

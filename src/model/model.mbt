@@ -159,10 +159,36 @@ pub(all) struct Sheet {
   slicers : Array[Slicer]
   /// Pivot tables placed on the sheet, in declaration order.
   pivots : Array[Pivot]
+  /// Formula ranges — one formula filled across a region, in declaration order.
+  /// Ranges may not overlap each other or a populated cell, which the loader
+  /// checks, so declaration order carries no precedence.
+  formulas : Array[FormulaRange]
   /// What a reader may still do once the sheet is protected; `None` leaves the
   /// sheet unprotected.
   mut protection : SheetProtection?
 } derive(Eq, Debug)
+
+///|
+/// One formula filled across a region: the formula is written as it applies at
+/// the range's **top-left** cell, and every other cell in the range gets it with
+/// its relative references shifted by that cell's offset. Absolute references
+/// (`$C$2`) do not move. This is Excel's own shared formula (ECMA-376
+/// §18.3.1.40), so *Excel* performs the translation on open — the emitter writes
+/// the master formula once and marks the rest as followers, which is what makes
+/// one spec line compile to one stored formula (ADR-004).
+pub(all) struct FormulaRange {
+  at : CellRange
+  /// The formula body, without a leading `=`.
+  formula : String
+} derive(Eq, Debug)
+
+///|
+/// The most cells one `formulas:` range may cover — a full Excel column
+/// (ECMA-376 §18.3.1.99 puts 1 048 576 rows in a sheet). A filled column is the
+/// point of the construct, so the whole of one is allowed; beyond that the range
+/// is a typo, and without a ceiling a mistyped `A1:A99999999` would sit there
+/// building cells until the machine gave up.
+pub let max_formula_range_cells : Int = 1048576
 
 ///|
 /// A workbook-level named definition (ADR-012): a name and what it refers to — a
@@ -317,6 +343,7 @@ pub fn Sheet::new(
     controls: [],
     slicers: [],
     pivots: [],
+    formulas: [],
     protection: None,
   }
 }
@@ -395,6 +422,13 @@ pub fn Sheet::add_image(self : Sheet, image : Image) -> Unit {
 /// possibly on another sheet — and are written as usual.
 pub fn Sheet::add_pivot(self : Sheet, pivot : Pivot) -> Unit {
   self.pivots.push(pivot)
+}
+
+///|
+/// Fill a formula across a region. The cells it covers are written by the
+/// emitter, not held in `cells` — one stored formula stands for the range.
+pub fn Sheet::add_formula(self : Sheet, formula : FormulaRange) -> Unit {
+  self.formulas.push(formula)
 }
 
 ///|
