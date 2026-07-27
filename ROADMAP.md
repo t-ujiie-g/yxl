@@ -471,17 +471,33 @@ gate, which is why none carries a box:
       `moon test`, costs ~0.8 s, and is **calibrated against an injected
       quadratic** rather than reasoned about — see the §11 entry for why the
       textbook figure (`factor²`) is the wrong number to threshold on
-- [ ] **Import: an existing `.xlsx` → a skeleton spec.** Promoted from a
-      post-v1 stretch to a wanted feature (§8 Q5). Framed as a **one-way,
-      one-time migration aid**, not a round-trip contract: lossy and irreversible
-      is acceptable, which is exactly what makes it cheap enough to be worth
-      building. It is the single biggest lowering of the barrier to adoption —
-      an existing workbook becomes a starting spec instead of a retyping job.
-      Open first: the command's **name** (it emits YAML, so `import` reads from
-      yxl's side but not the file's — §8 Q9), and how much it recovers (values
-      and formulas certainly; styles interned into `defs.styles`; merges,
-      widths, and print setup if cheap). Needs a *reader* seam mirroring ADR-002,
-      since it is the first code outside `emit` to touch the backend.
+- [ ] **`yxl extract`: an existing `.xlsx` → a spec.** A **one-way, one-time
+      migration aid**, not a round-trip contract (§8 Q5, Q9; ADR-017). The
+      single biggest lowering of the barrier to adoption — an existing workbook
+      becomes a starting spec instead of a retyping job. Shape decided in
+      ADR-017: a reader seam mirroring ADR-002, the schema itself as the
+      recovery boundary, and **verify-then-emit** so compression is checked
+      rather than trusted. Delivered in slices, value-first:
+      - [ ] **A YAML writer.** New machinery: `src/yaml` is parse-only today, so
+            there is nothing that turns a `model` back into text. Readable
+            output is the whole point of the feature, so this is not a detail —
+            quoting rules, block vs. flow, key order, and how a `cells:` block
+            is laid out all decide whether the result is worth keeping
+      - [ ] **The reader seam and slice 1**: values, formulas, rich text, styles
+            interned into `defs.styles`, merges. This is the slice that makes
+            the feature useful at all
+      - [ ] **Slice 2 — layout**: column widths, row heights, hidden, outline
+            levels, freeze panes, gridlines, tab colour, print setup
+      - [ ] **Slice 3 — decoration**: comments, links, validations, conditional
+            formats, tables, auto filter
+      - [ ] **CSV extraction**, which also settles one-file vs. many: a
+            contiguous all-literal region with homogeneous column types becomes
+            a `data:` entry. `data:` reads a *path* and has no inline form, so
+            choosing this **is** choosing a multi-file output — unless Phase 11's
+            inline `values:` lands first, in which case one file can carry it.
+            `$include` splitting beyond that is *not* inferred: which files
+            change together is the author's judgement and the workbook holds no
+            evidence of it
 
 ### Phase 11 — Authoring ergonomics (added after the v0.1.0 review, §11)
 These sharpen what §1 already claims, so they land **before the schema freeze**;
@@ -495,6 +511,24 @@ the first item changes what a spec looks like.
       reuses the anchored-table machinery `csv:`/`json:` already go through
       instead of inventing a second concept. `cells:` stays for scattered,
       individually-styled cells, which is what it is good at.
+- [ ] **Filled formula columns.** A formula translated down a column — `E2` is
+      `C2*D2`, `E3` is `C3*D3` — is the commonest structure in a real workbook
+      and the schema cannot say it. `defs.formulas` does not: a `$ref` compiles
+      to a *defined name*, so every referencing cell gets the **same** formula,
+      not a translated one. So a 500-row calculation is 499 near-identical
+      `cells:` lines, and inserting a row rewrites all of them — the same
+      diff-stability complaint as the item above, which is why the two are
+      neighbours and may share one mechanism.
+      Excel has the concept natively (`<f t="shared" ref="E2:E500" si="…">`) and
+      the backend both reads it (`Worksheet::formula_refs`) and writes it
+      (`FormulaOpts::shared`), so the gap is ours alone: **reuse the spec
+      declared once is supposed to compile to native sharing (ADR-004), and here
+      the spec cannot declare it once.** Take the `at:`-anchored house shape the
+      other sheet keys use:
+      `formulas: [{ at: E2:E500, formula: "C2*D2" }]`.
+      Lands **before the freeze**, and before `extract`'s slice 1 can produce
+      output worth keeping — decided while scoping `extract`, but wanted
+      independently: an author writing by hand hits it today.
 - [ ] **A JSON Schema for the spec, generated from `docs/spec.md`'s contents.**
       Publishing one lets an author write
       `# yaml-language-server: $schema=…` and get completion and validation in
@@ -795,6 +829,60 @@ external `data:` path resolves against the spec passed to `yxl build` rather tha
 the file the entry was written in (it fails loudly with the path it tried, never
 silently reading the wrong file).
 
+### ADR-017 — `yxl extract`: a reader seam, the schema as the boundary, and verified compression
+
+**Status:** accepted 2026-07-27.
+**Context:** §8 Q5 put a one-way `.xlsx` → spec conversion in scope; Q9 left the
+name and the recovered scope open. Reading `.mooncakes/` settled two premises the
+phase item had guessed at. The **backend is not the constraint** — `xlsx.Workbook`
+exposes a getter for essentially everything yxl emits, and `get_cell_style`
+returns a style *id*, so equal ids already mark the cells that share a style and
+the `defs.styles` interning is handed to us. The **narrower thing is yxl's own
+model**: the reader returns underline *styles*, gradient and pattern fills, and
+theme/indexed/tint colours, none of which the schema has words for, and its
+`CellValue` has no `Date` at all.
+
+Beyond faithfulness there is a second demand, and it is the one that decides
+whether the feature is worth having: the output must be a spec somebody would
+*keep*. A conversion that spills five thousand `cells:` lines is correct and
+useless. But every compression — "this rectangle is a data table", "this number
+is a date" — is an **inference**, and a wrong inference produces a spec that
+compiles to a different workbook.
+
+**Decision:**
+1. The command is **`yxl extract`**. `import` points the wrong way (it writes
+   YAML); `decompile` overclaims equivalence; `scaffold` overclaims that the
+   result is only a starting point.
+2. A **reader seam mirroring ADR-002**: reading lives behind one interface, in
+   one package, so `emit` stays the only *other* place that touches `@xlsx` and
+   the backend stays swappable from both directions.
+3. **The schema is the recovery boundary.** Recover what the schema can express;
+   never guess at what it cannot; report every drop. This is a rule rather than a
+   list, so it cannot drift into the round-trip §2 rules out — the schema is the
+   ceiling — and it keeps working as the schema grows.
+4. **Compression is verified, not trusted.** `extract` recompiles its own output
+   in-process and compares against what it read; any region that does not match
+   falls back to the flat form. Both halves of the pipeline are already in
+   memory, so this is cheap — and it is what makes compression **the default**
+   (`--flat` opts out) rather than a flag for the brave.
+5. **Names come from the file wherever the file has them** — defined names,
+   table names, sheet names, and header-row text are the author's own words and
+   are taken verbatim. Styles are the *only* invented names, and they are
+   descriptive only on strong evidence (a style used solely on a table's header
+   row; a style whose only distinguishing feature is a number format), neutral
+   `style_N` otherwise. A wrong descriptive name is worse than a meaningless one:
+   it misleads, and because references are by name, correcting it means replacing
+   every reference rather than one definition.
+
+**Consequences:** a **YAML writer is new machinery** — `src/yaml` is parse-only —
+and since readable output is the point, its quoting, block-vs-flow, and layout
+rules are a deliverable rather than a detail. Extraction can never outrun the
+schema, so a gap shows up as a *schema* item instead of as cleverness here: the
+first one found is filled formula columns (Phase 11), without which slice 1's
+output is 499 near-identical lines. Choosing CSV extraction is also choosing
+multi-file output, because `data:` reads a path and has no inline form — until
+Phase 11's inline `values:` lands. `$include` splitting is never inferred.
+
 ## 8. Open questions
 
 - **Q1 — YAML parser.** ✅ **Decided (ADR-009), refined (ADR-010):** depend on
@@ -836,15 +924,21 @@ silently reading the wrong file).
   stalls and real users hit it.
 
 - **Q9 — What is the import command called, and how much does it recover?**
-  `import` reads naturally from yxl's side ("bring this workbook in") but the
-  thing it *writes* is YAML, so the word points the wrong way for anyone reading
-  the command line. Candidates: `yxl import report.xlsx -o report.yxl.yaml`,
-  `yxl scaffold`, `yxl extract`, `yxl decompile`, or `yxl init --from`. Scope, in
-  rough order of value per effort: cell values and formulas → styles interned
-  into `defs.styles` → merges, column widths, sheet visibility → print setup.
-  Deciding where to stop matters more than the name: an import that recovers
-  everything is a round-trip by another route, and §2 says that is not the
-  product.
+  ✅ **Decided 2026-07-27 (ADR-017): `yxl extract`, bounded by the schema.**
+  `import` was rejected as pointing the wrong way — what the command *writes* is
+  YAML. `extract` reads from the file's side and claims neither completeness
+  (`decompile`) nor scaffolding (`scaffold`).
+  Scope is a **rule, not a list**: recover what the yxl schema can express, never
+  guess at what it cannot, and report every drop. The rule is self-limiting — it
+  cannot drift into a round-trip, because the schema is the ceiling — and it
+  survives the schema growing.
+  Two findings reshaped the question. **The backend is not the constraint**: the
+  reader has a getter for essentially everything yxl emits, and `get_cell_style`
+  returns a style *id*, so the `defs.styles` interning that looked expensive is
+  the cheapest part. **The narrower thing is yxl's own model** — the reader
+  returns underline styles, gradient fills, and theme/indexed/tint colours that
+  the schema has no words for, and no `Date` at all (a date is a number plus a
+  date number format, so `type: date` must be inferred from `num_fmt`).
 - **Q7 — The parser's sealed API: vendor, replace, or live with it?**
   ✅ **Decided (ADR-016): live with it.** The YAML parser's value tree carries no
   positions and its marker-carrying event API is a sealed trait (ADR-010), so
@@ -958,6 +1052,39 @@ silently reading the wrong file).
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-27** — **`yxl extract` designed and scoped (ADR-017)**; no code yet.
+  Reading the backend settled two premises Phase 10 had guessed at. The reader
+  is **not** the constraint — there is a getter for essentially everything yxl
+  emits, and `get_cell_style` returns a style *id*, so the `defs.styles`
+  interning the phase item hedged about ("if cheap") is the cheapest part of the
+  job. The constraint is **yxl's own model**, which is narrower than what the
+  reader returns: underline styles, gradient fills, theme/indexed/tint colours,
+  and no `Date` at all. So the boundary is the schema itself — recover what it
+  expresses, never guess, report every drop — which is self-limiting and cannot
+  become the round-trip §2 rules out.
+
+  The design question that mattered more than the name was **how compressed the
+  output can be**, since a conversion that spills five thousand `cells:` lines is
+  correct and useless. The answer rests on what survives compilation: **sharing
+  survives, names do not.** Which cells wear the same style is in the file; what
+  the author *called* it is gone. So defined names, table names, sheet names, and
+  header text are taken verbatim, styles are the only invented names, and they
+  get a descriptive name only on strong evidence — a wrong `header` misleads
+  where a neutral `style_4` merely says nothing, and renaming means replacing
+  every reference, not one definition. Compression is **verified rather than
+  trusted**: `extract` recompiles its own output in-process and falls back to the
+  flat form for any region that does not match, which is what lets it compress by
+  default.
+
+  One gap surfaced and became a **Phase 11 item in its own right**: a formula
+  translated down a column (`E2 = C2*D2`, `E3 = C3*D3`) is the commonest
+  structure in a real workbook, Excel stores it natively as a shared formula, the
+  backend both reads and writes it — and the schema cannot say it, because a
+  `defs.formulas` `$ref` compiles to a defined name and gives every cell the
+  *same* formula. It is wanted independently of `extract`: an author writing by
+  hand hits it today, and it is the same diff-stability complaint as inline
+  tables. It lands before the freeze.
 
 - **2026-07-27** — **A performance guardrail that CI can actually enforce**,
   closing the second Phase 10 item. The obstacle was never writing a benchmark
