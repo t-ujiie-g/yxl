@@ -10,7 +10,12 @@ import {
 }
 
 // The golden test re-opens compiled bytes with the backend reader to assert the
-// cells survived the whole pipeline.
+// cells survived the whole pipeline; the compile benchmark times each pipeline
+// stage on its own, so it names them individually.
 import {
   "bobzhang/mbtexcel/xlsx",
+  "moonbitlang/core/bench",
+  "t-ujiie-g/yxl/yaml",
+  "t-ujiie-g/yxl/loader",
+  "t-ujiie-g/yxl/emit",
 } for "test"

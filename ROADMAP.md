@@ -448,8 +448,21 @@ gate, which is why none carries a box:
   emitter's signature and needs the CLI to carry a secret
 
 ### Phase 10 — Performance & scale, and import
-- [ ] Large-spec performance; streaming where `mbtexcel` supports it
-- [ ] Benchmarks + regression guardrails in CI
+- [ ] Large-spec performance; streaming where `mbtexcel` supports it. **The
+      baseline is measured and it is linear** (see the benchmark below): 400 and
+      4 000 rows × 5 cells cost 6.35 ms and 64.1 ms, so there is no scaling
+      cliff to chase and no case for streaming until a spec size appears that
+      the flat cost cannot carry. What remains here is therefore *evidence
+      first* — a real workbook that is too slow — not speculative optimisation
+- [ ] Benchmarks + regression guardrails in CI. **Benchmarks exist**:
+      `src/cli/compile_bench_test.mbt` generates a spec of `bench_rows` × 5
+      cells and times the whole pipeline plus each stage on its own
+      (`moon bench src/cli --target native --release`). Baseline at 400 rows on
+      an M-series laptop: 6.35 ms total = 2.54 parse + 1.26 load + 2.43 emit, so
+      parse and emit are the two halves worth attacking and the loader is
+      already cheap. The **guardrail** is what is left: CI has no threshold, and
+      a hosted runner's variance means one needs a tolerance band rather than a
+      fixed number
 - [ ] **Import: an existing `.xlsx` → a skeleton spec.** Promoted from a
       post-v1 stretch to a wanted feature (§8 Q5). Framed as a **one-way,
       one-time migration aid**, not a round-trip contract: lossy and irreversible
@@ -937,6 +950,17 @@ silently reading the wrong file).
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-27** — **A compile benchmark**, opening the performance phase.
+  `moon bench src/cli --target native --release` times a generated spec through
+  the whole pipeline and through parse, load, and emit separately, so a
+  regression names a stage instead of only a total. The spec is generated rather
+  than read from `examples/`, which keeps the size a knob and the benchmark
+  I/O-free like the pipeline it measures. The first finding is that **cost is
+  linear**: 2 000 cells take 6.35 ms and 20 000 take 64.1 ms, a 10.1× for a 10×,
+  so the phase's first item needs a workbook that is actually too slow before it
+  needs streaming. Roughly 40 % of the time is the YAML parse and 38 % the emit.
+  No CI threshold yet — that is the guardrail half of the item.
 
 - **2026-07-27** — **Slicers**, closing Phase 9's second slice. `slicers:`
   floats the button panel that filters an Excel table: `table:` names a
