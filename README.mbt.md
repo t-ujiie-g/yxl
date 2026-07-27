@@ -31,9 +31,9 @@ is declarative authoring for people who'd rather edit YAML than write code.
 > values, formulas, dates, durations, rich text, styles, layout, print setup,
 > multi-file specs, external CSV/JSON data, parameters, validations, conditional
 > formatting, hyperlinks, notes, protection, Excel tables, charts, images,
-> shapes, sheet backgrounds, sparklines, and pivot tables all compile, and the
-> CLI has `--check`, `--set`, and stable exit codes. Still ahead: form controls
-> and slicers, then performance work and the schema freeze —
+> shapes, sheet backgrounds, sparklines, form controls, and pivot tables all
+> compile, and the CLI has `--check`, `--set`, and stable exit codes. Still
+> ahead: slicers, then performance work and the schema freeze —
 > **the schema may change until v1.0.** See [`ROADMAP.md`](./ROADMAP.md) for the
 > phase plan and the living changelog.
 
@@ -177,7 +177,7 @@ so the pages cannot drift from the compiler:
 | [`layout.yxl.yaml`](./examples/layout.yxl.yaml) | merges, frozen headers, sized and grouped bands, sheet visibility, print setup, document properties, an image, a watermark background |
 | [`modular.yxl.yaml`](./examples/modular.yxl.yaml) | `$include`, CSV / JSON `data:`, and an Excel table over the region they fill |
 | [`parameters.yxl.yaml`](./examples/parameters.yxl.yaml) | `params:` with `${}` and `--set` |
-| [`interactive.yxl.yaml`](./examples/interactive.yxl.yaml) | drop-downs and other validations, an auto filter, hyperlinks, notes, sheet protection |
+| [`interactive.yxl.yaml`](./examples/interactive.yxl.yaml) | drop-downs and other validations, an auto filter, hyperlinks, notes, sheet protection, a check box and spin button |
 | [`charts.yxl.yaml`](./examples/charts.yxl.yaml) | column, pie, and bar charts, series named from cells, one plotting another sheet |
 | [`pivots.yxl.yaml`](./examples/pivots.yxl.yaml) | two pivot tables over one source: rows, columns, and two aggregations |
 | [`shapes.yxl.yaml`](./examples/shapes.yxl.yaml) | a cloud stamp, a chevron with two text lines, a pinned star |

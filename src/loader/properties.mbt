@@ -213,36 +213,3 @@ fn load_allowances(
 
 ///|
 /// The top-level `protect:` — what a reader may not do to the workbook itself.
-fn load_workbook_protection(
-  node : @yaml.Node,
-  file~ : String,
-) -> @model.WorkbookProtection raise @diag.SchemaError {
-  let mut structure = false
-  let mut windows = false
-  let mut password = None
-  for entry in expect_map(node, file~, context="'protect'") {
-    let (key, value) = entry
-    match key {
-      "structure" =>
-        structure = expect_bool(value, file~, context="'protect' 'structure'")
-      "windows" =>
-        windows = expect_bool(value, file~, context="'protect' 'windows'")
-      "password" =>
-        password = Some(
-          expect_string(value, file~, context="'protect' 'password'"),
-        )
-      _ =>
-        raise schema_error(
-          file~,
-          "unknown key '\{key}' in 'protect' (expected 'structure', 'windows', or 'password')",
-        )
-    }
-  }
-  guard structure || windows else {
-    raise schema_error(
-      file~,
-      "'protect' locks nothing (expected 'structure' or 'windows')",
-    )
-  }
-  { structure, windows, password }
-}

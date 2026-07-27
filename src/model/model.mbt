@@ -154,6 +154,8 @@ pub(all) struct Sheet {
   mut background : SheetBackground?
   /// Sparkline groups, in declaration order.
   sparklines : Array[SparklineGroup]
+  /// Form controls sitting over the grid, in declaration order.
+  controls : Array[FormControl]
   /// Pivot tables placed on the sheet, in declaration order.
   pivots : Array[Pivot]
   /// What a reader may still do once the sheet is protected; `None` leaves the
@@ -311,6 +313,7 @@ pub fn Sheet::new(
     shapes: [],
     background: None,
     sparklines: [],
+    controls: [],
     pivots: [],
     protection: None,
   }

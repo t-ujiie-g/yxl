@@ -307,7 +307,11 @@ six are wanted rather than optional.
 - [x] **Sheet / workbook protection** — `protect:` at both levels, plus
       `protection: { locked, hidden }` in a style, without which protection
       cannot leave a form's input cells editable. Excel's own defaults apply,
-      and a misspelt allowance is a diagnostic. **File encryption**
+      and a misspelt allowance is a diagnostic. **The workbook half was
+      re-refused 2026-07-27**: the first Tier-3 check to reach it showed Excel
+      reporting the file corrupt — the backend writes `<workbookProtection>`
+      out of schema order (§9) — so top-level `protect:` is now a named
+      refusal until the upstream fix; the sheet half is unaffected. **File encryption**
       (`write_with_password`) is *not* included: it changes the emitter's
       signature and needs the CLI to carry a secret, which wants its own
       decision — a protection password is only anti-accident, and the spec says
@@ -343,7 +347,8 @@ Excel by hand** before ticking the box, not only round-trip it.
       test pins that invariant, and the camel-case kinds an author will reach
       for — the rounded rectangle, right triangle, the eight arrows, the four
       callouts — are refused *by name* with the reason, the pivots-`filters:`
-      arrangement (reported upstream, §9). Not available from the backend:
+      arrangement (recorded in §9 pending an upstream report). Not available
+      from the backend:
       an `offset` (its shape constructor takes none, unlike pictures) and a
       `scale` (dropped deliberately — a shape has no natural size to scale;
       `size` says it directly). `macro_name` stays out: `.xlsx` carries no
@@ -383,13 +388,20 @@ Excel by hand** before ticking the box, not only round-trip it.
       the reason), and `manualMin`/`manualMax` are written without
       `minAxisType`/`maxAxisType="custom"` — whether Excel honours them anyway
       is what the manual check watches
-- [ ] **Form controls** (`add_form_control`) — a button, check box, option
+- [x] **Form controls** (`add_form_control`) — a button, check box, option
       button, scroll bar, spin button, group box, or label sitting over the
       grid, linked to a cell. The value a control writes into its `cell_link`
       is what makes a sheet a form, which is the same story `protection:
-      { locked: false }` already tells. The largest vocabulary here: seven
-      control types, each with its own meaningful subset of `checked`,
-      `min`/`max`/`increment`/`page`, size, and text. Again no `macro_name`
+      { locked: false }` already tells. The largest vocabulary here, and the
+      loader enforces it kind by kind: each key is admitted only where Excel's
+      own "Format Control" dialog shows it, values keep to the dialog's
+      0–30000, `page` is the scroll bar's alone, and a misplaced key is a
+      diagnostic naming where it belongs. A `link` is a same-sheet cell — the
+      backend refuses a qualified reference. Again no `macro_name`: a button
+      without a macro is a caption that clicks, and assigning behavior is
+      Excel's side of the contract. One reader note: a control's size lands in
+      the VML anchor, which the backend does not translate back — the manual
+      check is what sees it
 - [ ] **Slicers** (`add_slicer`) — the button panel that filters an Excel table
       (`SlicerOptions::new(name, cell, table_sheet, table_name)`), with a
       caption, size, and header. **Last on purpose**: it is the only item that
@@ -857,6 +869,19 @@ silently reading the wrong file).
   Mitigation is the one already listed below — automate "does Excel open it
   cleanly" — and, until then, **open the output by hand when a feature writes a
   part Excel interprets rather than displays**.
+- **The backend writes `<workbookProtection>` out of schema order.**
+  `write_workbook_xml.mbt` emits it after `</sheets>` and `definedNames`,
+  while CT_Workbook (ECMA-376 §18.2) wants it *before* `bookViews` — and a
+  schema violation in workbook.xml makes Excel report the whole file as
+  corrupt, repair refused. Shipped broken in the first slice's protection and
+  caught only when the second slice's manual-check obligation finally opened
+  a workbook that used it: every Excel-opened example until then happened not
+  to carry workbook-level `protect:`. Found by feature-bisecting the failing
+  workbook with eleven probe files rather than re-reading code. Worked around
+  by refusing top-level `protect:` by name with the reason; sheet protection
+  and `locked: false` styles are unaffected and verified clean. The lesson
+  already in this section stands sharper: *a feature is not done until Excel
+  has opened it* — the round trip cannot catch what the reader tolerates.
 - **The backend lowercases a shape's `prst` token.** `write.mbt` passes
   `shape_type` through `.to_lower()`, and DrawingML's `ST_ShapeType` enum is
   case-sensitive — `roundRect` written as `roundrect` is a geometry Excel does
@@ -867,7 +892,7 @@ silently reading the wrong file).
   pins the no-capitals invariant. Two smaller reader defects found alongside,
   affecting only what tests can assert: a text run written with
   `xml:space="preserve"` is invisible to the reader (it splits on the literal
-  `<a:t>`), and no run's font is read back. All reported upstream.
+  `<a:t>`), and no run's font is read back. All pending an upstream report.
 - **MSVC cannot compile the backend's formula evaluator.** MoonBit's native
   backend hands each test executable to the platform C compiler as one
   translation unit, and `mbtexcel`'s formula dispatch — a `match` with a
@@ -905,6 +930,51 @@ silently reading the wrong file).
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-27** — **Workbook-level `protect:` refused: it corrupted every
+  file that used it.** The form-controls manual check opened the interactive
+  example and Excel reported it *corrupt, repair refused* — the first
+  Tier-3 look at a workbook carrying top-level `protect:`, which shipped in
+  the first slice before the open-it-in-Excel obligation existed. Eleven
+  probe workbooks bisected the failure feature by feature: controls,
+  comments, links, validations, the filter, and sheet protection each opened
+  clean alone and in pairs; the one that failed held workbook protection.
+  The part told the rest: the backend writes `<workbookProtection>` after
+  `</sheets>` and `definedNames`, and CT_Workbook wants it before
+  `bookViews` (ECMA-376 §18.2) — a schema violation in the workbook's
+  load-bearing part, which is why Excel refuses even to repair.
+
+  So top-level `protect:` is now a **named refusal with the reason** (the
+  pivots-`filters:` arrangement), documented in `docs/spec.md` §16; sheet
+  protection and `locked: false` styles are untouched and verified clean.
+  The interactive example drops its `structure: true`. Recorded in §9
+  pending an upstream report.
+
+- **2026-07-27** — **Form controls.** `controls:` puts a button, check box,
+  option button, scroll bar, spin button, group box, or label over the grid.
+  A control writes into its **linked cell** — a boolean, an option index, or
+  a number — which is what formulas react to, and the other half of the story
+  sheet protection tells: lock the sheet, unlock the entry cells, and let the
+  controls drive the rest.
+
+  The largest vocabulary of the slice, enforced kind by kind rather than
+  pooled: `text` belongs to the captioned kinds, `checked` to the two
+  tickable ones, `link` to the four that write a value, `min`/`max`/`step`/
+  `value` to the two ranged ones, `page` to the scroll bar alone (a spin
+  button has no trough), `horizontal` to both sliders — and a misplaced key
+  is a diagnostic naming where it belongs, which is exactly what Excel's own
+  "Format Control" dialog expresses by greying things out. Values keep to the
+  dialog's 0–30000; `min` above `max` is refused; a `link` is a same-sheet
+  cell because the backend validates it as a bare reference.
+
+  No `macro:`, deliberately: an `.xlsx` carries no macros (§2), so a button
+  without one is a caption that clicks — the spec says so rather than
+  accepting a key that does nothing. The interactive example gained a
+  "Rush order" check box and a priority spin button beside its form rows.
+  One trap the manual check caught: on a protected sheet Excel writes a
+  control's value into its `link` like any other edit, so a locked target
+  makes the control refuse — the linked cell needs `locked: false` exactly
+  as a typed-into cell does, and `docs/spec.md` §20 now says so.
 
 - **2026-07-27** — **Sparklines.** `sparklines:` puts a chart inside a cell —
   a line, a column per point, or win/loss — for the row of figures beside it.
@@ -969,7 +1039,8 @@ Reverse-chronological. One entry per user-visible or structural change.
   heart, moon, sun, cloud, pie, line — a test pins the no-capitals invariant,
   and the camel-case kinds an author will reach for (the rounded rectangle,
   right triangle, eight arrows, four callouts) are refused **by name** with
-  the reason, exactly as a pivot's `filters:` is. Reported upstream, with two
+  the reason, exactly as a pivot's `filters:` is. Recorded pending an
+  upstream report, with two
   reader defects found alongside (§9): a run written `xml:space="preserve"`
   never reads back, and no run's font does.
 
