@@ -14,7 +14,7 @@ fn apply_table(
   sheet_name : String,
   table : @model.Table,
 ) -> Unit raise {
-  let options = @xlsx.TableOptions::new(plain_range(table.at))
+  let options = @xlsx.TableOptions::new(table.at.to_a1())
   if table.name is Some(name) {
     options.set_name(name)
   }

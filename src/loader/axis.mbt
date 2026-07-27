@@ -206,22 +206,7 @@ fn parse_column_selector(
   selector : String,
   file~ : String,
 ) -> (Int, Int) raise @diag.SchemaError {
-  let (start, end) = split_range(selector)
-  guard @units.parse_column(start) is Some(first) else {
-    raise schema_error(file~, "'\{selector}' is not a valid column")
-  }
-  let last = match end {
-    Some(end) =>
-      match @units.parse_column(end) {
-        Some(last) => last
-        None => raise schema_error(file~, "'\{selector}' is not a valid column")
-      }
-    None => first
-  }
-  guard first <= last else {
-    raise schema_error(file~, "column range '\{selector}' is reversed")
-  }
-  (first, last)
+  parse_selector(selector, file~, parse=@units.parse_column, noun="column")
 }
 
 ///|
@@ -231,20 +216,33 @@ fn parse_row_selector(
   selector : String,
   file~ : String,
 ) -> (Int, Int) raise @diag.SchemaError {
+  parse_selector(selector, file~, parse=parse_row_index, noun="row")
+}
+
+///|
+/// The shape both selectors share: parse the one or two endpoints with `parse`,
+/// refuse a reversed range, and name the axis as `noun` in the diagnostics.
+fn parse_selector(
+  selector : String,
+  file~ : String,
+  parse~ : (StringView) -> Int?,
+  noun~ : String,
+) -> (Int, Int) raise @diag.SchemaError {
   let (start, end) = split_range(selector)
-  guard parse_row_index(start) is Some(first) else {
-    raise schema_error(file~, "'\{selector}' is not a valid row")
+  guard parse(start) is Some(first) else {
+    raise schema_error(file~, "'\{selector}' is not a valid \{noun}")
   }
   let last = match end {
     Some(end) =>
-      match parse_row_index(end) {
+      match parse(end) {
         Some(last) => last
-        None => raise schema_error(file~, "'\{selector}' is not a valid row")
+        None =>
+          raise schema_error(file~, "'\{selector}' is not a valid \{noun}")
       }
     None => first
   }
   guard first <= last else {
-    raise schema_error(file~, "row range '\{selector}' is reversed")
+    raise schema_error(file~, "\{noun} range '\{selector}' is reversed")
   }
   (first, last)
 }

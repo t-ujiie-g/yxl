@@ -47,7 +47,7 @@ fn load_pivot(
     file~,
     what="pivot range",
   )
-  let context = "pivot '\{range_a1(at)}'"
+  let context = "pivot '\{at.to_a1()}'"
   let mut source = None
   let mut rows : Array[@model.PivotField] = []
   let mut columns : Array[@model.PivotField] = []
@@ -255,9 +255,9 @@ fn check_pivots(
   let mut declared : (String, @model.CellRange, String)? = None
   for sheet in workbook.sheets {
     for pivot in sheet.pivots {
-      let context = "pivot '\{range_a1(pivot.at)}' on sheet '\{sheet.name}'"
+      let context = "pivot '\{pivot.at.to_a1()}' on sheet '\{sheet.name}'"
       let source_name = pivot.source.sheet.unwrap_or(sheet.name)
-      guard find_sheet(workbook, source_name) is Some(source_sheet) else {
+      guard workbook.sheet(source_name) is Some(source_sheet) else {
         raise schema_error(
           file~,
           "\{context} summarizes sheet '\{source_name}', which is not declared",
@@ -270,7 +270,7 @@ fn check_pivots(
         source.bottom_right.col > source.top_left.col else {
         raise schema_error(
           file~,
-          "\{context} summarizes '\{range_a1(source)}', which is not a region with a header row and rows beneath it",
+          "\{context} summarizes '\{source.to_a1()}', which is not a region with a header row and rows beneath it",
         )
       }
       // The backend writes both halves of `Sheet!A1:D7` into the pivot's XML
@@ -287,7 +287,7 @@ fn check_pivots(
       if source_name == sheet.name && overlaps(pivot.at, source) {
         raise schema_error(
           file~,
-          "\{context} is drawn over the cells it summarizes at '\{range_a1(source)}'",
+          "\{context} is drawn over the cells it summarizes at '\{source.to_a1()}'",
         )
       }
       match declared {
@@ -295,7 +295,7 @@ fn check_pivots(
           if first_sheet != source_name || first_range != source {
             raise schema_error(
               file~,
-              "\{context} summarizes '\{source_name}!\{range_a1(source)}', but \{first_context} summarizes '\{first_sheet}!\{range_a1(first_range)}' — every pivot in a workbook must share one source, because the Excel backend gives them all the same cache and the later ones would quietly summarize the first one's data",
+              "\{context} summarizes '\{source_name}!\{source.to_a1()}', but \{first_context} summarizes '\{first_sheet}!\{first_range.to_a1()}' — every pivot in a workbook must share one source, because the Excel backend gives them all the same cache and the later ones would quietly summarize the first one's data",
             )
           }
         None => declared = Some((source_name, source, context))
@@ -303,17 +303,6 @@ fn check_pivots(
       check_pivot_fields(source_sheet, pivot, file~, context~)
     }
   }
-}
-
-///|
-/// The sheet a name refers to, or `None` when the workbook has no such sheet.
-fn find_sheet(workbook : @model.Workbook, name : String) -> @model.Sheet? {
-  for sheet in workbook.sheets {
-    if sheet.name == name {
-      return Some(sheet)
-    }
-  }
-  None
 }
 
 ///|
@@ -343,7 +332,7 @@ fn check_pivot_fields(
   guard headers.length() == width else {
     raise schema_error(
       file~,
-      "\{context} summarizes '\{range_a1(source)}', whose top row does not name every column, as text",
+      "\{context} summarizes '\{source.to_a1()}', whose top row does not name every column, as text",
     )
   }
   let named : Array[String] = []

@@ -276,7 +276,7 @@ fn refers_to(
   date_system : @units.DateSystem,
 ) -> String {
   match value {
-    Text(text) => "\"" + text.replace_all(old="\"", new="\"\"") + "\""
+    Text(text) => quote_literal(text)
     Number(number) => number.to_string()
     Bool(flag) => if flag { "TRUE" } else { "FALSE" }
     Date(datetime) => datetime.to_serial(date_system).to_string()

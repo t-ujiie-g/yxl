@@ -11,7 +11,7 @@ fn apply_filter(
   sheet_name : String,
   range : @model.CellRange,
 ) -> Unit raise {
-  backend.set_auto_filter(sheet_name, plain_range(range), [])
+  backend.set_auto_filter(sheet_name, range.to_a1(), [])
 }
 
 ///|
@@ -24,7 +24,7 @@ fn apply_validation(
   date_system : @units.DateSystem,
 ) -> Unit raise {
   let dv = @xlsx.DataValidation::new(validation.allow_blank)
-  dv.set_sqref(plain_range(validation.at))
+  dv.set_sqref(validation.at.to_a1())
   match validation.rule {
     List(choices) => dv.set_drop_list(choices[:])
     ListFrom(source) =>
@@ -85,7 +85,7 @@ fn apply_conditional_format(
   if format.style is Some(style) {
     options.set_format(Some(intern_conditional_style(backend, dxf_ids, style)))
   }
-  backend.set_conditional_format(sheet_name, plain_range(format.at), [options])
+  backend.set_conditional_format(sheet_name, format.at.to_a1(), [options])
 }
 
 ///|
@@ -214,14 +214,6 @@ fn apply_comment(
     width: None,
     height: None,
   })
-}
-
-///|
-/// A range as the plain `A1:B9` reference Excel uses for an `sqref` or an auto
-/// filter — relative, and never sheet-qualified, since both are stored inside
-/// the sheet they apply to.
-fn plain_range(range : @model.CellRange) -> String {
-  range.top_left.to_a1() + ":" + range.bottom_right.to_a1()
 }
 
 ///|

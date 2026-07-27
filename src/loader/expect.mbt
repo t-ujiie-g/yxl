@@ -142,6 +142,29 @@ fn expect_scalar(
 }
 
 ///|
+/// A measurement in whole pixels, from `min` (0 for an offset, 1 for a size) up
+/// to Excel's drawing ceiling. Shared by charts and images so both refuse an
+/// absurd number in the same words.
+fn expect_pixels(
+  node : @yaml.Node,
+  file~ : String,
+  what~ : String,
+  min~ : Int,
+) -> Int raise @diag.SchemaError {
+  guard node is @yaml.Int(pixels) else {
+    raise schema_error(file~, "\{what} must be a whole number of pixels")
+  }
+  guard pixels >= min.to_int64() &&
+    pixels <= @model.max_drawing_pixels.to_int64() else {
+    raise schema_error(
+      file~,
+      "\{what} must be between \{min} and \{@model.max_drawing_pixels} pixels, not \{pixels}",
+    )
+  }
+  pixels.to_int()
+}
+
+///|
 /// The diagnostic for a structure where one value belongs. Shared so a cell
 /// value and a parameter are refused in the same words.
 fn not_scalar(file~ : String, context~ : String) -> @diag.SchemaError {

@@ -80,23 +80,17 @@ fn promises() -> Array[Promise] {
 }
 
 ///|
-/// Read an included file relative to the spec that named it — the same rule the
-/// CLI applies, so the corpus may split itself across directories.
+/// Read an included file through `@cli.resolve_path` — the same rule the CLI
+/// applies, so the corpus exercises the real resolution instead of a copy.
 fn included(from : String, path : String) -> @loader.Included raise {
-  let name = match from.rev_find("/") {
-    Some(slash) => from[:slash + 1].to_owned() + path
-    None => path
-  }
+  let name = @cli.resolve_path(from, path)
   { name, source: @fs.read_file_to_string(name) }
 }
 
 ///|
 /// The same, for a file the spec names but cannot hold as text: an image.
 fn included_bytes(from : String, path : String) -> @loader.IncludedBytes raise {
-  let name = match from.rev_find("/") {
-    Some(slash) => from[:slash + 1].to_owned() + path
-    None => path
-  }
+  let name = @cli.resolve_path(from, path)
   { name, data: @fs.read_file_to_bytes(name) }
 }
 

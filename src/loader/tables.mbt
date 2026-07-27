@@ -34,7 +34,7 @@ fn load_table(
     file~,
     what="table range",
   )
-  let context = "table '\{range_a1(at)}'"
+  let context = "table '\{at.to_a1()}'"
   // Excel's own defaults, as its "Format as Table" applies them.
   let mut name = None
   let mut style = None
@@ -112,8 +112,10 @@ fn check_table_name(
   guard name.length() > 0 else {
     raise schema_error(file~, "\{context} has an empty 'name'")
   }
-  guard name.length() <= MAX_DEFINED_NAME_LENGTH else {
-    raise refuse("is longer than Excel's \{MAX_DEFINED_NAME_LENGTH} characters")
+  guard name.length() <= @model.max_defined_name_length else {
+    raise refuse(
+      "is longer than Excel's \{@model.max_defined_name_length} characters",
+    )
   }
   for index, ch in name.iter().to_array() {
     let start = index == 0
@@ -137,10 +139,6 @@ fn check_table_name(
   }
   name
 }
-
-///|
-/// Excel's limit on the length of a defined name, which a table name is.
-const MAX_DEFINED_NAME_LENGTH : Int = 255
 
 ///|
 /// Whether `ch` may start a defined name. Excel allows a backslash there too;
@@ -195,7 +193,7 @@ fn check_tables(
   let names : Map[String, String] = Map([])
   for sheet in workbook.sheets {
     for index, table in sheet.tables {
-      let context = "table '\{range_a1(table.at)}' on sheet '\{sheet.name}'"
+      let context = "table '\{table.at.to_a1()}' on sheet '\{sheet.name}'"
       if table.name is Some(name) {
         let key = name.to_lower()
         if names.get(key) is Some(owner) {
@@ -210,14 +208,14 @@ fn check_tables(
         guard !overlaps(table.at, earlier.at) else {
           raise schema_error(
             file~,
-            "\{context} overlaps the table at '\{range_a1(earlier.at)}'; Excel allows a cell in one table only",
+            "\{context} overlaps the table at '\{earlier.at.to_a1()}'; Excel allows a cell in one table only",
           )
         }
       }
       if sheet.filter is Some(filter) && overlaps(table.at, filter) {
         raise schema_error(
           file~,
-          "\{context} overlaps the sheet's filter at '\{range_a1(filter)}'; a table carries its own filter buttons",
+          "\{context} overlaps the sheet's filter at '\{filter.to_a1()}'; a table carries its own filter buttons",
         )
       }
       check_header_row(sheet, table, file~, context~)

@@ -254,7 +254,8 @@ fn load_chart_size(
   for entry in expect_map(node, file~, context=what) {
     let (key, value) = entry
     let pixels = match key {
-      "width" | "height" => expect_pixels(value, file~, what="\{what} '\{key}'")
+      "width" | "height" =>
+        expect_pixels(value, file~, what="\{what} '\{key}'", min=1)
       _ =>
         raise schema_error(
           file~,
@@ -272,30 +273,6 @@ fn load_chart_size(
   }
   { width, height }
 }
-
-///|
-/// A measurement in whole pixels, which Excel cannot make zero or negative.
-fn expect_pixels(
-  node : @yaml.Node,
-  file~ : String,
-  what~ : String,
-) -> Int raise @diag.SchemaError {
-  guard node is @yaml.Int(pixels) else {
-    raise schema_error(file~, "\{what} must be a whole number of pixels")
-  }
-  guard pixels >= 1L && pixels <= MAX_CHART_PIXELS.to_int64() else {
-    raise schema_error(
-      file~,
-      "\{what} must be between 1 and \{MAX_CHART_PIXELS} pixels, not \{pixels}",
-    )
-  }
-  pixels.to_int()
-}
-
-///|
-/// A ceiling on a chart's size, well past any usable one: it exists so an absurd
-/// number is a diagnostic rather than a drawing Excel cannot place.
-const MAX_CHART_PIXELS : Int = 20000
 
 ///|
 /// One of a chart's axes: what to call it, and where to pin its ends.

@@ -89,13 +89,13 @@ pub fn load(
       }
       "date1904" => () // consumed by read_date_system
       "default_font" => () // consumed by read_default_font
-      "defs" => () // consumed by load_defs
+      DEFS_KEY => () // consumed by load_defs
       "active" => () // resolved below, once every sheet name is known
       "properties" => workbook.set_properties(load_properties(value, file~))
       "calc" => workbook.set_calc(load_calc(value, file~))
       "protect" =>
         workbook.set_protection(load_workbook_protection(value, file~))
-      "params" => () // consumed by the substitution pass
+      PARAMS_KEY => () // consumed by the substitution pass
       _ =>
         raise schema_error(
           file~,
@@ -130,8 +130,7 @@ fn read_active_sheet(
 ) -> Unit raise @diag.SchemaError {
   guard find_key(root, "active") is Some(value) else { return }
   let name = expect_string(value, file~, context="'active'")
-  guard workbook.sheets.iter().find_first(sheet => sheet.name == name)
-    is Some(sheet) else {
+  guard workbook.sheet(name) is Some(sheet) else {
     raise schema_error(file~, "active sheet '\{name}' is not a declared sheet")
   }
   guard sheet.visibility is Visible else {
@@ -363,12 +362,6 @@ fn parse_range(
   let second = expect_cell_ref(right.to_owned(), file~, what=corner)
   let (top_left, bottom_right) = @units.CellRef::rect(first, second)
   { top_left, bottom_right }
-}
-
-///|
-/// A range as a diagnostic writes it: `A1:D10`.
-fn range_a1(range : @model.CellRange) -> String {
-  "\{range.top_left.to_a1()}:\{range.bottom_right.to_a1()}"
 }
 
 ///|

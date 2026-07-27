@@ -46,3 +46,14 @@ pub let image_formats : Array[String] = [
   "bmp", "emf", "emz", "gif", "ico", "jpeg", "jpg", "png", "svg", "tif", "tiff",
   "wmf", "wmz",
 ]
+
+///|
+/// A ceiling on a drawing's size or offset in pixels — charts and images alike —
+/// well past any usable value: it exists so an absurd number is a diagnostic
+/// rather than a drawing Excel cannot place.
+pub let max_drawing_pixels : Int = 20000
+
+///|
+/// The largest image scale a spec may ask for. Excel's own dialog stops here,
+/// and past it an image is bigger than any sheet it could sit on.
+pub let max_image_scale : Double = 100.0

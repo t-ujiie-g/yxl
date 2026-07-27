@@ -74,6 +74,13 @@ pub(all) struct CellRange {
 } derive(Eq, Debug)
 
 ///|
+/// The range in A1 notation (`A1:B9`), unqualified and relative — the form the
+/// spec itself uses.
+pub fn CellRange::to_a1(self : CellRange) -> String {
+  self.top_left.to_a1() + ":" + self.bottom_right.to_a1()
+}
+
+///|
 /// How Excel shows a sheet in the tab bar (ECMA-376 §18.18.68,
 /// `ST_SheetState`): visible; hidden, which the user can undo from the tab
 /// context menu; or very hidden, which only VBA can undo. A workbook must keep
@@ -227,6 +234,11 @@ pub(all) struct DefinedName {
 } derive(Eq, Debug)
 
 ///|
+/// The longest name Excel accepts for a defined name — and for a table name,
+/// which shares the same namespace and the same limit.
+pub let max_defined_name_length : Int = 255
+
+///|
 /// A workbook: an ordered list of sheets — the order is the order of the tabs —
 /// the date system that governs how dates serialize, and any workbook-level
 /// defined names. This is the entire input to the emitter seam
@@ -250,6 +262,13 @@ pub(all) struct Workbook {
   /// What a reader may not do to the workbook itself; `None` leaves it open.
   mut protection : WorkbookProtection?
 } derive(Eq, Debug)
+
+///|
+/// The sheet declared under `name`, or `None` — the lookup every construct
+/// that names a sheet (a pivot source, a chart series, a link target) shares.
+pub fn Workbook::sheet(self : Workbook, name : String) -> Sheet? {
+  self.sheets.iter().find_first(sheet => sheet.name == name)
+}
 
 ///|
 /// A new, empty workbook. Defaults to the 1900 date system, the backend's

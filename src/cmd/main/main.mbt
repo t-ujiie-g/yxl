@@ -35,12 +35,7 @@ fn run() -> Int {
 /// Compile `input` without writing anything: the whole pipeline runs, so a spec
 /// that passes here is one `build` would accept.
 fn check(input : String, params : Map[String, String]) -> Int {
-  let source = @fs.read_file_to_string(input) catch {
-    @fs.IOError(reason) => {
-      report("cannot read \{input}: \{reason}")
-      return @cli.exit_error
-    }
-  }
+  guard read_source(input) is Some(source) else { return @cli.exit_error }
   (@cli.compile(
     source,
     file=input,
@@ -61,12 +56,7 @@ fn check(input : String, params : Map[String, String]) -> Int {
 ///|
 /// Read `input`, compile it, and write the `.xlsx` bytes to `output`.
 fn build(input : String, output : String, params : Map[String, String]) -> Int {
-  let source = @fs.read_file_to_string(input) catch {
-    @fs.IOError(reason) => {
-      report("cannot read \{input}: \{reason}")
-      return @cli.exit_error
-    }
-  }
+  guard read_source(input) is Some(source) else { return @cli.exit_error }
   let bytes = @cli.compile(
     source,
     file=input,
@@ -90,18 +80,25 @@ fn build(input : String, output : String, params : Map[String, String]) -> Int {
 }
 
 ///|
+/// Read the spec itself, reporting a failure and returning `None` — the shared
+/// front door of `build` and `check`.
+fn read_source(input : String) -> String? {
+  Some(@fs.read_file_to_string(input)) catch {
+    @fs.IOError(reason) => {
+      report("cannot read \{input}: \{reason}")
+      None
+    }
+  }
+}
+
+///|
 /// Read the file an `$include` names, relative to the file containing it, so a
 /// spec can be moved as a directory. This is the disk half of includes; the
 /// loader itself never opens a file (ADR-003).
 fn read_included(from : String, path : String) -> @loader.Included raise {
   let name = @cli.resolve_path(from, path)
   let source = @fs.read_file_to_string(name) catch {
-    @fs.IOError(reason) =>
-      raise @diag.SchemaError(
-        @diag.Diagnostic::new(
-          "\{from}: cannot read included file '\{name}': \{reason}",
-        ),
-      )
+    @fs.IOError(reason) => raise read_error(from, name, reason)
   }
   { name, source }
 }
@@ -116,12 +113,22 @@ fn read_included_bytes(
 ) -> @loader.IncludedBytes raise {
   let name = @cli.resolve_path(from, path)
   let data = @fs.read_file_to_bytes(name) catch {
-    @fs.IOError(reason) =>
-      raise @diag.SchemaError(
-        @diag.Diagnostic::new("\{from}: cannot read '\{name}': \{reason}"),
-      )
+    @fs.IOError(reason) => raise read_error(from, name, reason)
   }
   { name, data }
+}
+
+///|
+/// The one wording for "a file the spec names could not be read", whether it
+/// held YAML or bytes.
+fn read_error(
+  from : String,
+  name : String,
+  reason : String,
+) -> @diag.SchemaError {
+  @diag.SchemaError(
+    @diag.Diagnostic::new("\{from}: cannot read '\{name}': \{reason}"),
+  )
 }
 
 ///|

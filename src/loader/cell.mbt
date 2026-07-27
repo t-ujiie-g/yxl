@@ -277,13 +277,22 @@ fn load_date_cell(
     Some(format) => format
     None =>
       if datetime.has_time() {
-        "yyyy-mm-dd hh:mm:ss"
+        DEFAULT_DATETIME_FORMAT
       } else {
-        "yyyy-mm-dd"
+        DEFAULT_DATE_FORMAT
       }
   }
   (@model.Date(datetime), Some(format))
 }
+
+///|
+/// The number formats a `type: date` cell gets when the spec sets none — ISO
+/// order, so what Excel shows matches what the spec wrote.
+const DEFAULT_DATE_FORMAT : String = "yyyy-mm-dd"
+
+///|
+/// The same, when the date carries a time of day.
+const DEFAULT_DATETIME_FORMAT : String = "yyyy-mm-dd hh:mm:ss"
 
 ///|
 /// The Excel error literals a `type: error` cell may hold.

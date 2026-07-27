@@ -80,12 +80,3 @@ pub let pivot_style_families : Array[(String, Int)] = [
   ("PivotStyleMedium", 28),
   ("PivotStyleDark", 28),
 ]
-
-///|
-/// Whether `name` is one of Excel's built-in pivot styles.
-pub fn is_pivot_style(name : String) -> Bool {
-  pivot_styles.contains(name)
-}
-
-///|
-let pivot_styles : Array[String] = numbered_styles(pivot_style_families)

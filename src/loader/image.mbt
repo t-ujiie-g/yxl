@@ -156,19 +156,14 @@ fn expect_image_scale(
   what~ : String,
 ) -> Double raise @diag.SchemaError {
   let scale = expect_number(node, file~, context=what)
-  guard scale > 0.0 && scale <= MAX_IMAGE_SCALE else {
+  guard scale > 0.0 && scale <= @model.max_image_scale else {
     raise schema_error(
       file~,
-      "\{what} must be above 0 and at most \{MAX_IMAGE_SCALE}, not \{scale}",
+      "\{what} must be above 0 and at most \{@model.max_image_scale}, not \{scale}",
     )
   }
   scale
 }
-
-///|
-/// The largest scale a spec may ask for. Excel's own dialog stops here, and past
-/// it an image is bigger than any sheet it could sit on.
-const MAX_IMAGE_SCALE : Double = 100.0
 
 ///|
 /// An image's `offset:` — pixels in from the anchor cell's top-left corner.
@@ -180,29 +175,12 @@ fn load_offset(
   context~ : String,
 ) -> (Int, Int) raise @diag.SchemaError {
   let what = "\{context} 'offset'"
+  // Zero is the floor: a negative offset would place the image outside the
+  // cell it is anchored to, which OOXML's anchor cannot express
+  // (ECMA-376 §20.5.2.3).
   load_pair(node, file~, what~, read=(value, axis) => {
-    expect_offset(value, file~, what="\{what} '\{axis}'")
+    expect_pixels(value, file~, what="\{what} '\{axis}'", min=0)
   })
-}
-
-///|
-/// An offset in whole pixels. Negative would place the image outside the cell it
-/// is anchored to, which OOXML's anchor cannot express (ECMA-376 §20.5.2.3).
-fn expect_offset(
-  node : @yaml.Node,
-  file~ : String,
-  what~ : String,
-) -> Int raise @diag.SchemaError {
-  guard node is @yaml.Int(pixels) else {
-    raise schema_error(file~, "\{what} must be a whole number of pixels")
-  }
-  guard pixels >= 0L && pixels <= MAX_CHART_PIXELS.to_int64() else {
-    raise schema_error(
-      file~,
-      "\{what} must be between 0 and \{MAX_CHART_PIXELS} pixels, not \{pixels}",
-    )
-  }
-  pixels.to_int()
 }
 
 ///|
