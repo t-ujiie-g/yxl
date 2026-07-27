@@ -1053,6 +1053,35 @@ Phase 11's inline `values:` lands. `$include` splitting is never inferred.
 
 Reverse-chronological. One entry per user-visible or structural change.
 
+- **2026-07-28** — **Fixed: a `columns:` / `rows:` band's styling never reached
+  the cells the spec wrote.** Found by opening a workbook in Excel while
+  checking something else, and it had been shipping since Phase 4: bands set the
+  style on the column and row *records* only, and `<col style>` governs just the
+  cells a sheet has not allocated (ECMA-376 §18.3.1.13) — a `<c>` with no `s`
+  attribute is style 0, not "inherit from the column". So a band's `format:`
+  reached exactly the cells nobody wrote. `examples/layout.yxl.yaml` shipped
+  showing `2400000` where it meant `2,400,000`.
+
+  It made a liar of the arrangement §1 is proudest of. `docs/spec.md` §9 tells
+  an author that formatting is *not* part of a `data:` block and to style the
+  region with a band — which is what keeps data and formatting separable
+  (ADR-005), and which did nothing at all. The emitter now resolves each cell's
+  **effective style** — column band, then row band, then the cell's own, layered
+  per attribute as `extends` is — and writes it on the cell. Band styles stay on
+  the column and row records too, so the empty cells around the written ones
+  still match. The style cache already interns equal styles, so the file gains
+  ids only for combinations that genuinely differ (ADR-004).
+
+  One exception fell out, and it is **Excel's rule rather than ours**: an
+  inherited number format does not apply to a text cell, because a format is
+  `positive;negative;zero;text` and a code with fewer than four sections says
+  nothing about text. Following Excel here is also what keeps pivots working —
+  the backend renders such a cell by applying the *numeric* section to the text,
+  so a `Revenue` header under a `#,##0` column read back as the literal `#,##0`,
+  and a pivot finds its fields by reading that header. The pivots example failed
+  exactly that way before the exception went in. A `format:` written on the cell
+  itself is untouched: a request, not an inheritance.
+
 - **2026-07-27** — **`yxl extract` designed and scoped (ADR-017)**; no code yet.
   Reading the backend settled two premises Phase 10 had guessed at. The reader
   is **not** the constraint — there is a getter for essentially everything yxl

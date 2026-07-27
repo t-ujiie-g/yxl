@@ -164,7 +164,14 @@ fn emit_sheet(
     }
   }
   for cell in sheet.cells {
-    emit_cell(backend, sheet.name, cell, style_ids, date_system)
+    emit_cell(
+      backend,
+      sheet.name,
+      cell,
+      style_ids,
+      date_system,
+      style=effective_style(sheet, cell),
+    )
   }
   // Merge after the cells are written so the top-left keeps its value.
   for merge in sheet.merges {
@@ -248,6 +255,7 @@ fn emit_cell(
   cell : @model.Cell,
   style_ids : Map[@model.Style, Int],
   date_system : @units.DateSystem,
+  style~ : @model.Style?,
 ) -> Unit raise {
   let reference = cell.pos.to_a1()
   match cell.value {
@@ -276,7 +284,7 @@ fn emit_cell(
         runs.map(build_rich_run)[:],
       )
   }
-  if cell.style is Some(style) {
+  if style is Some(style) {
     backend.set_cell_style(
       sheet_name,
       reference,

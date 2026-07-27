@@ -5,6 +5,107 @@
 // `@model`; nothing here escapes the emitter seam.
 
 ///|
+/// The style a cell is actually drawn in: its column band's, then its row
+/// band's, then its own, each layering over the last so a column can set the
+/// number format while the cell sets the font.
+///
+/// This has to be resolved here rather than left to Excel, because
+/// `<col style>` and `<row s>` govern only the cells a sheet has **not**
+/// allocated (ECMA-376 §18.3.1.13): a `<c>` element without an `s` attribute is
+/// style 0, not "inherit from the column". Every cell the spec writes is
+/// allocated, so without this a banded `format:` would reach exactly the cells
+/// nobody wrote — which is the opposite of what `docs/spec.md` §4 and §9
+/// promise, `data:` in particular, whose whole story is that a band supplies
+/// the formatting.
+///
+/// The band styles are still set on the column and row records as well, so the
+/// empty cells around the written ones look the same.
+fn effective_style(sheet : @model.Sheet, cell : @model.Cell) -> @model.Style? {
+  let inherited = layer(
+    band_covering(sheet.columns, cell.pos.col),
+    band_covering(sheet.rows, cell.pos.row),
+  )
+  // Innermost wins: the cell over its row, the row over its column. A cell with
+  // no style of its own simply inherits whatever the bands leave.
+  layer(inherited_onto(inherited, cell.value), cell.style)
+}
+
+///|
+/// `over` laid on `under`, either alone, or neither.
+fn layer(under : @model.Style?, over : @model.Style?) -> @model.Style? {
+  match (under, over) {
+    (Some(under), Some(over)) => Some(over.over(under))
+    (None, over) => over
+    (under, None) => under
+  }
+}
+
+///|
+/// What a band actually passes down to a cell holding `value`.
+///
+/// Everything a band sets reaches every cell — except a **number format landing
+/// on text**, which Excel ignores unless the format carries a fourth, text
+/// section (ECMA-376 §18.8.31: a format is `positive;negative;zero;text`). So
+/// dropping it here is not a house rule, it is Excel's; inheriting it anyway
+/// would cost a style id to change nothing.
+///
+/// It would also do harm. The Excel backend renders such a cell by applying the
+/// *numeric* section to the text, so a `Revenue` header under a `#,##0` column
+/// reads back as the literal `#,##0` — and a pivot, which finds its fields by
+/// reading that header, then cannot find them.
+///
+/// A `format:` written on the cell itself is untouched: that is a request, not
+/// an inheritance.
+fn inherited_onto(
+  inherited : @model.Style?,
+  value : @model.CellValue,
+) -> @model.Style? {
+  guard inherited is Some(style) else { return None }
+  guard value is (Text(_) | RichText(_)) else { return inherited }
+  guard style.number_format is Some(code) && !has_text_section(code) else {
+    return inherited
+  }
+  Some({ ..style, number_format: None })
+}
+
+///|
+/// Whether a number-format code has the fourth section that governs text. The
+/// separators counted are the top-level `;` only — one inside a quoted literal
+/// (`"a;b"`) or escaped (`\;`) is part of a section, not a break between two.
+fn has_text_section(code : String) -> Bool {
+  let mut sections = 1
+  let mut quoted = false
+  let mut escaped = false
+  for ch in code {
+    if escaped {
+      escaped = false
+      continue
+    }
+    match ch {
+      '\\' => escaped = true
+      '"' => quoted = !quoted
+      ';' => if !quoted { sections += 1 }
+      _ => ()
+    }
+  }
+  sections >= 4
+}
+
+///|
+/// The last band covering `index`, or `None`. Later bands win, matching the
+/// "whichever comes last wins" rule the sheet keys already follow when two
+/// declarations overlap.
+fn band_covering(bands : Array[@model.AxisBand], index : Int) -> @model.Style? {
+  let mut found = None
+  for band in bands {
+    if index >= band.first && index <= band.last && band.style is Some(style) {
+      found = Some(style)
+    }
+  }
+  found
+}
+
+///|
 /// The interned style id for a band's default style, or `None` when the band
 /// sets no style. Interned once per band, not once per column/row it covers.
 fn band_style_id(

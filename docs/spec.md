@@ -185,6 +185,32 @@ rows:
 A band that sets nothing contributes nothing. `group` must be a whole number
 between 0 and 7; `0` means ungrouped, which is distinct from omitting the key.
 
+### How a band's styling reaches a cell
+
+A band's `style` / `format` applies to every cell in its span, written or not.
+Where several apply, they **layer**, innermost last: the column band, then the
+row band over it, then the cell's own `style` / `format` over both. Layering is
+per attribute, as `extends` is (§6), so a column can set the number format while
+the cell sets the font and both survive.
+
+```yaml
+columns:
+  - at: B
+    format: "#,##0"        # every B cell counts in thousands
+rows:
+  - at: 1
+    style: { font: { bold: true } }   # …and the header row is bold
+cells:
+  B1: Revenue              # bold, and shown as text
+  B2: 2400000              # bold and 2,400,000
+```
+
+One exception, and it is Excel's rather than `yxl`'s: **an inherited number
+format does not apply to a text cell.** An Excel number format is
+`positive;negative;zero;text`, so a code with fewer than four sections says
+nothing about text and Excel displays it plain. A `format:` written on the cell
+itself is always honoured — that is a request, not an inheritance.
+
 ## 5. Print setup
 
 ```yaml
