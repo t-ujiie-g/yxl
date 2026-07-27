@@ -147,6 +147,8 @@ pub(all) struct Sheet {
   charts : Array[Chart]
   /// Images anchored on the sheet, in declaration order.
   images : Array[Image]
+  /// Shapes floating over the sheet, in declaration order.
+  shapes : Array[Shape]
   /// Pivot tables placed on the sheet, in declaration order.
   pivots : Array[Pivot]
   /// What a reader may still do once the sheet is protected; `None` leaves the
@@ -301,6 +303,7 @@ pub fn Sheet::new(
     tables: [],
     charts: [],
     images: [],
+    shapes: [],
     pivots: [],
     protection: None,
   }

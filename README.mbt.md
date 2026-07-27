@@ -30,9 +30,9 @@ is declarative authoring for people who'd rather edit YAML than write code.
 > ⚠️ **Status: pre-release, schema not yet frozen.** `yxl build` works today —
 > values, formulas, dates, rich text, styles, layout, print setup, multi-file
 > specs, external CSV/JSON data, parameters, validations, conditional
-> formatting, hyperlinks, notes, protection, Excel tables, charts, images, and
-> pivot tables all compile, and the CLI has `--check`, `--set`, and stable exit
-> codes. Still ahead: shapes, sparklines, form controls, slicers, sheet
+> formatting, hyperlinks, notes, protection, Excel tables, charts, images,
+> shapes, and pivot tables all compile, and the CLI has `--check`, `--set`, and
+> stable exit codes. Still ahead: sparklines, form controls, slicers, sheet
 > backgrounds and duration cells, then performance work and the schema freeze —
 > **the schema may change until v1.0.** See [`ROADMAP.md`](./ROADMAP.md) for the
 > phase plan and the living changelog.
@@ -180,6 +180,7 @@ so the pages cannot drift from the compiler:
 | [`interactive.yxl.yaml`](./examples/interactive.yxl.yaml) | drop-downs and other validations, an auto filter, hyperlinks, notes, sheet protection |
 | [`charts.yxl.yaml`](./examples/charts.yxl.yaml) | column, pie, and bar charts, series named from cells, one plotting another sheet |
 | [`pivots.yxl.yaml`](./examples/pivots.yxl.yaml) | two pivot tables over one source: rows, columns, and two aggregations |
+| [`shapes.yxl.yaml`](./examples/shapes.yxl.yaml) | a cloud stamp, a chevron with two text lines, a pinned star |
 
 ```bash
 yxl build examples/quickstart.yxl.yaml -o quickstart.xlsx
