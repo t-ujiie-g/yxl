@@ -69,6 +69,7 @@ sheets:
     background: assets/logo.png   # tiled behind the cells → §13
     sparklines: [...]  # → §19
     controls: [...]    # → §20
+    slicers: [...]     # → §21
     pivots: [...]      # → §14
     protect: {...}     # → §16
 ```
@@ -98,6 +99,7 @@ sheets:
 | `background` | path | An image tiled behind the cells. §13. |
 | `sparklines` | sequence | Charts inside single cells, in groups. §19. |
 | `controls` | sequence | Buttons, check boxes, and sliders over the grid. §20. |
+| `slicers` | sequence | Button panels filtering declared tables. §21. |
 | `pivots` | sequence | Pivot tables placed on the sheet. §14. |
 | `protect` | mapping | Sheet protection. §16. |
 
@@ -950,3 +952,42 @@ caption that clicks. Assigning behavior is Excel's side of the contract.
 > control show "the cell is on a protected sheet" instead of working. Give the
 > linked cell a style with `protection: { locked: false }` (§16), exactly as
 > for typed-into entry cells.
+
+## 21. Slicers
+
+A slicer is a table's filter as a panel of buttons — one per distinct value of
+one column — floating over the grid. Clicking a button filters the table,
+visibly.
+
+```yaml
+sheets:
+  - name: Sales
+    cells: { A1: Region, B1: Revenue, A2: APAC, B2: 2400 }
+    tables:
+      - at: A1:B4
+        name: Revenue        # a slicer needs the table *named*
+    slicers:
+      - at: G1
+        table: Revenue       # the declared table, on any sheet
+        column: Region       # one of its header cells
+        caption: Filter by region
+        size: { width: 160, height: 140 }
+        header: true
+```
+
+| Key | Type | Notes |
+|---|---|---|
+| `at` | cell | **Required.** Where the panel's top-left corner sits. |
+| `table` | text | **Required.** The `name:` of a declared table, compared without case (Excel's own rule). A table the spec left unnamed cannot be sliced. |
+| `column` | text | **Required.** One of the table's header cells; anything else is a diagnostic naming what the table has. |
+| `caption` | text | The panel's title; unset, Excel shows the column name. |
+| `size` | `{ width, height }` | Both in whole pixels; unset, 200 × 200. |
+| `header` | boolean | Whether the panel shows its title bar. |
+
+The slicer may sit on a different sheet than its table — the panel goes where
+the reader looks, the data stays where it lives.
+
+**Pivot slicers are not offered.** A slicer over a pivot table touches the
+same cache machinery whose defects already bound `pivots:` (§14); they stay
+out until [office.mbt#264](https://github.com/moonbitlang/office.mbt/issues/264)
+is resolved.

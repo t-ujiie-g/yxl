@@ -107,6 +107,7 @@ pub fn load(
   read_active_sheet(root, workbook, file~)
   check_cross_sheet_references(workbook, file~)
   check_tables(workbook, file~)
+  check_slicers(workbook, file~)
   check_pivots(workbook, file~)
   guard workbook.sheets.iter().any(sheet => sheet.visibility is Visible) else {
     raise schema_error(

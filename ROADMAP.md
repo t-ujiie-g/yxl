@@ -402,14 +402,21 @@ Excel by hand** before ticking the box, not only round-trip it.
       Excel's side of the contract. One reader note: a control's size lands in
       the VML anchor, which the backend does not translate back — the manual
       check is what sees it
-- [ ] **Slicers** (`add_slicer`) — the button panel that filters an Excel table
-      (`SlicerOptions::new(name, cell, table_sheet, table_name)`), with a
-      caption, size, and header. **Last on purpose**: it is the only item that
-      depends on another feature of ours (`tables:`), it writes several linked
-      parts, and slicers over *pivot* tables touch the same cache machinery that
+- [x] **Slicers** (`add_slicer`) — the button panel that filters an Excel
+      table, with a caption, size, and header toggle. Last on purpose, and
+      landed as scoped: **table slicers only**; pivot slicers stay a separate
+      decision until
       [office.mbt#264](https://github.com/moonbitlang/office.mbt/issues/264)
-      showed to be fragile. Start with table slicers; treat pivot slicers as a
-      separate decision once #264 is answered
+      is answered, and `docs/spec.md` §21 says so. A slicer is entirely
+      references, like a pivot: `table:` must name a *declared, named* table
+      (found case-insensitively, workbook-wide — the panel may sit on a
+      different sheet than its data) and `column:` one of that table's header
+      cells, both proven by a whole-workbook check beside `check_tables`.
+      The emitted parts were verified by hand: `xl/slicers/slicer1.xml`,
+      `xl/slicerCaches/slicerCache1.xml` naming the table column, the
+      `x14:slicerList` extension on the worksheet, the workbook-level
+      `x15:slicerCaches` extension, the `Slicer_…` defined name, and both
+      content-type overrides
 
 #### Not scheduled
 
@@ -930,6 +937,26 @@ silently reading the wrong file).
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-27** — **Slicers**, closing Phase 9's second slice. `slicers:`
+  floats the button panel that filters an Excel table: `table:` names a
+  *declared, named* table — found case-insensitively and workbook-wide, so
+  the panel may sit on a dashboard sheet while the data lives elsewhere —
+  and `column:` one of its header cells, with a caption, a pixel size, and
+  the header toggle. A slicer is entirely references, like a pivot, so both
+  are proven by a whole-workbook check beside `check_tables`: a table nobody
+  declares (or one the spec left unnamed) and a column the table lacks are
+  each diagnostics naming what exists.
+
+  The several linked parts the roadmap warned about were verified against
+  the package by hand: `xl/slicers/slicer1.xml`, the cache with its
+  `x15:tableSlicerCache` pointing at the right table column, the worksheet's
+  `x14:slicerList` extension, the workbook's `x15:slicerCaches` extension,
+  the `Slicer_…` defined name, and both content-type overrides. **Pivot
+  slicers stay out**, as scoped: they touch the cache machinery
+  [office.mbt#264](https://github.com/moonbitlang/office.mbt/issues/264)
+  showed to be fragile, and `docs/spec.md` §21 says so. The modular example
+  gained a region slicer over its CSV-fed table.
 
 - **2026-07-27** — **Workbook-level `protect:` refused: it corrupted every
   file that used it.** The form-controls manual check opened the interactive

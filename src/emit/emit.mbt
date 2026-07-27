@@ -82,6 +82,12 @@ fn build_workbook(wb : @model.Workbook) -> Bytes raise {
       apply_pivot(backend, sheet.name, pivot)
     }
   }
+  // Slicers likewise: the table one filters may be declared on a later sheet.
+  for sheet in wb.sheets {
+    for slicer in sheet.slicers {
+      apply_slicer(backend, sheet.name, slicer, wb)
+    }
+  }
   // Hidden tabs come after every sheet exists: the backend rejects hiding the
   // last visible sheet, and a sheet declared later may be the visible one.
   for sheet in wb.sheets {

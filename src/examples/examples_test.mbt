@@ -378,6 +378,28 @@ test "the styling example's conditional formats share their declared looks" {
 }
 
 ///|
+/// The `modular` example filters its table with a slicer. A slicer is not a
+/// cell value, so the promise table cannot carry it.
+test "the modular example slices the table it declares" {
+  let path = "\{EXAMPLES}/modular.yxl.yaml"
+  let workbook = @xlsx.read(
+    @cli.compile(
+      @fs.read_file_to_string(path),
+      file=path,
+      resolve=included,
+      read_bytes=included_bytes,
+    )[:],
+  )
+  let slicers = workbook.get_slicers("Sales")
+  assert_eq(slicers.length(), 1)
+  assert_eq(slicers[0].name, "Region")
+  assert_eq(slicers[0].table_name, "Revenue")
+  assert_eq(slicers[0].caption, "Filter by region")
+  assert_eq(slicers[0].width, 160)
+  assert_eq(slicers[0].height, 140)
+}
+
+///|
 /// The `layout` example tiles a watermark behind its summary. A background is
 /// not a cell value, so the promise table cannot carry it.
 test "the layout example carries its background" {
