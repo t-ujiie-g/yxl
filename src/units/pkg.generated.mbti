@@ -44,6 +44,14 @@ pub fn DateTime::has_time(Self) -> Bool
 pub fn DateTime::parse(String) -> Self?
 pub fn DateTime::to_serial(Self, DateSystem) -> Double
 
+pub(all) struct Duration {
+  hours : Int
+  minutes : Int
+  seconds : Int
+} derive(Eq, @debug.Debug)
+pub fn Duration::parse(String) -> Self?
+pub fn Duration::to_serial(Self) -> Double
+
 // Type aliases
 
 // Traits

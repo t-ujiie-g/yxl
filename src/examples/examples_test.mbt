@@ -46,6 +46,8 @@ fn promises() -> Array[Promise] {
     promise("quickstart.yxl.yaml", "Sales", "B2", "2400000"),
     promise("quickstart.yxl.yaml", "Sales", "A4", "007"),
     promise("quickstart.yxl.yaml", "Sales", "B5", "4150000"),
+    // A duration is a plain number in the file: 36 hours is a day and a half.
+    promise("quickstart.yxl.yaml", "Sales", "B6", "1.5"),
     // styling: rich text reads back as its concatenated runs.
     promise("styling.yxl.yaml", "Report", "A1", "Region"),
     promise("styling.yxl.yaml", "Report", "B2", "2400000"),

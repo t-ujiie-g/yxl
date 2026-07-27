@@ -137,10 +137,12 @@ fn load_expanded_cell(
               (error_literal(value_node, file~, reference~), format)
             Some("date") =>
               load_date_cell(value_node, format, file~, reference~)
+            Some("duration") =>
+              load_duration_cell(value_node, format, file~, reference~)
             Some(other) =>
               raise schema_error(
                 file~,
-                "unknown type '\{other}' for cell '\{reference}' (expected 'text', 'number', 'bool', 'date', or 'error')",
+                "unknown type '\{other}' for cell '\{reference}' (expected 'text', 'number', 'bool', 'date', 'duration', or 'error')",
               )
           }
         }
@@ -288,6 +290,40 @@ const DEFAULT_DATE_FORMAT : String = "yyyy-mm-dd"
 ///|
 /// The same, when the date carries a time of day.
 const DEFAULT_DATETIME_FORMAT : String = "yyyy-mm-dd hh:mm:ss"
+
+///|
+/// A `type: duration` cell: an elapsed time, which Excel stores as a plain
+/// number — the length as a fraction of a day — wearing an elapsed format.
+/// The serial does not depend on the date system, so it is computed here and
+/// the model carries an ordinary `Number`.
+fn load_duration_cell(
+  value_node : @yaml.Node,
+  format : String?,
+  file~ : String,
+  reference~ : String,
+) -> (@model.CellValue, String?) raise @diag.SchemaError {
+  let text = expect_string(
+    value_node,
+    file~,
+    context="duration value for '\{reference}'",
+  )
+  guard @units.Duration::parse(text) is Some(duration) else {
+    raise schema_error(
+      file~,
+      "cell '\{reference}' is not a valid duration: '\{text}' (expected H:MM or H:MM:SS, hours unbounded)",
+    )
+  }
+  (
+    @model.Number(duration.to_serial()),
+    Some(format.unwrap_or(DEFAULT_DURATION_FORMAT)),
+  )
+}
+
+///|
+/// The format a `type: duration` cell gets when the spec sets none. `[h]`
+/// keeps counting past 24 instead of rolling into days, which is what makes
+/// the display an elapsed time rather than a time of day.
+const DEFAULT_DURATION_FORMAT : String = "[h]:mm:ss"
 
 ///|
 /// The Excel error literals a `type: error` cell may hold.

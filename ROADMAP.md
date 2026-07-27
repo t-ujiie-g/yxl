@@ -348,13 +348,18 @@ Excel by hand** before ticking the box, not only round-trip it.
       `scale` (dropped deliberately — a shape has no natural size to scale;
       `size` says it directly). `macro_name` stays out: `.xlsx` carries no
       macros, and VBA is a §2 non-goal
-- [ ] **Duration cells** — an elapsed time (`26:30:00`, "26 hours 30 minutes"),
+- [x] **Duration cells** — an elapsed time (`26:30:00`, "26 hours 30 minutes"),
       which Excel stores as a fraction of a day under an `[h]:mm:ss` format and
-      is *not* a time of day. The smallest item here: a `type: duration` beside
-      `type: date`, parsed in `units` into the serial we already know how to
-      write, plus the default format. `Workbook::set_cell_duration` exists but
+      is *not* a time of day. The smallest item here, and it landed as sized:
+      a `type: duration` beside `type: date`, `H:MM[:SS]` parsed by a
+      `units.Duration` (hours unbounded, minutes and seconds 0–59, no
+      negatives — the 1900 system cannot display one) whose serial the loader
+      computes, so the model carries an ordinary `Number` and the emitter
+      never knew the feature arrived. `Workbook::set_cell_duration` exists but
       takes a `@time.Duration`; computing the serial ourselves keeps
-      `moonbitlang/x/time` out of the model and matches how dates already work
+      `moonbitlang/x/time` out of the model and matches how dates already
+      work. The golden test proves the backend renders `[h]:mm:ss` past 24
+      (`1.5` displays as `36:00:00`)
 - [ ] **Sheet backgrounds** (`set_sheet_background_from_bytes`) — a watermark
       image tiled behind a sheet's cells. Reuses the `BytesResolver` seam and
       the format list images already brought, so it is `background: logo.png`
@@ -889,6 +894,17 @@ silently reading the wrong file).
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-27** — **Duration cells.** `type: duration` beside `type: date`:
+  `H:MM` or `H:MM:SS`, hours unbounded — `26:30:00` is twenty-six and a half
+  hours, an *elapsed* time, not a clock time. A new `units.Duration` parses it
+  and renders the serial (its length as a fraction of a day, independent of
+  the date system, so the loader computes it and the model carries a plain
+  `Number`); without a `format:` the cell wears `[h]:mm:ss`, whose `[h]` keeps
+  counting past 24 instead of rolling into days. Negative durations are not
+  part of the syntax: Excel's 1900 date system cannot display one. The golden
+  test shows the whole trip — `36:00:00` compiles to `1.5` and formats back as
+  `36:00:00` — and the quickstart example gained an "Hours logged" row.
 
 - **2026-07-27** — **Shapes**, opening Phase 9's second slice. `shapes:` floats
   a preset geometry over the grid at a cell, with a pixel `size`, a `fill` and

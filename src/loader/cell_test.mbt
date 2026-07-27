@@ -69,8 +69,48 @@ test "load rejects invalid dates and unknown cell types" {
       "sheets:\n  - name: S\n    cells:\n      A1: { value: 1, type: money }\n",
     ),
     Some(
-      "spec.yaml: unknown type 'money' for cell 'A1' (expected 'text', 'number', 'bool', 'date', or 'error')",
+      "spec.yaml: unknown type 'money' for cell 'A1' (expected 'text', 'number', 'bool', 'date', 'duration', or 'error')",
     ),
+  )
+}
+
+///|
+test "load parses a `type: duration` cell into a serial with an elapsed format" {
+  let workbook = load_ok(
+    "sheets:\n  - name: S\n    cells:\n      A1: { value: \"36:00:00\", type: duration }\n",
+  )
+  let cell = workbook.sheets[0].cells[0]
+  // A duration is stored as a plain number — a day and a half — because that
+  // is what Excel stores; the elapsed format is what makes it read as time.
+  assert_eq(cell.value, @model.Number(1.5))
+  assert_eq(cell.style, Some(@model.Style::number_format("[h]:mm:ss")))
+}
+
+///|
+test "a duration keeps a spec-given format, and minutes alone are enough" {
+  let custom = load_ok(
+    "sheets:\n  - name: S\n    cells:\n      A1: { value: \"6:00\", type: duration, format: \"[mm]:ss\" }\n",
+  )
+  let cell = custom.sheets[0].cells[0]
+  assert_eq(cell.value, @model.Number(0.25))
+  assert_eq(cell.style, Some(@model.Style::number_format("[mm]:ss")))
+}
+
+///|
+test "load rejects a malformed duration, and one that is not text" {
+  assert_eq(
+    schema_message(
+      "sheets:\n  - name: S\n    cells:\n      A1: { value: \"26:60:00\", type: duration }\n",
+    ),
+    Some(
+      "spec.yaml: cell 'A1' is not a valid duration: '26:60:00' (expected H:MM or H:MM:SS, hours unbounded)",
+    ),
+  )
+  assert_eq(
+    schema_message(
+      "sheets:\n  - name: S\n    cells:\n      A1: { value: 1.5, type: duration }\n",
+    ),
+    Some("spec.yaml: duration value for 'A1' must be text"),
   )
 }
 

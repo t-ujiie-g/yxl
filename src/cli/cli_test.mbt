@@ -218,6 +218,21 @@ test "golden: a typed date compiles to an Excel serial with a date format" {
 }
 
 ///|
+test "golden: a typed duration compiles to a day fraction wearing an elapsed format" {
+  let source =
+    #|sheets:
+    #|  - name: S
+    #|    cells:
+    #|      A1: { value: "36:00:00", type: duration }
+    #|
+  let reopened = @xlsx.read(@cli.compile(source, file="spec.yaml")[:])
+  // A day and a half — a duration is a plain number in the file.
+  assert_eq(reopened.get_cell_value("S", "A1", raw=true), Some("1.5"))
+  // The `[h]` format keeps counting past 24 instead of rolling into days.
+  assert_eq(reopened.get_cell_value("S", "A1", raw=false), Some("36:00:00"))
+}
+
+///|
 test "golden: a formula cell round-trips as an <f> with its cached value" {
   let source =
     #|sheets:
