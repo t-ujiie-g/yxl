@@ -5,11 +5,6 @@
 # perfectly legal, and a link never supplies the text you see. The cell's value
 # still comes from `cells:`.
 
-# Nobody may add, remove, rename or reorder sheets. Not encryption — it stops
-# accidents, and Excel removes it for anyone who asks.
-protect:
-  structure: true
-
 defs:
   styles:
     # Sheet protection freezes every cell *except* those a style unlocks, so
@@ -56,6 +51,23 @@ sheets:
       # value you see is still the cell's own.
       C3: "Bulk order — check stock before confirming."
       B1: { text: "Sourced from the Statuses sheet.", author: Finance }
+
+    controls:
+      # A form control writes into its linked cell — ticking the box makes F2
+      # TRUE, and formulas elsewhere can act on it.
+      - at: F2
+        kind: check_box
+        text: Rush order
+        link: G2
+      # A spin button steps its cell through a range; here it drives a
+      # priority in H2 from 1 to 5.
+      - at: F4
+        kind: spin_button
+        link: H4
+        min: 1
+        max: 5
+        step: 1
+        value: 3
 
     links:
       # A bare value is a link out of the workbook. The cell keeps its own text.

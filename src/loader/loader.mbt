@@ -83,8 +83,16 @@ pub fn load(
       "active" => () // resolved below, once every sheet name is known
       "properties" => workbook.set_properties(load_properties(value, file~))
       "calc" => workbook.set_calc(load_calc(value, file~))
+      // Refused by name rather than loaded: the backend writes
+      // <workbookProtection> after <sheets>, out of CT_Workbook's element
+      // order, and Excel reports the whole workbook as corrupt. Sheet-level
+      // protection is unaffected. Becomes a plain load again the day the
+      // upstream writer places it correctly.
       "protect" =>
-        workbook.set_protection(load_workbook_protection(value, file~))
+        raise schema_error(
+          file~,
+          "top-level 'protect' is refused for now: the Excel backend writes the workbook protection out of schema order and Excel reports the file as corrupt — protect each sheet instead, until the upstream fix",
+        )
       PARAMS_KEY => () // consumed by the substitution pass
       _ =>
         raise schema_error(

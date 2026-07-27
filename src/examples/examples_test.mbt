@@ -175,6 +175,17 @@ test "the interactive example decorates the cells it says it does" {
   assert_eq(comments[0].cell, "C3")
   assert_eq(comments[1].author, "Finance")
 
+  // Two form controls write into their linked cells.
+  let controls = workbook.get_form_controls("Orders")
+  assert_eq(controls.length(), 2)
+  assert_eq(controls[0].control_type, "CheckBox")
+  assert_eq(controls[0].text, "Rush order")
+  assert_eq(controls[0].cell_link, Some("G2"))
+  assert_eq(controls[1].control_type, "SpinButton")
+  assert_eq(controls[1].min_val, Some(1))
+  assert_eq(controls[1].max_val, Some(5))
+  assert_eq(controls[1].current_val, Some(3))
+
   // The sheet is locked but still sortable and filterable, and the cells the
   // form is filled in through are unlocked — which is what makes it a form.
   let protection = workbook.get_sheet_protection("Orders")
@@ -185,7 +196,6 @@ test "the interactive example decorates the cells it says it does" {
     fail("expected a style on an entry cell")
   }
   assert_eq(workbook.get_style(id).protection.unwrap().locked, Some(false))
-  assert_true(workbook.workbook_protection is Some(_))
 }
 
 ///|

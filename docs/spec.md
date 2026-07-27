@@ -23,7 +23,7 @@ params: {...}          # named values substituted as ${name}   → §7
 defs: {...}            # named styles, values, and formulas    → §6
 properties: {...}      # what the file says about itself       → §15
 calc: {...}            # when Excel recalculates               → §15
-protect: {...}         # lock the workbook's structure         → §16
+protect: {...}         # refused for now — backend defect      → §16
 date1904: false        # use Excel's 1904 date epoch
 default_font: Calibri  # the workbook's default font face
 ```
@@ -36,7 +36,7 @@ default_font: Calibri  # the workbook's default font face
 | `defs` | mapping | §6. |
 | `properties` | mapping | Document properties. §15. |
 | `calc` | mapping | Calculation settings. §15. |
-| `protect` | mapping | Workbook protection. §16. |
+| `protect` | mapping | Workbook protection — **refused for now**, a backend defect. §16. |
 | `date1904` | boolean | `true` selects the 1904 epoch. Affects how dates serialize. |
 | `default_font` | text | Face name only; size and colour are per-style. |
 
@@ -68,6 +68,7 @@ sheets:
     shapes: [...]      # → §18
     background: assets/logo.png   # tiled behind the cells → §13
     sparklines: [...]  # → §19
+    controls: [...]    # → §20
     pivots: [...]      # → §14
     protect: {...}     # → §16
 ```
@@ -96,6 +97,7 @@ sheets:
 | `shapes` | sequence | Boxes and other geometries floating over the sheet. §18. |
 | `background` | path | An image tiled behind the cells. §13. |
 | `sparklines` | sequence | Charts inside single cells, in groups. §19. |
+| `controls` | sequence | Buttons, check boxes, and sliders over the grid. §20. |
 | `pivots` | sequence | Pivot tables placed on the sheet. §14. |
 | `protect` | mapping | Sheet protection. §16. |
 
@@ -745,11 +747,6 @@ the spec supplied no cached values at all.
 ## 16. Protection
 
 ```yaml
-protect:                    # the workbook itself
-  structure: true           # no adding, removing, renaming, reordering sheets
-  windows: false
-  password: "${wb_password}"
-
 defs:
   styles:
     entry:
@@ -764,6 +761,11 @@ sheets:
         auto_filter: true
         select_locked_cells: false
 ```
+
+> **Workbook-level `protect:` is refused for now** — a backend defect: it
+> writes `<workbookProtection>` after `<sheets>`, out of the schema's element
+> order, and Excel reports the whole file as corrupt. Protect each sheet
+> instead; the key returns the day the upstream writer places it correctly.
 
 **Excel locks every cell by default**, so protecting a sheet freezes all of it.
 The way to leave a form's input boxes editable is to give *them* a style with
@@ -895,3 +897,50 @@ sparklines:
 markers are carried by the backend as options nothing can set, so `first:`,
 `last:`, and `negative:` are refused by name with the reason — they become
 plain schema additions the day the setters exist upstream.
+
+## 20. Form controls
+
+A form control sits over the grid and writes into its **linked cell** — a
+boolean for a check box, the chosen option's index for option buttons, the
+number for a scroll bar or spin button. That linked value is what formulas
+react to, and it is the other half of the story `protection` (§16) tells: lock
+the sheet, unlock the entry cells, and let the controls drive the rest.
+
+```yaml
+controls:
+  - at: F2
+    kind: check_box            # see the kinds below
+    text: Rush order
+    checked: false
+    link: G2                   # the cell the control writes into (same sheet)
+  - at: F4
+    kind: scroll_bar
+    link: H4
+    min: 0
+    max: 100
+    step: 5                    # one arrow click
+    page: 20                   # one click in the trough
+    value: 40
+    horizontal: true
+    size: { width: 160, height: 20 }
+```
+
+**Kinds:** `button`, `check_box`, `option_button`, `scroll_bar`,
+`spin_button`, `group_box`, `label`.
+
+Each key is admitted only on the kinds whose own "Format Control" dialog shows
+it — anything else is a diagnostic naming where the key belongs:
+
+| Key | Belongs to | Notes |
+|---|---|---|
+| `at` / `kind` | all | **Required.** |
+| `size` | all | `{ width, height }`, both in whole pixels. |
+| `text` | `button`, `check_box`, `option_button`, `group_box`, `label` | The caption. |
+| `checked` | `check_box`, `option_button` | Starts ticked. |
+| `link` | `check_box`, `option_button`, `scroll_bar`, `spin_button` | A **same-sheet** cell; the backend refuses a qualified reference. |
+| `min` / `max` / `step` / `value` | `scroll_bar`, `spin_button` | Whole numbers `0`–`30000`, Excel's own dialog limit; `min` may not exceed `max`. |
+| `page` | `scroll_bar` | A click in the trough; a spin button has none. |
+| `horizontal` | `scroll_bar`, `spin_button` | Lay it sideways. |
+
+No `macro:` — an `.xlsx` carries no macros, and a button without one is a
+caption that clicks. Assigning behavior is Excel's side of the contract.

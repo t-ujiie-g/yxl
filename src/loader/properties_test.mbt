@@ -231,33 +231,20 @@ test "sheet protect rejects an unknown key" {
 }
 
 ///|
-test "workbook protection loads what it locks" {
-  let wb = load_ok(
-    "protect:\n  structure: true\n  password: pw\nsheets:\n  - name: S\n",
+test "workbook protection is refused with the reason, whatever it holds" {
+  // The backend writes <workbookProtection> out of CT_Workbook's element
+  // order and Excel reports the file as corrupt, so the key is refused by
+  // name — found by opening the output in Excel, not by the round trip.
+  let expected = Some(
+    "spec.yaml: top-level 'protect' is refused for now: the Excel backend writes the workbook protection out of schema order and Excel reports the file as corrupt — protect each sheet instead, until the upstream fix",
   )
-  let protection = wb.protection.unwrap()
-  assert_true(protection.structure)
-  assert_false(protection.windows)
-  assert_eq(protection.password, Some("pw"))
-}
-
-///|
-test "workbook protection that locks nothing is a diagnostic" {
   assert_eq(
-    schema_message("protect:\n  windows: false\nsheets:\n  - name: S\n"),
-    Some(
-      "spec.yaml: 'protect' locks nothing (expected 'structure' or 'windows')",
-    ),
+    schema_message("protect:\n  structure: true\nsheets:\n  - name: S\n"),
+    expected,
   )
-}
-
-///|
-test "workbook protect rejects an unknown key" {
   assert_eq(
-    schema_message("protect:\n  cells: true\nsheets:\n  - name: S\n"),
-    Some(
-      "spec.yaml: unknown key 'cells' in 'protect' (expected 'structure', 'windows', or 'password')",
-    ),
+    schema_message("protect:\n  anything: goes\nsheets:\n  - name: S\n"),
+    expected,
   )
 }
 

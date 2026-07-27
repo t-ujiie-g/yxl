@@ -15,6 +15,8 @@ pub let max_defined_name_length : Int
 
 pub let max_drawing_pixels : Int
 
+pub let max_form_control_value : Int
+
 pub let max_image_scale : Double
 
 pub let max_outline_level : Int
@@ -241,6 +243,32 @@ pub(all) struct Font {
   color : @units.Color?
 } derive(Eq, Hash, @debug.Debug)
 
+pub(all) struct FormControl {
+  at : @units.CellRef
+  kind : FormControlKind
+  text : String?
+  checked : Bool?
+  link : @units.CellRef?
+  width : Int?
+  height : Int?
+  min : Int?
+  max : Int?
+  step : Int?
+  page : Int?
+  value : Int?
+  horizontal : Bool?
+} derive(Eq, @debug.Debug)
+
+pub(all) enum FormControlKind {
+  Button
+  CheckBox
+  OptionButton
+  ScrollBar
+  SpinButton
+  GroupBox
+  Label
+} derive(Eq, @debug.Debug)
+
 pub(all) enum HAlign {
   Left
   Center
@@ -416,12 +444,14 @@ pub(all) struct Sheet {
   shapes : Array[Shape]
   mut background : SheetBackground?
   sparklines : Array[SparklineGroup]
+  controls : Array[FormControl]
   pivots : Array[Pivot]
   mut protection : SheetProtection?
 } derive(Eq, @debug.Debug)
 pub fn Sheet::add_chart(Self, Chart) -> Unit
 pub fn Sheet::add_comment(Self, @units.CellRef, String, author? : String) -> Unit
 pub fn Sheet::add_conditional_format(Self, ConditionalFormat) -> Unit
+pub fn Sheet::add_control(Self, FormControl) -> Unit
 pub fn Sheet::add_image(Self, Image) -> Unit
 pub fn Sheet::add_link(Self, @units.CellRef, LinkTarget, tip? : String) -> Unit
 pub fn Sheet::add_pivot(Self, Pivot) -> Unit

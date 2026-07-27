@@ -210,6 +210,9 @@ fn emit_sheet(
   for group in sheet.sparklines {
     apply_sparkline_group(backend, sheet.name, group)
   }
+  for control in sheet.controls {
+    apply_control(backend, sheet.name, control)
+  }
   for validation in sheet.validations {
     apply_validation(backend, sheet.name, validation, date_system)
   }
