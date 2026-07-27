@@ -114,7 +114,7 @@ test "load rejects an unknown key inside a sheet" {
   assert_eq(
     schema_message("sheets:\n  - name: S\n    color: red\n"),
     Some(
-      "spec.yaml: unknown key 'color' in sheet (expected 'name', 'cells', 'data', 'columns', 'rows', 'merges', 'visibility', 'freeze', 'split', 'gridlines', 'tab_color', 'print', 'filter', 'validations', 'links', 'conditional', 'comments', 'tables', 'charts', 'images', 'shapes', 'background', 'sparklines', 'controls', 'pivots', or 'protect')",
+      "spec.yaml: unknown key 'color' in sheet (expected 'name', 'cells', 'data', 'columns', 'rows', 'merges', 'visibility', 'freeze', 'split', 'gridlines', 'tab_color', 'print', 'filter', 'validations', 'links', 'conditional', 'comments', 'tables', 'charts', 'images', 'shapes', 'background', 'sparklines', 'controls', 'slicers', 'pivots', or 'protect')",
     ),
   )
 }

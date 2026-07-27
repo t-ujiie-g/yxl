@@ -445,6 +445,7 @@ pub(all) struct Sheet {
   mut background : SheetBackground?
   sparklines : Array[SparklineGroup]
   controls : Array[FormControl]
+  slicers : Array[Slicer]
   pivots : Array[Pivot]
   mut protection : SheetProtection?
 } derive(Eq, @debug.Debug)
@@ -456,6 +457,7 @@ pub fn Sheet::add_image(Self, Image) -> Unit
 pub fn Sheet::add_link(Self, @units.CellRef, LinkTarget, tip? : String) -> Unit
 pub fn Sheet::add_pivot(Self, Pivot) -> Unit
 pub fn Sheet::add_shape(Self, Shape) -> Unit
+pub fn Sheet::add_slicer(Self, Slicer) -> Unit
 pub fn Sheet::add_sparkline_group(Self, SparklineGroup) -> Unit
 pub fn Sheet::add_table(Self, Table) -> Unit
 pub fn Sheet::add_validation(Self, Validation) -> Unit
@@ -506,6 +508,16 @@ pub(all) enum SheetVisibility {
   Visible
   Hidden
   VeryHidden
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Slicer {
+  at : @units.CellRef
+  table : String
+  column : String
+  caption : String?
+  width : Int?
+  height : Int?
+  header : Bool?
 } derive(Eq, @debug.Debug)
 
 pub(all) struct SparklineCell {

@@ -30,3 +30,11 @@ sheets:
       - at: A1:B4
         name: Revenue
         style: TableStyleMedium2
+    # A slicer is the table's filter as buttons: one per distinct value of the
+    # named column, and clicking one filters the table visibly.
+    slicers:
+      - at: G1
+        table: Revenue
+        column: Region
+        caption: Filter by region
+        size: { width: 160, height: 140 }
