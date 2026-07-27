@@ -67,6 +67,7 @@ sheets:
     images: [...]      # → §13
     shapes: [...]      # → §18
     background: assets/logo.png   # tiled behind the cells → §13
+    sparklines: [...]  # → §19
     pivots: [...]      # → §14
     protect: {...}     # → §16
 ```
@@ -94,6 +95,7 @@ sheets:
 | `images` | sequence | Pictures anchored on the sheet. §13. |
 | `shapes` | sequence | Boxes and other geometries floating over the sheet. §18. |
 | `background` | path | An image tiled behind the cells. §13. |
+| `sparklines` | sequence | Charts inside single cells, in groups. §19. |
 | `pivots` | sequence | Pivot tables placed on the sheet. §14. |
 | `protect` | mapping | Sheet protection. §16. |
 
@@ -855,3 +857,41 @@ rounded rectangle, the right triangle, the eight straight arrows, and the four
 callouts. They become plain schema additions the day the backend keeps the
 token's case. An offset in from the anchor cell (which images take) is not
 available either: the backend's shape constructor does not accept one.
+
+## 19. Sparklines
+
+A sparkline is a chart inside one cell, for the row of figures beside it. Each
+`sparklines:` entry is a **group**: Excel scales and styles a group as one
+unit, so a column of them reads as one series.
+
+```yaml
+sparklines:
+  - at: F2                       # one sparkline …
+    data: B2:E2                  # … of these cells (may name another sheet)
+    markers: true                # dot every point (line only)
+    high: true                   # pick out the highest point
+    color: "1F77B4"
+  - cells:                       # or several cells, styled as one group
+      - { at: G2, data: Results!B2:E2 }
+      - { at: G3, data: Results!B3:E3 }
+    type: win_loss               # line (default) | column | win_loss
+    axis: true                   # draw the horizontal axis at zero
+```
+
+| Key | Type | Notes |
+|---|---|---|
+| `at` / `data` | cell / range | One sparkline: the cell it sits in, the cells it plots. `data` may name another (declared) sheet. |
+| `cells` | sequence of `{ at, data }` | Several sparklines in one group. A group is placed one way: `at`/`data` **or** `cells`. |
+| `type` | bareword | `line` (default), `column`, or `win_loss` — win/loss plots only each point's sign. |
+| `markers` | boolean | Dot every point. Line only — the other kinds already draw one mark per point. |
+| `high` / `low` | boolean | Emphasize the highest / lowest point. |
+| `min` / `max` | whole number | Manual vertical bounds; unset, Excel scales each end to the data. Whole numbers — the backend accepts nothing finer. |
+| `weight` | number | The line weight in points, above `0`. Line only. |
+| `color` | hex color | The series colour. |
+| `colors` | `{ markers, high, low }` | Colours for the marks that can show. |
+| `axis` | boolean | Draw the horizontal axis at zero. |
+
+**Backend limits.** Excel's *first point*, *last point*, and *negative points*
+markers are carried by the backend as options nothing can set, so `first:`,
+`last:`, and `negative:` are refused by name with the reason — they become
+plain schema additions the day the setters exist upstream.

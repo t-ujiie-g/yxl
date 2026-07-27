@@ -415,6 +415,7 @@ pub(all) struct Sheet {
   images : Array[Image]
   shapes : Array[Shape]
   mut background : SheetBackground?
+  sparklines : Array[SparklineGroup]
   pivots : Array[Pivot]
   mut protection : SheetProtection?
 } derive(Eq, @debug.Debug)
@@ -425,6 +426,7 @@ pub fn Sheet::add_image(Self, Image) -> Unit
 pub fn Sheet::add_link(Self, @units.CellRef, LinkTarget, tip? : String) -> Unit
 pub fn Sheet::add_pivot(Self, Pivot) -> Unit
 pub fn Sheet::add_shape(Self, Shape) -> Unit
+pub fn Sheet::add_sparkline_group(Self, SparklineGroup) -> Unit
 pub fn Sheet::add_table(Self, Table) -> Unit
 pub fn Sheet::add_validation(Self, Validation) -> Unit
 pub fn Sheet::merge(Self, @units.CellRef, @units.CellRef) -> Unit
@@ -474,6 +476,33 @@ pub(all) enum SheetVisibility {
   Visible
   Hidden
   VeryHidden
+} derive(Eq, @debug.Debug)
+
+pub(all) struct SparklineCell {
+  at : @units.CellRef
+  data : SheetRange
+} derive(Eq, @debug.Debug)
+
+pub(all) struct SparklineGroup {
+  kind : SparklineKind
+  cells : Array[SparklineCell]
+  markers : Bool
+  high : Bool
+  low : Bool
+  min : Int?
+  max : Int?
+  weight : Double?
+  color : @units.Color?
+  markers_color : @units.Color?
+  high_color : @units.Color?
+  low_color : @units.Color?
+  axis : Bool
+} derive(Eq, @debug.Debug)
+
+pub(all) enum SparklineKind {
+  Line
+  Column
+  WinLoss
 } derive(Eq, @debug.Debug)
 
 pub(all) struct Style {

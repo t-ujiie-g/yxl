@@ -207,6 +207,9 @@ fn emit_sheet(
   if sheet.background is Some(background) {
     apply_background(backend, sheet.name, background)
   }
+  for group in sheet.sparklines {
+    apply_sparkline_group(backend, sheet.name, group)
+  }
   for validation in sheet.validations {
     apply_validation(backend, sheet.name, validation, date_system)
   }

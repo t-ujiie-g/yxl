@@ -152,6 +152,8 @@ pub(all) struct Sheet {
   /// An image tiled behind the cells; `None` leaves the sheet plain. Excel
   /// shows a background on screen but never prints it.
   mut background : SheetBackground?
+  /// Sparkline groups, in declaration order.
+  sparklines : Array[SparklineGroup]
   /// Pivot tables placed on the sheet, in declaration order.
   pivots : Array[Pivot]
   /// What a reader may still do once the sheet is protected; `None` leaves the
@@ -308,6 +310,7 @@ pub fn Sheet::new(
     images: [],
     shapes: [],
     background: None,
+    sparklines: [],
     pivots: [],
     protection: None,
   }

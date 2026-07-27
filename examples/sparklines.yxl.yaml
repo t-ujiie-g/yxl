@@ -1,0 +1,60 @@
+# Sparklines: a chart inside one cell, for the row of figures beside it. Each
+# entry is a *group* — Excel scales and styles a group as one unit, which is
+# what makes a column of them read together.
+sheets:
+  - name: Dashboard
+    columns:
+      - at: A
+        width: 12
+      - at: F-G
+        width: 14
+    cells:
+      A1: Region
+      B1: Q1
+      C1: Q2
+      D1: Q3
+      E1: Q4
+      F1: Trend
+      G1: Wins
+      A2: APAC
+      B2: 2400
+      C2: 2650
+      D2: 2500
+      E2: 3100
+      A3: EMEA
+      B3: 1750
+      C3: 1600
+      D3: 1850
+      E3: 1900
+
+    sparklines:
+      # One group, one sparkline per region row: a line with every point
+      # dotted and the high point picked out.
+      - cells:
+          - { at: F2, data: B2:E2 }
+          - { at: F3, data: B3:E3 }
+        markers: true
+        high: true
+        color: "1F77B4"
+        colors: { high: "CC0000" }
+
+      # Win/loss plots only the sign: every point the same size, above or
+      # below the axis. The data may live on another sheet.
+      - cells:
+          - { at: G2, data: Results!B2:E2 }
+          - { at: G3, data: Results!B3:E3 }
+        type: win_loss
+        axis: true
+
+  - name: Results
+    cells:
+      A2: APAC
+      B2: 1
+      C2: -1
+      D2: 1
+      E2: 1
+      A3: EMEA
+      B3: -1
+      C3: 1
+      D3: 1
+      E3: -1
