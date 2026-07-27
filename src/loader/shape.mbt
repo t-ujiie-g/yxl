@@ -23,14 +23,7 @@ fn load_shape(
   file~ : String,
 ) -> @model.Shape raise @diag.SchemaError {
   let entries = expect_map(node, file~, context="a shape")
-  guard find_key(entries, "at") is Some(at_node) else {
-    raise schema_error(file~, "a shape is missing required key 'at'")
-  }
-  let at = expect_cell_ref(
-    expect_string(at_node, file~, context="shape 'at'"),
-    file~,
-    what="shape 'at'",
-  )
+  let at = anchor_cell(entries, file~, subject="a shape", noun="shape")
   let context = "shape at '\{at.to_a1()}'"
   let mut preset = None
   let mut text = None

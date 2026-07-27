@@ -96,7 +96,7 @@ test "a style outside Excel's set is a diagnostic naming the families" {
       ),
     ),
     Some(
-      "spec.yaml: unknown table style 'TableStyleLight22' in table 'A1:C2' (expected 'TableStyleLight1'-'TableStyleLight21', 'TableStyleMedium1'-'TableStyleMedium28', 'TableStyleDark1'-'TableStyleDark11')",
+      "spec.yaml: unknown table style 'TableStyleLight22' in table 'A1:C2' (expected 'TableStyleLight1'-'TableStyleLight21', 'TableStyleMedium1'-'TableStyleMedium28', or 'TableStyleDark1'-'TableStyleDark11')",
     ),
   )
 }

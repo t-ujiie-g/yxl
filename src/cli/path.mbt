@@ -14,17 +14,15 @@
 /// POSIX (`/etc/x`), Windows drive paths (`C:\x`, `C:/x`), and UNC shares
 /// (`\\server\share`).
 fn is_absolute(path : String) -> Bool {
-  if is_separator_at(path, 0) {
-    return true
-  }
   // A drive letter is one ASCII letter, a colon, then a separator: `C:\x`. A
   // bare `C:x` is relative to that drive's current directory — a distinction
-  // yxl has no way to honour, so it is treated as relative here too.
-  let chars = path.iter().to_array()
-  chars.length() >= 3 &&
-  is_drive_letter(chars[0]) &&
-  chars[1] == ':' &&
-  is_separator(chars[2])
+  // yxl has no way to honour, so it is treated as relative here too. Only the
+  // first three characters decide either case, so only those are taken.
+  match path.iter().take(3).to_array() {
+    [first, ..] if is_separator(first) => true
+    [drive, ':', third] => is_drive_letter(drive) && is_separator(third)
+    _ => false
+  }
 }
 
 ///|
@@ -50,12 +48,6 @@ fn is_drive_letter(ch : Char) -> Bool {
 /// a spec under such a directory to keep it that way.
 fn is_separator(ch : Char) -> Bool {
   ch == '/' || ch == '\\'
-}
-
-///|
-fn is_separator_at(path : String, index : Int) -> Bool {
-  let chars = path.iter().to_array()
-  index < chars.length() && is_separator(chars[index])
 }
 
 ///|

@@ -83,16 +83,11 @@ fn split_band(
   axis~ : String,
 ) -> (String, Array[(String, @yaml.Node)]) raise @diag.SchemaError {
   let entries = expect_map(node, file~, context="a \{axis} entry")
-  let mut selector = None
-  for entry in entries {
-    let (key, value) = entry
-    if key == "at" {
-      selector = Some(expect_selector(value, file~, axis~))
-    }
-  }
-  guard selector is Some(selector) else {
-    raise schema_error(file~, "a \{axis} entry is missing required key 'at'")
-  }
+  let selector = expect_selector(
+    required_at(entries, file~, subject="a \{axis} entry"),
+    file~,
+    axis~,
+  )
   (selector, entries)
 }
 

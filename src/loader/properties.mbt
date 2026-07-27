@@ -198,10 +198,12 @@ fn load_allowances(
   for entry in expect_map(node, file~, context="sheet 'protect' 'allow'") {
     let (key, value) = entry
     guard protect_allowances.contains(key) else {
-      let spellings = protect_allowances.map(name => "'\{name}'")
-      raise schema_error(
+      raise unknown_value(
+        key,
         file~,
-        "unknown allowance '\{key}' in sheet 'protect' (expected \{spellings.join(", ")})",
+        what="allowance",
+        context="sheet 'protect'",
+        expected=protect_allowances.map(name => "'\{name}'"),
       )
     }
     allowances.push(

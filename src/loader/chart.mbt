@@ -53,14 +53,7 @@ fn load_chart(
   file~ : String,
 ) -> @model.Chart raise @diag.SchemaError {
   let entries = expect_map(node, file~, context="a chart")
-  guard find_key(entries, "at") is Some(at_node) else {
-    raise schema_error(file~, "a chart is missing required key 'at'")
-  }
-  let at = expect_cell_ref(
-    expect_string(at_node, file~, context="chart 'at'"),
-    file~,
-    what="chart 'at'",
-  )
+  let at = anchor_cell(entries, file~, subject="a chart", noun="chart")
   let context = "chart at '\{at.to_a1()}'"
   let mut kind = None
   let mut series = None
@@ -119,32 +112,6 @@ fn load_chart(
     raise schema_error(file~, "\{context} is missing required key 'series'")
   }
   { at, kind, series, title, legend, size, x_axis, y_axis }
-}
-
-///|
-/// A value from a spelling table, or a diagnostic listing every spelling the
-/// table holds.
-fn[T] named(
-  table : Array[(String, T)],
-  written : String,
-  file~ : String,
-  what~ : String,
-  context~ : String,
-) -> T raise @diag.SchemaError {
-  for entry in table {
-    let (spelling, value) = entry
-    if spelling == written {
-      return value
-    }
-  }
-  let spellings = table.map(entry => {
-    let (spelling, _) = entry
-    "'\{spelling}'"
-  })
-  raise schema_error(
-    file~,
-    "unknown \{what} '\{written}' in \{context} (expected \{spellings.join(", ")})",
-  )
 }
 
 ///|

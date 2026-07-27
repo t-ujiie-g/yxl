@@ -39,14 +39,7 @@ fn load_pivot(
   file~ : String,
 ) -> @model.Pivot raise @diag.SchemaError {
   let entries = expect_map(node, file~, context="a pivot table")
-  guard find_key(entries, "at") is Some(at_node) else {
-    raise schema_error(file~, "a pivot table is missing required key 'at'")
-  }
-  let at = parse_range(
-    expect_string(at_node, file~, context="pivot 'at'"),
-    file~,
-    what="pivot range",
-  )
+  let at = anchor_range(entries, file~, subject="a pivot table", noun="pivot")
   let context = "pivot '\{at.to_a1()}'"
   let mut source = None
   let mut rows : Array[@model.PivotField] = []
@@ -316,18 +309,7 @@ fn check_pivot_fields(
   context~ : String,
 ) -> Unit raise @diag.SchemaError {
   let source = pivot.source.range
-  let headers : Array[String] = []
-  let row = source.top_left.row
-  for cell in source_sheet.cells {
-    guard cell.pos.row == row &&
-      cell.pos.col >= source.top_left.col &&
-      cell.pos.col <= source.bottom_right.col else {
-      continue
-    }
-    if cell.value is Text(text) && text != "" {
-      headers.push(text)
-    }
-  }
+  let headers = header_names(source_sheet, source)
   let width = source.bottom_right.col - source.top_left.col + 1
   guard headers.length() == width else {
     raise schema_error(

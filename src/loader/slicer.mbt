@@ -23,14 +23,7 @@ fn load_slicer(
   file~ : String,
 ) -> @model.Slicer raise @diag.SchemaError {
   let entries = expect_map(node, file~, context="a slicer")
-  guard find_key(entries, "at") is Some(at_node) else {
-    raise schema_error(file~, "a slicer is missing required key 'at'")
-  }
-  let at = expect_cell_ref(
-    expect_string(at_node, file~, context="slicer 'at'"),
-    file~,
-    what="slicer 'at'",
-  )
+  let at = anchor_cell(entries, file~, subject="a slicer", noun="slicer")
   let context = "slicer at '\{at.to_a1()}'"
   let mut table = None
   let mut column = None
@@ -105,16 +98,7 @@ fn check_slicers(
       }
       // The column must be one of the table's headers, read from the cells
       // the table stands over (the same rule a pivot field follows).
-      let headers : Array[String] = []
-      let row = table.at.top_left.row
-      for cell in table_sheet.cells {
-        if cell.pos.row == row &&
-          cell.pos.col >= table.at.top_left.col &&
-          cell.pos.col <= table.at.bottom_right.col &&
-          cell.value is Text(text) {
-          headers.push(text)
-        }
-      }
+      let headers = header_names(table_sheet, table.at)
       guard headers.contains(slicer.column) else {
         raise schema_error(
           file~,

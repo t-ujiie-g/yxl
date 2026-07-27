@@ -51,16 +51,11 @@ fn load_conditional_format(
   defs~ : Defs,
 ) -> @model.ConditionalFormat raise @diag.SchemaError {
   let entries = expect_map(node, file~, context="a conditional format")
-  guard find_key(entries, "at") is Some(at_node) else {
-    raise schema_error(
-      file~,
-      "a conditional format is missing required key 'at'",
-    )
-  }
-  let at = parse_range(
-    expect_string(at_node, file~, context="conditional 'at'"),
+  let at = anchor_range(
+    entries,
     file~,
-    what="conditional range",
+    subject="a conditional format",
+    noun="conditional",
   )
   let context = "conditional '\{at.to_a1()}'"
   let mut rule : @model.ConditionalRule? = None
@@ -359,9 +354,12 @@ fn load_icon_set(
   }
   let style = style.unwrap()
   guard @model.icon_set_styles.contains(style) else {
-    raise schema_error(
+    raise unknown_value(
+      style,
       file~,
-      "unknown icon set '\{style}' in \{what} (expected one of \{@model.icon_set_styles.join(", ")})",
+      what="icon set",
+      context=what,
+      expected=@model.icon_set_styles.map(name => "'\{name}'"),
     )
   }
   IconSet(style~, reverse~, icons_only~)
