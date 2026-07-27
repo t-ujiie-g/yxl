@@ -414,6 +414,7 @@ pub(all) struct Sheet {
   charts : Array[Chart]
   images : Array[Image]
   shapes : Array[Shape]
+  mut background : SheetBackground?
   pivots : Array[Pivot]
   mut protection : SheetProtection?
 } derive(Eq, @debug.Debug)
@@ -429,6 +430,7 @@ pub fn Sheet::add_validation(Self, Validation) -> Unit
 pub fn Sheet::merge(Self, @units.CellRef, @units.CellRef) -> Unit
 pub fn Sheet::new(String, visibility? : SheetVisibility) -> Self
 pub fn Sheet::set(Self, @units.CellRef, CellValue, format? : String, style? : Style) -> Unit
+pub fn Sheet::set_background(Self, SheetBackground) -> Unit
 pub fn Sheet::set_column_band(Self, first~ : Int, last~ : Int, style? : Style, width? : Double, hidden? : Bool, outline_level? : Int) -> Unit
 pub fn Sheet::set_filter(Self, CellRange) -> Unit
 pub fn Sheet::set_gridlines(Self, Bool) -> Unit
@@ -437,6 +439,11 @@ pub fn Sheet::set_panes(Self, Panes) -> Unit
 pub fn Sheet::set_protection(Self, SheetProtection) -> Unit
 pub fn Sheet::set_row_band(Self, first~ : Int, last~ : Int, style? : Style, height? : Double, hidden? : Bool, outline_level? : Int) -> Unit
 pub fn Sheet::set_tab_color(Self, @units.Color) -> Unit
+
+pub(all) struct SheetBackground {
+  data : Bytes
+  format : String
+} derive(Eq, @debug.Debug)
 
 pub(all) struct SheetProtection {
   password : String?

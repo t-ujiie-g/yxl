@@ -80,12 +80,13 @@ fn load_sheet(
       "charts" => load_charts(value, sheet, file~)
       "images" => load_images(value, sheet, file~, read_bytes~)
       "shapes" => load_shapes(value, sheet, file~)
+      "background" => load_background(value, sheet, file~, read_bytes~)
       "pivots" => load_pivots(value, sheet, file~)
       "protect" => sheet.set_protection(load_sheet_protection(value, file~))
       _ =>
         raise schema_error(
           file~,
-          "unknown key '\{key}' in sheet (expected 'name', 'cells', 'data', 'columns', 'rows', 'merges', 'visibility', 'freeze', 'split', 'gridlines', 'tab_color', 'print', 'filter', 'validations', 'links', 'conditional', 'comments', 'tables', 'charts', 'images', 'shapes', 'pivots', or 'protect')",
+          "unknown key '\{key}' in sheet (expected 'name', 'cells', 'data', 'columns', 'rows', 'merges', 'visibility', 'freeze', 'split', 'gridlines', 'tab_color', 'print', 'filter', 'validations', 'links', 'conditional', 'comments', 'tables', 'charts', 'images', 'shapes', 'background', 'pivots', or 'protect')",
         )
     }
   }

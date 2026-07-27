@@ -31,9 +31,9 @@ is declarative authoring for people who'd rather edit YAML than write code.
 > values, formulas, dates, durations, rich text, styles, layout, print setup,
 > multi-file specs, external CSV/JSON data, parameters, validations, conditional
 > formatting, hyperlinks, notes, protection, Excel tables, charts, images,
-> shapes, and pivot tables all compile, and the CLI has `--check`, `--set`, and
-> stable exit codes. Still ahead: sparklines, form controls, slicers, and sheet
-> backgrounds, then performance work and the schema freeze —
+> shapes, sheet backgrounds, and pivot tables all compile, and the CLI has
+> `--check`, `--set`, and stable exit codes. Still ahead: sparklines, form
+> controls, and slicers, then performance work and the schema freeze —
 > **the schema may change until v1.0.** See [`ROADMAP.md`](./ROADMAP.md) for the
 > phase plan and the living changelog.
 
@@ -174,7 +174,7 @@ so the pages cannot drift from the compiler:
 |---|---|
 | [`quickstart.yxl.yaml`](./examples/quickstart.yxl.yaml) | cell kinds, number formats, a formula |
 | [`styling.yxl.yaml`](./examples/styling.yxl.yaml) | declare-once styles, `extends`, defined names, rich text, conditional formatting |
-| [`layout.yxl.yaml`](./examples/layout.yxl.yaml) | merges, frozen headers, sized and grouped bands, sheet visibility, print setup, document properties, an image |
+| [`layout.yxl.yaml`](./examples/layout.yxl.yaml) | merges, frozen headers, sized and grouped bands, sheet visibility, print setup, document properties, an image, a watermark background |
 | [`modular.yxl.yaml`](./examples/modular.yxl.yaml) | `$include`, CSV / JSON `data:`, and an Excel table over the region they fill |
 | [`parameters.yxl.yaml`](./examples/parameters.yxl.yaml) | `params:` with `${}` and `--set` |
 | [`interactive.yxl.yaml`](./examples/interactive.yxl.yaml) | drop-downs and other validations, an auto filter, hyperlinks, notes, sheet protection |

@@ -66,6 +66,7 @@ sheets:
     charts: [...]      # → §12
     images: [...]      # → §13
     shapes: [...]      # → §18
+    background: assets/logo.png   # tiled behind the cells → §13
     pivots: [...]      # → §14
     protect: {...}     # → §16
 ```
@@ -92,6 +93,7 @@ sheets:
 | `charts` | sequence | Charts anchored on the sheet. §12. |
 | `images` | sequence | Pictures anchored on the sheet. §13. |
 | `shapes` | sequence | Boxes and other geometries floating over the sheet. §18. |
+| `background` | path | An image tiled behind the cells. §13. |
 | `pivots` | sequence | Pivot tables placed on the sheet. §14. |
 | `protect` | mapping | Sheet protection. §16. |
 
@@ -627,6 +629,16 @@ diagnostics.
 
 The bytes are read while the spec compiles and travel into the workbook, so the
 `.xlsx` carries the picture itself and no longer needs the file.
+
+### Sheet backgrounds
+
+`background: <path>` on a sheet tiles an image behind its cells, like a
+watermark — the same formats, path resolution, and diagnostics as an `images:`
+file. One per sheet.
+
+> **Excel never prints a background.** It shows on screen only — a surprise
+> worth knowing before building letterhead around one. A printed watermark is a
+> header/footer picture, which `yxl` does not emit yet.
 
 ## 14. Pivot tables
 

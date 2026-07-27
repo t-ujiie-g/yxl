@@ -28,6 +28,18 @@ fn apply_image(
 }
 
 ///|
+/// Tile a background image behind a sheet's cells. The extension crosses the
+/// seam bare (`png`) — this backend call, unlike `add_picture_from_bytes`,
+/// takes it with or without the dot.
+fn apply_background(
+  backend : @xlsx.Workbook,
+  sheet_name : String,
+  background : @model.SheetBackground,
+) -> Unit raise {
+  backend.set_sheet_background(sheet_name, background.data, background.format)
+}
+
+///|
 /// The backend's anchor kind for a model positioning. OOXML has three anchors
 /// (ECMA-376 §20.5.2.1): a two-cell one, whose second corner moves the drawing's
 /// far edge with the cells; a one-cell one, which keeps the size; and an

@@ -149,6 +149,9 @@ pub(all) struct Sheet {
   images : Array[Image]
   /// Shapes floating over the sheet, in declaration order.
   shapes : Array[Shape]
+  /// An image tiled behind the cells; `None` leaves the sheet plain. Excel
+  /// shows a background on screen but never prints it.
+  mut background : SheetBackground?
   /// Pivot tables placed on the sheet, in declaration order.
   pivots : Array[Pivot]
   /// What a reader may still do once the sheet is protected; `None` leaves the
@@ -304,6 +307,7 @@ pub fn Sheet::new(
     charts: [],
     images: [],
     shapes: [],
+    background: None,
     pivots: [],
     protection: None,
   }

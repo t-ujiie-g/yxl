@@ -247,3 +247,43 @@ test "images keep their declaration order" {
   assert_eq(images[0].at.to_a1(), "D2")
   assert_eq(images[1].at.to_a1(), "H10")
 }
+
+///|
+test "a background loads its bytes and format through the same seam" {
+  let wb = load_ok(sheet_spec("    background: logo.png\n"), binaries={
+    "logo.png": logo,
+  })
+  let background = wb.sheets[0].background.unwrap()
+  assert_eq(background.data, logo)
+  assert_eq(background.format, "png")
+}
+
+///|
+test "a background refuses a formatless name, a foreign format, an empty file" {
+  assert_eq(
+    schema_message(sheet_spec("    background: logo\n"), binaries={
+      "logo": logo,
+    }),
+    Some(
+      "spec.yaml: sheet 'background' names 'logo', which has no extension to say what format it is",
+    ),
+  )
+  assert_eq(
+    schema_message(sheet_spec("    background: notes.txt\n"), binaries={
+      "notes.txt": logo,
+    }),
+    Some(
+      "spec.yaml: sheet 'background' names 'notes.txt', whose format 'txt' Excel does not store (expected bmp, emf, emz, gif, ico, jpeg, jpg, png, svg, tif, tiff, wmf, wmz)",
+    ),
+  )
+  assert_eq(
+    schema_message(sheet_spec("    background: logo.png\n"), binaries={
+      "logo.png": b"",
+    }),
+    Some("spec.yaml: sheet 'background' reads 'logo.png', which is empty"),
+  )
+  assert_eq(
+    schema_message(sheet_spec("    background: 5\n")),
+    Some("spec.yaml: sheet 'background' must be text"),
+  )
+}
