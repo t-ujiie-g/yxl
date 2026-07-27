@@ -478,11 +478,13 @@ gate, which is why none carries a box:
       ADR-017: a reader seam mirroring ADR-002, the schema itself as the
       recovery boundary, and **verify-then-emit** so compression is checked
       rather than trusted. Delivered in slices, value-first:
-      - [ ] **A YAML writer.** New machinery: `src/yaml` is parse-only today, so
-            there is nothing that turns a `model` back into text. Readable
-            output is the whole point of the feature, so this is not a detail —
-            quoting rules, block vs. flow, key order, and how a `cells:` block
-            is laid out all decide whether the result is worth keeping
+      - [x] **A YAML writer.** `@yaml.write` is the seam's other direction:
+            block style throughout, quoting only where the syntax forces it, and
+            the caller's key order left alone. Its rules are pinned to what *our*
+            parser does rather than to the YAML spec — it reads `yes` as text but
+            `TRUE` as a boolean, `007` as the number 7, and a lone `-` not at all
+            — and the round trip is asserted on the whole `examples/` corpus,
+            which also re-compiles to byte-identical workbooks
       - [ ] **The reader seam and slice 1**: values, formulas, rich text, styles
             interned into `defs.styles`, merges. This is the slice that makes
             the feature useful at all
@@ -1053,6 +1055,38 @@ Phase 11's inline `values:` lands. `$include` splitting is never inferred.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-28** — **A YAML writer**, the first slice of `extract` (ADR-017) and
+  the one everything else waits on: `src/yaml` could only ever read, so nothing
+  in the toolchain could turn a tree back into text. `@yaml.write` is the seam's
+  other direction — block style throughout, quoting only where the syntax forces
+  it, and the caller's key order left alone, because the point of the feature is
+  a spec somebody would *keep*, and a writer that quoted everything would satisfy
+  a round-trip test while producing something nobody would read.
+
+  Its rules are pinned to **what our parser actually does**, probed rather than
+  taken from the YAML spec, and the differences matter: it reads `yes` and `on`
+  as text but `TRUE` as a boolean, `007` and `1_000` and `0x10` as numbers, and a
+  lone `-` not at all. So the quoting test is conservative at the first character
+  — anything that is not a letter, `_`, `$` or `/` is quoted — which covers every
+  indicator and every way a number can start in one rule instead of a list that
+  would drift from the parser. A whole float also has to be written `1.0`, since
+  `Double`'s own rendering gives `1`, which would come back an *integer*.
+
+  Proven twice over. The round trip `parse(write(n)) == n` runs on hand-built
+  nodes for the awkward cases, and on **every spec in `examples/`**, which comes
+  back as the identical tree — and, for the specs that need no external files,
+  re-compiles to **byte-identical workbooks**. That second check is a rehearsal
+  of the verify-then-emit ADR-017 asks of `extract` itself.
+
+  Two limits are recorded rather than fixed. The parser refuses an empty mapping
+  key in both directions, so there is no such `Node` to write — `write` is the
+  inverse of `parse` for every node `parse` can *produce*, which is the contract,
+  and a test names the gap so a parser swap (ADR-010) notices it lifting. And
+  **comments do not survive**, because they are not in the tree: `write` is for
+  text yxl generates, not for reformatting a spec somebody wrote by hand. It is
+  no loss for `extract`, whose input is a workbook and so has no comments to
+  carry, but it is the reason this is not also a formatter.
 
 - **2026-07-28** — **Filled formula ranges**, the schema gap `extract`'s scoping
   found, pulled ahead of it. `formulas: [{ at: D2:D500, formula: "B2*C2" }]`

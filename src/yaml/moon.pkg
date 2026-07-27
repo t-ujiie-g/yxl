@@ -10,7 +10,9 @@ import {
   "moonbit-community/yaml" @yamllib,
 }
 
-// `debug_inspect` renders the `Node` tree (which derives `Debug`) in tests.
+// `debug_inspect` renders the `Node` tree (which derives `Debug`) in tests;
+// `double` supplies the infinities and NaN the writer has spellings for.
 import {
   "moonbitlang/core/debug",
+  "moonbitlang/core/double",
 } for "test"
