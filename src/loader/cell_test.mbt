@@ -246,6 +246,7 @@ test "load builds sheets and typed cells from a minimal spec" {
       #|      controls: [],
       #|      slicers: [],
       #|      pivots: [],
+      #|      formulas: [],
       #|      protection: None,
       #|    },
       #|    {
@@ -273,6 +274,7 @@ test "load builds sheets and typed cells from a minimal spec" {
       #|      controls: [],
       #|      slicers: [],
       #|      pivots: [],
+      #|      formulas: [],
       #|      protection: None,
       #|    },
       #|  ],

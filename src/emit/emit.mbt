@@ -173,6 +173,11 @@ fn emit_sheet(
       style=effective_style(sheet, cell),
     )
   }
+  // Filled formula ranges after the cells. The loader has already refused any
+  // overlap with a `cells:` entry, so the two never contend for a cell.
+  for range in sheet.formulas {
+    apply_formula_range(backend, sheet.name, sheet, range, style_ids)
+  }
   // Merge after the cells are written so the top-left keeps its value.
   for merge in sheet.merges {
     backend.merge_cell(

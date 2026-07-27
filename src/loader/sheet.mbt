@@ -56,6 +56,7 @@ fn load_sheet(
     match key {
       "name" | "visibility" => () // consumed above
       "cells" => load_cells(value, sheet, file~, defs~)
+      "formulas" => load_formulas(value, sheet, file~)
       "data" => load_data(value, sheet, file~, resolve~)
       "columns" => load_columns(value, sheet, file~, defs~)
       "rows" => load_rows(value, sheet, file~, defs~)
@@ -89,7 +90,7 @@ fn load_sheet(
       _ =>
         raise schema_error(
           file~,
-          "unknown key '\{key}' in sheet (expected 'name', 'cells', 'data', 'columns', 'rows', 'merges', 'visibility', 'freeze', 'split', 'gridlines', 'tab_color', 'print', 'filter', 'validations', 'links', 'conditional', 'comments', 'tables', 'charts', 'images', 'shapes', 'background', 'sparklines', 'controls', 'slicers', 'pivots', or 'protect')",
+          "unknown key '\{key}' in sheet (expected 'name', 'cells', 'formulas', 'data', 'columns', 'rows', 'merges', 'visibility', 'freeze', 'split', 'gridlines', 'tab_color', 'print', 'filter', 'validations', 'links', 'conditional', 'comments', 'tables', 'charts', 'images', 'shapes', 'background', 'sparklines', 'controls', 'slicers', 'pivots', or 'protect')",
         )
     }
   }

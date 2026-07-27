@@ -511,7 +511,7 @@ the first item changes what a spec looks like.
       reuses the anchored-table machinery `csv:`/`json:` already go through
       instead of inventing a second concept. `cells:` stays for scattered,
       individually-styled cells, which is what it is good at.
-- [ ] **Filled formula columns.** A formula translated down a column — `E2` is
+- [x] **Filled formula columns.** A formula translated down a column — `E2` is
       `C2*D2`, `E3` is `C3*D3` — is the commonest structure in a real workbook
       and the schema cannot say it. `defs.formulas` does not: a `$ref` compiles
       to a *defined name*, so every referencing cell gets the **same** formula,
@@ -526,9 +526,10 @@ the first item changes what a spec looks like.
       the spec cannot declare it once.** Take the `at:`-anchored house shape the
       other sheet keys use:
       `formulas: [{ at: E2:E500, formula: "C2*D2" }]`.
-      Lands **before the freeze**, and before `extract`'s slice 1 can produce
-      output worth keeping — decided while scoping `extract`, but wanted
-      independently: an author writing by hand hits it today.
+      **Shipped** as `formulas: [{ at, formula }]` (`docs/spec.md` §3), compiling
+      to a shared formula so a 500-row column stores one. Pulled ahead of
+      `extract`, whose slice 1 would otherwise emit 499 lines a reader would
+      delete; wanted independently, since an author writing by hand hit it too.
 - [ ] **A JSON Schema for the spec, generated from `docs/spec.md`'s contents.**
       Publishing one lets an author write
       `# yaml-language-server: $schema=…` and get completion and validation in
@@ -1052,6 +1053,36 @@ Phase 11's inline `values:` lands. `$include` splitting is never inferred.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-28** — **Filled formula ranges**, the schema gap `extract`'s scoping
+  found, pulled ahead of it. `formulas: [{ at: D2:D500, formula: "B2*C2" }]`
+  writes a calculation column once: the formula is written as it applies at the
+  range's top-left cell, and every other cell gets it with its relative
+  references shifted. Before this, the commonest structure in a real workbook
+  was 499 near-identical `cells:` lines that a single row insert rewrote — and
+  `defs.formulas` was no help, since a `$ref` compiles to a defined name and
+  would give every row the *first* row's answer. That confusion is now a named
+  refusal rather than a wrong number.
+
+  It compiles to Excel's **own shared formula** (ECMA-376 §18.3.1.40), so a
+  500-row column stores one formula and Excel does the shifting on open — which
+  is what ADR-004 asks of anything the spec declares once, and is checked rather
+  than asserted: the round-trip test reads back three calculating cells and one
+  stored formula. Verified outside our own backend too, with `openpyxl`, which
+  reports `D3` as `=B3*C3` from a file that never stored that text.
+
+  Two deliberate refusals keep it honest. A range may not overlap another range
+  or any cell `cells:`/`data:` writes — a cell holds one formula, and a
+  precedence rule would hide the clash; refusing can be relaxed later, whereas a
+  precedence rule could not be tightened. And an absurd `A1:A99999999` is
+  refused by a ceiling of one full column, because a cell reference is not
+  bounded to Excel's grid where it is parsed and the emitter would otherwise
+  build cells until the machine gave up. Formatting stays out, as it does for
+  `data:` — a `columns:` band is where it belongs, and it reaches every cell the
+  range fills, followers included. That last part needed doing on purpose: the
+  backend creates those cells, so they are in no `cells` array for the emitter to
+  walk with the rest, and a calculation column formatted only on its first row
+  would be worse than one formatted on none.
 
 - **2026-07-28** — **Fixed: a `columns:` / `rows:` band's styling never reached
   the cells the spec wrote.** Found by opening a workbook in Excel while

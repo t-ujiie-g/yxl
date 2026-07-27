@@ -48,6 +48,7 @@ Any node may instead be `{ $include: path }` — see §8.
 sheets:
   - name: Sales        # required
     cells: {...}       # → §3
+    formulas: [...]    # → §3
     data: [...]        # → §9
     columns: [...]     # → §4
     rows: [...]        # → §4
@@ -78,6 +79,7 @@ sheets:
 |---|---|---|
 | `name` | text | **Required.** Must be unique in the workbook. |
 | `cells` | mapping | A1 reference → value. §3. |
+| `formulas` | sequence | One formula filled across a region. §3. |
 | `data` | sequence | External CSV/JSON tables. §9. |
 | `columns` / `rows` | sequence | Bands. §4. |
 | `merges` | sequence of `A1:B2` | Corners in any order; the merge shows the top-left value. |
@@ -155,6 +157,53 @@ of rolling into days.
 `#GETTING_DATA`.
 
 > **`yxl` emits formulas; Excel computes them.** There is no evaluator here.
+
+### Filled formula ranges
+
+A calculation column is one formula that *moves*: `D2` is `B2*C2`, `D3` is
+`B3*C3`, and so on down. Writing that as `cells:` costs a line per row, and
+inserting a row rewrites every line below it. `formulas:` says it once.
+
+```yaml
+formulas:
+  - at: D2:D500
+    formula: "B2*C2"
+```
+
+The formula is written **as it applies at the range's top-left cell**. Every
+other cell gets it with its relative references shifted by that cell's offset;
+absolute references (`$C$2`) do not move. A range may span columns as well as
+rows, and a one-cell range is allowed.
+
+| Key | Notes |
+|---|---|
+| `at` | **Required.** A `TopLeft:BottomRight` range. |
+| `formula` | **Required.** The formula body; a leading `=` is accepted and stripped. |
+
+This compiles to Excel's own **shared formula**: the file stores the text once
+and marks the rest of the range as following it, so a 500-row column is one
+stored formula, not five hundred.
+
+A `{ $ref: name }` is **refused** here. A `defs.formulas` reference compiles to a
+defined name (§6), which gives every cell that references it the *same* formula
+— the opposite of filling a range with one that shifts per row. Write the
+formula in place instead.
+
+**Formatting is not part of a formula range**, for the same reason it is not part
+of a `data:` block (§9): style the region with a `columns:` / `rows:` band, which
+reaches every cell the range fills (§4).
+
+A range may not overlap another range, or any cell that `cells:` or `data:`
+writes — a cell holds one formula, and letting one side silently win would hide
+the clash. Split the range around the exception:
+
+```yaml
+formulas:
+  - at: D2:D9
+    formula: "B2*C2"
+  - at: D11:D500          # D10 is written by hand
+    formula: "B11*C11"
+```
 
 ## 4. Column and row bands
 
