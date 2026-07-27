@@ -370,13 +370,19 @@ Excel by hand** before ticking the box, not only round-trip it.
       the round trip asserts bytes, extension, and content type. The docs say
       what surprises people: Excel shows a background on screen and never
       prints it
-- [ ] **Sparklines** (`add_sparkline` / `add_sparkline_group`) — a chart inside
-      one cell, for a row of figures beside it. Line, column, and win/loss;
-      per group the cells plotted and where each lands, the markers (high, low,
-      first, last, negative), manual bounds, line weight, and colours. Written
-      as an `x14` extension, which the backend has integration tests for and
-      which Excel is strict about — verify the emitted extension list, not just
-      the round trip
+- [x] **Sparklines** (`add_sparkline`) — a chart inside one cell, for a row of
+      figures beside it. Line, column, and win/loss; per group the cells
+      plotted and where each lands (`at`/`data` for one, `cells:` for
+      several), the high/low/every-point markers, manual bounds, line weight,
+      and the colours those marks can show. Written as an `x14` extension, and
+      the emitted extension list was verified against the part, not just
+      round-tripped: the `{05C60535-…}` URI, the namespaces, win/loss spelled
+      `stacked`, and the sheet-qualified `<xm:f>` are all as ECMA-376 Part 4
+      §2.9 wants them. Two backend gaps bound the schema: the *first*, *last*,
+      and *negative* markers are options nothing can set (refused by name with
+      the reason), and `manualMin`/`manualMax` are written without
+      `minAxisType`/`maxAxisType="custom"` — whether Excel honours them anyway
+      is what the manual check watches
 - [ ] **Form controls** (`add_form_control`) — a button, check box, option
       button, scroll bar, spin button, group box, or label sitting over the
       grid, linked to a cell. The value a control writes into its `cell_link`
@@ -899,6 +905,30 @@ silently reading the wrong file).
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-27** — **Sparklines.** `sparklines:` puts a chart inside a cell —
+  a line, a column per point, or win/loss — for the row of figures beside it.
+  Each entry is a *group*, Excel's own unit of styling and scaling: one
+  sparkline via `at`/`data`, or several via `cells:`, sharing the kind, the
+  high/low/every-point markers, manual whole-number bounds, the line weight,
+  and the colours those marks can show. `data` may name another declared
+  sheet; naming an undeclared one is the same diagnostic a chart gets.
+
+  The x14 extension the backend writes was **verified against the part**, per
+  this item's standing instruction, not just round-tripped: the
+  `{05C60535-1F16-4fd2-B633-F4F36F0B64E0}` URI, both namespaces, win/loss
+  spelled `stacked`, and `<xm:f>'Data'!B2:E2</xm:f>` sheet-qualified and
+  quoted as Excel writes it.
+
+  Three backend gaps surfaced, the first two bounding the schema: the
+  *first point*, *last point*, and *negative points* markers are carried as
+  options nothing can set, so `first:`/`last:`/`negative:` are refused by
+  name with the reason; the reader strips the sheet prefix off a read-back
+  `range_ref` (tests note it; the file is right); and `manualMin`/`manualMax`
+  are written without the `minAxisType`/`maxAxisType="custom"` attributes
+  ECMA-376 wants beside them — whether Excel honours the bounds anyway is
+  exactly what the manual check watches, and `min:`/`max:` become a refusal
+  if it does not.
 
 - **2026-07-27** — **Sheet backgrounds.** `background: assets/logo.png` on a
   sheet tiles the image behind its cells, like a watermark. The smallest kind

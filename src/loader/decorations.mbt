@@ -227,6 +227,19 @@ fn check_cross_sheet_references(
         }
       }
     }
+    for group in sheet.sparklines {
+      for cell in group.cells {
+        // A sparkline over a missing sheet draws an empty cell, saying
+        // nothing about which reference went nowhere.
+        guard cell.data.sheet is Some(named) else { continue }
+        guard declared(named) else {
+          raise schema_error(
+            file~,
+            "sparkline at '\{cell.at.to_a1()}' on sheet '\{sheet.name}' plots sheet '\{named}', which is not declared",
+          )
+        }
+      }
+    }
     for link in sheet.links {
       guard link.target is Location(location) else { continue }
       // Only a sheet-qualified location can be checked; a bare one is a defined

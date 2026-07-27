@@ -82,6 +82,10 @@ fn promises() -> Array[Promise] {
     // themselves are asserted separately below.
     promise("shapes.yxl.yaml", "Board", "A1", "Quarterly review"),
     promise("shapes.yxl.yaml", "Board", "B4", "2400000"),
+    // sparklines: the figures they plot are ordinary cells; the groups
+    // themselves are asserted separately below.
+    promise("sparklines.yxl.yaml", "Dashboard", "E2", "3100"),
+    promise("sparklines.yxl.yaml", "Results", "C3", "1"),
   ]
 }
 
@@ -384,6 +388,33 @@ test "the layout example carries its background" {
   }
   assert_eq(background.extension, "png")
   assert_true(background.data.length() > 0)
+}
+
+///|
+/// The `sparklines` example claims two groups of two. A sparkline is not a
+/// cell value, so the promise table cannot carry it.
+test "the sparklines example draws its two groups" {
+  let path = "\{EXAMPLES}/sparklines.yxl.yaml"
+  let workbook = @xlsx.read(
+    @cli.compile(
+      @fs.read_file_to_string(path),
+      file=path,
+      resolve=included,
+      read_bytes=included_bytes,
+    )[:],
+  )
+  guard workbook.sheet("Dashboard") is Some(dashboard) else {
+    fail("expected the Dashboard sheet")
+  }
+  let groups = dashboard.sparkline_groups()
+  assert_eq(groups.length(), 2)
+  assert_true(groups[0].sparkline_type is Line)
+  assert_eq(groups[0].sparklines.map(spark => spark.location), ["F2", "F3"])
+  assert_eq(groups[0].options.markers, true)
+  assert_eq(groups[0].options.high, true)
+  assert_eq(groups[0].options.color_series.unwrap().rgb, Some("FF1F77B4"))
+  assert_true(groups[1].sparkline_type is WinLoss)
+  assert_eq(groups[1].options.display_x_axis, true)
 }
 
 ///|
