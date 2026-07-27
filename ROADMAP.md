@@ -867,6 +867,47 @@ silently reading the wrong file).
 
 Reverse-chronological. One entry per user-visible or structural change.
 
+- **2026-07-27** — **A full pass of the AGENTS.md §8 refactoring checklist**,
+  behavior-preserving throughout. What it found, by lens:
+
+  *Duplication and dead code.* The range formatter existed three times and the
+  sheet lookup three times; both are now model methods (`CellRange::to_a1`,
+  `Workbook::sheet`). Charts and images each validated pixels with their own
+  near-copy — one `expect_pixels` (with a per-caller floor) serves both, and
+  the two selector parsers share one `parse_selector`. The executable's three
+  file-read diagnostics converged on one wording, and the examples corpus now
+  resolves included paths with the real `@cli.resolve_path` instead of a
+  POSIX-only shadow copy — so the corpus exercises the rule the CLI ships.
+  `is_table_style` / `is_pivot_style` had no callers anywhere and are gone,
+  as is a smoke test the golden round-trip superseded.
+
+  *Constants.* The Excel limits that lived in the loader (drawing pixels,
+  image scale, defined-name length) moved to `model` beside the seven already
+  there. The protect allowances became an array serving both the lookup and
+  the diagnostic (the pattern the chart/pivot/image tables set), as did the
+  alignment and border-style spellings — the match arm and its "expected …"
+  list can no longer drift apart. `params`/`defs` keys and the `type: date`
+  default formats got named constants.
+
+  *File boundaries.* Three splits, each along a line a sibling file had
+  already drawn: `model/page.mbt` (print setup, matching `loader/page.mbt`
+  and `emit/page.mbt`), `emit/conditional.mbt` (matching the loader's split,
+  and giving `conditional_test.mbt` a source file), and `loader/sheet.mbt`
+  (per-sheet loading and presentation, giving `sheet_test.mbt` a source file
+  and leaving `loader.mbt` the document entry point).
+
+  *Docs.* The README's pivots-example row claimed a `filters` axis the loader
+  refuses by name; corrected, along with the pivot changelog lead below. The
+  status blurb now names the remaining features instead of "Phase 9's second
+  slice", and `yxl version` joined the command list.
+
+  What the survey found and this pass did **not** do, recorded so it is a
+  decision rather than an omission: unifying the ~60 hand-written
+  "missing required key" / "unknown key … (expected …)" messages behind two
+  `expect.mbt` helpers (a coherent follow-up of its own), per-source test
+  files for `model/style.mbt`, `emit/style.mbt`, and `cli/path.mbt`, and a CI
+  step exercising the executable's failure exit codes.
+
 - **2026-07-27** — **Phase 9 reorganized into two slices.** The phase ended
   with one unnamed line — "further additive extras as demand warrants:
   sparklines, shapes, form controls, slicers, sheet backgrounds, duration
@@ -896,9 +937,9 @@ Reverse-chronological. One entry per user-visible or structural change.
 
 - **2026-07-27** — **Pivot tables**, the last of Phase 9's Excel features.
   `pivots:` names a source region, groups it down `rows` and along `columns`,
-  aggregates in `values`, and offers `filters` above — with all eleven of
-  Excel's aggregations, a display name per field, its built-in styles, and
-  either grand total.
+  and aggregates in `values` — with all eleven of Excel's aggregations, a
+  display name per field, its built-in styles, and either grand total. (A
+  `filters` axis is refused for the backend defect described below.)
 
   **A pivot is entirely references**, like a chart: the fields are named after
   the *columns of the source's header row*, never after letters or indices. So

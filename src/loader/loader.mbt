@@ -1,20 +1,10 @@
 ///|
-/// Load a parsed YAML document into a workbook model, validating the schema. The
-/// spec is a mapping with a `sheets` sequence plus optional top-level `active`
-/// (the sheet Excel opens on), `params` (named values with defaults, substituted
-/// as `${name}` and overridable through `params~` — see `substitute_params`),
-/// `date1904` (the 1904 date system), `default_font` (the workbook default font
-/// face), and `defs` (named definitions — see `load_defs`). Sheets appear in Excel in declaration order. Each sheet has a
-/// `name` and optional `cells` (an A1-reference mapping), `data` (external CSV /
-/// JSON tables — see `load_data`), `merges`, `columns` / `rows` (bands carrying
-/// a default style, a size, visibility, and outline grouping — see
-/// `load_columns`), the presentation keys `visibility`, `freeze` / `split`,
-/// `gridlines`, and `tab_color`, and a `print:` block (see `load_page_setup`).
-/// A cell value is a scalar shorthand or an expanded mapping with a `value`,
-/// `formula`, or `rich` run list, plus optional `type`, `format`, and `style`
-/// (see `load_cell`). A style is referenced by bareword name and a value/formula
-/// by `{ $ref: name }` (ADR-012). Any node may instead be `{ $include: path }`,
-/// read through `resolve` (ADR-014).
+/// Load a parsed YAML document into a workbook model, validating the schema.
+/// The full key-by-key reference is `docs/spec.md`; in brief, a spec is a
+/// mapping with a `sheets` sequence plus optional workbook-level keys, a style
+/// is referenced by bareword name and a value/formula by `{ $ref: name }`
+/// (ADR-012), and any node may instead be `{ $include: path }`, read through
+/// `resolve` (ADR-014).
 ///
 /// Sheet keys apply in the order written, so where a `data:` table and `cells:`
 /// overlap, whichever comes last wins.
@@ -89,13 +79,13 @@ pub fn load(
       }
       "date1904" => () // consumed by read_date_system
       "default_font" => () // consumed by read_default_font
-      "defs" => () // consumed by load_defs
+      DEFS_KEY => () // consumed by load_defs
       "active" => () // resolved below, once every sheet name is known
       "properties" => workbook.set_properties(load_properties(value, file~))
       "calc" => workbook.set_calc(load_calc(value, file~))
       "protect" =>
         workbook.set_protection(load_workbook_protection(value, file~))
-      "params" => () // consumed by the substitution pass
+      PARAMS_KEY => () // consumed by the substitution pass
       _ =>
         raise schema_error(
           file~,
@@ -130,8 +120,7 @@ fn read_active_sheet(
 ) -> Unit raise @diag.SchemaError {
   guard find_key(root, "active") is Some(value) else { return }
   let name = expect_string(value, file~, context="'active'")
-  guard workbook.sheets.iter().find_first(sheet => sheet.name == name)
-    is Some(sheet) else {
+  guard workbook.sheet(name) is Some(sheet) else {
     raise schema_error(file~, "active sheet '\{name}' is not a declared sheet")
   }
   guard sheet.visibility is Visible else {
@@ -165,169 +154,8 @@ fn read_default_font(
   root : Array[(String, @yaml.Node)],
   file~ : String,
 ) -> String? raise @diag.SchemaError {
-  match find_key(root, "default_font") {
-    Some(value) => Some(expect_string(value, file~, context="'default_font'"))
-    None => None
-  }
-}
-
-///|
-fn load_sheets(
-  node : @yaml.Node,
-  workbook : @model.Workbook,
-  file~ : String,
-  defs~ : Defs,
-  resolve~ : IncludeResolver,
-  read_bytes~ : BytesResolver,
-) -> Unit raise {
-  let items = expect_seq(node, file~, context="'sheets'")
-  let seen_names = []
-  for item in items {
-    let name = load_sheet(item, workbook, file~, defs~, resolve~, read_bytes~)
-    guard !seen_names.contains(name) else {
-      raise schema_error(file~, "duplicate sheet name '\{name}'")
-    }
-    seen_names.push(name)
-  }
-}
-
-///|
-/// Add one sheet to the workbook and return its name (for duplicate checking).
-fn load_sheet(
-  node : @yaml.Node,
-  workbook : @model.Workbook,
-  file~ : String,
-  defs~ : Defs,
-  resolve~ : IncludeResolver,
-  read_bytes~ : BytesResolver,
-) -> String raise {
-  let entries = expect_map(node, file~, context="a sheet")
-  // `name` and `visibility` are read up front because the sheet cannot be
-  // created without them; every other key then applies to the sheet in place.
-  guard find_key(entries, "name") is Some(name_node) else {
-    raise schema_error(file~, "a sheet is missing required key 'name'")
-  }
-  let sheet_name = expect_string(name_node, file~, context="sheet 'name'")
-  let visibility = match find_key(entries, "visibility") {
-    Some(value) => load_visibility(value, file~)
-    None => @model.Visible
-  }
-  guard !(find_key(entries, "freeze") is Some(_) &&
-    find_key(entries, "split") is Some(_)) else {
-    raise schema_error(
-      file~,
-      "sheet '\{sheet_name}' cannot combine 'freeze' and 'split'",
-    )
-  }
-  let sheet = workbook.add_sheet(sheet_name, visibility~)
-  for entry in entries {
-    let (key, value) = entry
-    match key {
-      "name" | "visibility" => () // consumed above
-      "cells" => load_cells(value, sheet, file~, defs~)
-      "data" => load_data(value, sheet, file~, resolve~)
-      "columns" => load_columns(value, sheet, file~, defs~)
-      "rows" => load_rows(value, sheet, file~, defs~)
-      "merges" => load_merges(value, sheet, file~)
-      "freeze" => sheet.set_panes(load_freeze(value, file~))
-      "split" => sheet.set_panes(load_split(value, file~))
-      "gridlines" =>
-        sheet.set_gridlines(
-          expect_bool(value, file~, context="sheet 'gridlines'"),
-        )
-      "tab_color" =>
-        sheet.set_tab_color(
-          expect_color(value, file~, what="'tab_color'", context="sheet"),
-        )
-      "print" => sheet.set_page_setup(load_page_setup(value, file~))
-      "filter" => load_filter(value, sheet, file~)
-      "validations" => load_validations(value, sheet, file~)
-      "links" => load_links(value, sheet, file~)
-      "conditional" => load_conditional_formats(value, sheet, file~, defs~)
-      "comments" => load_comments(value, sheet, file~)
-      "tables" => load_tables(value, sheet, file~)
-      "charts" => load_charts(value, sheet, file~)
-      "images" => load_images(value, sheet, file~, read_bytes~)
-      "pivots" => load_pivots(value, sheet, file~)
-      "protect" => sheet.set_protection(load_sheet_protection(value, file~))
-      _ =>
-        raise schema_error(
-          file~,
-          "unknown key '\{key}' in sheet (expected 'name', 'cells', 'data', 'columns', 'rows', 'merges', 'visibility', 'freeze', 'split', 'gridlines', 'tab_color', 'print', 'filter', 'validations', 'links', 'conditional', 'comments', 'tables', 'charts', 'images', 'pivots', or 'protect')",
-        )
-    }
-  }
-  sheet_name
-}
-
-///|
-/// A sheet's `visibility:` — `visible` (the default), `hidden`, or `very_hidden`
-/// (unhideable from Excel's UI). A bareword, not a boolean, because Excel has
-/// three states, unlike a column or row band's two-state `hidden:`.
-fn load_visibility(
-  node : @yaml.Node,
-  file~ : String,
-) -> @model.SheetVisibility raise @diag.SchemaError {
-  match expect_string(node, file~, context="sheet 'visibility'") {
-    "visible" => Visible
-    "hidden" => Hidden
-    "very_hidden" => VeryHidden
-    other =>
-      raise schema_error(
-        file~,
-        "unknown sheet visibility '\{other}' (expected 'visible', 'hidden', or 'very_hidden')",
-      )
-  }
-}
-
-///|
-/// A sheet's `freeze: <cell>` — the rows above and columns left of that cell
-/// stay put while the rest scrolls. `A1` freezes nothing, so it is a mistake
-/// worth reporting rather than a no-op.
-fn load_freeze(
-  node : @yaml.Node,
-  file~ : String,
-) -> @model.Panes raise @diag.SchemaError {
-  let reference = expect_string(node, file~, context="sheet 'freeze'")
-  let cell = expect_cell_ref(reference, file~, what="'freeze'")
-  guard cell.col > 1 || cell.row > 1 else {
-    raise schema_error(
-      file~,
-      "'freeze: A1' would freeze nothing (freeze at the first unfrozen cell)",
-    )
-  }
-  Freeze(cell)
-}
-
-///|
-/// A sheet's `split: { x, y }` — a draggable splitter, each axis given in points
-/// from the top-left corner and defaulting to `0` (that axis unsplit). Splitting
-/// on neither axis is a mistake worth reporting.
-fn load_split(
-  node : @yaml.Node,
-  file~ : String,
-) -> @model.Panes raise @diag.SchemaError {
-  let mut x = 0.0
-  let mut y = 0.0
-  for entry in expect_map(node, file~, context="sheet 'split'") {
-    let (key, value) = entry
-    match key {
-      "x" => x = expect_number(value, file~, context="sheet 'split' x")
-      "y" => y = expect_number(value, file~, context="sheet 'split' y")
-      _ =>
-        raise schema_error(
-          file~,
-          "unknown key '\{key}' in sheet 'split' (expected 'x' or 'y')",
-        )
-    }
-  }
-  guard x > 0.0 || y > 0.0 else {
-    raise schema_error(
-      file~,
-      "sheet 'split' needs a non-zero 'x' or 'y' (in points)",
-    )
-  }
-  Split(x~, y~)
+  guard find_key(root, "default_font") is Some(value) else { return None }
+  Some(expect_string(value, file~, context="'default_font'"))
 }
 
 ///|
@@ -363,12 +191,6 @@ fn parse_range(
   let second = expect_cell_ref(right.to_owned(), file~, what=corner)
   let (top_left, bottom_right) = @units.CellRef::rect(first, second)
   { top_left, bottom_right }
-}
-
-///|
-/// A range as a diagnostic writes it: `A1:D10`.
-fn range_a1(range : @model.CellRange) -> String {
-  "\{range.top_left.to_a1()}:\{range.bottom_right.to_a1()}"
 }
 
 ///|

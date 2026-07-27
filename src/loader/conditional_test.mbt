@@ -58,7 +58,7 @@ test "an inline style is accepted where a declared one would be" {
       "cell: { at_least: 1 }\n        style: { fill: \"FFC7CE\" }",
     ),
   )
-  assert_true(format.style.unwrap().fill is Some(_))
+  assert_eq(format.style.unwrap().fill.unwrap().color.hex(), "FFC7CE")
 }
 
 ///|
@@ -170,6 +170,16 @@ test "a rank is held to the limit Excel's own dialog enforces" {
 }
 
 ///|
+test "a rank written as a mapping needs its count" {
+  assert_eq(
+    schema_message(
+      conditional_spec("top: { percent: true }\n        style: good"),
+    ),
+    Some("spec.yaml: conditional 'B2:B9' 'top' is missing required key 'count'"),
+  )
+}
+
+///|
 test "a rank beyond Int cannot wrap into range" {
   assert_eq(
     schema_message(conditional_spec("top: 4294967297\n        style: good")),
@@ -269,6 +279,16 @@ test "an icon set takes a bare name or a mapping" {
   )
   assert_true(
     full.rule is IconSet(style="5Rating", reverse=true, icons_only=true),
+  )
+}
+
+///|
+test "an icon set written as a mapping needs its style" {
+  assert_eq(
+    schema_message(conditional_spec("icon_set: { reverse: true }")),
+    Some(
+      "spec.yaml: conditional 'B2:B9' 'icon_set' is missing required key 'style'",
+    ),
   )
 }
 

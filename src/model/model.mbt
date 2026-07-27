@@ -74,6 +74,13 @@ pub(all) struct CellRange {
 } derive(Eq, Debug)
 
 ///|
+/// The range in A1 notation (`A1:B9`), unqualified and relative — the form the
+/// spec itself uses.
+pub fn CellRange::to_a1(self : CellRange) -> String {
+  self.top_left.to_a1() + ":" + self.bottom_right.to_a1()
+}
+
+///|
 /// How Excel shows a sheet in the tab bar (ECMA-376 §18.18.68,
 /// `ST_SheetState`): visible; hidden, which the user can undo from the tab
 /// context menu; or very hidden, which only VBA can undo. A workbook must keep
@@ -97,75 +104,6 @@ pub(all) enum Panes {
   Freeze(@units.CellRef)
   Split(x~ : Double, y~ : Double)
 } derive(Eq, Debug)
-
-///|
-/// Which way the printed page runs.
-pub(all) enum Orientation {
-  Portrait
-  Landscape
-} derive(Eq, Debug)
-
-///|
-/// Printed margins, in inches — Excel's own unit here. `header`/`footer` are the
-/// distance from the paper edge to the header/footer text, not extra margin.
-/// Each is `None` when the spec leaves it to Excel's default.
-pub(all) struct PageMargins {
-  top : Double?
-  bottom : Double?
-  left : Double?
-  right : Double?
-  header : Double?
-  footer : Double?
-} derive(Eq, Debug)
-
-///|
-/// How the sheet is sized onto the paper — the two mutually exclusive halves of
-/// Excel's scaling control.
-pub(all) enum PageScale {
-  /// A percentage of actual size, within `min_page_scale`..`max_page_scale`.
-  Percent(Int)
-  /// Shrink until the sheet fits this many pages across and down; `0` on an
-  /// axis leaves it unconstrained.
-  Fit(width~ : Int, height~ : Int)
-} derive(Eq, Debug)
-
-///|
-/// Excel's limits on a print scale percentage.
-pub let min_page_scale : Int = 10
-
-///|
-pub let max_page_scale : Int = 400
-
-///|
-/// How a sheet prints: what to print (`area`, `breaks`), how it sits on the
-/// paper (`orientation`, `margins`, `scale`), and what runs along the top and
-/// bottom of every page (`header`, `footer`, in Excel's `&`-code syntax —
-/// ECMA-376 §18.3.1.46). Everything is optional; an unset field keeps Excel's
-/// default.
-pub(all) struct PageSetup {
-  area : CellRange?
-  orientation : Orientation?
-  margins : PageMargins?
-  scale : PageScale?
-  header : String?
-  footer : String?
-  /// Manual page breaks, each above and to the left of the given cell.
-  breaks : Array[@units.CellRef]
-} derive(Eq, Debug)
-
-///|
-/// A page setup that changes nothing.
-pub fn PageSetup::empty() -> PageSetup {
-  {
-    area: None,
-    orientation: None,
-    margins: None,
-    scale: None,
-    header: None,
-    footer: None,
-    breaks: [],
-  }
-}
 
 ///|
 /// One worksheet: a name, the cells written to it (kept in insertion order),
@@ -227,6 +165,11 @@ pub(all) struct DefinedName {
 } derive(Eq, Debug)
 
 ///|
+/// The longest name Excel accepts for a defined name — and for a table name,
+/// which shares the same namespace and the same limit.
+pub let max_defined_name_length : Int = 255
+
+///|
 /// A workbook: an ordered list of sheets — the order is the order of the tabs —
 /// the date system that governs how dates serialize, and any workbook-level
 /// defined names. This is the entire input to the emitter seam
@@ -250,6 +193,13 @@ pub(all) struct Workbook {
   /// What a reader may not do to the workbook itself; `None` leaves it open.
   mut protection : WorkbookProtection?
 } derive(Eq, Debug)
+
+///|
+/// The sheet declared under `name`, or `None` — the lookup every construct
+/// that names a sheet (a pivot source, a chart series, a link target) shares.
+pub fn Workbook::sheet(self : Workbook, name : String) -> Sheet? {
+  self.sheets.iter().find_first(sheet => sheet.name == name)
+}
 
 ///|
 /// A new, empty workbook. Defaults to the 1900 date system, the backend's

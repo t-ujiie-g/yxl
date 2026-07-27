@@ -62,7 +62,7 @@ fn load_conditional_format(
     file~,
     what="conditional range",
   )
-  let context = "conditional '\{range_a1(at)}'"
+  let context = "conditional '\{at.to_a1()}'"
   let mut rule : @model.ConditionalRule? = None
   let mut style_node = None
   let mut number_format = None

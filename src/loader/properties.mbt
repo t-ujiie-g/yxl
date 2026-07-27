@@ -128,8 +128,13 @@ fn load_calc(
 
 ///|
 /// The allowances a sheet's `protect:` may grant, in the order Excel's own
-/// "Protect Sheet" dialog lists them.
-const PROTECT_ALLOWANCES : String = "'select_locked_cells', 'select_unlocked_cells', 'format_cells', 'format_columns', 'format_rows', 'insert_columns', 'insert_rows', 'insert_hyperlinks', 'delete_columns', 'delete_rows', 'sort', 'auto_filter', 'pivot_tables', 'edit_objects', or 'edit_scenarios'"
+/// "Protect Sheet" dialog lists them. One table serves both the lookup and the
+/// diagnostic, so the two cannot drift apart.
+let protect_allowances : Array[String] = [
+  "select_locked_cells", "select_unlocked_cells", "format_cells", "format_columns",
+  "format_rows", "insert_columns", "insert_rows", "insert_hyperlinks", "delete_columns",
+  "delete_rows", "sort", "auto_filter", "pivot_tables", "edit_objects", "edit_scenarios",
+]
 
 ///|
 /// A sheet's `protect:` — the sheet is locked, and `allow:` names what a reader
@@ -174,7 +179,9 @@ fn load_sheet_protection(
       "auto_filter" => { ..protection, auto_filter: allowed }
       "pivot_tables" => { ..protection, pivot_tables: allowed }
       "edit_objects" => { ..protection, edit_objects: allowed }
-      _ => { ..protection, edit_scenarios: allowed }
+      "edit_scenarios" => { ..protection, edit_scenarios: allowed }
+      // Unreachable: `load_allowances` already refused any other name.
+      _ => protection
     }
   })
   { ..with_allowances, password, }
@@ -190,10 +197,11 @@ fn load_allowances(
   let allowances = []
   for entry in expect_map(node, file~, context="sheet 'protect' 'allow'") {
     let (key, value) = entry
-    guard PROTECT_ALLOWANCES.contains("'\{key}'") else {
+    guard protect_allowances.contains(key) else {
+      let spellings = protect_allowances.map(name => "'\{name}'")
       raise schema_error(
         file~,
-        "unknown allowance '\{key}' in sheet 'protect' (expected \{PROTECT_ALLOWANCES})",
+        "unknown allowance '\{key}' in sheet 'protect' (expected \{spellings.join(", ")})",
       )
     }
     allowances.push(

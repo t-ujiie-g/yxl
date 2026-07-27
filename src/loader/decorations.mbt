@@ -190,7 +190,7 @@ fn check_cross_sheet_references(
   file~ : String,
 ) -> Unit raise @diag.SchemaError {
   fn declared(name : String) -> Bool {
-    workbook.sheets.iter().any(sheet => sheet.name == name)
+    workbook.sheet(name) is Some(_)
   }
 
   for sheet in workbook.sheets {

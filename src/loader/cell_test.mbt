@@ -325,6 +325,48 @@ test "load rejects rich text combined with a value, and an empty run list" {
 }
 
 ///|
+test "load rejects rich text combined with a formula or a type" {
+  assert_eq(
+    schema_message(
+      "sheets:\n  - name: S\n    cells:\n      A1: { rich: [\"a\"], formula: \"B1\" }\n",
+    ),
+    Some("spec.yaml: cell 'A1' cannot combine 'rich' and 'formula'"),
+  )
+  assert_eq(
+    schema_message(
+      "sheets:\n  - name: S\n    cells:\n      A1: { rich: [\"a\"], type: text }\n",
+    ),
+    Some("spec.yaml: cell 'A1' cannot combine 'rich' and 'type'"),
+  )
+}
+
+///|
+test "load rejects rich text that is not a sequence, and a malformed run" {
+  assert_eq(
+    schema_message(
+      "sheets:\n  - name: S\n    cells:\n      A1: { rich: hello }\n",
+    ),
+    Some("spec.yaml: cell 'A1' rich text must be a sequence of runs"),
+  )
+  assert_eq(
+    schema_message(
+      "sheets:\n  - name: S\n    cells:\n      A1: { rich: [[1]] }\n",
+    ),
+    Some("spec.yaml: cell 'A1' rich text run must be text or a mapping"),
+  )
+}
+
+///|
+test "a structure cannot be coerced to text" {
+  assert_eq(
+    schema_message(
+      "sheets:\n  - name: S\n    cells:\n      A1: { value: [1], type: text }\n",
+    ),
+    Some("spec.yaml: cell 'A1' value cannot be text"),
+  )
+}
+
+///|
 test "load rejects an expanded cell missing its value" {
   assert_eq(
     schema_message(

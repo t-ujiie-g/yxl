@@ -39,8 +39,8 @@ fn load_defs(
   file~ : String,
 ) -> Defs raise @diag.SchemaError {
   let defs = Defs::empty()
-  guard find_key(root, "defs") is Some(node) else { return defs }
-  for entry in expect_map(node, file~, context="'defs'") {
+  guard find_key(root, DEFS_KEY) is Some(node) else { return defs }
+  for entry in expect_map(node, file~, context="'\{DEFS_KEY}'") {
     let (key, value) = entry
     match key {
       "styles" => load_style_defs(value, defs, file~)
@@ -148,6 +148,10 @@ fn load_formula_defs(
 /// The mapping key that marks a reference to a named definition (ADR-012), the
 /// `$`-marked directive `$include` and `params` substitution follow.
 const REF_KEY : String = "$ref"
+
+///|
+/// The top-level mapping key that declares named definitions.
+const DEFS_KEY : String = "defs"
 
 ///|
 /// A `{ $ref: name }` node yields the referenced name; any other node is `None`.

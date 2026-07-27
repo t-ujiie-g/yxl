@@ -51,7 +51,7 @@ fn apply_pivot(
 /// keeps a `!` out of a sheet name a pivot mentions, since nothing here could
 /// tell one apart from the separator.
 fn sheet_range(sheet_name : String, range : @model.CellRange) -> String {
-  sheet_name + "!" + plain_range(range)
+  sheet_name + "!" + range.to_a1()
 }
 
 ///|

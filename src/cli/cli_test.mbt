@@ -166,20 +166,6 @@ test "the usage text lists every command and exit code" {
 }
 
 ///|
-test "compile turns a valid spec into .xlsx bytes" {
-  let source =
-    #|sheets:
-    #|  - name: Sheet1
-    #|    cells:
-    #|      A1: hello
-    #|
-  let bytes = @cli.compile(source, file="spec.yaml")
-  assert_true(bytes.length() > 0)
-  assert_eq(bytes[0], b'P')
-  assert_eq(bytes[1], b'K')
-}
-
-///|
 /// Golden round-trip at the spec boundary: a YAML spec compiles to real `.xlsx`
 /// bytes, and re-opening them with the backend reader yields exactly the cells
 /// the spec declared — across text, number, and boolean.

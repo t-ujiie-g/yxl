@@ -48,7 +48,7 @@ test "sheet visibility and the active sheet survive a round trip" {
   wb.add_sheet("Internals", visibility=VeryHidden) |> ignore
   wb.add_sheet("Summary") |> ignore
   wb.set_active_sheet("Summary")
-  let reopened = @xlsx.read(@emit.to_bytes(wb)[:])
+  let reopened = reopen(wb)
   assert_false(reopened.sheet_visible("Scratch"))
   assert_false(reopened.sheet_visible("Internals"))
   assert_true(reopened.sheet_visible("Summary"))
@@ -68,7 +68,7 @@ test "number formats are applied, and equal formats share one style id" {
     format="#,##0.00",
   )
   sheet.set(@units.CellRef::new(col=4, row=1), Number(7.0))
-  let reopened = @xlsx.read(@emit.to_bytes(wb)[:])
+  let reopened = reopen(wb)
 
   // The format is really applied: the formatted read-back reflects it.
   assert_eq(reopened.get_cell_value("S", "A1", raw=false), Some("50.00%"))
@@ -118,7 +118,7 @@ test "a full style round-trips its attributes and identical styles share one id"
     ..style,
     font: None,
   })
-  let reopened = @xlsx.read(@emit.to_bytes(wb)[:])
+  let reopened = reopen(wb)
 
   // Interning (ADR-004): identical styles share one id; a different style does not.
   let id = reopened.get_cell_style("S", "A1")
@@ -155,7 +155,7 @@ test "column/row default styles emit and share the cell style cache; default fon
   sheet.set(@units.CellRef::new(col=1, row=1), Text("x"), style=bold)
   sheet.set_column_band(first=2, last=3, style=bold)
   sheet.set_row_band(first=5, last=5, style=bold)
-  let reopened = @xlsx.read(@emit.to_bytes(wb)[:])
+  let reopened = reopen(wb)
 
   // The workbook default font took effect.
   assert_eq(reopened.get_default_font(), "Arial")
@@ -180,7 +180,7 @@ test "merges, column widths, and row heights survive a round trip" {
   )
   sheet.set_column_band(first=2, last=2, width=18.0)
   sheet.set_row_band(first=1, last=1, height=24.0)
-  let reopened = @xlsx.read(@emit.to_bytes(wb)[:])
+  let reopened = reopen(wb)
   assert_eq(reopened.get_merge_cells("S"), ["A1:C1"])
   assert_eq(reopened.get_col_width("S", 2), Some(18.0))
   assert_eq(reopened.get_row_height("S", 1), Some(24.0))
@@ -198,7 +198,7 @@ test "hidden and grouped bands survive a round trip alongside their other proper
   sheet.set_column_band(first=4, last=4, width=12.0, outline_level=1)
   sheet.set_row_band(first=2, last=3, hidden=true, outline_level=2)
   sheet.set_row_band(first=4, last=4, height=30.0, hidden=false)
-  let reopened = @xlsx.read(@emit.to_bytes(wb)[:])
+  let reopened = reopen(wb)
   assert_false(reopened.col_visible("S", 2))
   assert_false(reopened.col_visible("S", 3))
   assert_true(reopened.col_visible("S", 4))
@@ -223,7 +223,7 @@ test "frozen panes, gridlines, and a tab color survive a round trip" {
   sheet.set_panes(Freeze(@units.CellRef::new(col=2, row=2)))
   sheet.set_gridlines(false)
   sheet.set_tab_color(@units.Color::parse("1F77B4").unwrap())
-  let reopened = @xlsx.read(@emit.to_bytes(wb)[:])
+  let reopened = reopen(wb)
   let panes = reopened.get_panes("Report")
   assert_true(panes.freeze)
   assert_false(panes.split)
@@ -240,7 +240,7 @@ test "a split pane converts its point position to twips" {
   let wb = @model.Workbook::new()
   // 120 points across, unsplit vertically.
   wb.add_sheet("Wide").set_panes(Split(x=120.0, y=0.0))
-  let reopened = @xlsx.read(@emit.to_bytes(wb)[:])
+  let reopened = reopen(wb)
   let panes = reopened.get_panes("Wide")
   // A split pane carries no `state` attribute (ECMA-376 §18.18.52 defaults it to
   // "split"), and the backend's reader only recognizes the frozen state — so
@@ -274,7 +274,7 @@ test "page setup round-trips: layout, margins, header/footer, and the print area
     footer: Some("&LPage &P of &N"),
     breaks: [@units.CellRef::new(col=1, row=21)],
   })
-  let reopened = @xlsx.read(@emit.to_bytes(wb)[:])
+  let reopened = reopen(wb)
   let layout = reopened.get_page_layout("Report")
   assert_eq(layout.orientation, Some("landscape"))
   assert_eq(layout.adjust_to, Some(80))
@@ -301,7 +301,7 @@ test "a fit-to-page scale also flags the sheet fit-to-page" {
     ..@model.PageSetup::empty(),
     scale: Some(Fit(width=1, height=0)),
   })
-  let reopened = @xlsx.read(@emit.to_bytes(wb)[:])
+  let reopened = reopen(wb)
   let layout = reopened.get_page_layout("Wide")
   assert_eq(layout.fit_to_width, Some(1))
   assert_eq(layout.fit_to_height, Some(0))
@@ -322,7 +322,7 @@ test "a date cell serializes to its Excel serial under the workbook's system" {
   // 1900 system: 1900-01-01 is serial 1.
   let wb1900 = @model.Workbook::new()
   wb1900.add_sheet("S").set(@units.CellRef::new(col=1, row=1), Date(date))
-  let r1900 = @xlsx.read(@emit.to_bytes(wb1900)[:])
+  let r1900 = reopen(wb1900)
   assert_eq(r1900.get_cell_value("S", "A1", raw=true), Some("1"))
 
   // 1904 system: 1900-01-01 is 1460 real days before the 1904 epoch. (The
@@ -330,7 +330,7 @@ test "a date cell serializes to its Excel serial under the workbook's system" {
   // the 1900 leap-year bug applies.) The backend computes the same serial.
   let wb1904 = @model.Workbook::new(date_system=Date1904)
   wb1904.add_sheet("S").set(@units.CellRef::new(col=1, row=1), Date(date))
-  let r1904 = @xlsx.read(@emit.to_bytes(wb1904)[:])
+  let r1904 = reopen(wb1904)
   assert_eq(r1904.get_cell_value("S", "A1", raw=true), Some("-1460"))
 }
 
@@ -350,7 +350,7 @@ test "a formula cell emits its formula and optional cached value" {
     @units.CellRef::new(col=4, row=1),
     Formula(formula="A1*B1", cached=None),
   )
-  let reopened = @xlsx.read(@emit.to_bytes(wb)[:])
+  let reopened = reopen(wb)
   assert_eq(reopened.get_cell_formula("S", "C1"), Some("A1+B1"))
   assert_eq(reopened.get_cell_formula("S", "D1"), Some("A1*B1"))
   // The cached value is stored and read back raw.
@@ -368,7 +368,7 @@ test "defined names emit and a reference cell resolves them via =name" {
     @units.CellRef::new(col=1, row=1),
     Formula(formula="tax_rate", cached=Some(Number(0.08))),
   )
-  let reopened = @xlsx.read(@emit.to_bytes(wb)[:])
+  let reopened = reopen(wb)
 
   // The defined names survive with their refers_to expressions (a string
   // constant is quoted; a number is a bare literal).
@@ -405,7 +405,7 @@ test "a rich-text cell round-trips its runs and per-run fonts" {
       { text: "bold red", font: Some(bold_red) },
     ]),
   )
-  let reopened = @xlsx.read(@emit.to_bytes(wb)[:])
+  let reopened = reopen(wb)
   // The concatenated text is what a plain read yields.
   assert_eq(reopened.get_cell("S", "A1"), Some("Plain bold red"))
   // The runs survive with their fonts.
@@ -422,7 +422,7 @@ test "a rich-text cell round-trips its runs and per-run fonts" {
 test "an error literal round-trips as the error text" {
   let wb = @model.Workbook::new()
   wb.add_sheet("S").set(@units.CellRef::new(col=1, row=1), Error("#DIV/0!"))
-  let reopened = @xlsx.read(@emit.to_bytes(wb)[:])
+  let reopened = reopen(wb)
   assert_eq(reopened.get_cell_value("S", "A1", raw=true), Some("#DIV/0!"))
 }
 
@@ -439,5 +439,7 @@ test "a backend failure surfaces as an EmitError, not a backend error" {
   } catch {
     @diag.EmitError(d) => Some(d.render())
   }
-  assert_true(caught is Some(_))
+  guard caught is Some(message) else { fail("expected an emit error") }
+  // The seam's wrapper wording, proving the backend error was translated.
+  assert_true(message.has_prefix("Excel backend: "))
 }

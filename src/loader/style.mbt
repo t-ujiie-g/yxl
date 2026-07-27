@@ -226,24 +226,50 @@ fn load_alignment(
 }
 
 ///|
+/// The alignment and border-style spellings, each as one table serving both the
+/// lookup and the diagnostic, so the two cannot drift apart.
+let horizontal_alignments : Array[(String, @model.HAlign)] = [
+  ("left", Left),
+  ("center", Center),
+  ("right", Right),
+  ("fill", Fill),
+  ("justify", Justify),
+  ("distributed", Distributed),
+]
+
+///|
+let vertical_alignments : Array[(String, @model.VAlign)] = [
+  ("top", Top),
+  ("middle", Middle),
+  ("bottom", Bottom),
+  ("justify", Justify),
+  ("distributed", Distributed),
+]
+
+///|
+let border_styles : Array[(String, @model.BorderStyle)] = [
+  ("thin", Thin),
+  ("medium", Medium),
+  ("thick", Thick),
+  ("dashed", Dashed),
+  ("dotted", Dotted),
+  ("double", Double),
+  ("hair", Hair),
+]
+
+///|
 fn load_halign(
   node : @yaml.Node,
   file~ : String,
   context~ : String,
 ) -> @model.HAlign raise @diag.SchemaError {
-  match expect_string(node, file~, context="\{context} horizontal align") {
-    "left" => Left
-    "center" => Center
-    "right" => Right
-    "fill" => Fill
-    "justify" => Justify
-    "distributed" => Distributed
-    other =>
-      raise schema_error(
-        file~,
-        "\{context} has an unknown horizontal alignment '\{other}' (expected 'left', 'center', 'right', 'fill', 'justify', or 'distributed')",
-      )
-  }
+  spelled(
+    horizontal_alignments,
+    expect_string(node, file~, context="\{context} horizontal align"),
+    file~,
+    what="horizontal alignment",
+    context~,
+  )
 }
 
 ///|
@@ -252,18 +278,40 @@ fn load_valign(
   file~ : String,
   context~ : String,
 ) -> @model.VAlign raise @diag.SchemaError {
-  match expect_string(node, file~, context="\{context} vertical align") {
-    "top" => Top
-    "middle" => Middle
-    "bottom" => Bottom
-    "justify" => Justify
-    "distributed" => Distributed
-    other =>
-      raise schema_error(
-        file~,
-        "\{context} has an unknown vertical alignment '\{other}' (expected 'top', 'middle', 'bottom', 'justify', or 'distributed')",
-      )
+  spelled(
+    vertical_alignments,
+    expect_string(node, file~, context="\{context} vertical align"),
+    file~,
+    what="vertical alignment",
+    context~,
+  )
+}
+
+///|
+/// Like `named`, but worded as the style diagnostics always have been:
+/// "`context` has an unknown `what` …", with an "or" before the last spelling.
+fn[T] spelled(
+  table : Array[(String, T)],
+  written : String,
+  file~ : String,
+  what~ : String,
+  context~ : String,
+) -> T raise @diag.SchemaError {
+  for entry in table {
+    let (spelling, value) = entry
+    if spelling == written {
+      return value
+    }
   }
+  let quoted = table.map(entry => {
+    let (spelling, _) = entry
+    "'\{spelling}'"
+  })
+  let last = quoted.unsafe_pop()
+  raise schema_error(
+    file~,
+    "\{context} has an unknown \{what} '\{written}' (expected \{quoted.join(", ")}, or \{last})",
+  )
 }
 
 ///|
@@ -367,20 +415,13 @@ fn load_border_style(
   file~ : String,
   context~ : String,
 ) -> @model.BorderStyle raise @diag.SchemaError {
-  match expect_string(node, file~, context="\{context} border style") {
-    "thin" => Thin
-    "medium" => Medium
-    "thick" => Thick
-    "dashed" => Dashed
-    "dotted" => Dotted
-    "double" => Double
-    "hair" => Hair
-    other =>
-      raise schema_error(
-        file~,
-        "\{context} has an unknown border style '\{other}' (expected 'thin', 'medium', 'thick', 'dashed', 'dotted', 'double', or 'hair')",
-      )
-  }
+  spelled(
+    border_styles,
+    expect_string(node, file~, context="\{context} border style"),
+    file~,
+    what="border style",
+    context~,
+  )
 }
 
 ///|

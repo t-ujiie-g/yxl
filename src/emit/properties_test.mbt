@@ -24,7 +24,7 @@ fn full_properties() -> @model.DocumentProperties {
 test "every document property round-trips" {
   let (wb, _) = fixture()
   wb.set_properties(full_properties())
-  let reopened = @xlsx.read(@emit.to_bytes(wb)[:])
+  let reopened = reopen(wb)
   let core = reopened.get_doc_props()
   assert_eq(core.title, "Quarterly report")
   assert_eq(core.subject, "Regional sales")
@@ -42,7 +42,7 @@ test "every document property round-trips" {
 ///|
 test "a workbook with no properties writes none" {
   let (wb, _) = fixture()
-  let reopened = @xlsx.read(@emit.to_bytes(wb)[:])
+  let reopened = reopen(wb)
   assert_eq(reopened.get_doc_props().title, "")
   assert_eq(reopened.get_custom_props().length(), 0)
 }
@@ -60,7 +60,7 @@ test "custom properties round-trip with their types and their order" {
       { name: "Margin", value: Number(0.185) },
     ],
   })
-  let properties = @xlsx.read(@emit.to_bytes(wb)[:]).get_custom_props()
+  let properties = reopen(wb).get_custom_props()
   assert_eq(properties.length(), 4)
   assert_eq(properties[0].name, "Reviewed by")
   assert_true(properties[0].value is Some(Text("J. Smith")))
@@ -80,7 +80,7 @@ test "each calc mode round-trips as its OOXML code" {
     let (mode, code) = entry
     let (wb, _) = fixture()
     wb.set_calc({ mode: Some(mode), on_load: None })
-    let calc = @xlsx.read(@emit.to_bytes(wb)[:]).get_calc_props()
+    let calc = reopen(wb).get_calc_props()
     assert_eq(calc.calc_mode, Some(code))
   }
 }
@@ -89,7 +89,7 @@ test "each calc mode round-trips as its OOXML code" {
 test "a recalculation on open round-trips on its own" {
   let (wb, _) = fixture()
   wb.set_calc({ mode: None, on_load: Some(true) })
-  let calc = @xlsx.read(@emit.to_bytes(wb)[:]).get_calc_props()
+  let calc = reopen(wb).get_calc_props()
   assert_eq(calc.full_calc_on_load, Some(true))
   assert_eq(calc.calc_mode, None)
 }
@@ -103,7 +103,7 @@ test "a note round-trips against its cell, which keeps its own value" {
     "Restated after the Q3 review.",
     author="Finance",
   )
-  let reopened = @xlsx.read(@emit.to_bytes(wb)[:])
+  let reopened = reopen(wb)
   let comments = reopened.get_comments("S")
   assert_eq(comments.length(), 1)
   assert_eq(comments[0].cell, "B2")
@@ -119,9 +119,9 @@ test "a note round-trips against its cell, which keeps its own value" {
 test "a note with no author still names one" {
   let (wb, sheet) = fixture()
   sheet.add_comment(@units.CellRef::new(col=1, row=1), "No author here.")
-  let comments = @xlsx.read(@emit.to_bytes(wb)[:]).get_comments("S")
+  let comments = reopen(wb).get_comments("S")
   assert_eq(comments[0].text, "No author here.")
-  assert_true(comments[0].author != "")
+  assert_eq(comments[0].author, "Author")
 }
 
 ///|
@@ -129,7 +129,7 @@ test "notes are emitted in declaration order" {
   let (wb, sheet) = fixture()
   sheet.add_comment(@units.CellRef::new(col=3, row=3), "third")
   sheet.add_comment(@units.CellRef::new(col=1, row=1), "first")
-  let comments = @xlsx.read(@emit.to_bytes(wb)[:]).get_comments("S")
+  let comments = reopen(wb).get_comments("S")
   assert_eq(comments[0].cell, "C3")
   assert_eq(comments[1].cell, "A1")
 }
@@ -143,7 +143,7 @@ test "sheet protection round-trips as allowances, not as locks" {
     format_cells: true,
     select_locked_cells: false,
   })
-  let reopened = @xlsx.read(@emit.to_bytes(wb)[:])
+  let reopened = reopen(wb)
   let protection = reopened.get_sheet_protection("S")
   // What was granted comes back granted, and what was not stays blocked — the
   // backend's options are allowances, as the model's are, and OOXML's
@@ -158,7 +158,7 @@ test "sheet protection round-trips as allowances, not as locks" {
 ///|
 test "an unprotected sheet stays unprotected" {
   let (wb, _) = fixture()
-  let protection = @xlsx.read(@emit.to_bytes(wb)[:]).get_sheet_protection("S")
+  let protection = reopen(wb).get_sheet_protection("S")
   // Nothing granted and nothing blocked: the sheet carries no protection at all.
   assert_false(protection.sort)
   assert_false(protection.select_locked_cells)
@@ -178,7 +178,7 @@ test "a sheet password leaves the allowances alone" {
     sort: true,
     password: Some("s3cret"),
   })
-  let protection = @xlsx.read(@emit.to_bytes(wb)[:]).get_sheet_protection("S")
+  let protection = reopen(wb).get_sheet_protection("S")
   assert_true(protection.sort)
   assert_true(protection.select_locked_cells)
   assert_false(protection.format_cells)
@@ -192,7 +192,7 @@ test "cell protection round-trips through the style" {
     protection: Some({ locked: Some(false), hidden: None }),
   }
   sheet.set(@units.CellRef::new(col=1, row=1), Number(1.0), style=unlocked)
-  let reopened = @xlsx.read(@emit.to_bytes(wb)[:])
+  let reopened = reopen(wb)
   guard reopened.get_cell_style("S", "A1") is Some(id) else {
     fail("expected a style on A1")
   }
@@ -218,8 +218,11 @@ test "a style asking only for Excel's defaults leaves the seed slot free" {
     style=default_protection,
   )
   // Would raise if the redundant protection had taken the number format's place.
-  let reopened = @xlsx.read(@emit.to_bytes(wb)[:])
+  let reopened = reopen(wb)
   assert_true(reopened.get_cell_style("S", "A1") is Some(_))
+  // The seed slot went to the number format the spec set, which still formats
+  // the value on read-back.
+  assert_eq(reopened.get_cell_value("S", "A1", raw=false), Some("8.5%"))
 }
 
 ///|
@@ -254,7 +257,7 @@ test "a style cannot carry both a number format and real cell protection" {
 test "workbook protection round-trips" {
   let (wb, _) = fixture()
   wb.set_protection({ structure: true, windows: false, password: None })
-  let reopened = @xlsx.read(@emit.to_bytes(wb)[:])
+  let reopened = reopen(wb)
   // The backend keeps its `WorkbookProtection` abstract, so the assertion is
   // that one exists at all; what it says is checked in the file itself.
   assert_true(reopened.workbook_protection is Some(_))

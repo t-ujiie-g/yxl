@@ -35,7 +35,7 @@ fn plain_table(at : @model.CellRange, name? : String) -> @model.Table {
 ///|
 /// The sole table the round-tripped workbook carries.
 fn only_table(wb : @model.Workbook) -> @xlsx.Table raise {
-  let reopened = @xlsx.read(@emit.to_bytes(wb)[:])
+  let reopened = reopen(wb)
   let tables = reopened.get_tables("S")
   assert_eq(tables.length(), 1)
   tables[0]
@@ -99,7 +99,7 @@ test "two tables on one sheet keep their own ranges and names" {
   sheet.set(@units.CellRef::new(col=5, row=2), Text("Q3"))
   sheet.add_table(plain_table(range("A1", "C3"), name="Sales"))
   sheet.add_table(plain_table(range("E1", "E2"), name="Quarters"))
-  let reopened = @xlsx.read(@emit.to_bytes(wb)[:])
+  let reopened = reopen(wb)
   let tables = reopened.get_tables("S")
   assert_eq(tables.length(), 2)
   assert_eq(tables[0].name, "Sales")

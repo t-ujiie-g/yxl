@@ -36,7 +36,7 @@ fn load_validation(
     file~,
     what="validation range",
   )
-  let context = "validation '\{range_a1(at)}'"
+  let context = "validation '\{at.to_a1()}'"
   let mut rule : @model.ValidationRule? = None
   // Excel's "Ignore blank", which its own dialog leaves ticked.
   let mut allow_blank = true

@@ -40,7 +40,7 @@ fn plain_pivot() -> @model.Pivot {
 ///|
 /// The sole pivot the round-tripped workbook carries on `S`.
 fn only_pivot(wb : @model.Workbook) -> @xlsx.PivotTable raise {
-  let reopened = @xlsx.read(@emit.to_bytes(wb)[:])
+  let reopened = reopen(wb)
   let pivots = reopened.get_pivot_tables("S")
   assert_eq(pivots.length(), 1)
   pivots[0]

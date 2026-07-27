@@ -86,6 +86,62 @@ test "load rejects invalid style attributes" {
 }
 
 ///|
+test "a style must be a name or a mapping, and an unknown vertical alignment is spelled out" {
+  assert_eq(
+    schema_message(
+      "sheets:\n  - name: S\n    cells:\n      A1: { value: 1, style: 5 }\n",
+    ),
+    Some("spec.yaml: cell 'A1' style must be a mapping"),
+  )
+  assert_eq(
+    schema_message(
+      "sheets:\n  - name: S\n    cells:\n      A1: { value: 1, style: { align: { vertical: sideways } } }\n",
+    ),
+    Some(
+      "spec.yaml: cell 'A1' has an unknown vertical alignment 'sideways' (expected 'top', 'middle', 'bottom', 'justify', or 'distributed')",
+    ),
+  )
+}
+
+///|
+test "load rejects a fill that is empty or not a color-or-mapping" {
+  assert_eq(
+    schema_message(
+      "sheets:\n  - name: S\n    cells:\n      A1: { value: 1, style: { fill: { } } }\n",
+    ),
+    Some("spec.yaml: cell 'A1' fill needs a 'color'"),
+  )
+  assert_eq(
+    schema_message(
+      "sheets:\n  - name: S\n    cells:\n      A1: { value: 1, style: { fill: [red] } }\n",
+    ),
+    Some("spec.yaml: cell 'A1' fill must be a hex color or a mapping"),
+  )
+}
+
+///|
+test "load rejects malformed borders and border edges" {
+  assert_eq(
+    schema_message(
+      "sheets:\n  - name: S\n    cells:\n      A1: { value: 1, style: { border: 3 } }\n",
+    ),
+    Some("spec.yaml: cell 'A1' border must be a style name or a mapping"),
+  )
+  assert_eq(
+    schema_message(
+      "sheets:\n  - name: S\n    cells:\n      A1: { value: 1, style: { border: { left: { color: \"FF0000\" } } } }\n",
+    ),
+    Some("spec.yaml: cell 'A1' border needs a 'style'"),
+  )
+  assert_eq(
+    schema_message(
+      "sheets:\n  - name: S\n    cells:\n      A1: { value: 1, style: { border: { left: 3 } } }\n",
+    ),
+    Some("spec.yaml: cell 'A1' border edge must be a style name or a mapping"),
+  )
+}
+
+///|
 test "load parses column/row default styles and the workbook default font" {
   let workbook = load_ok(
     (
@@ -216,7 +272,7 @@ test "a style extends another, overriding attribute by attribute" {
   assert_eq(header.align.unwrap().horizontal, Some(Center))
   assert_eq(header.align.unwrap().wrap, Some(true))
   // Borders come through untouched, and the child's own fill is added.
-  assert_true(header.borders.unwrap().left is Some(_))
+  assert_eq(header.borders.unwrap().left, Some({ style: Thin, color: None }))
   assert_eq(header.fill.unwrap().color, @units.Color::parse("1F3864").unwrap())
   // The base itself is unchanged by having been extended.
   let base = workbook.sheets[0].cells[1].style.unwrap()

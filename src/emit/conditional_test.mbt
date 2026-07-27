@@ -21,7 +21,7 @@ fn with_rule(
 ///|
 /// The sole conditional format the round-tripped workbook carries.
 fn only_format(wb : @model.Workbook) -> @xlsx.ConditionalFormatOptions raise {
-  let reopened = @xlsx.read(@emit.to_bytes(wb)[:])
+  let reopened = reopen(wb)
   let formats = reopened.get_conditional_formats("S")
   guard formats.get("B2:B9") is Some(rules) else {
     fail("expected a conditional format over B2:B9")
@@ -245,7 +245,7 @@ test "rules sharing a style share one differential format id" {
       stop_if_true: false,
     })
   }
-  let reopened = @xlsx.read(@emit.to_bytes(wb)[:])
+  let reopened = reopen(wb)
   let formats = reopened.get_conditional_formats("S")
   let id = key => {
     guard formats.get(key) is Some(rules) else { fail("no rule at \{key}") }
@@ -273,7 +273,7 @@ test "conditional formats are emitted in declaration order, which is priority" {
     style: Some(highlight()),
     stop_if_true: false,
   })
-  let reopened = @xlsx.read(@emit.to_bytes(wb)[:])
+  let reopened = reopen(wb)
   let formats = reopened.get_conditional_formats("S")
   assert_eq(formats.get("A1:A9").unwrap()[0].format_type, "duplicate")
   assert_eq(formats.get("B1:B9").unwrap()[0].format_type, "unique")

@@ -153,6 +153,16 @@ test "a table name Excel would refuse is refused first, by name" {
 }
 
 ///|
+test "an empty table name is refused" {
+  assert_eq(
+    schema_message(
+      tabular_spec("    tables:\n      - at: A1:C2\n        name: \"\"\n"),
+    ),
+    Some("spec.yaml: table 'A1:C2' has an empty 'name'"),
+  )
+}
+
+///|
 test "a name of letters, digits, dots and underscores is accepted" {
   assert_eq(
     schema_message(

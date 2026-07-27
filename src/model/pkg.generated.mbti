@@ -11,9 +11,11 @@ pub let icon_set_styles : Array[String]
 
 pub let image_formats : Array[String]
 
-pub fn is_pivot_style(String) -> Bool
+pub let max_defined_name_length : Int
 
-pub fn is_table_style(String) -> Bool
+pub let max_drawing_pixels : Int
+
+pub let max_image_scale : Double
 
 pub let max_outline_level : Int
 
@@ -103,6 +105,7 @@ pub(all) struct CellRange {
   top_left : @units.CellRef
   bottom_right : @units.CellRef
 } derive(Eq, @debug.Debug)
+pub fn CellRange::to_a1(Self) -> String
 
 pub(all) enum CellValue {
   Text(String)
@@ -535,6 +538,7 @@ pub fn Workbook::set_active_sheet(Self, String) -> Unit
 pub fn Workbook::set_calc(Self, CalcSettings) -> Unit
 pub fn Workbook::set_properties(Self, DocumentProperties) -> Unit
 pub fn Workbook::set_protection(Self, WorkbookProtection) -> Unit
+pub fn Workbook::sheet(Self, String) -> Sheet?
 
 pub(all) struct WorkbookProtection {
   structure : Bool

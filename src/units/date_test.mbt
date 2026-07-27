@@ -76,7 +76,17 @@ test "DateTime::parse reads dates and date-times" {
   assert_true(datetime.has_time())
   assert_eq(datetime.second, 0)
   // A leap day in a real leap year is valid.
-  assert_true(@units.DateTime::parse("2024-02-29") is Some(_))
+  assert_eq(
+    @units.DateTime::parse("2024-02-29"),
+    Some(@units.DateTime::{
+      year: 2024,
+      month: 2,
+      day: 29,
+      hour: 0,
+      minute: 0,
+      second: 0,
+    }),
+  )
 }
 
 ///|

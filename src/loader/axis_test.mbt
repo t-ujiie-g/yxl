@@ -30,6 +30,22 @@ test "load rejects invalid column/row selectors and a missing 'at', and keeps em
 }
 
 ///|
+test "a band selector must be a scalar, and a size must be a number" {
+  assert_eq(
+    schema_message(
+      "sheets:\n  - name: S\n    columns:\n      - at: [B]\n        width: 10\n",
+    ),
+    Some("spec.yaml: a column 'at' must be text or a number"),
+  )
+  assert_eq(
+    schema_message(
+      "sheets:\n  - name: S\n    columns:\n      - at: B\n        width: wide\n",
+    ),
+    Some("spec.yaml: column 'B' width must be a number"),
+  )
+}
+
+///|
 test "load parses merges, column widths, and row heights" {
   let workbook = load_ok(
     (
@@ -58,7 +74,7 @@ test "load parses merges, column widths, and row heights" {
   assert_eq(sheet.columns[0].style, None)
   assert_eq((sheet.columns[1].first, sheet.columns[1].last), (4, 6))
   assert_eq(sheet.columns[1].size, Some(10.0))
-  assert_true(sheet.columns[1].style is Some(_))
+  assert_eq(sheet.columns[1].style.unwrap().font.unwrap().bold, Some(true))
   assert_eq(sheet.rows.length(), 1)
   assert_eq(sheet.rows[0].size, Some(24.0))
   assert_eq(sheet.merges, [

@@ -165,11 +165,11 @@ pub let icon_set_styles : Array[String] = [
 ]
 
 ///|
-/// Excel's caps on a `Rank` rule, as its own dialog enforces them: at most this
-/// many cells by count, or this many percent.
+/// Excel's cap on a `Rank` rule by count, as its own dialog enforces it.
 pub let max_rank_count : Int = 1000
 
 ///|
+/// Excel's cap on a `Rank` rule by percentage.
 pub let max_rank_percent : Int = 100
 
 ///|
