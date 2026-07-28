@@ -72,7 +72,11 @@ pub fn resolve_path(from : String, path : String) -> String {
 /// Everything up to and including the last separator in `from` — the later of
 /// the two characters `is_separator` names — or `None` when it names a file
 /// with no directory part.
-fn directory_of(from : String) -> String? {
+///
+/// Public because the executable needs it too: a file an extracted spec names
+/// goes in a directory that may not exist yet, and making it is the one thing
+/// that has to happen before writing (ADR-003 keeps the writing out there).
+pub fn directory_of(from : String) -> String? {
   let cut = match (from.rev_find("/"), from.rev_find("\\")) {
     (Some(slash), Some(backslash)) =>
       if slash > backslash {

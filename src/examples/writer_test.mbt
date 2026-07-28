@@ -76,7 +76,27 @@ test "every example extracts back into a spec that checks out" {
     )
     let extracted = @cli.extract(bytes, file=path)
     assert_eq((name, extracted.warnings), (name, []))
-    // And the spec really is one: it loads and compiles on its own.
-    @cli.compile(extracted.spec, file="extracted-\{name}") |> ignore
+    // And the spec really is one: it loads and compiles from its own
+    // companions, which is the whole point of writing them beside it.
+    let files : Map[String, Bytes] = Map([])
+    for companion in extracted.companions {
+      files[companion.path] = companion.content
+    }
+    @cli.compile(
+      extracted.spec,
+      file="extracted-\{name}",
+      resolve=(_from, wanted) => {
+        name: wanted,
+        source: match files.get(wanted) {
+          Some(content) => @utf8.decode_lossy(content[:])
+          None => ""
+        },
+      },
+      read_bytes=(_from, wanted) => {
+        name: wanted,
+        data: files.get(wanted).unwrap_or(b""),
+      },
+    )
+    |> ignore
   }
 }

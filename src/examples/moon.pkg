@@ -10,4 +10,6 @@ import {
   // Reading the corpus, and re-opening what it compiles to.
   "moonbitlang/x/fs",
   "bobzhang/mbtexcel/xlsx",
+  // An extracted spec names its companion files; the test feeds them back.
+  "moonbitlang/core/encoding/utf8",
 } for "test"

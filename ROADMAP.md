@@ -531,19 +531,27 @@ gate, which is why none carries a box:
             and the pivot cache ourselves**, which is a reader of its own, not a
             translation. Worth doing only if a real workbook makes the gap hurt;
             until then `extract` names them as dropped, which it does
-      - [ ] **CSV extraction**, which also settles one-file vs. many: a
-            contiguous all-literal region with homogeneous column types becomes
-            a `data:` entry. `data:` reads a *path* and has no inline form, so
-            choosing this **is** choosing a multi-file output — unless Phase 11's
-            inline `values:` lands first, in which case one file can carry it.
-            `$include` splitting beyond that is *not* inferred: which files
-            change together is the author's judgement and the workbook holds no
-            evidence of it.
-            **Images and sheet backgrounds wait on the same decision**: their
-            bytes come back whole (`get_pictures` carries `data` and
-            `extension`), so nothing is missing — but writing a picture out is a
-            second file, exactly as a CSV is, and the two should be answered
-            together rather than one at a time
+      - [x] **CSV extraction**, which settled one-file vs. many: **many**.
+            `Extracted` carries `companions` — the files the spec names, as
+            bytes — and `cmd/main` writes them beside it, making the directory
+            first. A sheet that is nothing but a rectangle of plain values
+            becomes a `data:` entry and a CSV; anything with a style, a formula,
+            a ragged edge, or too few rows stays inline, because a wrong "yes"
+            silently drops formatting `data:` cannot carry where a wrong "no"
+            only leaves a long block. `--flat` opts out.
+            `$include` splitting is still *not* inferred: which files change
+            together is the author's judgement and the workbook holds no
+            evidence of it
+      - [x] **Images and sheet backgrounds**, on that same companion-file
+            machinery: the bytes come out unchanged and land under `assets/`,
+            named for the sheet and cell they sit at, since the workbook keeps
+            its pictures as numbered parts and carries no name to recover.
+            A picture is written whatever `--flat` says, because it has no
+            inline form to fall back to. **A picture's scale is not
+            recoverable** and is reported: the file records an absolute size
+            rather than a factor and the backend reports the factor back as `1`
+            whatever it was, so a scaled picture cannot be told from an unscaled
+            one
       - [ ] **Blocked, not deferred** — these are the two `extract` cannot do
             anything about on its own:
             - **Print setup**, because `page_layout_with_defaults` aliases a
@@ -1029,6 +1037,25 @@ Phase 11's inline `values:` lands. `$include` splitting is never inferred.
 
 ## 9. Risks
 
+- **Windows cannot build, and it is not our code.** `moon build --target native`
+  fails on the Windows runner with MSVC's `C1026: parser stack overflow`, in
+  `bobzhang/mbtexcel`'s `eval_function` — one ~4900-line function matching 365
+  formula names, which lowers to an if/else chain deeper than `cl.exe`'s parser
+  stack. It is a formula *evaluator* yxl never calls (§2: Excel computes), but it
+  is in the same package as everything we do use, so it compiles into every
+  binary that touches the backend. We had been sitting just under the limit;
+  whatever landed next was going to cross it.
+  Neither way round works from here. `clang-cl` is the documented substitute and
+  gets past C1026, but `moon`'s Windows native path then fails to spawn its own
+  toolchain (`CreateProcessW`, whatever form the name is given in). The LLVM
+  target is closed off for a different reason: the backend depends on
+  `moonbitlang/async`, whose `raw_fd` declares `supported_targets = "-all+native"`.
+  **Mitigation: Windows is experimental** — its CI leg runs and reports but does
+  not block, a release ships without it, and the README and `install.ps1` say so
+  in as many words. The fix is upstream: that function wants splitting. Revisit
+  the moment it is, and before v1.0 either way, since "experimental" is not a
+  state to freeze a release policy around.
+
 - **Backend API churn (mbtexcel 0.1.x).** Mitigation: pin the version; the
   ADR-002 seam contains the blast radius.
 - **Heavy / native-only transitive deps.** Mitigation: accept the native target
@@ -1114,6 +1141,71 @@ Phase 11's inline `values:` lands. `$include` splitting is never inferred.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-29** — **Windows is experimental**, because it cannot build at all.
+  Reordering CI to build before testing turned "some tests fail on Windows" into
+  the fact that mattered: `moon build --target native --release` fails there,
+  with MSVC's `C1026: parser stack overflow` on `bobzhang/mbtexcel`'s
+  `eval_function` — one ~4900-line function matching 365 formula names. It is a
+  formula *evaluator* yxl never calls, and it is in a dependency, so neither the
+  cause nor the cure is here. We had been just under the limit; the pictures
+  commit crossed it, and whatever came next would have.
+
+  Two escapes were tried and both are closed. `clang-cl` is what `moon`'s own
+  message asks for and it does get past C1026, but the Windows native path then
+  fails to spawn its toolchain — bare name, absolute path, with and without
+  `.exe`, and the archiver named too. And the LLVM target cannot be reached at
+  all: the backend depends on `moonbitlang/async`, whose `raw_fd` declares
+  `supported_targets = "-all+native"`. That is a fact worth having written down,
+  since "try LLVM" is the obvious next idea.
+
+  So Windows **runs and reports but does not block**, a tagged release ships
+  Linux and macOS without waiting on it, and the README, `install.ps1`, and §9
+  all say why rather than leaving a 404 to be puzzled over. Leaving the leg red
+  and required would only teach everyone to ignore a red tick; dropping it would
+  hide a platform going quietly stale. The real fix is upstream, and this is
+  revisited before v1.0 either way — "experimental" is not a state to freeze a
+  release policy around.
+
+- **2026-07-28** — **`extract` writes the files its spec names**, which settles
+  the one-file-or-many question the phase item left open: **many**. `Extracted`
+  grew a `companions` list — a path and its bytes — and `cmd/main` writes each
+  beside the spec, making the directory first. Bytes rather than text for both
+  kinds, because a picture cannot be a `String` and one sort of companion is
+  easier to write out than two.
+
+  A sheet that is *nothing but* a rectangle of plain values becomes a `data:`
+  entry and a CSV. Nothing in the model remembers that a region came from a data
+  block — `data:` rows become ordinary cells at load time — so this is a
+  decision, not a recovery, and the rule is deliberately narrow: a styled cell, a
+  formula, a ragged edge, or fewer than eight rows keeps the whole sheet inline.
+  A wrong *yes* would silently drop formatting `data:` cannot carry; a wrong *no*
+  only leaves a long block, so the bias is towards leaving it alone. `--flat`
+  turns it off.
+
+  The verify pass had to grow with it: the spec now *names a file*, so the check
+  resolves companions from memory before recompiling. Without that the rebuilt
+  workbook would be empty and every cell reported missing — so an empty warning
+  list is now the CSV being checked, not skipped. A 48-row sheet extracted this
+  way went from 197 `cells:` lines to a five-line spec, and rebuilt to all 196
+  cells identical, types included: `007` came back text, `42` a number, `true` a
+  boolean, which is the CSV quoting rule read backwards from the loader's.
+
+  **Images and sheet backgrounds landed on the same machinery**, in the same
+  change. Their bytes come out unchanged — checked byte for byte against the
+  source file *and* against the rebuilt workbook's own media part — and land
+  under `assets/`, named for the sheet and cell they sit at, since a workbook
+  keeps its pictures as numbered parts and carries no name to recover.
+
+  One loss came out of that, and it is worth naming because nothing would have
+  caught it: **a picture's scale does not survive**. The file records how big to
+  draw it in absolute units rather than as a factor, and the backend reports the
+  factor back as `1` whatever it was, so a scaled picture cannot be told from an
+  unscaled one. `layout`'s logo came back at twice its intended size and the
+  verify pass said nothing, because verify compares *cells*. Recovering the
+  factor would mean reading each image format's own header for its pixel
+  dimensions; until then it is reported on the way out, which is the difference
+  between a known limit and a silent one.
 
 - **2026-07-28** — **What `extract` still misses, sorted by what it would take.**
   Documentation only. The nine unrecovered sheet features had been listed as one

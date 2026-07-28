@@ -2,16 +2,31 @@
 // I/O-free like `compile`, so it tests on bytes and strings.
 
 ///|
-/// What `extract` produced: the spec text, and the honest account of what the
-/// schema could not carry.
+/// What `extract` produced: the spec text, whatever files it refers to, and the
+/// honest account of what the schema could not carry.
 ///
 /// `dropped` names each kind of loss once, whatever the file did a hundred
 /// times. `warnings` is different — it holds the ways the *result* failed to
 /// check out, which should be empty and is the one thing worth reading twice.
 pub struct Extracted {
   spec : String
+  /// The files the spec names, keyed by the path it names them by — relative to
+  /// the spec, as `docs/spec.md` §9 resolves them. Writing these is the caller's
+  /// job, which is what keeps `extract` I/O-free (ADR-003).
+  companions : Array[Companion]
   dropped : Array[String]
   warnings : Array[String]
+}
+
+///|
+/// One file the extracted spec refers to: a `data:` table, or a picture.
+///
+/// The content is `Bytes` for both. A CSV is text and could have been a
+/// `String`, but a picture cannot, and one kind of companion is easier to write
+/// out than two — the caller opens a file and writes bytes either way.
+pub struct Companion {
+  path : String
+  content : Bytes
 }
 
 ///|
@@ -27,10 +42,38 @@ pub struct Extracted {
 /// in `warnings` rather than left for the author to discover in Excel. Both
 /// halves of the pipeline are already in memory, which is what makes checking
 /// cheap enough to do every time.
-pub fn extract(bytes : Bytes, file~ : String) -> Extracted raise {
+pub fn extract(
+  bytes : Bytes,
+  file~ : String,
+  flat? : Bool = false,
+) -> Extracted raise {
   let recovered = @read.from_bytes(bytes)
-  let spec = @yaml.write(@render.workbook(recovered.workbook))
-  { spec, dropped: recovered.dropped, warnings: verify(spec, recovered, file~) }
+  // A block of plain values reads better as a table beside the spec than as a
+  // thousand `cells:` lines — but it is a *second file*, so `--flat` keeps
+  // everything in one, which is what a reader comparing two extractions wants.
+  let tables = if flat { [] } else { @render.data_tables(recovered.workbook) }
+  // A picture is not an inference: the model holds its bytes because the
+  // workbook did, and there is no way to put them in a YAML file. `--flat` has
+  // nothing to say about it, so it does not.
+  let pictures = @render.pictures(recovered.workbook)
+  let spec = @yaml.write(
+    @render.workbook(recovered.workbook, tables~, pictures~),
+  )
+  let companions = []
+  for table in tables {
+    companions.push(
+      ({ path: table.path, content: @utf8.encode(table.csv) } : Companion),
+    )
+  }
+  for picture in pictures {
+    companions.push({ path: picture.path, content: picture.content })
+  }
+  {
+    spec,
+    companions,
+    dropped: recovered.dropped,
+    warnings: verify(spec, companions, recovered, file~),
+  }
 }
 
 ///|
@@ -43,12 +86,35 @@ pub fn extract(bytes : Bytes, file~ : String) -> Extracted raise {
 /// is checked.
 fn verify(
   spec : String,
+  companions : Array[Companion],
   recovered : @read.Recovered,
   file~ : String,
 ) -> Array[String] {
   let warnings = []
+  // The spec names its companions by path, so the check has to resolve them the
+  // way the CLI will — from memory here, since nothing has been written yet.
+  let by_path : Map[String, Bytes] = Map([])
+  for companion in companions {
+    by_path[companion.path] = companion.content
+  }
+  let resolve : @loader.IncludeResolver = fn(_from, path) {
+    {
+      name: path,
+      source: match by_path.get(path) {
+        Some(content) => @utf8.decode_lossy(content[:])
+        None => ""
+      },
+    }
+  }
+  // A picture is read through the other resolver, as bytes, because that is what
+  // it is; decoding it as text and back would not survive.
+  let read_bytes : @loader.BytesResolver = fn(_from, path) {
+    { name: path, data: by_path.get(path).unwrap_or(b"") }
+  }
   let rebuilt = @read.from_bytes(
-      @emit.to_bytes(@loader.load(@yaml.parse(spec, file~), file~)),
+      @emit.to_bytes(
+        @loader.load(@yaml.parse(spec, file~), file~, resolve~, read_bytes~),
+      ),
     ).workbook catch {
       err => {
         warnings.push(

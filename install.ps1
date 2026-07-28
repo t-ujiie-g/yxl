@@ -51,7 +51,15 @@ try {
     Invoke-WebRequest -Uri "$base/$name.zip" -OutFile "$tmp\$name.zip" -UseBasicParsing
     Invoke-WebRequest -Uri "$base/$name.zip.sha256" -OutFile "$tmp\$name.zip.sha256" -UseBasicParsing
   } catch {
-    Fail "could not download $base/$name.zip (is v$version released for $target?)"
+    # Windows is an experimental target and a release may carry no binary for
+    # it, so say why rather than leaving a bare 404 to be puzzled over.
+    Fail ("could not download $base/$name.zip`n`n" +
+      "Windows is experimental and a release may not carry a binary for it: the " +
+      "Excel backend yxl builds on contains a function the Microsoft C compiler " +
+      "cannot parse, so the Windows build currently fails. Linux and macOS are " +
+      "unaffected.`n`n" +
+      "Until that is fixed upstream, build from source with MoonBit installed, " +
+      "or run yxl under WSL. See https://github.com/$repo#install")
   }
 
   $expected = ((Get-Content "$tmp\$name.zip.sha256" -Raw).Trim() -split '\s+')[0]

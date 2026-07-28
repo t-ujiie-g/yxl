@@ -10,6 +10,8 @@ import {
   "t-ujiie-g/yxl/render",
   "t-ujiie-g/yxl/model",
   "t-ujiie-g/yxl/diag",
+  // A companion file is bytes, whatever it holds; a CSV is text encoded once.
+  "moonbitlang/core/encoding/utf8",
 }
 
 // The golden test re-opens compiled bytes with the backend reader to assert the
