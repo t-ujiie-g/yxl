@@ -21,18 +21,12 @@ pub fn workbook(
   for table in tables {
     by_sheet[table.sheet] = table
   }
-  // `pictures` was built by walking the sheets in this same order, so handing
-  // the paths out one at a time keeps the spec and the files in step without
-  // either side deriving the name twice.
-  let mut taken = 0
-  let next_picture = fn() {
-    if taken < pictures.length() {
-      let path = pictures[taken].path
-      taken += 1
-      Some(path)
-    } else {
-      None
-    }
+  // Looked up by where each picture sits rather than by the order it was built,
+  // so the spec and the files agree without either depending on the other's
+  // iteration order.
+  let picture_paths : Map[String, String] = Map([])
+  for picture in pictures {
+    picture_paths[Picture::key(picture.sheet, picture.at)] = picture.path
   }
   let root = []
   if wb.date_system is Date1904 {
@@ -68,7 +62,7 @@ pub fn workbook(
   let sheets = []
   for sheet in wb.sheets {
     sheets.push(
-      one_sheet(sheet, styles, by_sheet.get(sheet.name), next_picture),
+      one_sheet(sheet, styles, by_sheet.get(sheet.name), picture_paths),
     )
   }
   root.push(("sheets", @yaml.Seq(sheets)))
@@ -82,7 +76,7 @@ fn one_sheet(
   sheet : @model.Sheet,
   styles : StyleNames,
   table : DataTable?,
-  next_picture : () -> String?,
+  picture_paths : Map[String, String],
 ) -> @yaml.Node {
   let entries = [("name", @yaml.Str(sheet.name))]
   match sheet.visibility {
@@ -150,10 +144,10 @@ fn one_sheet(
     entries.push(("tab_color", @yaml.Str(color.hex())))
   }
   if !sheet.images.is_empty() {
-    entries.push(("images", images(sheet, next_picture)))
+    entries.push(("images", images(sheet, picture_paths)))
   }
   if sheet.background is Some(_) {
-    match next_picture() {
+    match picture_paths.get(Picture::key(sheet.name, None)) {
       Some(path) => entries.push(("background", @yaml.Str(path)))
       None => ()
     }

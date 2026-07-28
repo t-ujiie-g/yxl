@@ -10,9 +10,24 @@
 ///|
 /// One picture the spec will name, and the bytes it names.
 pub(all) struct Picture {
+  /// The sheet it belongs to, and the cell it is anchored at — `None` for the
+  /// one tiled behind the sheet, which is anchored nowhere.
+  sheet : String
+  at : @units.CellRef?
   /// The path the spec names it by, relative to the spec itself.
   path : String
   content : Bytes
+}
+
+///|
+/// The key a picture is found by while rendering. Keying by where the picture
+/// *is* rather than by the order it was built keeps the spec and the files in
+/// step without either depending on the other's iteration order.
+pub fn Picture::key(sheet : String, at : @units.CellRef?) -> String {
+  match at {
+    Some(at) => "\{sheet}!\{at.to_a1()}"
+    None => "\{sheet}!background"
+  }
 }
 
 ///|
@@ -29,6 +44,8 @@ pub fn pictures(wb : @model.Workbook) -> Array[Picture] {
       pictures.push(
         picture(
           taken,
+          sheet.name,
+          Some(image.at),
           "\{sheet_stem(sheet.name)}_\{image.at.to_a1().to_lower()}",
           image.format,
           image.data,
@@ -39,6 +56,8 @@ pub fn pictures(wb : @model.Workbook) -> Array[Picture] {
       pictures.push(
         picture(
           taken,
+          sheet.name,
+          None,
           "\{sheet_stem(sheet.name)}_background",
           background.format,
           background.data,
@@ -53,6 +72,8 @@ pub fn pictures(wb : @model.Workbook) -> Array[Picture] {
 /// One picture under `assets/`, with a number added where the name is taken.
 fn picture(
   taken : Map[String, Unit],
+  sheet : String,
+  at : @units.CellRef?,
   stem : String,
   format : String,
   content : Bytes,
@@ -64,7 +85,7 @@ fn picture(
     suffix += 1
   }
   taken[path] = ()
-  { path, content }
+  { sheet, at, path, content }
 }
 
 ///|
@@ -90,15 +111,15 @@ fn sheet_stem(sheet_name : String) -> String {
 }
 
 ///|
-/// A sheet's `images:` block, given the paths already assigned to its pictures.
-/// `next` hands out the next path each call, in the order `pictures` built them.
-fn images(sheet : @model.Sheet, next : () -> String?) -> @yaml.Node {
+/// A sheet's `images:` block, given the paths already assigned to its pictures,
+/// looked up by where each picture sits.
+fn images(sheet : @model.Sheet, paths : Map[String, String]) -> @yaml.Node {
   let rendered = []
   for image in sheet.images {
     let entries = [("at", @yaml.Str(image.at.to_a1()))]
-    match next() {
+    match paths.get(Picture::key(sheet.name, Some(image.at))) {
       Some(path) => entries.push(("file", @yaml.Str(path)))
-      // Cannot happen: the paths are built from the same list in the same order.
+      // Only when the caller passed no pictures, which `workbook` allows.
       None => ()
     }
     if image.alt_text is Some(alt) {

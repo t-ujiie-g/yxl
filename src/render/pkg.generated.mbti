@@ -30,9 +30,12 @@ pub(all) struct DataTable {
 }
 
 pub(all) struct Picture {
+  sheet : String
+  at : @units.CellRef?
   path : String
   content : Bytes
 }
+pub fn Picture::key(String, @units.CellRef?) -> String
 
 // Type aliases
 
