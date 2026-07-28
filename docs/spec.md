@@ -1114,8 +1114,15 @@ calculation settings, the default font, and each sheet's protection.
   expose which cells follow it, so the rest arrive as the values they cached.
   A `formulas:` range (§3) is the spelling to restore by hand.
 - **Charts, images, shapes, pivots, slicers, sparklines, and form controls are
-  not recovered** — they are in the file, and reading them is future work rather
-  than a limit of the format.
+  not recovered yet.** They are in the file and none of them is a limit of the
+  format, but they are not all the same amount of work:
+  - form controls, slicers, sparklines, and shapes come back from the Excel
+    backend as typed records that already speak this format's vocabulary, so
+    each is a translation;
+  - images come back whole, bytes and all — what stops them is that writing a
+    picture out is a *second file*, the same question CSV extraction asks;
+  - charts and pivots come back as raw XML parts, so recovering them means
+    reading DrawingML and the pivot cache, which is a reader of its own.
 - **A colour scale's stops are not kept**, only its colours: the schema places
   them at the range's own low and high, which is Excel's default and what an
   author writing the spec by hand would get.
@@ -1128,8 +1135,8 @@ calculation settings, the default font, and each sheet's protection.
 - **A sheet-protection password is not recovered.** The file keeps a hash, not
   the word. It is reported, so a spec that needs one can have it set again
   rather than looking protected while opening to anyone.
-- **A sheet background image is not recovered**, for the same reason a `data:`
-  table is not: writing the picture out is a second file, which is the
+- **A sheet background image is not recovered**, for the same reason an
+  ordinary picture is not: writing it out is a second file, which is the
   one-file-or-many decision this command has not made yet.
 - **A name defined for one sheet only is not recovered.** The spec's definitions
   are workbook-wide, and widening one would change which cells it resolves for.
