@@ -56,9 +56,15 @@ fn combine_style(
 }
 
 ///|
-/// Parse a `style:` mapping into a model style (without a number format, which
-/// the caller supplies from the `format:` shorthand). Keys are `font`, `fill`,
-/// `border`, `align`, and `extends`; anything else is a diagnostic.
+/// Parse a `style:` mapping into a model style. Keys are `font`, `fill`,
+/// `border`, `align`, `protection`, `format`, and `extends`; anything else is a
+/// diagnostic.
+///
+/// `format` belongs here as well as beside the style, because a number format is
+/// part of a look — a "percent" style is a percent format and nothing else, and
+/// without this it could be *declared* nowhere and would have to be repeated at
+/// every cell that wore it, which is exactly the copying ADR-004 exists to stop.
+/// A `format:` written beside the style still wins, as the caller layers it on.
 ///
 /// `extends: <name>` names a style to inherit: `find_base` resolves the name (to
 /// a declared definition), and everything this mapping sets is laid over it.
@@ -74,6 +80,7 @@ fn load_style(
   let mut borders = None
   let mut align = None
   let mut protection = None
+  let mut number_format = None
   let mut base = None
   for entry in entries {
     let (key, node) = entry
@@ -84,6 +91,10 @@ fn load_style(
       "align" => align = Some(load_alignment(node, file~, context~))
       "protection" =>
         protection = Some(load_cell_protection(node, file~, context~))
+      "format" =>
+        number_format = Some(
+          expect_string(node, file~, context="\{context} style 'format'"),
+        )
       "extends" =>
         base = Some(
           find_base(expect_string(node, file~, context="\{context} 'extends'")),
@@ -91,7 +102,7 @@ fn load_style(
       _ =>
         raise schema_error(
           file~,
-          "unknown key '\{key}' in \{context} style (expected 'font', 'fill', 'border', 'align', 'protection', or 'extends')",
+          "unknown key '\{key}' in \{context} style (expected 'font', 'fill', 'border', 'align', 'protection', 'format', or 'extends')",
         )
     }
   }
@@ -100,7 +111,7 @@ fn load_style(
     fill,
     borders,
     align,
-    number_format: None,
+    number_format,
     protection,
   }
   match base {

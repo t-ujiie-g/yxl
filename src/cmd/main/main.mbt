@@ -20,6 +20,7 @@ fn run() -> Int {
   match command {
     Build(input~, output~, params~) => build(input, output, params)
     Check(input~, params~) => check(input, params)
+    Extract(input~, output~) => extract(input, output)
     Version => {
       println("yxl \{@cli.version}")
       @cli.exit_ok
@@ -84,6 +85,49 @@ fn compile(
       None
     }
   }
+}
+
+///|
+/// Read a workbook and write the spec that would rebuild it (ADR-017).
+///
+/// Everything the schema could not carry is printed, and so is anything the
+/// self-check found: the spec is still written in that case, because a starting
+/// point with a known gap is more use than no starting point, but the exit code
+/// says it needs a look.
+fn extract(input : String, output : String) -> Int {
+  let bytes = @fs.read_file_to_bytes(input) catch {
+    @fs.IOError(reason) => {
+      report("cannot read \{input}: \{reason}")
+      return @cli.exit_error
+    }
+  }
+  let extracted = @cli.extract(bytes, file=input) catch {
+    err => {
+      report(@cli.error_message(err))
+      return @cli.exit_error
+    }
+  }
+  @fs.write_string_to_file(output, extracted.spec) catch {
+    @fs.IOError(reason) => {
+      report("cannot write \{output}: \{reason}")
+      return @cli.exit_error
+    }
+  }
+  report("wrote \{output}")
+  for note in extracted.dropped {
+    report("  dropped: \{note}")
+  }
+  guard extracted.warnings.is_empty() else {
+    report("the extracted spec did not rebuild the workbook exactly:")
+    for warning in extracted.warnings {
+      report("  \{warning}")
+    }
+    return @cli.exit_error
+  }
+  if !extracted.dropped.is_empty() {
+    report("everything else rebuilds the workbook as read")
+  }
+  @cli.exit_ok
 }
 
 ///|

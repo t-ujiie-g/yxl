@@ -73,15 +73,7 @@ test "a shape's text lines each round-trip as their own paragraph" {
         { text: "next", font: None },
         {
           text: "quarter",
-          font: Some({
-            bold: Some(true),
-            italic: None,
-            underline: None,
-            strike: None,
-            size: None,
-            name: None,
-            color: None,
-          }),
+          font: Some({ ..@model.Font::empty(), bold: Some(true) }),
         },
       ]),
     ),

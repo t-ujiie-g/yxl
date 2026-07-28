@@ -478,18 +478,29 @@ gate, which is why none carries a box:
       ADR-017: a reader seam mirroring ADR-002, the schema itself as the
       recovery boundary, and **verify-then-emit** so compression is checked
       rather than trusted. Delivered in slices, value-first:
-      - [ ] **A YAML writer.** New machinery: `src/yaml` is parse-only today, so
-            there is nothing that turns a `model` back into text. Readable
-            output is the whole point of the feature, so this is not a detail —
-            quoting rules, block vs. flow, key order, and how a `cells:` block
-            is laid out all decide whether the result is worth keeping
-      - [ ] **The reader seam and slice 1**: values, formulas, rich text, styles
-            interned into `defs.styles`, merges. This is the slice that makes
-            the feature useful at all
-      - [ ] **Slice 2 — layout**: column widths, row heights, hidden, outline
-            levels, freeze panes, gridlines, tab colour, print setup
-      - [ ] **Slice 3 — decoration**: comments, links, validations, conditional
-            formats, tables, auto filter
+      - [x] **A YAML writer.** `@yaml.write` is the seam's other direction:
+            block style throughout, quoting only where the syntax forces it, and
+            the caller's key order left alone. Its rules are pinned to what *our*
+            parser does rather than to the YAML spec — it reads `yes` as text but
+            `TRUE` as a boolean, `007` as the number 7, and a lone `-` not at all
+            — and the round trip is asserted on the whole `examples/` corpus,
+            which also re-compiles to byte-identical workbooks
+      - [x] **The reader seam and slice 1**: values, formulas, rich text, styles
+            interned into `defs.styles`, merges. `src/read` is the seam and
+            `src/render` the inverse of `loader`; `yxl extract` joins them and
+            checks its own output
+      - [x] **Slice 2 — layout**: column widths, row heights, hidden, outline
+            levels, freeze panes, gridlines, tab colour. **Print setup is
+            refused**, not deferred: the backend's `page_layout_with_defaults`
+            aliases a module-level default instead of copying it, so reading one
+            sheet's setup leaks it to every later sheet and to every later
+            workbook read in the same process. Becomes a plain read the day that
+            is a copy
+      - [x] **Slice 3 — decoration**: comments, links, validations (including
+            date bounds, which needed `@units.DateTime::from_serial` — the file
+            holds a serial and the spec wants a written date), **conditional
+            formats of every rule the schema names**, tables, and the auto
+            filter's range
       - [ ] **CSV extraction**, which also settles one-file vs. many: a
             contiguous all-literal region with homogeneous column types becomes
             a `data:` entry. `data:` reads a *path* and has no inline form, so
@@ -925,7 +936,9 @@ Phase 11's inline `values:` lands. `$include` splitting is never inferred.
   stalls and real users hit it.
 
 - **Q9 — What is the import command called, and how much does it recover?**
-  ✅ **Decided 2026-07-27 (ADR-017): `yxl extract`, bounded by the schema.**
+  ✅ **Decided 2026-07-27 (ADR-017), and implemented 2026-07-28: `yxl extract`,
+  bounded by the schema.** `docs/spec.md` §22 is the user-facing account of what
+  it recovers and what it does not.
   `import` was rejected as pointing the wrong way — what the command *writes* is
   YAML. `extract` reads from the file's side and claims neither completeness
   (`decompile`) nor scaffolding (`scaffold`).
@@ -1053,6 +1066,158 @@ Phase 11's inline `values:` lands. `$include` splitting is never inferred.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-28** — **A refactoring pass over the tree `extract` grew into.** Two
+  new packages and a schema key had landed in quick succession, so this is the
+  tidy-up: no behaviour changes, 550 tests still pass, and the only `.mbti` diff
+  is the four helpers below.
+
+  The largest find was **a seven-field `Font` literal written out in full in
+  nine files, seventeen times**, usually to set one attribute — `model` had
+  `Style::empty()` but no `Font::empty()`, so there was nothing else to write.
+  Adding it (with `is_empty`, which `read` had a local copy of) turned six lines
+  of `None` into the one attribute that was the point.
+
+  **A1 range parsing had drifted to three places.** `CellRange` lives in `model`,
+  so parsing one now does too — `CellRange::parse`, plus a `parse_loose` for the
+  bare `A1` Excel writes when a region is one cell. The loader keeps its own
+  corner-by-corner parse *and now says why*: it names which corner is wrong,
+  which is the whole of what a diagnostic is for (ADR-006).
+
+  `model.mbt` had reached 540 lines across two unrelated halves and is now split
+  at the boundary that was already there: the cell-level vocabulary in
+  `model.mbt`, the `Sheet`/`Workbook` containers and their methods in
+  `workbook.mbt`. The `Sheet` struct moved to sit with its own methods rather
+  than three files away from them.
+
+  Also: the exact-integer bound in `render` was a bare `9.007199254740992e15`
+  with no name and a different definition from `emit`'s, and is now
+  `EXACT_INTEGER_LIMIT` with the reason (past 2^53 a `Double` cannot tell one
+  integer from the next); the `LAST_SHEET_VIEW` that `emit` and `read` must agree
+  on now says in both places that it is shared and why there is no third home for
+  it; one comment restated the line under it and one referred to a ROADMAP
+  section rather than naming the thing (§8.6).
+
+  **`read`'s seam had no test through its trait**, only through the `from_bytes`
+  shorthand — where `emit`'s has had one all along. ADR-002's claim is that the
+  backend sits behind an interface, and exercising only the convenience wrapper
+  left the interface itself unproven. There is one now, plus tests for the four
+  new public helpers.
+
+- **2026-07-28** — **`yxl extract` works**: an existing workbook becomes a
+  starting spec. Two new packages complete the pipeline in the other direction —
+  `src/read` is the reader seam (the mirror of `emit`, and now the only other
+  place the backend is touched, ADR-002) and `src/render` the inverse of
+  `loader`. `cli.extract` joins them, and `cmd/main` gains the subcommand.
+  Recovered: values, formulas, mixed-font rich text, styles **interned** into
+  `defs.styles`, merges, column and row bands with adjacent equal ones collapsed
+  back into one entry, panes, gridlines, tab colours, sheet order and visibility,
+  the active tab, and the date system. `docs/spec.md` §22 says what is not, and
+  why.
+
+  **The verify pass earned its place immediately.** ADR-017 asked `extract` to
+  compile its own output and compare; the first run on `examples/quickstart`
+  reported that the spec would not compile at all, and the second and third runs
+  found two more. Every one was a real defect that reading the output would not
+  have caught as quickly: `format:` written *inside* an inline style, where the
+  schema puts it beside one; and `format:` inside a `defs.styles` entry, which
+  the schema did not accept **at all**.
+
+  That second one turned out to be a **schema gap rather than an extract bug**,
+  and the same shape as the formula column: `model.Style` has a number format,
+  `defs.styles` could not set one, so a "percent" style could be declared
+  nowhere and had to be repeated at every cell wearing it — exactly the copying
+  ADR-004 exists to stop. `format` is now a style attribute (`docs/spec.md` §6),
+  which an author wanted independently.
+
+  Three things the output made obvious once it existed, none of which a test
+  would have failed on: every piece of text came back as a one-run `rich:` block,
+  because the backend answers `get_cell_rich_text` for *any* shared string;
+  every sheet grew a `print:` block of Excel's own defaults; and a hidden column
+  past the last populated cell was lost, because the bands were read by scanning
+  the used rectangle rather than by reading the `<col>` records. Fixed, and the
+  last of those is now a test — a scan would pass every other assertion.
+
+  **Print setup is refused rather than deferred.** The backend's
+  `page_layout_with_defaults` (and its margins twin) does `let merged =
+  default_page_layout` — an alias of a module-level mutable struct, not a copy —
+  then writes the sheet's own values into it. Reading one sheet's setup therefore
+  leaks it to every later sheet, and to every later workbook read in the same
+  process. A spec built on that would claim the wrong orientation, so it is a
+  named refusal with the reason, as top-level `protect:` is.
+
+  **Slice 3 landed in the same change**: notes, hyperlinks, validations, tables,
+  and the auto filter's range. The validations needed a new
+  `@units.DateTime::from_serial` — a `date` rule's bounds are serials in the file
+  and written dates in the spec — which is the inverse of `to_serial` and is
+  tested against it by round trip rather than against a table of pairs, since a
+  table would test both functions against the same misunderstanding. The verify
+  pass caught two more guesses here too: `list_from:` and `length:`, neither of
+  which the schema spells that way.
+
+  **Conditional formats came back in after being written off.** The first read of
+  the backend's surface said they were out of reach — it hands every rule back as
+  one flat options record, a `format_type` and whichever of thirty fields that
+  kind happens to use, rather than as the rules the schema names. That is an
+  accurate description and the wrong conclusion: it is the *same* record the
+  emitter writes, so the information is symmetric and the work is a translation
+  after all. Probing it settled the question in one run — all eight kinds came
+  back with their criteria, values, colours, icon style, `dxf` id, and stop flag
+  intact. Sixteen rule variants are now asserted to round-trip.
+
+  **An audit found what the slices had missed.** Being wrong once about
+  conditional formats was reason to check the rest the same way — not by reading
+  the notes, but by listing every field of `model.Workbook` and `model.Sheet` and
+  grepping which setters `read` actually calls. Seven were never populated and
+  none were documented as missing: the default font, the named definitions
+  (`defs.values` / `defs.formulas` — an ADR-013 feature, so a real gap), the
+  document properties, the calculation settings, sheet protection, the
+  very-hidden state, and the sheet background. All but the background are
+  recovered now; the background writes a second file, which is the
+  one-file-or-many decision this command has not taken yet.
+
+  Two more Excel-writes-it-anyway values had to be suppressed on the way, the
+  same shape as the default page setup: a workbook-wide name is scoped
+  `Workbook` rather than to nothing, so the first cut dropped every one of them
+  as sheet-scoped; and the backend stamps `mbtexcel` as the creator of every file
+  it writes, which would have put an author on every extracted spec who wrote
+  none of it.
+
+  Verified on the corpus: all ten examples extract, and the eight that need no
+  external files are asserted to extract with an empty self-check *and* to
+  compile again on their own.
+
+- **2026-07-28** — **A YAML writer**, the first slice of `extract` (ADR-017) and
+  the one everything else waits on: `src/yaml` could only ever read, so nothing
+  in the toolchain could turn a tree back into text. `@yaml.write` is the seam's
+  other direction — block style throughout, quoting only where the syntax forces
+  it, and the caller's key order left alone, because the point of the feature is
+  a spec somebody would *keep*, and a writer that quoted everything would satisfy
+  a round-trip test while producing something nobody would read.
+
+  Its rules are pinned to **what our parser actually does**, probed rather than
+  taken from the YAML spec, and the differences matter: it reads `yes` and `on`
+  as text but `TRUE` as a boolean, `007` and `1_000` and `0x10` as numbers, and a
+  lone `-` not at all. So the quoting test is conservative at the first character
+  — anything that is not a letter, `_`, `$` or `/` is quoted — which covers every
+  indicator and every way a number can start in one rule instead of a list that
+  would drift from the parser. A whole float also has to be written `1.0`, since
+  `Double`'s own rendering gives `1`, which would come back an *integer*.
+
+  Proven twice over. The round trip `parse(write(n)) == n` runs on hand-built
+  nodes for the awkward cases, and on **every spec in `examples/`**, which comes
+  back as the identical tree — and, for the specs that need no external files,
+  re-compiles to **byte-identical workbooks**. That second check is a rehearsal
+  of the verify-then-emit ADR-017 asks of `extract` itself.
+
+  Two limits are recorded rather than fixed. The parser refuses an empty mapping
+  key in both directions, so there is no such `Node` to write — `write` is the
+  inverse of `parse` for every node `parse` can *produce*, which is the contract,
+  and a test names the gap so a parser swap (ADR-010) notices it lifting. And
+  **comments do not survive**, because they are not in the tree: `write` is for
+  text yxl generates, not for reformatting a spec somebody wrote by hand. It is
+  no loss for `extract`, whose input is a workbook and so has no comments to
+  carry, but it is the reason this is not also a formatter.
 
 - **2026-07-28** — **Filled formula ranges**, the schema gap `extract`'s scoping
   found, pulled ahead of it. `formulas: [{ at: D2:D500, formula: "B2*C2" }]`

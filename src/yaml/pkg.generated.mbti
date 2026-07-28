@@ -9,6 +9,8 @@ import {
 // Values
 pub fn parse(String, file~ : String) -> Node raise @diag.YamlError
 
+pub fn write(Node) -> String
+
 // Errors
 
 // Types and methods

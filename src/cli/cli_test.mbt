@@ -29,7 +29,9 @@ test "parse_args accepts build with input and -o output, in either order" {
 test "parse_args rejects malformed command lines" {
   assert_eq(
     usage_message(["serve"]),
-    Some("unknown command 'serve' (expected 'build', 'help', or 'version')"),
+    Some(
+      "unknown command 'serve' (expected 'build', 'extract', 'help', or 'version')",
+    ),
   )
   assert_eq(
     usage_message(["build", "-o", "out.xlsx"]),

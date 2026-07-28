@@ -90,10 +90,9 @@ test "a full style round-trips its attributes and identical styles share one id"
     number_format: Some("0.00"),
     protection: None,
     font: Some({
+      ..@model.Font::empty(),
       bold: Some(true),
       italic: Some(true),
-      underline: None,
-      strike: None,
       size: Some(14.0),
       name: Some("Arial"),
       color: @units.Color::parse("FF0000"),
@@ -141,15 +140,7 @@ test "column/row default styles emit and share the cell style cache; default fon
   let sheet = wb.add_sheet("S")
   let bold : @model.Style = {
     ..@model.Style::empty(),
-    font: Some({
-      bold: Some(true),
-      italic: None,
-      underline: None,
-      strike: None,
-      size: None,
-      name: None,
-      color: None,
-    }),
+    font: Some({ ..@model.Font::empty(), bold: Some(true) }),
   }
   // A bold cell, then the same bold look as a whole-column and whole-row band.
   sheet.set(@units.CellRef::new(col=1, row=1), Text("x"), style=bold)
@@ -390,12 +381,8 @@ test "a rich-text cell round-trips its runs and per-run fonts" {
   let wb = @model.Workbook::new()
   let sheet = wb.add_sheet("S")
   let bold_red : @model.Font = {
+    ..@model.Font::empty(),
     bold: Some(true),
-    italic: None,
-    underline: None,
-    strike: None,
-    size: None,
-    name: None,
     color: @units.Color::parse("FF0000"),
   }
   sheet.set(

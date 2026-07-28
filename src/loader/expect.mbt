@@ -198,6 +198,9 @@ fn parse_range(
   guard text.split_once(":") is Some((left, right)) else {
     raise schema_error(file~, "\{what} '\{text}' must be 'TopLeft:BottomRight'")
   }
+  // Each corner is parsed on its own rather than through
+  // `CellRange::parse`, so a bad one is named in the diagnostic — which corner
+  // is wrong is the whole of what a reader needs here (ADR-006).
   let corner = "\{what} '\{text}'"
   let first = expect_cell_ref(left.to_owned(), file~, what=corner)
   let second = expect_cell_ref(right.to_owned(), file~, what=corner)

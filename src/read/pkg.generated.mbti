@@ -1,0 +1,31 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "t-ujiie-g/yxl/read"
+
+import {
+  "t-ujiie-g/yxl/diag",
+  "t-ujiie-g/yxl/model",
+}
+
+// Values
+pub fn from_bytes(Bytes) -> Recovered raise @diag.ReadError
+
+// Errors
+
+// Types and methods
+pub struct MbtexcelReader {
+}
+pub fn MbtexcelReader::new() -> Self
+pub impl Reader for MbtexcelReader
+
+pub struct Recovered {
+  workbook : @model.Workbook
+  dropped : Array[String]
+}
+
+// Type aliases
+
+// Traits
+pub trait Reader {
+  fn read(Self, Bytes) -> Recovered raise @diag.ReadError
+}
+

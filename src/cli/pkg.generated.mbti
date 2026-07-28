@@ -18,6 +18,8 @@ pub let exit_ok : Int
 
 pub let exit_usage : Int
 
+pub fn extract(Bytes, file~ : String) -> Extracted raise
+
 pub fn parse_args(ArrayView[String]) -> Command raise @diag.CliError
 
 pub fn resolve_path(String, String) -> String
@@ -32,9 +34,16 @@ pub let version : String
 pub(all) enum Command {
   Build(input~ : String, output~ : String, params~ : Map[String, String])
   Check(input~ : String, params~ : Map[String, String])
+  Extract(input~ : String, output~ : String)
   Version
   Help
 } derive(Eq, @debug.Debug)
+
+pub struct Extracted {
+  spec : String
+  dropped : Array[String]
+  warnings : Array[String]
+}
 
 // Type aliases
 

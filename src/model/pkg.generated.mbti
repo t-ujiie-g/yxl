@@ -113,6 +113,8 @@ pub(all) struct CellRange {
   top_left : @units.CellRef
   bottom_right : @units.CellRef
 } derive(Eq, @debug.Debug)
+pub fn CellRange::parse(String) -> Self?
+pub fn CellRange::parse_loose(String) -> Self?
 pub fn CellRange::to_a1(Self) -> String
 
 pub(all) enum CellValue {
@@ -244,6 +246,8 @@ pub(all) struct Font {
   name : String?
   color : @units.Color?
 } derive(Eq, Hash, @debug.Debug)
+pub fn Font::empty() -> Self
+pub fn Font::is_empty(Self) -> Bool
 
 pub(all) struct FormControl {
   at : @units.CellRef
