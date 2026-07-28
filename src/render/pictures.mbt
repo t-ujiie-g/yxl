@@ -115,12 +115,7 @@ fn images(sheet : @model.Sheet, paths : Map[String, String]) -> @yaml.Node {
         ),
       )
     }
-    // `move` is Excel's default and the schema's, so it is left unsaid.
-    match image.positioning {
-      Move => ()
-      MoveAndSize => entries.push(("positioning", @yaml.Str("move_and_size")))
-      Fixed => entries.push(("positioning", @yaml.Str("fixed")))
-    }
+    positioning(image.positioning, entries)
     rendered.push(@yaml.Map(entries))
   }
   @yaml.Seq(rendered)

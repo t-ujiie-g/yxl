@@ -86,6 +86,15 @@ fn recover(bytes : Bytes) -> Recovered raise {
     read_presentation(backend, sheet)
     read_decorations(backend, sheet, dates, notes)
     read_images(backend, sheet, notes)
+    read_controls(backend, sheet, notes)
+    read_slicers(backend, sheet, notes)
+    read_shapes(backend, sheet, notes)
+    read_sparklines(
+      backend,
+      sheet,
+      qualified_ranges=backend.get_sheet_list().length() > 1,
+      notes,
+    )
     read_sheet_protection(backend, sheet, notes)
   }
   // The tab Excel opens on. Index 0 is the default, and saying so adds nothing.

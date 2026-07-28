@@ -918,7 +918,7 @@ shapes:
 | `kind` | bareword | **Required.** One of the geometries below. |
 | `text` | text or list | A plain string, or a sequence of lines — each a string or `{ text, font }`, the font written as a style's `font:` (§4 of the styling keys). Each entry is its own *line*: one font covers one line. |
 | `size` | `{ width, height }` | **Both required**, in whole pixels. Unset, the shape is 160 × 160. |
-| `fill` | hex color | The fill; unset keeps the theme default. |
+| `fill` | hex color | The fill. Unset means **no fill at all**, not a theme colour — see the backend limits below. |
 | `line` | hex color or `{ color, width }` | The outline. `width` is in points and must be above `0`; a bare hex is just the color. |
 | `alt` | text | What a screen reader announces; Excel's "Alt Text". |
 | `positioning` | bareword | The same three anchors an image takes (§13). |
@@ -937,6 +937,12 @@ rounded rectangle, the right triangle, the eight straight arrows, and the four
 callouts. They become plain schema additions the day the backend keeps the
 token's case. An offset in from the anchor cell (which images take) is not
 available either: the backend's shape constructor does not accept one.
+
+The backend also writes **no theme style reference** for a shape — none of the
+`fillRef`/`lnRef` that Excel's own "Insert Shape" puts on one. So a shape given
+neither `fill` nor `line` is written with no fill and no outline, and Excel
+draws nothing: the shape is there and selectable, but invisible. Give a shape a
+`fill:` or a `line:` if it is meant to be seen.
 
 ## 19. Sparklines
 
@@ -1022,6 +1028,13 @@ it — anything else is a diagnostic naming where the key belongs:
 
 No `macro:` — an `.xlsx` carries no macros, and a button without one is a
 caption that clicks. Assigning behavior is Excel's side of the contract.
+
+> **Excel does not draw these yet.** The Excel backend writes the *legacy* half
+> of a form control — the VML shape and its `x:ClientData` — and not the
+> worksheet's `<controls>` element or the per-control `ctrlProps` parts that
+> current Excel needs to render one. The control is in the file and the linked
+> cell holds its value, but Excel shows nothing where it sits. Nothing in a spec
+> works around this; it is a gap in the backend and is tracked as one.
 
 > **On a protected sheet, unlock the linked cell.** Excel writes a control's
 > value into its `link` like any other edit, so a locked target makes the
@@ -1123,6 +1136,13 @@ error dialogs, and — for a `date` rule — bounds turned back from serials int
 written dates), conditional formats of every rule the format names, Excel
 tables, and the auto filter's range.
 
+The four things that float over a sheet rather than sitting in it: shapes (§18)
+with their geometry, text, size, fill, outline, and anchor; sparklines (§19)
+with their kind, points, bounds, weight, and any colour the file names outright;
+form controls (§20) with what each writes into its linked cell; and slicers
+(§21) with the table column each filters. Four details of these do not survive,
+and each is listed below.
+
 And what the workbook says about itself: named definitions (`defs.values` and
 `defs.formulas`), the document properties including the custom ones, the
 calculation settings, the default font, and each sheet's protection.
@@ -1146,14 +1166,27 @@ calculation settings, the default font, and each sheet's protection.
   factor back as `1` whatever it was — so a scaled picture cannot be told from an
   unscaled one, and every picture comes back at its natural size. `extract` says
   so on the way out rather than leaving it to be noticed.
-- **Charts, shapes, pivots, slicers, sparklines, and form controls are not
-  recovered yet.** They are in the file and none of them is a limit of the
-  format, but they are not the same amount of work:
-  - form controls, slicers, sparklines, and shapes come back from the Excel
-    backend as typed records that already speak this format's vocabulary, so
-    each is a translation;
-  - charts and pivots come back as raw XML parts, so recovering them means
-    reading DrawingML and the pivot cache, which is a reader of its own.
+- **A form control's size is not recovered.** The file records it in the far
+  corner of the control's VML anchor, and the Excel backend's reader takes only
+  the near corner from there — so every control comes back at Excel's default,
+  and one that was sized cannot be told from one that was not.
+- **The font on a line of shape text is not recovered**, for the same reason at
+  the other end of the file: it is written into the drawing's `a:rPr` and not
+  read back. A shape's words survive; how they were set does not.
+- **A shape geometry Excel spells with a capital cannot come back.** The backend
+  lowercases the `prst` token, so `roundRect` reads as `roundrect`, which names
+  no geometry in §18's table and could not be told from any other. Those
+  geometries are refused on the way in for the same reason; `extract` reports
+  the shape rather than guessing which one it was.
+- **The sheet a sparkline plots from is not recovered.** The file writes
+  `'Data'!B2:E2` and the backend's reader keeps only what follows the `!`, so a
+  sparkline that plotted another sheet comes back plotting this one — the same
+  shape of answer with the wrong numbers in it. `extract` says so whenever a
+  workbook has more than one sheet; with a single sheet nothing can be lost.
+- **Charts and pivots are not recovered yet.** They are in the file and neither
+  is a limit of the format: the Excel backend hands both back as raw XML parts,
+  so recovering them means reading DrawingML and the pivot cache, which is a
+  reader of its own rather than a translation.
 - **A colour scale's stops are not kept**, only its colours: the schema places
   them at the range's own low and high, which is Excel's default and what an
   author writing the spec by hand would get.

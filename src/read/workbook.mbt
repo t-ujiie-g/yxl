@@ -9,7 +9,7 @@ fn read_workbook_keys(
   workbook : @model.Workbook,
   notes : Notes,
 ) -> Unit {
-  read_defined_names(backend, workbook, notes)
+  read_defined_names(backend, workbook, slicer_caches(backend), notes)
   read_properties(backend, workbook, notes)
   read_calc(backend, workbook, notes)
 }
@@ -39,13 +39,21 @@ const EXCEL_DEFAULT_FONT : String = "Calibri"
 /// to write, not the spec's. A name scoped to one sheet is skipped too: the
 /// schema's definitions are workbook-wide, and recovering a sheet-scoped one as
 /// a workbook-wide one would change which cells it resolves for.
+///
+/// `slicer_caches` names the other bookkeeping kind: a slicer's cache is a
+/// defined name the backend writes for it, so recovering it *and* the slicer
+/// would make the spec ask for the same name twice and refuse to compile.
 fn read_defined_names(
   backend : @xlsx.Workbook,
   workbook : @model.Workbook,
+  slicer_caches : Map[String, Unit],
   notes : Notes,
 ) -> Unit {
   for defined in backend.get_defined_names() {
     if defined.name.has_prefix(EXCEL_RESERVED_NAME_PREFIX) {
+      continue
+    }
+    if slicer_caches.get(defined.name) is Some(_) {
       continue
     }
     // A workbook-wide name is scoped `Workbook`, not to nothing; a name scoped

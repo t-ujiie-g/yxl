@@ -444,6 +444,19 @@ gate, which is why none carries a box:
   rectangle, right triangle, the eight straight arrows, and the four callouts —
   blocked on the backend lowercasing `prst` (§9); each becomes one more row in
   the preset table the day it keeps the token's case
+- **form controls Excel actually draws.** Found by opening a built workbook
+  rather than by reading its bytes: the backend writes only the *legacy* half of
+  a control — the VML shape and its `x:ClientData` — and not the worksheet's
+  `<controls>` element or the per-control `ctrlProps` parts current Excel needs
+  to render one. The control is in the file, the linked cell holds its value,
+  and Excel shows nothing. No spec can work around it; it is an upstream fix or
+  a part the emitter writes itself. `docs/spec.md` §20 says so meanwhile
+- **a shape with no explicit colour is invisible**, for a neighbouring reason:
+  the backend writes no `fillRef`/`lnRef` theme style reference, so a shape
+  given neither `fill:` nor `line:` gets no fill and no outline rather than
+  Excel's default blue. Documented in §18 and worked around in `examples/` by
+  giving the bare shape a fill; the real fix is the backend writing the style
+  block Excel's own "Insert Shape" writes
 - file encryption (`write_with_password`) — its own decision: it changes the
   emitter's signature and needs the CLI to carry a secret
 
@@ -501,27 +514,40 @@ gate, which is why none carries a box:
             holds a serial and the spec wants a written date), **conditional
             formats of every rule the schema names**, tables, and the auto
             filter's range
-      - [ ] **Slice 4 — the floating features**, all of which the backend does
-            hand back as *typed* records that map onto the schema's own
-            vocabulary, so each is a translation like slice 3 rather than a
-            piece of research. Checked against `.mooncakes/`, not assumed:
-            - [ ] **Form controls** — `get_form_controls` returns
-                  `{ cell, control_type, text, checked, cell_link, width,
-                  height, current_val, min_val, max_val, inc_change,
-                  page_change, horizontally }`, which is `model.FormControl`
-                  almost field for field. The easiest of the four
-            - [ ] **Slicers** — `get_slicers` returns
-                  `{ cell, table_name, caption, width, height, display_header }`,
-                  likewise 1:1
-            - [ ] **Sparklines** — `Worksheet::sparkline_groups` returns the
-                  group with its type, its cells, and the options the schema
-                  names (markers, high/low/first/last, manual bounds, weight)
-            - [ ] **Shapes** — `Worksheet::shapes` returns
-                  `{ cell, shape_type, text, width, height, fill_color, … }`.
-                  One caveat already on the books: the backend lowercases the
-                  `prst` token (§9), so a geometry whose name carries a capital
-                  reads back as one the schema does not name, and has to be
-                  reported rather than guessed at
+      - [x] **Slice 4 — the floating features**. Each *is* a translation as
+            expected, but "typed record that maps onto the schema" turned out to
+            be too generous a summary: probing the backend's actual read path —
+            emit a workbook, reopen it, print what comes back — found **four
+            fields the file carries and the backend's reader does not**, none of
+            them visible from the `.mbti`. They are recorded under "blocked"
+            below, and `extract` reports each rather than guessing:
+            - [x] **Form controls** — every one of the seven kinds comes back,
+                  with its caption, tick, linked cell, bounds, step, page, and
+                  orientation. The `control_type` is *canonicalized* on the way
+                  back (`check_box` out, `CheckBox` in), the same vocabulary
+                  trap the conditional formats sprang in slice 3. The reader
+                  also has to apply the schema's own per-kind rules — `checked`
+                  belongs to a check box, `page` to a scroll bar — because a
+                  file yxl did not write can carry them anywhere, and a spec
+                  that carries one does not load
+            - [x] **Slicers** — 1:1 as expected, with one thing the field list
+                  did not show: placing a slicer makes the backend write a
+                  workbook-wide defined name for its cache (`Slicer_Region`).
+                  Recovering *that* alongside the slicer made the extracted spec
+                  declare the name and then place something that declares it
+                  again, which fails with `DefinedNameDuplicate`. The names come
+                  off the recovered slicers' own `cache` field rather than off
+                  the `Slicer_` spelling, so a numbered one is caught too
+            - [x] **Sparklines** — kind, points, markers, high/low, manual
+                  bounds, weight, and axis all come back, and a colour comes
+                  back only where the file names one outright: an unset colour
+                  is a theme reference, which is also what keeps four default
+                  colours off every group
+            - [x] **Shapes** — geometry, text, size, fill, outline, alt text,
+                  and anchor. The `prst` caveat (§9) is confirmed from both
+                  ends: `roundRect` reads back as `roundrect`, which names no
+                  geometry in the table and cannot be told from any other, so
+                  the shape is reported rather than guessed at
       - [ ] **Slice 5 — charts and pivots**, which are *not* the same kind of
             work. The backend types only the anchor and the geometry and hands
             the thing itself over as a raw part — `Chart { reference, xml, … }`,
@@ -552,8 +578,31 @@ gate, which is why none carries a box:
             rather than a factor and the backend reports the factor back as `1`
             whatever it was, so a scaled picture cannot be told from an unscaled
             one
-      - [ ] **Blocked, not deferred** — these are the two `extract` cannot do
-            anything about on its own:
+      - [ ] **Blocked, not deferred** — these are what `extract` cannot do
+            anything about on its own. All but the last two were found by
+            probing the backend's read path rather than by reading its
+            signatures, which is the lesson worth keeping: a typed field says
+            what a value *would* be, not whether anything fills it in:
+            - **A form control's size**, which the file records in the far
+              corner of the control's VML anchor and
+              `parse_form_controls_vml` never reads — it takes the anchor's
+              first two coordinates and stops. (The shape's
+              `style="width:…;height:…"` looks like the place to read it and is
+              not: the backend stamps one constant string on every control.)
+              Every control comes back at Excel's default size
+            - **The font on a line of shape text**, written into the drawing's
+              `a:rPr` and not read back, so shape text comes back unstyled
+            - **The sheet a sparkline plots from**: the file writes
+              `'Data'!B2:E2` and `normalize_sparkline_range_ref` keeps only what
+              follows the `!`. This is the worst of the four, because it is not
+              a gap but a *plausible wrong answer* — a sparkline that plotted
+              another sheet comes back plotting this one, and the verify pass
+              compares cells, so nothing catches it. Reported whenever a
+              workbook has more than one sheet; with one sheet no qualifier
+              could have named anything else
+            - **A shape geometry whose DrawingML token carries a capital**,
+              blocked on the backend lowercasing `prst` (§9) — the same root as
+              the refusal on the way in
             - **Print setup**, because `page_layout_with_defaults` aliases a
               module-level default instead of copying it, so reading one sheet's
               setup leaks it to every later sheet and to every later workbook
@@ -1141,6 +1190,63 @@ Phase 11's inline `values:` lands. `$include` splitting is never inferred.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-29** — **Two things `yxl build` never drew, found by opening the
+  files rather than diffing them.** Both predate the extract work and neither is
+  a spec problem; both are now documented where an author would hit them.
+
+  **A form control does not appear in Excel.** The backend writes the legacy
+  half — the VML shape and its `x:ClientData` — and not the worksheet's
+  `<controls>` element or the per-control `ctrlProps` parts current Excel needs.
+  The control is in the file and its linked cell holds the value; Excel draws
+  nothing. `docs/spec.md` §20 now warns, and §9 tracks the fix as upstream.
+
+  **A shape with no `fill:` and no `line:` is invisible.** The backend writes no
+  `fillRef`/`lnRef` theme style reference, so "unset keeps the theme default" —
+  which §18 and `examples/shapes.yxl.yaml` both claimed — was simply false: an
+  unset fill is *no fill*, and Excel draws a selectable nothing. The example's
+  bare star now carries a fill and says why.
+
+  The lesson is the same one the slice-4 probe taught at the other end of the
+  file: a field that reaches the bytes has not necessarily reached the *reader*
+  — and bytes that are well-formed have not necessarily reached the *screen*.
+  Neither round-trip tests nor `moon test` can see this; only opening the file
+  can.
+
+- **2026-07-29** — **`yxl extract` recovers the four things that float over a
+  sheet**: shapes, sparklines, form controls, and slicers (`docs/spec.md`
+  §18–§21). A workbook using them now extracts to a spec that rebuilds it, and
+  extracting that spec's own output twice gives byte-identical text.
+
+  The plan called these "typed records that map onto the schema almost field for
+  field", which was true of the *signatures* and not of the reader behind them.
+  Probing it — emit a workbook with everything set, reopen it, print what comes
+  back — found four fields the file carries and the backend does not hand back,
+  none of them visible from the `.mbti`: a form control's size, the font on a
+  line of shape text, a shape geometry spelled with a capital, and **the sheet a
+  sparkline plots from**. Each is now reported on the way out.
+
+  The sparkline one is the reason the probe was worth doing. The other three are
+  gaps; that one is a *plausible wrong answer* — the reader strips everything
+  before the `!`, so a sparkline that plotted `Data!B2:E2` comes back plotting
+  this sheet's `B2:E2`, and the verify pass compares cells, so nothing would have
+  caught it. It is reported whenever a workbook has more than one sheet, and not
+  when it has one, where no qualifier could have named anything else.
+
+  Two things had to be *unlearned* rather than translated. A slicer makes the
+  backend write a defined name for its own cache, and recovering that name
+  alongside the slicer made the spec declare it and then place something that
+  declares it again — `DefinedNameDuplicate`, a spec that would not compile. And
+  the loader refuses a key that does not belong to its subject's kind (`checked`
+  on a button, `markers` on a column sparkline), which a file yxl did not write
+  can carry anywhere, so the reader applies those rules too: a spec that says
+  less beats a spec that will not load.
+
+  Both "not recovered" notes were reworded after the first end-to-end run showed
+  them firing on shapes and controls that had never been given a font or a size.
+  Nothing was lost there, and the seam cannot tell the two cases apart — so the
+  notes now say that plainly instead of claiming a loss that may not have
+  happened.
 
 - **2026-07-29** — **A refactoring pass over the companion-file work.** No
   behaviour change: 577 tests pass, the `.mbti` is untouched, and an extracted
