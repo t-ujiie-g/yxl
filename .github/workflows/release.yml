@@ -87,10 +87,14 @@ jobs:
           $lib = (Get-Command llvm-lib -ErrorAction SilentlyContinue)
           if (-not $lib) { $lib = (Get-Command lib -ErrorAction SilentlyContinue) }
           if (-not $lib) { throw "neither llvm-lib nor lib found on this runner" }
+          # Bare names, resolved through PATH. An absolute path is the obvious
+          # thing to pass and the wrong one: these live under
+          # `C:\Program Files\LLVM\bin`, and the space stops the build system
+          # spawning them at all.
           Write-Host "cc: $($clang.Source)"
           Write-Host "ar: $($lib.Source)"
-          "MOON_CC=$($clang.Source)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "MOON_AR=$($lib.Source)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "MOON_CC=clang-cl" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "MOON_AR=$($lib.Name -replace '\.exe$','')" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Update registry index
         run: moon update
