@@ -32,6 +32,13 @@ fn decorations(
     }
     entries.push(("comments", @yaml.Map(rendered)))
   }
+  if !sheet.conditional_formats.is_empty() {
+    let rendered = []
+    for format in sheet.conditional_formats {
+      rendered.push(one_conditional(format))
+    }
+    entries.push(("conditional", @yaml.Seq(rendered)))
+  }
   if !sheet.tables.is_empty() {
     let rendered = []
     for table in sheet.tables {
@@ -191,4 +198,86 @@ fn sheet_range(range : @model.SheetRange) -> String {
     Some(name) => "\{name}!\{range.range.to_a1()}"
     None => range.range.to_a1()
   }
+}
+
+///|
+/// One conditional format: the range, the rule, and how a match is drawn.
+///
+/// A rule that draws its own appearance — a scale, a bar, an icon set — takes no
+/// style, and one that highlights needs one, which is the schema's own rule
+/// (§10). The look goes out *inline* rather than through `defs.styles`: Excel
+/// keeps these in a table of their own, so a conditional look and a cell look
+/// that happen to match are not the same entry and naming them together would
+/// say they were.
+fn one_conditional(format : @model.ConditionalFormat) -> @yaml.Node {
+  let entries = [("at", @yaml.Str(format.at.to_a1()))]
+  match format.rule {
+    CellIs(check) => entries.push(("cell", comparison(check)))
+    Formula(expression) => entries.push(("formula", @yaml.Str(expression)))
+    Text(match_~, value~) =>
+      entries.push(
+        (
+          "text",
+          @yaml.Map([
+            (
+              match match_ {
+                Contains => "contains"
+                NotContains => "not_contains"
+                BeginsWith => "begins_with"
+                EndsWith => "ends_with"
+              },
+              @yaml.Str(value),
+            ),
+          ]),
+        ),
+      )
+    Rank(count~, bottom~, percent~) => {
+      let inner = [("count", @yaml.Int(count.to_int64()))]
+      if percent {
+        inner.push(("percent", @yaml.Bool(true)))
+      }
+      entries.push((if bottom { "bottom" } else { "top" }, @yaml.Map(inner)))
+    }
+    Duplicate => entries.push(("duplicate", @yaml.Bool(true)))
+    Unique => entries.push(("unique", @yaml.Bool(true)))
+    ColorScale(low~, middle~, high~) => {
+      let inner = [("low", @yaml.Str(low.hex()))]
+      if middle is Some(middle) {
+        inner.push(("middle", @yaml.Str(middle.hex())))
+      }
+      inner.push(("high", @yaml.Str(high.hex())))
+      entries.push(("color_scale", @yaml.Map(inner)))
+    }
+    DataBar(color~, bar_only~) => {
+      let inner = [("color", @yaml.Str(color.hex()))]
+      if bar_only {
+        inner.push(("bar_only", @yaml.Bool(true)))
+      }
+      entries.push(("data_bar", @yaml.Map(inner)))
+    }
+    IconSet(style~, reverse~, icons_only~) => {
+      let inner = [("style", @yaml.Str(style))]
+      if reverse {
+        inner.push(("reverse", @yaml.Bool(true)))
+      }
+      if icons_only {
+        inner.push(("icons_only", @yaml.Bool(true)))
+      }
+      entries.push(("icon_set", @yaml.Map(inner)))
+    }
+  }
+  if format.style is Some(style) {
+    let format_code = style.number_format
+    let rest = { ..style, number_format: None }
+    if !rest.is_empty() {
+      entries.push(("style", style_node(rest)))
+    }
+    if format_code is Some(code) {
+      entries.push(("format", @yaml.Str(code)))
+    }
+  }
+  if format.stop_if_true {
+    entries.push(("stop_if_true", @yaml.Bool(true)))
+  }
+  @yaml.Map(entries)
 }

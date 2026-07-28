@@ -123,3 +123,92 @@ test "the auto filter comes back as its range" {
   sheet.set_filter({ top_left: at("A1"), bottom_right: at("C1") })
   assert_true(only_sheet(wb).filter is Some(range) && range.to_a1() == "A1:C1")
 }
+
+///|
+/// A conditional format over `A1:A9` with `rule`, drawn in a red fill.
+fn conditional(
+  rule : @model.ConditionalRule,
+  style~ : Bool,
+) -> @model.Sheet raise {
+  let (wb, sheet) = fixture()
+  sheet.set(at("A1"), Number(10.0))
+  sheet.add_conditional_format({
+    at: { top_left: at("A1"), bottom_right: at("A9") },
+    rule,
+    style: if style {
+      Some({
+        ..@model.Style::empty(),
+        fill: Some({ color: @units.Color::parse("FFC7CE").unwrap() }),
+      })
+    } else {
+      None
+    },
+    stop_if_true: false,
+  })
+  only_sheet(wb)
+}
+
+///|
+test "every conditional rule the schema names comes back as itself" {
+  // The backend hands all of these back as one flat options record, so the only
+  // way to know the translation is right is to send each kind through it.
+  for
+    rule in [
+      @model.CellIs(GreaterThan(Number(15.0))),
+      CellIs(Between(Number(1.0), Number(10.0))),
+      CellIs(Equal(Text("Paid"))),
+      Formula("A1>0"),
+      Text(match_=Contains, value="urgent"),
+      Text(match_=BeginsWith, value="ORD-"),
+      Rank(count=3, bottom=false, percent=false),
+      Rank(count=10, bottom=true, percent=true),
+      Duplicate,
+      Unique,
+    ] {
+    assert_eq(
+      (rule, conditional(rule, style=true).conditional_formats[0].rule),
+      (rule, rule),
+    )
+  }
+}
+
+///|
+test "the rules that draw their own appearance come back too" {
+  let red = @units.Color::parse("F8696B").unwrap()
+  let green = @units.Color::parse("63BE7B").unwrap()
+  let amber = @units.Color::parse("FFEB84").unwrap()
+  for
+    rule in [
+      @model.ColorScale(low=red, middle=None, high=green),
+      ColorScale(low=red, middle=Some(amber), high=green),
+      DataBar(color=green, bar_only=false),
+      DataBar(color=green, bar_only=true),
+      IconSet(style="3Arrows", reverse=false, icons_only=false),
+      IconSet(style="5Rating", reverse=true, icons_only=true),
+    ] {
+    assert_eq(
+      (rule, conditional(rule, style=false).conditional_formats[0].rule),
+      (rule, rule),
+    )
+  }
+}
+
+///|
+test "a conditional format keeps its own look and its stop flag" {
+  let recovered = conditional(Duplicate, style=true).conditional_formats[0]
+  assert_true(
+    recovered.style is Some(style) &&
+    style.fill is Some(fill) &&
+    fill.color.hex() == "FFC7CE",
+  )
+  assert_eq(recovered.stop_if_true, false)
+  let (wb, sheet) = fixture()
+  sheet.set(at("A1"), Number(1.0))
+  sheet.add_conditional_format({
+    at: { top_left: at("A1"), bottom_right: at("A9") },
+    rule: Unique,
+    style: None,
+    stop_if_true: true,
+  })
+  assert_eq(only_sheet(wb).conditional_formats[0].stop_if_true, true)
+}

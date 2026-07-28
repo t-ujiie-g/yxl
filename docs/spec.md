@@ -1092,7 +1092,8 @@ order, hidden sheets, the active tab, and the 1904 date system.
 
 The decorations too: notes, hyperlinks, data validations (with their prompts,
 error dialogs, and — for a `date` rule — bounds turned back from serials into
-written dates), Excel tables, and the auto filter's range.
+written dates), conditional formats of every rule the format names, Excel
+tables, and the auto filter's range.
 
 ### What it does not, and why
 
@@ -1108,9 +1109,12 @@ written dates), Excel tables, and the auto filter's range.
 - **A shared formula is recovered at its master cell only.** The reader does not
   expose which cells follow it, so the rest arrive as the values they cached.
   A `formulas:` range (§3) is the spelling to restore by hand.
-- **Charts, images, shapes, pivots, slicers, sparklines, form controls, and
-  conditional formats are not recovered** — they are in the file, and reading
-  them is future work rather than a limit of the format.
+- **Charts, images, shapes, pivots, slicers, sparklines, and form controls are
+  not recovered** — they are in the file, and reading them is future work rather
+  than a limit of the format.
+- **A colour scale's stops are not kept**, only its colours: the schema places
+  them at the range's own low and high, which is Excel's default and what an
+  author writing the spec by hand would get.
 - **A filter's saved criteria are not kept**, only the range it covers: which
   rows somebody last chose to hide is a view of the sheet, not a description
   of it.

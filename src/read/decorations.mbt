@@ -14,6 +14,7 @@ fn read_decorations(
   notes : Notes,
 ) -> Unit raise {
   read_comments(backend, sheet)
+  read_conditional_formats(backend, sheet, dates, notes)
   read_links(backend, sheet, notes)
   read_validations(backend, sheet, dates, notes)
   read_tables(backend, sheet, notes)

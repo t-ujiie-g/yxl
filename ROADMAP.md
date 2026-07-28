@@ -498,11 +498,9 @@ gate, which is why none carries a box:
             is a copy
       - [x] **Slice 3 — decoration**: comments, links, validations (including
             date bounds, which needed `@units.DateTime::from_serial` — the file
-            holds a serial and the spec wants a written date), tables, and the
-            auto filter's range. **Conditional formats are not recovered**: the
-            backend returns them as loosely-typed option records rather than as
-            the rules the schema names, so mapping them back is its own piece of
-            work rather than a translation
+            holds a serial and the spec wants a written date), **conditional
+            formats of every rule the schema names**, tables, and the auto
+            filter's range
       - [ ] **CSV extraction**, which also settles one-file vs. many: a
             contiguous all-literal region with homogeneous column types becomes
             a `data:` entry. `data:` reads a *path* and has no inline form, so
@@ -1118,9 +1116,17 @@ Reverse-chronological. One entry per user-visible or structural change.
   tested against it by round trip rather than against a table of pairs, since a
   table would test both functions against the same misunderstanding. The verify
   pass caught two more guesses here too: `list_from:` and `length:`, neither of
-  which the schema spells that way. **Conditional formats stay out**: the backend
-  hands them back as loosely-typed option records rather than as the rules the
-  schema names, so recovering them is a piece of work rather than a translation.
+  which the schema spells that way.
+
+  **Conditional formats came back in after being written off.** The first read of
+  the backend's surface said they were out of reach — it hands every rule back as
+  one flat options record, a `format_type` and whichever of thirty fields that
+  kind happens to use, rather than as the rules the schema names. That is an
+  accurate description and the wrong conclusion: it is the *same* record the
+  emitter writes, so the information is symmetric and the work is a translation
+  after all. Probing it settled the question in one run — all eight kinds came
+  back with their criteria, values, colours, icon style, `dxf` id, and stop flag
+  intact. Sixteen rule variants are now asserted to round-trip.
 
   Verified on the corpus: all ten examples extract, and the eight that need no
   external files are asserted to extract with an empty self-check *and* to
