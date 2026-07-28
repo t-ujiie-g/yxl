@@ -68,36 +68,6 @@ jobs:
           irm https://cli.moonbitlang.com/install/powershell.ps1 | iex
           "$env:USERPROFILE\.moon\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
-      # See the same step in ci.yml: MSVC's front end cannot parse what MoonBit
-      # generates for the Excel backend's 365-arm formula dispatcher, and
-      # `clang-cl` is a cl-compatible driver that can. Without this the Windows
-      # binary cannot be built at all, so this belongs on the release path as
-      # much as on the test one.
-      - name: Use clang-cl on Windows (MSVC cannot parse the backend)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $clang = (Get-Command clang-cl -ErrorAction SilentlyContinue)
-          if (-not $clang) { throw "clang-cl not found on this runner" }
-          # The archiver has to be named too. `moon` finds one by asking the C
-          # compiler for it, and `clang-cl` is a cl-style driver that does not
-          # answer that question — leaving it with nothing to spawn. `llvm-lib`
-          # ships beside `clang-cl` and writes the same MSVC-format archives
-          # `lib.exe` does.
-          $lib = (Get-Command llvm-lib -ErrorAction SilentlyContinue)
-          if (-not $lib) { $lib = (Get-Command lib -ErrorAction SilentlyContinue) }
-          if (-not $lib) { throw "neither llvm-lib nor lib found on this runner" }
-          # The name has to carry `.exe` and must not carry a directory. `moon`
-          # spawns these through CreateProcessW, which neither applies PATHEXT
-          # (so a bare `clang-cl` is simply not found) nor tolerates the space
-          # in `C:\Program Files\LLVM\bin` (so an absolute path is not found
-          # either). Its own message asks for exactly this form: "set MOON_CC to
-          # cl.exe or clang-cl.exe".
-          Write-Host "cc: $($clang.Source)"
-          Write-Host "ar: $($lib.Source)"
-          "MOON_CC=$($clang.Name)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "MOON_AR=$($lib.Name)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-
       - name: Update registry index
         run: moon update
 
