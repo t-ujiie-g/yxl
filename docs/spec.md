@@ -1073,13 +1073,32 @@ is resolved.
 An existing workbook becomes a starting spec instead of a retyping job.
 
 ```
-yxl extract report.xlsx -o report.yxl.yaml
+yxl extract report.xlsx -o report.yxl.yaml          # a spec, plus its tables
+yxl extract report.xlsx -o report.yxl.yaml --flat   # one file, whatever it costs
 ```
 
 This is a **one-way migration aid, not a round trip**. What the spec format can
 say is recovered; what it cannot is dropped, and each kind of loss is named once
 on the way out. Treat the result as a starting point and edit it — that is what
 it is for.
+
+### It may write more than one file
+
+A sheet that is nothing but a rectangle of plain values — no formulas, no styles,
+no gaps — is written out as a **CSV beside the spec** and named by a `data:`
+entry (§9), because a thousand `cells:` lines is not a spec anybody keeps. The
+file lands next to the spec at the path the spec names it by:
+
+```
+report.yxl.yaml
+data/sales.csv
+```
+
+The rule is deliberately narrow. A styled cell, a formula, a ragged edge, or a
+region too small to be worth opening a second file all keep the whole sheet
+inline — a wrong "yes" here would silently drop formatting `data:` cannot carry,
+where a wrong "no" only leaves a long block. `--flat` turns it off entirely,
+which is what to use when comparing two extractions.
 
 ### What it recovers
 

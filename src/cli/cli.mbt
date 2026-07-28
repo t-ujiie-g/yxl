@@ -26,8 +26,9 @@ pub(all) enum Command {
   Build(input~ : String, output~ : String, params~ : Map[String, String])
   Check(input~ : String, params~ : Map[String, String])
   /// The other direction (ADR-017): read a workbook and write the spec that
-  /// would rebuild it.
-  Extract(input~ : String, output~ : String)
+  /// would rebuild it. `flat` keeps everything in the one file, where the
+  /// default writes a block of plain values out as a `data:` table beside it.
+  Extract(input~ : String, output~ : String, flat~ : Bool)
   Version
   Help
 } derive(Eq, Debug)
@@ -40,7 +41,7 @@ pub let usage : String =
   #|Usage:
   #|  yxl build <spec.yaml> -o <out.xlsx> [--set name=value]...
   #|  yxl build <spec.yaml> --check [--set name=value]...
-  #|  yxl extract <book.xlsx> -o <spec.yxl.yaml>
+  #|  yxl extract <book.xlsx> -o <spec.yxl.yaml> [--flat]
   #|  yxl help | --help | -h
   #|  yxl version | --version | -V
   #|
@@ -48,6 +49,7 @@ pub let usage : String =
   #|  -o, --output <file>   where to write the workbook, or the spec
   #|      --check           validate the spec and write nothing
   #|      --set name=value  override a parameter the spec declares (repeatable)
+  #|      --flat            extract into one file, writing no CSV beside it
   #|
   #|`extract` is a one-way migration aid: it recovers what the spec format can
   #|express and says what it could not, then checks its own output by compiling
@@ -141,9 +143,14 @@ fn parse_build(args : ArrayView[String]) -> Command raise @diag.CliError {
 fn parse_extract(args : ArrayView[String]) -> Command raise @diag.CliError {
   let mut input = None
   let mut output = None
+  let mut flat = false
   let mut i = 0
   while i < args.length() {
     match args[i] {
+      "--flat" => {
+        flat = true
+        i += 1
+      }
       "-o" | "--output" => {
         guard i + 1 < args.length() else {
           raise usage_error("'\{args[i]}' needs a file argument")
@@ -171,7 +178,7 @@ fn parse_extract(args : ArrayView[String]) -> Command raise @diag.CliError {
   guard output is Some(output) else {
     raise usage_error("no output file given (use -o <spec.yxl.yaml>)")
   }
-  Extract(input~, output~)
+  Extract(input~, output~, flat~)
 }
 
 ///|

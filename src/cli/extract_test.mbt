@@ -118,11 +118,15 @@ test "bytes that are not a workbook fail as a diagnostic" {
 test "extract parses its own command line" {
   assert_eq(
     @cli.parse_args(["extract", "book.xlsx", "-o", "spec.yaml"][:]),
-    Extract(input="book.xlsx", output="spec.yaml"),
+    Extract(input="book.xlsx", output="spec.yaml", flat=false),
   )
   assert_eq(
     @cli.parse_args(["extract", "book.xlsx", "--output", "spec.yaml"][:]),
-    Extract(input="book.xlsx", output="spec.yaml"),
+    Extract(input="book.xlsx", output="spec.yaml", flat=false),
+  )
+  assert_eq(
+    @cli.parse_args(["extract", "book.xlsx", "-o", "spec.yaml", "--flat"][:]),
+    Extract(input="book.xlsx", output="spec.yaml", flat=true),
   )
 }
 
@@ -146,4 +150,73 @@ test "extract refuses a command line that could not do anything useful" {
     }
     assert_true(outcome is Some(_))
   }
+}
+
+///|
+/// A spec whose sheet is a block of plain values large enough to earn a file.
+fn tabular_spec() -> String {
+  let out = StringBuilder::new()
+  out.write_string("sheets:\n  - name: Sales\n    cells:\n")
+  for row in 1..<=12 {
+    out.write_string("      A\{row}: r\{row}\n")
+    out.write_string("      B\{row}: \{row * 100}\n")
+  }
+  out.to_string()
+}
+
+///|
+test "a block of plain values is written beside the spec, not into it" {
+  let result = extracted(tabular_spec())
+  assert_eq(result.warnings, [])
+  assert_eq(result.companions.length(), 1)
+  assert_eq(result.companions[0].path, "data/sales.csv")
+  // The spec names the file and holds none of the values.
+  assert_true(result.spec.contains("csv: data/sales.csv"))
+  assert_true(!result.spec.contains("cells:"))
+  inspect(
+    result.spec,
+    content=(
+      #|sheets:
+      #|  - name: Sales
+      #|    data:
+      #|      - at: A1
+      #|        csv: data/sales.csv
+      #|
+    ),
+  )
+}
+
+///|
+test "the verify pass reads the companion, so the check covers the CSV too" {
+  // Without resolving the companion in memory the rebuilt workbook would be
+  // empty and every cell would be reported missing — so an empty warning list
+  // here is the CSV being checked, not skipped.
+  let result = extracted(tabular_spec())
+  assert_eq(result.warnings, [])
+}
+
+///|
+test "--flat keeps everything in the one file" {
+  let bytes = @cli.compile(tabular_spec(), file="in.yaml")
+  let flat = @cli.extract(bytes, file="in.xlsx", flat=true)
+  assert_eq(flat.companions.length(), 0)
+  assert_eq(flat.warnings, [])
+  assert_true(flat.spec.contains("cells:"))
+  assert_true(!flat.spec.contains("csv:"))
+}
+
+///|
+test "a sheet that is not a plain block is untouched by all this" {
+  let result = extracted(
+    (
+      #|sheets:
+      #|  - name: S
+      #|    cells:
+      #|      A1: Region
+      #|      B1: { formula: "1+1" }
+      #|
+    ),
+  )
+  assert_eq(result.companions.length(), 0)
+  assert_true(result.spec.contains("cells:"))
 }

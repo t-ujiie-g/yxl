@@ -531,19 +531,20 @@ gate, which is why none carries a box:
             and the pivot cache ourselves**, which is a reader of its own, not a
             translation. Worth doing only if a real workbook makes the gap hurt;
             until then `extract` names them as dropped, which it does
-      - [ ] **CSV extraction**, which also settles one-file vs. many: a
-            contiguous all-literal region with homogeneous column types becomes
-            a `data:` entry. `data:` reads a *path* and has no inline form, so
-            choosing this **is** choosing a multi-file output — unless Phase 11's
-            inline `values:` lands first, in which case one file can carry it.
-            `$include` splitting beyond that is *not* inferred: which files
-            change together is the author's judgement and the workbook holds no
-            evidence of it.
-            **Images and sheet backgrounds wait on the same decision**: their
-            bytes come back whole (`get_pictures` carries `data` and
-            `extension`), so nothing is missing — but writing a picture out is a
-            second file, exactly as a CSV is, and the two should be answered
-            together rather than one at a time
+      - [x] **CSV extraction**, which settled one-file vs. many: **many**.
+            `Extracted` carries `companions` — the files the spec names, as
+            bytes — and `cmd/main` writes them beside it, making the directory
+            first. A sheet that is nothing but a rectangle of plain values
+            becomes a `data:` entry and a CSV; anything with a style, a formula,
+            a ragged edge, or too few rows stays inline, because a wrong "yes"
+            silently drops formatting `data:` cannot carry where a wrong "no"
+            only leaves a long block. `--flat` opts out.
+            **Images and sheet backgrounds now need only the mapping**: the
+            machinery that carries a companion file is the same one, and their
+            bytes already come back whole from `get_pictures`.
+            `$include` splitting is still *not* inferred: which files change
+            together is the author's judgement and the workbook holds no
+            evidence of it
       - [ ] **Blocked, not deferred** — these are the two `extract` cannot do
             anything about on its own:
             - **Print setup**, because `page_layout_with_defaults` aliases a
@@ -1114,6 +1115,34 @@ Phase 11's inline `values:` lands. `$include` splitting is never inferred.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-28** — **`extract` writes the files its spec names**, which settles
+  the one-file-or-many question the phase item left open: **many**. `Extracted`
+  grew a `companions` list — a path and its bytes — and `cmd/main` writes each
+  beside the spec, making the directory first. Bytes rather than text for both
+  kinds, because a picture cannot be a `String` and one sort of companion is
+  easier to write out than two.
+
+  A sheet that is *nothing but* a rectangle of plain values becomes a `data:`
+  entry and a CSV. Nothing in the model remembers that a region came from a data
+  block — `data:` rows become ordinary cells at load time — so this is a
+  decision, not a recovery, and the rule is deliberately narrow: a styled cell, a
+  formula, a ragged edge, or fewer than eight rows keeps the whole sheet inline.
+  A wrong *yes* would silently drop formatting `data:` cannot carry; a wrong *no*
+  only leaves a long block, so the bias is towards leaving it alone. `--flat`
+  turns it off.
+
+  The verify pass had to grow with it: the spec now *names a file*, so the check
+  resolves companions from memory before recompiling. Without that the rebuilt
+  workbook would be empty and every cell reported missing — so an empty warning
+  list is now the CSV being checked, not skipped. A 48-row sheet extracted this
+  way went from 197 `cells:` lines to a five-line spec, and rebuilt to all 196
+  cells identical, types included: `007` came back text, `42` a number, `true` a
+  boolean, which is the CSV quoting rule read backwards from the loader's.
+
+  **Images and sheet backgrounds now need only the mapping.** They were waiting
+  on exactly this machinery, and their bytes already come back whole from
+  `get_pictures`.
 
 - **2026-07-28** — **What `extract` still misses, sorted by what it would take.**
   Documentation only. The nine unrecovered sheet features had been listed as one

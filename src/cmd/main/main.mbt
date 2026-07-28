@@ -20,7 +20,7 @@ fn run() -> Int {
   match command {
     Build(input~, output~, params~) => build(input, output, params)
     Check(input~, params~) => check(input, params)
-    Extract(input~, output~) => extract(input, output)
+    Extract(input~, output~, flat~) => extract(input, output, flat)
     Version => {
       println("yxl \{@cli.version}")
       @cli.exit_ok
@@ -94,14 +94,14 @@ fn compile(
 /// self-check found: the spec is still written in that case, because a starting
 /// point with a known gap is more use than no starting point, but the exit code
 /// says it needs a look.
-fn extract(input : String, output : String) -> Int {
+fn extract(input : String, output : String, flat : Bool) -> Int {
   let bytes = @fs.read_file_to_bytes(input) catch {
     @fs.IOError(reason) => {
       report("cannot read \{input}: \{reason}")
       return @cli.exit_error
     }
   }
-  let extracted = @cli.extract(bytes, file=input) catch {
+  let extracted = @cli.extract(bytes, file=input, flat~) catch {
     err => {
       report(@cli.error_message(err))
       return @cli.exit_error
@@ -114,6 +114,15 @@ fn extract(input : String, output : String) -> Int {
     }
   }
   report("wrote \{output}")
+  // The spec names these by a path relative to itself, which is where they have
+  // to land for `yxl build` to find them again.
+  for companion in extracted.companions {
+    let path = @cli.resolve_path(output, companion.path)
+    guard write_companion(path, companion.content) else {
+      return @cli.exit_error
+    }
+    report("     + \{path}")
+  }
   for note in extracted.dropped {
     report("  dropped: \{note}")
   }
@@ -128,6 +137,27 @@ fn extract(input : String, output : String) -> Int {
     report("everything else rebuilds the workbook as read")
   }
   @cli.exit_ok
+}
+
+///|
+/// Write one of the files an extracted spec names, making the directory it sits
+/// in first — the spec puts its tables under `data/`, which will not exist in a
+/// directory nobody has extracted into before.
+fn write_companion(path : String, content : Bytes) -> Bool {
+  if @cli.directory_of(path) is Some(directory) {
+    @fs.create_dir(directory) catch {
+      // Already there is the ordinary case, not a failure; a directory that
+      // genuinely cannot be made shows up as the write failing next.
+      _ => ()
+    }
+  }
+  @fs.write_bytes_to_file(path, content) catch {
+    @fs.IOError(reason) => {
+      report("cannot write \{path}: \{reason}")
+      return false
+    }
+  }
+  true
 }
 
 ///|

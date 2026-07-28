@@ -3,15 +3,29 @@ package "t-ujiie-g/yxl/render"
 
 import {
   "t-ujiie-g/yxl/model",
+  "t-ujiie-g/yxl/units",
   "t-ujiie-g/yxl/yaml",
 }
 
 // Values
-pub fn workbook(@model.Workbook) -> @yaml.Node
+pub fn data_tables(@model.Workbook) -> Array[DataTable]
+
+pub let min_csv_columns : Int
+
+pub let min_csv_rows : Int
+
+pub fn workbook(@model.Workbook, tables? : Array[DataTable]) -> @yaml.Node
 
 // Errors
 
 // Types and methods
+pub(all) struct DataTable {
+  sheet : String
+  at : @units.CellRef
+  path : String
+  csv : String
+  covered : Map[String, Unit]
+}
 
 // Type aliases
 
