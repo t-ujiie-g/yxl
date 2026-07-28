@@ -316,6 +316,24 @@ test "compile surfaces a schema error carrying the file name" {
 }
 
 ///|
+test "directory_of names the directory a path sits in, on either platform" {
+  // The executable makes this directory before writing a file an extracted spec
+  // names, so it has to answer for the paths `resolve_path` produces — including
+  // the mixed separators a Windows spec ends up with.
+  assert_eq(@cli.directory_of("specs/report.yaml"), Some("specs/"))
+  assert_eq(@cli.directory_of("specs\\report.yaml"), Some("specs\\"))
+  assert_eq(@cli.directory_of("a/b/data/sales.csv"), Some("a/b/data/"))
+  // The later separator wins, whichever kind it is.
+  assert_eq(@cli.directory_of("specs\\data/sales.csv"), Some("specs\\data/"))
+  assert_eq(@cli.directory_of("specs/data\\sales.csv"), Some("specs/data\\"))
+  // A file with no directory part has none to make.
+  assert_eq(@cli.directory_of("report.yaml"), None)
+  assert_eq(@cli.directory_of(""), None)
+  // A trailing separator is already a directory.
+  assert_eq(@cli.directory_of("specs/"), Some("specs/"))
+}
+
+///|
 test "resolve_path takes a path as relative to the file that wrote it" {
   // The ordinary case, either separator.
   assert_eq(

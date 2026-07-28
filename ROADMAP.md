@@ -1142,6 +1142,31 @@ Phase 11's inline `values:` lands. `$include` splitting is never inferred.
 
 Reverse-chronological. One entry per user-visible or structural change.
 
+- **2026-07-29** — **A refactoring pass over the companion-file work.** No
+  behaviour change: 577 tests pass, the `.mbti` is untouched, and an extracted
+  workbook produces the same files at the same paths.
+
+  The find was **one idea living in three places**. Naming a file beside the
+  spec — flatten the sheet's name, number it if it is taken — had a copy in
+  `tables.mbt` and another in `pictures.mbt`, and the pictures copy carried a
+  comment saying it was "the same flattening the CSV tables use". Saying so is
+  not sharing it, and the copies had already drifted in two ways: one recorded a
+  claimed name and the other left that to its caller, and one stripped an
+  extension by slicing four characters off the end, which is why it could not be
+  reused for `.png` at all. `companions.mbt` is now the single place, and
+  claiming a name records it in the same breath — the recording is what makes the
+  *next* call correct, so leaving it to a caller is what let them drift.
+
+  A comment written during that work also claimed the two kinds share one
+  namespace and would otherwise overwrite each other. They do not: a table is a
+  `data/…` and a picture an `assets/…`, so they cannot collide. The comment now
+  says what is true and why one pool each is enough.
+
+  `@cli.directory_of` had been made public for the executable to make a
+  companion's directory, and had no test — the one thing standing between an
+  extracted spec and a file written somewhere it will not be found again. It has
+  one now, mixed separators included.
+
 - **2026-07-29** — **Windows is experimental**, because it cannot build at all.
   Reordering CI to build before testing turned "some tests fail on Windows" into
   the fact that mattered: `moon build --target native --release` fails there,
