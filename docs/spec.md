@@ -1095,6 +1095,10 @@ error dialogs, and — for a `date` rule — bounds turned back from serials int
 written dates), conditional formats of every rule the format names, Excel
 tables, and the auto filter's range.
 
+And what the workbook says about itself: named definitions (`defs.values` and
+`defs.formulas`), the document properties including the custom ones, the
+calculation settings, the default font, and each sheet's protection.
+
 ### What it does not, and why
 
 - **Names are invented, because the file has none.** A style is given a
@@ -1121,6 +1125,14 @@ tables, and the auto filter's range.
 - **Print setup is not recovered.** The Excel backend cannot report it per
   sheet: reading one sheet's setup leaks it to every later sheet, so a spec built
   on it would claim the wrong orientation.
+- **A sheet-protection password is not recovered.** The file keeps a hash, not
+  the word. It is reported, so a spec that needs one can have it set again
+  rather than looking protected while opening to anyone.
+- **A sheet background image is not recovered**, for the same reason a `data:`
+  table is not: writing the picture out is a second file, which is the
+  one-file-or-many decision this command has not made yet.
+- **A name defined for one sheet only is not recovered.** The spec's definitions
+  are workbook-wide, and widening one would change which cells it resolves for.
 
 ### It checks its own work
 

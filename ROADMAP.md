@@ -1128,6 +1128,24 @@ Reverse-chronological. One entry per user-visible or structural change.
   back with their criteria, values, colours, icon style, `dxf` id, and stop flag
   intact. Sixteen rule variants are now asserted to round-trip.
 
+  **An audit found what the slices had missed.** Being wrong once about
+  conditional formats was reason to check the rest the same way — not by reading
+  the notes, but by listing every field of `model.Workbook` and `model.Sheet` and
+  grepping which setters `read` actually calls. Seven were never populated and
+  none were documented as missing: the default font, the named definitions
+  (`defs.values` / `defs.formulas` — an ADR-013 feature, so a real gap), the
+  document properties, the calculation settings, sheet protection, the
+  very-hidden state, and the sheet background. All but the background are
+  recovered now; the background writes a second file, which is the
+  one-file-or-many decision this command has not taken yet.
+
+  Two more Excel-writes-it-anyway values had to be suppressed on the way, the
+  same shape as the default page setup: a workbook-wide name is scoped
+  `Workbook` rather than to nothing, so the first cut dropped every one of them
+  as sheet-scoped; and the backend stamps `mbtexcel` as the creator of every file
+  it writes, which would have put an author on every extracted spec who wrote
+  none of it.
+
   Verified on the corpus: all ten examples extract, and the eight that need no
   external files are asserted to extract with an empty self-check *and* to
   compile again on their own.

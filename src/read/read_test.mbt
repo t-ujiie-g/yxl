@@ -252,3 +252,100 @@ test "bytes that are not a workbook are a diagnostic, not a crash" {
   }
   assert_true(outcome is Some(_))
 }
+
+///|
+test "the workbook's own keys come back" {
+  let wb = @model.Workbook::new(default_font="Georgia")
+  wb.add_sheet("S").set(at("A1"), Text("x"))
+  wb.add_defined_name("tax_rate", Number(0.085))
+  wb.add_defined_name("company", Text("Acme Corp"))
+  wb.add_defined_name("subtotal", Formula(formula="SUM(S!A1:A9)", cached=None))
+  wb.set_properties({
+    ..@model.DocumentProperties::empty(),
+    title: Some("Regional summary"),
+    author: Some("Finance"),
+    company: Some("Example Ltd"),
+    custom: [{ name: "Cost centre", value: Number(4210.0) }],
+  })
+  wb.set_calc({ mode: Some(Manual), on_load: Some(true) })
+  let recovered = round_trip(wb).workbook
+  assert_eq(recovered.default_font, Some("Georgia"))
+  assert_eq(recovered.defined_names.length(), 3)
+  let names = recovered.defined_names.map(defined => defined.name)
+  assert_true(names.contains("tax_rate"))
+  assert_true(names.contains("company"))
+  // Excel's own bookkeeping lives in the same table and is not the spec's.
+  for defined in recovered.defined_names {
+    assert_true(!defined.name.has_prefix("_xlnm."))
+  }
+  assert_true(
+    recovered.properties is Some(properties) &&
+    properties.title is Some("Regional summary") &&
+    properties.company is Some("Example Ltd") &&
+    properties.custom.length() == 1,
+  )
+  assert_true(
+    recovered.calc is Some(calc) &&
+    calc.mode is Some(Manual) &&
+    calc.on_load is Some(true),
+  )
+}
+
+///|
+test "a defined name comes back as the kind of thing it refers to" {
+  let wb = @model.Workbook::new()
+  wb.add_sheet("S").set(at("A1"), Text("x"))
+  wb.add_defined_name("number", Number(0.085))
+  wb.add_defined_name("text", Text("Acme Corp"))
+  wb.add_defined_name("flag", Bool(true))
+  wb.add_defined_name("formula", Formula(formula="SUM(S!A1:A9)", cached=None))
+  let by_name : Map[String, @model.CellValue] = Map([])
+  for defined in round_trip(wb).workbook.defined_names {
+    by_name[defined.name] = defined.refers_to
+  }
+  assert_eq(by_name.get("number"), Some(Number(0.085)))
+  assert_eq(by_name.get("text"), Some(Text("Acme Corp")))
+  assert_eq(by_name.get("flag"), Some(Bool(true)))
+  assert_eq(
+    by_name.get("formula"),
+    Some(Formula(formula="SUM(S!A1:A9)", cached=None)),
+  )
+}
+
+///|
+test "sheet protection comes back, without the password it cannot know" {
+  let (wb, sheet) = fixture()
+  sheet.set(at("A1"), Text("x"))
+  sheet.set_protection({
+    ..@model.SheetProtection::new(),
+    password: Some("secret"),
+    sort: true,
+    auto_filter: true,
+  })
+  let recovered = only_sheet(wb)
+  assert_true(recovered.protection is Some(_))
+  guard recovered.protection is Some(protection) else { return }
+  assert_eq(protection.sort, true)
+  assert_eq(protection.auto_filter, true)
+  // The file keeps a hash, not the word; a spec that invented one would look
+  // protected while opening to anyone.
+  assert_eq(protection.password, None)
+}
+
+///|
+test "an unprotected sheet comes back unprotected" {
+  let (wb, sheet) = fixture()
+  sheet.set(at("A1"), Text("x"))
+  assert_eq(only_sheet(wb).protection, None)
+}
+
+///|
+test "a very hidden sheet is told from a merely hidden one" {
+  let wb = @model.Workbook::new()
+  wb.add_sheet("Visible").set(at("A1"), Text("x"))
+  wb.add_sheet("Hidden", visibility=Hidden) |> ignore
+  wb.add_sheet("Locked", visibility=VeryHidden) |> ignore
+  let recovered = round_trip(wb).workbook
+  assert_true(recovered.sheets[1].visibility is Hidden)
+  assert_true(recovered.sheets[2].visibility is VeryHidden)
+}

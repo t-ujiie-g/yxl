@@ -23,13 +23,26 @@ pub fn workbook(wb : @model.Workbook) -> @yaml.Node {
   if wb.active_sheet is Some(name) {
     root.push(("active", @yaml.Str(name)))
   }
+  if wb.properties is Some(properties) {
+    root.push(("properties", document_properties(properties)))
+  }
+  if wb.calc is Some(calc) {
+    root.push(("calc", calc_settings(calc)))
+  }
   let styles = StyleNames::of(wb)
+  let defs = []
   if !styles.declared.is_empty() {
     let entries = []
     for declared in styles.declared {
       entries.push((declared.0, style(declared.1)))
     }
-    root.push(("defs", @yaml.Map([("styles", @yaml.Map(entries))])))
+    defs.push(("styles", @yaml.Map(entries)))
+  }
+  for block in defined_names(wb) {
+    defs.push(block)
+  }
+  if !defs.is_empty() {
+    root.push(("defs", @yaml.Map(defs)))
   }
   let sheets = []
   for sheet in wb.sheets {
@@ -92,6 +105,9 @@ fn one_sheet(sheet : @model.Sheet, styles : StyleNames) -> @yaml.Node {
   decorations(sheet, entries)
   if sheet.page is Some(page) {
     entries.push(("print", print_setup(page)))
+  }
+  if sheet.protection is Some(protection) {
+    entries.push(("protect", sheet_protection(protection)))
   }
   @yaml.Map(entries)
 }

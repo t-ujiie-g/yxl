@@ -69,18 +69,23 @@ fn recover(bytes : Bytes) -> Recovered raise {
   } else {
     Date1900
   }
-  let workbook = @model.Workbook::new(date_system=dates)
+  let workbook = @model.Workbook::new(
+    date_system=dates,
+    default_font?=read_default_font(backend),
+  )
   let styles = StyleTable::new()
+  read_workbook_keys(backend, workbook, notes)
   for name in backend.get_sheet_list() {
     let sheet = workbook.add_sheet(
       name,
-      visibility=if backend.get_sheet_visible(name) { Visible } else { Hidden },
+      visibility=read_visibility(backend, name),
     )
     read_cells(backend, sheet, styles, notes)
     read_merges(backend, sheet)
     read_bands(backend, sheet, styles, notes)
     read_presentation(backend, sheet)
     read_decorations(backend, sheet, dates, notes)
+    read_sheet_protection(backend, sheet, notes)
   }
   // The tab Excel opens on. Index 0 is the default, and saying so adds nothing.
   let active = backend.get_active_sheet_index()
@@ -88,6 +93,27 @@ fn recover(bytes : Bytes) -> Recovered raise {
     workbook.set_active_sheet(name)
   }
   { workbook, dropped: notes.take() }
+}
+
+///|
+/// Whether a sheet shows, hides, or hides so hard Excel's own dialog will not
+/// bring it back. `get_sheet_visible` answers the first question only, so the
+/// third state is read off the worksheet's own record.
+fn read_visibility(
+  backend : @xlsx.Workbook,
+  name : String,
+) -> @model.SheetVisibility raise {
+  if backend.get_sheet_visible(name) {
+    return Visible
+  }
+  match backend.sheet(name) {
+    Some(source) =>
+      match source.state {
+        VeryHidden => VeryHidden
+        _ => Hidden
+      }
+    None => Hidden
+  }
 }
 
 ///|
