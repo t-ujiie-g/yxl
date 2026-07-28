@@ -276,3 +276,88 @@ test "--flat leaves the tables inline but still writes the pictures" {
   assert_eq(flat.companions.length(), 1)
   assert_eq(flat.warnings, [])
 }
+
+///|
+/// A spec exercising all four things that float over a sheet.
+fn floating_spec() -> String {
+  (
+    #|sheets:
+    #|  - name: Board
+    #|    cells:
+    #|      A1: Region
+    #|      B1: Revenue
+    #|      A2: APAC
+    #|      B2: 2400000
+    #|      A3: EMEA
+    #|      B3: 1750000
+    #|    tables:
+    #|      - at: A1:B3
+    #|        name: Revenue
+    #|    shapes:
+    #|      - at: D1
+    #|        kind: cloud
+    #|        text: Approved
+    #|        size: { width: 220, height: 110 }
+    #|        fill: "D6E9F8"
+    #|        line: { color: "1F77B4", width: 2 }
+    #|    sparklines:
+    #|      - at: C2
+    #|        data: A2:B3
+    #|        markers: true
+    #|        high: true
+    #|    controls:
+    #|      - at: F2
+    #|        kind: check_box
+    #|        text: Rush order
+    #|        link: G2
+    #|    slicers:
+    #|      - at: H1
+    #|        table: Revenue
+    #|        column: Region
+    #|        caption: Filter by region
+    #|
+  )
+}
+
+///|
+test "the four things that float over a sheet come back as themselves" {
+  let result = extracted(floating_spec())
+  // The verify pass re-compiles the spec and compares, so an empty list here is
+  // the extracted spec building the same workbook — not merely parsing.
+  assert_eq(result.warnings, [])
+  assert_true(result.spec.contains("kind: cloud"))
+  assert_true(result.spec.contains("data: A2:B3"))
+  assert_true(result.spec.contains("kind: check_box"))
+  assert_true(result.spec.contains("column: Region"))
+  // A control's size is the one thing here the backend does not read back.
+  // Two, and only two: a control's size and a shape text's font, both of which
+  // the file records and the Excel backend's reader does not hand back.
+  assert_eq(result.dropped.length(), 2)
+  assert_true(result.dropped[0].contains("any size on a form control"))
+  assert_true(result.dropped[1].contains("any font on a line of shape text"))
+}
+
+///|
+test "a slicer does not bring its own defined name back with it" {
+  // The backend writes `Slicer_Region` as a defined name when it places a
+  // slicer. Recovering that name *and* the slicer would make the spec ask for
+  // it twice, and the second attempt is a hard error from the backend — so this
+  // failing looks like `DefinedNameDuplicate`, not like a cosmetic extra key.
+  let result = extracted(floating_spec())
+  assert_true(!result.spec.contains("Slicer_"))
+  @cli.compile(result.spec, file="out.yaml") |> ignore
+}
+
+///|
+test "extracting twice gives the same spec" {
+  // Compiling what came out and extracting *that* is the sharpest check of the
+  // whole loop: anything the reader invents rather than recovers — an order,
+  // a name, a default written down as if it were asked for — shows up as drift
+  // on the second pass even when the first pass verified.
+  let once = extracted(floating_spec())
+  let twice = @cli.extract(
+    @cli.compile(once.spec, file="out.yaml"),
+    file="out.xlsx",
+  )
+  assert_eq(twice.spec, once.spec)
+}

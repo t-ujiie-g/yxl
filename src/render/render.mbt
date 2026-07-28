@@ -153,6 +153,18 @@ fn one_sheet(
     }
   }
   decorations(sheet, entries)
+  if !sheet.shapes.is_empty() {
+    entries.push(("shapes", shapes(sheet)))
+  }
+  if !sheet.sparklines.is_empty() {
+    entries.push(("sparklines", sparklines(sheet)))
+  }
+  if !sheet.controls.is_empty() {
+    entries.push(("controls", controls(sheet)))
+  }
+  if !sheet.slicers.is_empty() {
+    entries.push(("slicers", slicers(sheet)))
+  }
   if sheet.page is Some(page) {
     entries.push(("print", print_setup(page)))
   }

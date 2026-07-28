@@ -1123,6 +1123,13 @@ error dialogs, and — for a `date` rule — bounds turned back from serials int
 written dates), conditional formats of every rule the format names, Excel
 tables, and the auto filter's range.
 
+The four things that float over a sheet rather than sitting in it: shapes (§18)
+with their geometry, text, size, fill, outline, and anchor; sparklines (§19)
+with their kind, points, bounds, weight, and any colour the file names outright;
+form controls (§20) with what each writes into its linked cell; and slicers
+(§21) with the table column each filters. Four details of these do not survive,
+and each is listed below.
+
 And what the workbook says about itself: named definitions (`defs.values` and
 `defs.formulas`), the document properties including the custom ones, the
 calculation settings, the default font, and each sheet's protection.
@@ -1146,14 +1153,27 @@ calculation settings, the default font, and each sheet's protection.
   factor back as `1` whatever it was — so a scaled picture cannot be told from an
   unscaled one, and every picture comes back at its natural size. `extract` says
   so on the way out rather than leaving it to be noticed.
-- **Charts, shapes, pivots, slicers, sparklines, and form controls are not
-  recovered yet.** They are in the file and none of them is a limit of the
-  format, but they are not the same amount of work:
-  - form controls, slicers, sparklines, and shapes come back from the Excel
-    backend as typed records that already speak this format's vocabulary, so
-    each is a translation;
-  - charts and pivots come back as raw XML parts, so recovering them means
-    reading DrawingML and the pivot cache, which is a reader of its own.
+- **A form control's size is not recovered.** The file records it in the
+  control's VML, and the Excel backend's reader takes the anchor and the values
+  from there but never the size — so every control comes back at Excel's
+  default, and one that was sized cannot be told from one that was not.
+- **The font on a line of shape text is not recovered**, for the same reason at
+  the other end of the file: it is written into the drawing's `a:rPr` and not
+  read back. A shape's words survive; how they were set does not.
+- **A shape geometry Excel spells with a capital cannot come back.** The backend
+  lowercases the `prst` token, so `roundRect` reads as `roundrect`, which names
+  no geometry in §18's table and could not be told from any other. Those
+  geometries are refused on the way in for the same reason; `extract` reports
+  the shape rather than guessing which one it was.
+- **The sheet a sparkline plots from is not recovered.** The file writes
+  `'Data'!B2:E2` and the backend's reader keeps only what follows the `!`, so a
+  sparkline that plotted another sheet comes back plotting this one — the same
+  shape of answer with the wrong numbers in it. `extract` says so whenever a
+  workbook has more than one sheet; with a single sheet nothing can be lost.
+- **Charts and pivots are not recovered yet.** They are in the file and neither
+  is a limit of the format: the Excel backend hands both back as raw XML parts,
+  so recovering them means reading DrawingML and the pivot cache, which is a
+  reader of its own rather than a translation.
 - **A colour scale's stops are not kept**, only its colours: the schema places
   them at the range's own low and high, which is Excel's default and what an
   author writing the spec by hand would get.
