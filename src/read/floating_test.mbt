@@ -100,9 +100,9 @@ test "what a control writes and steps through comes back" {
 
 ///|
 test "a control's size does not survive, and says so" {
-  // The VML records `style="width:…;height:…"` and the backend's parser reads
-  // the anchor but never the style. If this ever starts passing the size back,
-  // this test fails and the note it pins becomes a lie worth deleting.
+  // The size is in the VML anchor's far corner, and the parser reads the
+  // anchor's first two coordinates only. If this ever starts passing the size
+  // back, this test fails and the note it pins becomes a lie worth deleting.
   let (wb, sheet) = fixture()
   sheet.set(at("A1"), Text("x"))
   sheet.add_control({

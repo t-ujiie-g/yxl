@@ -918,7 +918,7 @@ shapes:
 | `kind` | bareword | **Required.** One of the geometries below. |
 | `text` | text or list | A plain string, or a sequence of lines — each a string or `{ text, font }`, the font written as a style's `font:` (§4 of the styling keys). Each entry is its own *line*: one font covers one line. |
 | `size` | `{ width, height }` | **Both required**, in whole pixels. Unset, the shape is 160 × 160. |
-| `fill` | hex color | The fill; unset keeps the theme default. |
+| `fill` | hex color | The fill. Unset means **no fill at all**, not a theme colour — see the backend limits below. |
 | `line` | hex color or `{ color, width }` | The outline. `width` is in points and must be above `0`; a bare hex is just the color. |
 | `alt` | text | What a screen reader announces; Excel's "Alt Text". |
 | `positioning` | bareword | The same three anchors an image takes (§13). |
@@ -937,6 +937,12 @@ rounded rectangle, the right triangle, the eight straight arrows, and the four
 callouts. They become plain schema additions the day the backend keeps the
 token's case. An offset in from the anchor cell (which images take) is not
 available either: the backend's shape constructor does not accept one.
+
+The backend also writes **no theme style reference** for a shape — none of the
+`fillRef`/`lnRef` that Excel's own "Insert Shape" puts on one. So a shape given
+neither `fill` nor `line` is written with no fill and no outline, and Excel
+draws nothing: the shape is there and selectable, but invisible. Give a shape a
+`fill:` or a `line:` if it is meant to be seen.
 
 ## 19. Sparklines
 
@@ -1022,6 +1028,13 @@ it — anything else is a diagnostic naming where the key belongs:
 
 No `macro:` — an `.xlsx` carries no macros, and a button without one is a
 caption that clicks. Assigning behavior is Excel's side of the contract.
+
+> **Excel does not draw these yet.** The Excel backend writes the *legacy* half
+> of a form control — the VML shape and its `x:ClientData` — and not the
+> worksheet's `<controls>` element or the per-control `ctrlProps` parts that
+> current Excel needs to render one. The control is in the file and the linked
+> cell holds its value, but Excel shows nothing where it sits. Nothing in a spec
+> works around this; it is a gap in the backend and is tracked as one.
 
 > **On a protected sheet, unlock the linked cell.** Excel writes a control's
 > value into its `link` like any other edit, so a locked target makes the
@@ -1153,10 +1166,10 @@ calculation settings, the default font, and each sheet's protection.
   factor back as `1` whatever it was — so a scaled picture cannot be told from an
   unscaled one, and every picture comes back at its natural size. `extract` says
   so on the way out rather than leaving it to be noticed.
-- **A form control's size is not recovered.** The file records it in the
-  control's VML, and the Excel backend's reader takes the anchor and the values
-  from there but never the size — so every control comes back at Excel's
-  default, and one that was sized cannot be told from one that was not.
+- **A form control's size is not recovered.** The file records it in the far
+  corner of the control's VML anchor, and the Excel backend's reader takes only
+  the near corner from there — so every control comes back at Excel's default,
+  and one that was sized cannot be told from one that was not.
 - **The font on a line of shape text is not recovered**, for the same reason at
   the other end of the file: it is written into the drawing's `a:rPr` and not
   read back. A shape's words survive; how they were set does not.

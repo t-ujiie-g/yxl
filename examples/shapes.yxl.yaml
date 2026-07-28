@@ -36,10 +36,15 @@ sheets:
         size: { width: 220, height: 90 }
         fill: "FFF2CC"
 
-      # With nothing but a geometry, the theme's colours and the default size
-      # apply. `positioning: fixed` pins it to the sheet, so inserting rows
-      # above will not move it.
+      # With nothing but a geometry, the default 160x160 size applies — but so
+      # does *no fill and no outline*, which in Excel means an invisible shape
+      # you can still select. The Excel backend writes no theme style reference
+      # for a shape, so there is no "default blue" to fall back on: give a shape
+      # a `fill:` or a `line:` if it is meant to be seen.
+      # `positioning: fixed` pins it to the sheet, so inserting rows above will
+      # not move it.
       - at: D10
         kind: star_5
+        fill: "F2C744"
         positioning: fixed
         alt: A decorative star

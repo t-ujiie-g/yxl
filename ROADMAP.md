@@ -444,6 +444,19 @@ gate, which is why none carries a box:
   rectangle, right triangle, the eight straight arrows, and the four callouts —
   blocked on the backend lowercasing `prst` (§9); each becomes one more row in
   the preset table the day it keeps the token's case
+- **form controls Excel actually draws.** Found by opening a built workbook
+  rather than by reading its bytes: the backend writes only the *legacy* half of
+  a control — the VML shape and its `x:ClientData` — and not the worksheet's
+  `<controls>` element or the per-control `ctrlProps` parts current Excel needs
+  to render one. The control is in the file, the linked cell holds its value,
+  and Excel shows nothing. No spec can work around it; it is an upstream fix or
+  a part the emitter writes itself. `docs/spec.md` §20 says so meanwhile
+- **a shape with no explicit colour is invisible**, for a neighbouring reason:
+  the backend writes no `fillRef`/`lnRef` theme style reference, so a shape
+  given neither `fill:` nor `line:` gets no fill and no outline rather than
+  Excel's default blue. Documented in §18 and worked around in `examples/` by
+  giving the bare shape a fill; the real fix is the backend writing the style
+  block Excel's own "Insert Shape" writes
 - file encryption (`write_with_password`) — its own decision: it changes the
   emitter's signature and needs the CLI to carry a secret
 
@@ -570,9 +583,12 @@ gate, which is why none carries a box:
             probing the backend's read path rather than by reading its
             signatures, which is the lesson worth keeping: a typed field says
             what a value *would* be, not whether anything fills it in:
-            - **A form control's size**, which the file records in the control's
-              VML and `parse_form_controls_vml` never reads — it takes the
-              anchor and the values and skips the `style="width:…;height:…"`.
+            - **A form control's size**, which the file records in the far
+              corner of the control's VML anchor and
+              `parse_form_controls_vml` never reads — it takes the anchor's
+              first two coordinates and stops. (The shape's
+              `style="width:…;height:…"` looks like the place to read it and is
+              not: the backend stamps one constant string on every control.)
               Every control comes back at Excel's default size
             - **The font on a line of shape text**, written into the drawing's
               `a:rPr` and not read back, so shape text comes back unstyled
@@ -1174,6 +1190,28 @@ Phase 11's inline `values:` lands. `$include` splitting is never inferred.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-29** — **Two things `yxl build` never drew, found by opening the
+  files rather than diffing them.** Both predate the extract work and neither is
+  a spec problem; both are now documented where an author would hit them.
+
+  **A form control does not appear in Excel.** The backend writes the legacy
+  half — the VML shape and its `x:ClientData` — and not the worksheet's
+  `<controls>` element or the per-control `ctrlProps` parts current Excel needs.
+  The control is in the file and its linked cell holds the value; Excel draws
+  nothing. `docs/spec.md` §20 now warns, and §9 tracks the fix as upstream.
+
+  **A shape with no `fill:` and no `line:` is invisible.** The backend writes no
+  `fillRef`/`lnRef` theme style reference, so "unset keeps the theme default" —
+  which §18 and `examples/shapes.yxl.yaml` both claimed — was simply false: an
+  unset fill is *no fill*, and Excel draws a selectable nothing. The example's
+  bare star now carries a fill and says why.
+
+  The lesson is the same one the slice-4 probe taught at the other end of the
+  file: a field that reaches the bytes has not necessarily reached the *reader*
+  — and bytes that are well-formed have not necessarily reached the *screen*.
+  Neither round-trip tests nor `moon test` can see this; only opening the file
+  can.
 
 - **2026-07-29** — **`yxl extract` recovers the four things that float over a
   sheet**: shapes, sparklines, form controls, and slicers (`docs/spec.md`

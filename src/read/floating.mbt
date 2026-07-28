@@ -111,11 +111,13 @@ fn read_control(
     min = None
     max = None
   }
-  // The VML carries `style="width:…;height:…"`, and the backend's parser reads
-  // the anchor and the values but never the style, so a control comes back
-  // without a size whatever it was given. The note says *any* size rather than
-  // "this control's size", because a control that was never sized loses nothing
-  // — and the two cannot be told apart from here.
+  // The size lives in the VML anchor's *far* corner — `x:Anchor` is
+  // `from-col, from-colOff, from-row, from-rowOff, to-col, …`, and the shape's
+  // `style="width:…"` is a constant the backend stamps on every control. The
+  // parser reads the anchor for its first two coordinates only, so a control
+  // comes back without a size whatever it was given. The note says *any* size
+  // rather than "this control's size", because a control that was never sized
+  // loses nothing — and the two cannot be told apart from here.
   if control.width is None && control.height is None {
     notes.drop(
       "any size on a form control, which the file records in its VML and the Excel backend does not read back — a control comes back at Excel's default size, and one that was sized cannot be told from one that was not",
