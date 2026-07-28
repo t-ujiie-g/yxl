@@ -9,6 +9,8 @@ import {
   "t-ujiie-g/yxl/units",
   "t-ujiie-g/yxl/diag",
   "bobzhang/mbtexcel/xlsx",
+  // Parsing a validation bound out of the formula the file stores it as.
+  "moonbitlang/core/string",
 }
 
 // The tests build a model, compile it with `emit`, and read the bytes back —

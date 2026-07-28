@@ -63,13 +63,13 @@ pub fn from_bytes(bytes : Bytes) -> Recovered raise @diag.ReadError {
 fn recover(bytes : Bytes) -> Recovered raise {
   let backend = @xlsx.read(bytes[:])
   let notes = Notes::new()
-  let workbook = @model.Workbook::new(
-    date_system=if backend.get_workbook_props().date_1904 is Some(true) {
-      Date1904
-    } else {
-      Date1900
-    },
-  )
+  let dates : @units.DateSystem = if backend.get_workbook_props().date_1904
+    is Some(true) {
+    Date1904
+  } else {
+    Date1900
+  }
+  let workbook = @model.Workbook::new(date_system=dates)
   let styles = StyleTable::new()
   for name in backend.get_sheet_list() {
     let sheet = workbook.add_sheet(
@@ -80,6 +80,7 @@ fn recover(bytes : Bytes) -> Recovered raise {
     read_merges(backend, sheet)
     read_bands(backend, sheet, styles, notes)
     read_presentation(backend, sheet)
+    read_decorations(backend, sheet, dates, notes)
   }
   // The tab Excel opens on. Index 0 is the default, and saying so adds nothing.
   let active = backend.get_active_sheet_index()

@@ -89,6 +89,7 @@ fn one_sheet(sheet : @model.Sheet, styles : StyleNames) -> @yaml.Node {
   if sheet.tab_color is Some(color) {
     entries.push(("tab_color", @yaml.Str(color.hex())))
   }
+  decorations(sheet, entries)
   if sheet.page is Some(page) {
     entries.push(("print", print_setup(page)))
   }

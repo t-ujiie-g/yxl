@@ -314,3 +314,79 @@ test "rich text renders its runs, plain ones as bare strings" {
     ),
   )
 }
+
+///|
+test "the decorations render in the schema's own vocabulary" {
+  let (wb, sheet) = fixture()
+  sheet.set(at("A1"), Text("x"))
+  sheet.set_filter({ top_left: at("A1"), bottom_right: at("C1") })
+  sheet.add_validation({
+    at: { top_left: at("B2"), bottom_right: at("B9") },
+    rule: List(["Draft", "Sent"]),
+    allow_blank: false,
+    prompt: None,
+    error: None,
+  })
+  sheet.add_validation({
+    at: { top_left: at("C2"), bottom_right: at("C9") },
+    rule: Compare(kind=TextLength, check=AtMost(Number(12.0))),
+    allow_blank: true,
+    prompt: None,
+    error: None,
+  })
+  sheet.add_link(at("A1"), Url("https://example.com"))
+  sheet.add_comment(at("A1"), "a note")
+  inspect(
+    spec(wb),
+    content=(
+      #|sheets:
+      #|  - name: S
+      #|    cells:
+      #|      A1: x
+      #|    filter: A1:C1
+      #|    validations:
+      #|      - at: B2:B9
+      #|        list:
+      #|          - Draft
+      #|          - Sent
+      #|        allow_blank: false
+      #|      - at: C2:C9
+      #|        text_length:
+      #|          at_most: 12
+      #|    links:
+      #|      A1: https://example.com
+      #|    comments:
+      #|      A1: a note
+      #|
+    ),
+  )
+}
+
+///|
+test "a table renders only the toggles that differ from Excel's defaults" {
+  let (wb, sheet) = fixture()
+  sheet.set(at("A1"), Text("Region"))
+  sheet.add_table({
+    at: { top_left: at("A1"), bottom_right: at("B2") },
+    name: Some("Sales"),
+    style: None,
+    banded_rows: true,
+    banded_columns: false,
+    first_column: true,
+    last_column: false,
+  })
+  inspect(
+    spec(wb),
+    content=(
+      #|sheets:
+      #|  - name: S
+      #|    cells:
+      #|      A1: Region
+      #|    tables:
+      #|      - at: A1:B2
+      #|        name: Sales
+      #|        first_column: true
+      #|
+    ),
+  )
+}

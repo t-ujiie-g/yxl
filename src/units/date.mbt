@@ -93,6 +93,72 @@ pub fn DateTime::to_serial(self : DateTime, system : DateSystem) -> Double {
 }
 
 ///|
+/// The date/time an Excel serial stands for under `system` — the inverse of
+/// `to_serial`, for the direction `yxl extract` travels (ADR-017), where a file
+/// holds serials and a spec wants dates.
+///
+/// A negative serial has no date to name, and neither does one so large that
+/// the day count overflows; both give `None` rather than a wrong answer. The
+/// time is rounded to the nearest second, because a serial is a fraction of a
+/// day and the fraction rarely lands exactly on one.
+pub fn DateTime::from_serial(serial : Double, system : DateSystem) -> DateTime? {
+  guard serial >= 0.0 && serial < 3.0e6 && !serial.is_nan() else { return None }
+  let whole = serial.floor()
+  // Rounding first can carry into the next day, which is the right answer for a
+  // serial a hair under midnight.
+  let seconds = ((serial - whole) * 86400.0).round().to_int()
+  let (days, seconds) = if seconds >= 86400 {
+    (whole.to_int() + 1, seconds - 86400)
+  } else {
+    (whole.to_int(), seconds)
+  }
+  let epoch_days = match system {
+    Date1900 => {
+      let raw = days + days_from_civil(1899, 12, 31)
+      // The 1900 leap-year bug in reverse: serial 60 is Excel's nonexistent
+      // 1900-02-29, and everything after it is numbered one too high.
+      if days >= 61 {
+        raw - 1
+      } else if days == 60 {
+        return None
+      } else {
+        raw
+      }
+    }
+    Date1904 => days + days_from_civil(1904, 1, 1)
+  }
+  let (year, month, day) = civil_from_days(epoch_days)
+  Some({
+    year,
+    month,
+    day,
+    hour: seconds / 3600,
+    minute: seconds % 3600 / 60,
+    second: seconds % 60,
+  })
+}
+
+///|
+/// The civil date a day count stands for — the inverse of `days_from_civil`,
+/// and the same algorithm run backwards.
+fn civil_from_days(days : Int) -> (Int, Int, Int) {
+  let days = days + 719468
+  let era = (if days >= 0 { days } else { days - 146096 }) / 146097
+  let day_of_era = days - era * 146097
+  let year_of_era = (
+      day_of_era - day_of_era / 1460 + day_of_era / 36524 - day_of_era / 146096
+    ) /
+    365
+  let year = year_of_era + era * 400
+  let day_of_year = day_of_era -
+    (365 * year_of_era + year_of_era / 4 - year_of_era / 100)
+  let month_prime = (5 * day_of_year + 2) / 153
+  let day = day_of_year - (153 * month_prime + 2) / 5 + 1
+  let month = if month_prime < 10 { month_prime + 3 } else { month_prime - 9 }
+  (if month <= 2 { year + 1 } else { year }, month, day)
+}
+
+///|
 /// Days since 1970-01-01 in the proleptic Gregorian calendar (Howard Hinnant's
 /// algorithm). Only *differences* are used here, so the choice of epoch cancels.
 fn days_from_civil(year : Int, month : Int, day : Int) -> Int {

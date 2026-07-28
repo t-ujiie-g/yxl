@@ -1090,6 +1090,10 @@ widths, heights, hidden, outline levels — with adjacent equal ones collapsed
 back into a single entry. Frozen and split panes, gridlines, tab colours, sheet
 order, hidden sheets, the active tab, and the 1904 date system.
 
+The decorations too: notes, hyperlinks, data validations (with their prompts,
+error dialogs, and — for a `date` rule — bounds turned back from serials into
+written dates), Excel tables, and the auto filter's range.
+
 ### What it does not, and why
 
 - **Names are invented, because the file has none.** A style is given a
@@ -1104,10 +1108,12 @@ order, hidden sheets, the active tab, and the 1904 date system.
 - **A shared formula is recovered at its master cell only.** The reader does not
   expose which cells follow it, so the rest arrive as the values they cached.
   A `formulas:` range (§3) is the spelling to restore by hand.
-- **Charts, images, shapes, pivots, slicers, sparklines, controls, comments,
-  links, validations, conditional formats, tables, and filters are not
-  recovered** — they are in the file, and reading them is future work rather
-  than a limit of the format.
+- **Charts, images, shapes, pivots, slicers, sparklines, form controls, and
+  conditional formats are not recovered** — they are in the file, and reading
+  them is future work rather than a limit of the format.
+- **A filter's saved criteria are not kept**, only the range it covers: which
+  rows somebody last chose to hide is a view of the sheet, not a description
+  of it.
 - **Print setup is not recovered.** The Excel backend cannot report it per
   sheet: reading one sheet's setup leaks it to every later sheet, so a spec built
   on it would claim the wrong orientation.
