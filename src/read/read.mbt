@@ -85,6 +85,7 @@ fn recover(bytes : Bytes) -> Recovered raise {
     read_bands(backend, sheet, styles, notes)
     read_presentation(backend, sheet)
     read_decorations(backend, sheet, dates, notes)
+    read_images(backend, sheet, notes)
     read_sheet_protection(backend, sheet, notes)
   }
   // The tab Excel opens on. Index 0 is the default, and saying so adds nothing.

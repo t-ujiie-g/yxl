@@ -220,3 +220,59 @@ test "a sheet that is not a plain block is untouched by all this" {
   assert_eq(result.companions.length(), 0)
   assert_true(result.spec.contains("cells:"))
 }
+
+///|
+test "a picture is written beside the spec, and the spec names it" {
+  let source =
+    #|sheets:
+    #|  - name: Summary
+    #|    cells:
+    #|      A1: x
+    #|    images:
+    #|      - at: E1
+    #|        file: logo.png
+    #|        alt: The logo
+    #|    background: logo.png
+    #|
+  let png : Bytes = b"\x89PNG\r\n\x1a\n\x00\x00\x00\x0dIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89"
+  let bytes = @cli.compile(source, file="in.yaml", read_bytes=(_from, path) => {
+    name: path,
+    data: png,
+  })
+  let result = @cli.extract(bytes, file="in.xlsx")
+  assert_eq(result.warnings, [])
+  // One for the picture, one for the background.
+  assert_eq(result.companions.length(), 2)
+  let paths = result.companions.map(companion => companion.path)
+  assert_eq(paths, ["assets/summary_e1.png", "assets/summary_background.png"])
+  // Byte for byte, both of them.
+  for companion in result.companions {
+    assert_eq(companion.content, png)
+  }
+  assert_true(result.spec.contains("file: assets/summary_e1.png"))
+  assert_true(result.spec.contains("background: assets/summary_background.png"))
+}
+
+///|
+test "--flat leaves the tables inline but still writes the pictures" {
+  // A picture has no inline form to fall back to, so `--flat` has nothing to
+  // say about it.
+  let png : Bytes = b"\x89PNG\r\n\x1a\n\x00\x00\x00\x0dIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89"
+  let bytes = @cli.compile(
+    (
+      #|sheets:
+      #|  - name: S
+      #|    cells:
+      #|      A1: x
+      #|    images:
+      #|      - at: C1
+      #|        file: logo.png
+      #|
+    ),
+    file="in.yaml",
+    read_bytes=(_from, path) => { name: path, data: png },
+  )
+  let flat = @cli.extract(bytes, file="in.xlsx", flat=true)
+  assert_eq(flat.companions.length(), 1)
+  assert_eq(flat.warnings, [])
+}

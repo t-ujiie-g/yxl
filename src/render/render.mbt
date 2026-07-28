@@ -15,10 +15,24 @@
 pub fn workbook(
   wb : @model.Workbook,
   tables? : Array[DataTable] = [],
+  pictures? : Array[Picture] = [],
 ) -> @yaml.Node {
   let by_sheet : Map[String, DataTable] = Map([])
   for table in tables {
     by_sheet[table.sheet] = table
+  }
+  // `pictures` was built by walking the sheets in this same order, so handing
+  // the paths out one at a time keeps the spec and the files in step without
+  // either side deriving the name twice.
+  let mut taken = 0
+  let next_picture = fn() {
+    if taken < pictures.length() {
+      let path = pictures[taken].path
+      taken += 1
+      Some(path)
+    } else {
+      None
+    }
   }
   let root = []
   if wb.date_system is Date1904 {
@@ -53,7 +67,9 @@ pub fn workbook(
   }
   let sheets = []
   for sheet in wb.sheets {
-    sheets.push(one_sheet(sheet, styles, by_sheet.get(sheet.name)))
+    sheets.push(
+      one_sheet(sheet, styles, by_sheet.get(sheet.name), next_picture),
+    )
   }
   root.push(("sheets", @yaml.Seq(sheets)))
   @yaml.Map(root)
@@ -66,6 +82,7 @@ fn one_sheet(
   sheet : @model.Sheet,
   styles : StyleNames,
   table : DataTable?,
+  next_picture : () -> String?,
 ) -> @yaml.Node {
   let entries = [("name", @yaml.Str(sheet.name))]
   match sheet.visibility {
@@ -131,6 +148,15 @@ fn one_sheet(
   }
   if sheet.tab_color is Some(color) {
     entries.push(("tab_color", @yaml.Str(color.hex())))
+  }
+  if !sheet.images.is_empty() {
+    entries.push(("images", images(sheet, next_picture)))
+  }
+  if sheet.background is Some(_) {
+    match next_picture() {
+      Some(path) => entries.push(("background", @yaml.Str(path)))
+      None => ()
+    }
   }
   decorations(sheet, entries)
   if sheet.page is Some(page) {

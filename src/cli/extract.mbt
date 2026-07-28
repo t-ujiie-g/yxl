@@ -52,12 +52,21 @@ pub fn extract(
   // thousand `cells:` lines — but it is a *second file*, so `--flat` keeps
   // everything in one, which is what a reader comparing two extractions wants.
   let tables = if flat { [] } else { @render.data_tables(recovered.workbook) }
-  let spec = @yaml.write(@render.workbook(recovered.workbook, tables~))
+  // A picture is not an inference: the model holds its bytes because the
+  // workbook did, and there is no way to put them in a YAML file. `--flat` has
+  // nothing to say about it, so it does not.
+  let pictures = @render.pictures(recovered.workbook)
+  let spec = @yaml.write(
+    @render.workbook(recovered.workbook, tables~, pictures~),
+  )
   let companions = []
   for table in tables {
     companions.push(
       ({ path: table.path, content: @utf8.encode(table.csv) } : Companion),
     )
+  }
+  for picture in pictures {
+    companions.push({ path: picture.path, content: picture.content })
   }
   {
     spec,
@@ -84,15 +93,28 @@ fn verify(
   let warnings = []
   // The spec names its companions by path, so the check has to resolve them the
   // way the CLI will — from memory here, since nothing has been written yet.
-  let by_path : Map[String, String] = Map([])
+  let by_path : Map[String, Bytes] = Map([])
   for companion in companions {
-    by_path[companion.path] = @utf8.decode_lossy(companion.content[:])
+    by_path[companion.path] = companion.content
   }
   let resolve : @loader.IncludeResolver = fn(_from, path) {
-    { name: path, source: by_path.get(path).unwrap_or("") }
+    {
+      name: path,
+      source: match by_path.get(path) {
+        Some(content) => @utf8.decode_lossy(content[:])
+        None => ""
+      },
+    }
+  }
+  // A picture is read through the other resolver, as bytes, because that is what
+  // it is; decoding it as text and back would not survive.
+  let read_bytes : @loader.BytesResolver = fn(_from, path) {
+    { name: path, data: by_path.get(path).unwrap_or(b"") }
   }
   let rebuilt = @read.from_bytes(
-      @emit.to_bytes(@loader.load(@yaml.parse(spec, file~), file~, resolve~)),
+      @emit.to_bytes(
+        @loader.load(@yaml.parse(spec, file~), file~, resolve~, read_bytes~),
+      ),
     ).workbook catch {
       err => {
         warnings.push(

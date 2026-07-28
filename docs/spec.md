@@ -1092,13 +1092,18 @@ file lands next to the spec at the path the spec names it by:
 ```
 report.yxl.yaml
 data/sales.csv
+assets/summary_e1.png
 ```
 
-The rule is deliberately narrow. A styled cell, a formula, a ragged edge, or a
-region too small to be worth opening a second file all keep the whole sheet
-inline — a wrong "yes" here would silently drop formatting `data:` cannot carry,
-where a wrong "no" only leaves a long block. `--flat` turns it off entirely,
-which is what to use when comparing two extractions.
+The rule for tables is deliberately narrow. A styled cell, a formula, a ragged
+edge, or a region too small to be worth opening a second file all keep the whole
+sheet inline — a wrong "yes" here would silently drop formatting `data:` cannot
+carry, where a wrong "no" only leaves a long block. `--flat` turns it off
+entirely, which is what to use when comparing two extractions.
+
+**Pictures are always written out**, `--flat` or not: an image has no inline
+form to fall back to. Its bytes come through unchanged, so the file beside the
+spec is the picture the workbook held.
 
 ### What it recovers
 
@@ -1108,6 +1113,10 @@ sharing even though it lost the name. Merged ranges. Column and row bands —
 widths, heights, hidden, outline levels — with adjacent equal ones collapsed
 back into a single entry. Frozen and split panes, gridlines, tab colours, sheet
 order, hidden sheets, the active tab, and the 1904 date system.
+
+Pictures, including the one tiled behind a sheet: the bytes come out unchanged,
+and each is written beside the spec with the `images:` or `background:` entry
+that names it.
 
 The decorations too: notes, hyperlinks, data validations (with their prompts,
 error dialogs, and — for a `date` rule — bounds turned back from serials into
@@ -1132,14 +1141,17 @@ calculation settings, the default font, and each sheet's protection.
 - **A shared formula is recovered at its master cell only.** The reader does not
   expose which cells follow it, so the rest arrive as the values they cached.
   A `formulas:` range (§3) is the spelling to restore by hand.
-- **Charts, images, shapes, pivots, slicers, sparklines, and form controls are
-  not recovered yet.** They are in the file and none of them is a limit of the
-  format, but they are not all the same amount of work:
+- **A picture's scale is not recovered.** The file records how big to draw it in
+  absolute units rather than as a factor, and the Excel backend reports the
+  factor back as `1` whatever it was — so a scaled picture cannot be told from an
+  unscaled one, and every picture comes back at its natural size. `extract` says
+  so on the way out rather than leaving it to be noticed.
+- **Charts, shapes, pivots, slicers, sparklines, and form controls are not
+  recovered yet.** They are in the file and none of them is a limit of the
+  format, but they are not the same amount of work:
   - form controls, slicers, sparklines, and shapes come back from the Excel
     backend as typed records that already speak this format's vocabulary, so
     each is a translation;
-  - images come back whole, bytes and all — what stops them is that writing a
-    picture out is a *second file*, the same question CSV extraction asks;
   - charts and pivots come back as raw XML parts, so recovering them means
     reading DrawingML and the pivot cache, which is a reader of its own.
 - **A colour scale's stops are not kept**, only its colours: the schema places
@@ -1154,9 +1166,6 @@ calculation settings, the default font, and each sheet's protection.
 - **A sheet-protection password is not recovered.** The file keeps a hash, not
   the word. It is reported, so a spec that needs one can have it set again
   rather than looking protected while opening to anyone.
-- **A sheet background image is not recovered**, for the same reason an
-  ordinary picture is not: writing it out is a second file, which is the
-  one-file-or-many decision this command has not made yet.
 - **A name defined for one sheet only is not recovered.** The spec's definitions
   are workbook-wide, and widening one would change which cells it resolves for.
 

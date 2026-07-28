@@ -14,7 +14,9 @@ pub let min_csv_columns : Int
 
 pub let min_csv_rows : Int
 
-pub fn workbook(@model.Workbook, tables? : Array[DataTable]) -> @yaml.Node
+pub fn pictures(@model.Workbook) -> Array[Picture]
+
+pub fn workbook(@model.Workbook, tables? : Array[DataTable], pictures? : Array[Picture]) -> @yaml.Node
 
 // Errors
 
@@ -25,6 +27,11 @@ pub(all) struct DataTable {
   path : String
   csv : String
   covered : Map[String, Unit]
+}
+
+pub(all) struct Picture {
+  path : String
+  content : Bytes
 }
 
 // Type aliases

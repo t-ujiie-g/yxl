@@ -539,12 +539,19 @@ gate, which is why none carries a box:
             a ragged edge, or too few rows stays inline, because a wrong "yes"
             silently drops formatting `data:` cannot carry where a wrong "no"
             only leaves a long block. `--flat` opts out.
-            **Images and sheet backgrounds now need only the mapping**: the
-            machinery that carries a companion file is the same one, and their
-            bytes already come back whole from `get_pictures`.
             `$include` splitting is still *not* inferred: which files change
             together is the author's judgement and the workbook holds no
             evidence of it
+      - [x] **Images and sheet backgrounds**, on that same companion-file
+            machinery: the bytes come out unchanged and land under `assets/`,
+            named for the sheet and cell they sit at, since the workbook keeps
+            its pictures as numbered parts and carries no name to recover.
+            A picture is written whatever `--flat` says, because it has no
+            inline form to fall back to. **A picture's scale is not
+            recoverable** and is reported: the file records an absolute size
+            rather than a factor and the backend reports the factor back as `1`
+            whatever it was, so a scaled picture cannot be told from an unscaled
+            one
       - [ ] **Blocked, not deferred** — these are the two `extract` cannot do
             anything about on its own:
             - **Print setup**, because `page_layout_with_defaults` aliases a
@@ -1140,9 +1147,21 @@ Reverse-chronological. One entry per user-visible or structural change.
   cells identical, types included: `007` came back text, `42` a number, `true` a
   boolean, which is the CSV quoting rule read backwards from the loader's.
 
-  **Images and sheet backgrounds now need only the mapping.** They were waiting
-  on exactly this machinery, and their bytes already come back whole from
-  `get_pictures`.
+  **Images and sheet backgrounds landed on the same machinery**, in the same
+  change. Their bytes come out unchanged — checked byte for byte against the
+  source file *and* against the rebuilt workbook's own media part — and land
+  under `assets/`, named for the sheet and cell they sit at, since a workbook
+  keeps its pictures as numbered parts and carries no name to recover.
+
+  One loss came out of that, and it is worth naming because nothing would have
+  caught it: **a picture's scale does not survive**. The file records how big to
+  draw it in absolute units rather than as a factor, and the backend reports the
+  factor back as `1` whatever it was, so a scaled picture cannot be told from an
+  unscaled one. `layout`'s logo came back at twice its intended size and the
+  verify pass said nothing, because verify compares *cells*. Recovering the
+  factor would mean reading each image format's own header for its pixel
+  dimensions; until then it is reported on the way out, which is the difference
+  between a known limit and a silent one.
 
 - **2026-07-28** — **What `extract` still misses, sorted by what it would take.**
   Documentation only. The nine unrecovered sheet features had been listed as one
