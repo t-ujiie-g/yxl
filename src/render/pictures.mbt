@@ -37,77 +37,41 @@ pub fn Picture::key(sheet : String, at : @units.CellRef?) -> String {
 /// the caller writing the files agree without either guessing: this returns
 /// both, and `workbook` takes the same list back.
 pub fn pictures(wb : @model.Workbook) -> Array[Picture] {
-  let taken : Map[String, Unit] = Map([])
+  companion_pictures(wb, Names::new())
+}
+
+///|
+/// The same, against a caller's own name pool rather than a fresh one.
+fn companion_pictures(wb : @model.Workbook, names : Names) -> Array[Picture] {
   let pictures = []
   for sheet in wb.sheets {
+    let stem = file_stem(sheet.name)
     for image in sheet.images {
-      pictures.push(
-        picture(
-          taken,
-          sheet.name,
-          Some(image.at),
-          "\{sheet_stem(sheet.name)}_\{image.at.to_a1().to_lower()}",
+      pictures.push({
+        sheet: sheet.name,
+        at: Some(image.at),
+        path: names.claim(
+          asset_directory,
+          "\{stem}_\{image.at.to_a1().to_lower()}",
           image.format,
-          image.data,
         ),
-      )
+        content: image.data,
+      })
     }
     if sheet.background is Some(background) {
-      pictures.push(
-        picture(
-          taken,
-          sheet.name,
-          None,
-          "\{sheet_stem(sheet.name)}_background",
+      pictures.push({
+        sheet: sheet.name,
+        at: None,
+        path: names.claim(
+          asset_directory,
+          "\{stem}_background",
           background.format,
-          background.data,
         ),
-      )
+        content: background.data,
+      })
     }
   }
   pictures
-}
-
-///|
-/// One picture under `assets/`, with a number added where the name is taken.
-fn picture(
-  taken : Map[String, Unit],
-  sheet : String,
-  at : @units.CellRef?,
-  stem : String,
-  format : String,
-  content : Bytes,
-) -> Picture {
-  let mut path = "assets/\{stem}.\{format}"
-  let mut suffix = 2
-  while taken.get(path) is Some(_) {
-    path = "assets/\{stem}_\{suffix}.\{format}"
-    suffix += 1
-  }
-  taken[path] = ()
-  { sheet, at, path, content }
-}
-
-///|
-/// A sheet's name as the first half of a file name — the same flattening the
-/// CSV tables use, so a workbook's companions read as one set rather than two.
-fn sheet_stem(sheet_name : String) -> String {
-  let out = StringBuilder::new()
-  for ch in sheet_name {
-    if ch is ('a'..='z' | '0'..='9') {
-      out.write_char(ch)
-    } else if ch is ('A'..='Z') {
-      out.write_char(ch.to_ascii_lowercase())
-    } else {
-      out.write_char('_')
-    }
-  }
-  let name = out.to_string()
-  if name.is_empty() {
-    "sheet"
-  } else {
-    name
-  }
 }
 
 ///|

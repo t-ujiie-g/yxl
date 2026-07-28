@@ -160,3 +160,73 @@ test "an empty sheet contributes no table" {
   wb.add_sheet("Empty") |> ignore
   assert_eq(@render.data_tables(wb).length(), 0)
 }
+
+///|
+/// A workbook whose sheets each hold one picture, so the naming can be seen
+/// without a table getting in the way.
+fn with_pictures(names : Array[String]) -> @model.Workbook {
+  let wb = @model.Workbook::new()
+  let png : Bytes = b"\x89PNG\r\n\x1a\n"
+  for name in names {
+    let sheet = wb.add_sheet(name)
+    sheet.add_image({
+      at: @units.CellRef::new(col=5, row=1),
+      data: png,
+      format: "png",
+      alt_text: None,
+      scale_x: 1.0,
+      scale_y: 1.0,
+      offset_x: 0,
+      offset_y: 0,
+      positioning: Move,
+    })
+  }
+  wb
+}
+
+///|
+test "a table and a picture are named by the same rule" {
+  // Both flatten the sheet's name the same way and land under their own
+  // directory. They used to carry a copy of that rule each.
+  let tables = @render.data_tables(literal_named("Q3 Sales (final)"))
+  assert_eq(tables[0].path, "data/q3_sales__final_.csv")
+  let pictures = @render.pictures(with_pictures(["Q3 Sales (final)"]))
+  assert_eq(pictures[0].path, "assets/q3_sales__final__e1.png")
+}
+
+///|
+test "a picture whose name is already taken is numbered, as a table is" {
+  // Two sheets flattening to one stem, each with a picture at the same cell.
+  let pictures = @render.pictures(with_pictures(["Sales", "sales"]))
+  assert_eq(pictures.length(), 2)
+  assert_eq(pictures[0].path, "assets/sales_e1.png")
+  assert_eq(pictures[1].path, "assets/sales_e1_2.png")
+}
+
+///|
+test "punctuation flattens to underscores rather than disappearing" {
+  // `???` is three characters, so it is three underscores — losing them would
+  // make two differently-named sheets share a file.
+  assert_eq(@render.data_tables(literal_named("???"))[0].path, "data/___.csv")
+}
+
+///|
+test "a sheet with no name at all still gets a file" {
+  // Excel does not allow one, so this is reachable only by building a model by
+  // hand — which `render` accepts, being a renderer for any model rather than
+  // only for one `extract` produced.
+  assert_eq(@render.data_tables(literal_named(""))[0].path, "data/sheet.csv")
+}
+
+///|
+/// A sheet named `name` holding a block big enough to earn a file.
+fn literal_named(name : String) -> @model.Workbook {
+  let wb = @model.Workbook::new()
+  let sheet = wb.add_sheet(name)
+  for row in 1..<=@render.min_csv_rows {
+    for col in 1..<=@render.min_csv_columns {
+      sheet.set(@units.CellRef::new(col~, row~), Number(row.to_double()))
+    }
+  }
+  wb
+}

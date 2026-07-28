@@ -44,13 +44,17 @@ pub(all) struct DataTable {
 /// range, would be guessing at a layout the file does not describe — and a wrong
 /// guess costs a reader more than a missed one.
 pub fn data_tables(wb : @model.Workbook) -> Array[DataTable] {
+  companion_tables(wb, Names::new())
+}
+
+///|
+/// The same, against a caller's own name pool rather than a fresh one.
+fn companion_tables(wb : @model.Workbook, names : Names) -> Array[DataTable] {
   let tables = []
-  let taken : Map[String, Unit] = Map([])
   for sheet in wb.sheets {
     if literal_region(sheet) is Some(region) {
-      let name = unique_path(csv_name(sheet.name), taken)
-      taken[name] = ()
-      tables.push(region_table(sheet, region, name))
+      let path = names.claim(data_directory, file_stem(sheet.name), "csv")
+      tables.push(region_table(sheet, region, path))
     }
   }
   tables
@@ -202,36 +206,4 @@ fn needs_csv_quoting(text : String) -> Bool {
   }
   guard text.iter().head() is Some(first) else { return false }
   first is ('0'..='9' | '+' | '-' | '.')
-}
-
-///|
-/// A sheet's name as a file name: lowercase, with anything that is not a letter
-/// or a digit turned into an underscore, so a sheet called `Q3 Sales (final)`
-/// does not produce a path that needs quoting on a command line.
-fn csv_name(sheet_name : String) -> String {
-  let out = StringBuilder::new()
-  for ch in sheet_name {
-    if ch is ('a'..='z' | '0'..='9') {
-      out.write_char(ch)
-    } else if ch is ('A'..='Z') {
-      out.write_char(ch.to_ascii_lowercase())
-    } else {
-      out.write_char('_')
-    }
-  }
-  let name = out.to_string()
-  "data/" + (if name.is_empty() { "sheet" } else { name }) + ".csv"
-}
-
-///|
-/// `path`, or `path` with a number before the extension where it is taken. Two
-/// sheets named `Sales` and `sales!` would otherwise write over each other.
-fn unique_path(path : String, taken : Map[String, Unit]) -> String {
-  guard taken.get(path) is Some(_) else { return path }
-  let stem = path[:path.length() - 4].to_owned()
-  let mut suffix = 2
-  while taken.get("\{stem}_\{suffix}.csv") is Some(_) {
-    suffix += 1
-  }
-  "\{stem}_\{suffix}.csv"
 }
