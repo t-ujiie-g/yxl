@@ -68,6 +68,20 @@ jobs:
           irm https://cli.moonbitlang.com/install/powershell.ps1 | iex
           "$env:USERPROFILE\.moon\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
+      # See the same step in ci.yml: MSVC's front end cannot parse what MoonBit
+      # generates for the Excel backend's 365-arm formula dispatcher, and
+      # `clang-cl` is a cl-compatible driver that can. Without this the Windows
+      # binary cannot be built at all, so this belongs on the release path as
+      # much as on the test one.
+      - name: Use clang-cl on Windows (MSVC cannot parse the backend)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $clang = (Get-Command clang-cl -ErrorAction SilentlyContinue)
+          if (-not $clang) { throw "clang-cl not found on this runner" }
+          Write-Host "using $($clang.Source)"
+          "MOON_CC=clang-cl" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
       - name: Update registry index
         run: moon update
 
