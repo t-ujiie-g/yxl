@@ -61,8 +61,12 @@ jobs:
           test "$declared" = "$reported"
 
       # The product target is native (ADR-003): the CLI reads/writes files on
-      # disk. Test and build on native.
-      #
+      # disk. Build it before testing it — a compiler that cannot build the
+      # binary is a worse fact than a failing test, and finding it second means
+      # never finding it at all when the tests fail first.
+      - name: Build CLI (native)
+        run: moon build --target native --release
+
       # This is also where the scaling guardrail runs (src/cli/scaling_test.mbt):
       # it compiles one spec at two sizes and fails if the cost stops being
       # linear. It rides along here rather than in a step of its own because it
@@ -71,9 +75,6 @@ jobs:
       # nothing extra.
       - name: Test (native)
         run: moon test --target native
-
-      - name: Build CLI (native)
-        run: moon build --target native --release
 
       # The other half of the performance item, and the half that does *not*
       # gate: the figures themselves. A hosted runner's absolute milliseconds
