@@ -319,7 +319,9 @@ fn refers_to(
 
 ///|
 /// The backend indexes a sheet's views; `-1` addresses the last (and, for a
-/// workbook we build ourselves, only) one.
+/// workbook we build ourselves, only) one. `read` reads the same index back and
+/// keeps its own copy — the two packages are the only ones that speak to the
+/// backend, and there is no third place for a constant they share.
 const LAST_SHEET_VIEW : Int = -1
 
 ///|

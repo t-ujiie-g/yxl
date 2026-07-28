@@ -172,7 +172,9 @@ fn read_presentation(
 }
 
 ///|
-/// The view index the emitter writes to, and so the one to read back.
+/// The backend indexes a sheet's views; `-1` addresses the last one. This has to
+/// match the index `emit` writes to — the two packages are the only ones that
+/// speak to the backend, and there is no third place for a constant they share.
 const LAST_SHEET_VIEW : Int = -1
 
 ///|

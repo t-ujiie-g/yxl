@@ -20,7 +20,7 @@ fn read_conditional_formats(
   notes : Notes,
 ) -> Unit raise {
   for reference, formats in backend.get_conditional_formats(sheet.name) {
-    guard parse_range_or_cell(reference) is Some(at) else { continue }
+    guard @model.CellRange::parse_loose(reference) is Some(at) else { continue }
     for options in formats {
       guard read_conditional_rule(options, dates, notes) is Some(rule) else {
         continue

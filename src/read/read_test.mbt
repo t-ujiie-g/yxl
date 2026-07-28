@@ -40,6 +40,19 @@ fn at(reference : String) -> @units.CellRef {
 }
 
 ///|
+test "the reader seam works through the trait, not only the shorthand" {
+  // ADR-002's whole claim is that the backend sits behind an interface, and
+  // ADR-017 mirrors it for this direction. `from_bytes` is a convenience over
+  // the trait, so exercising only that would leave the seam itself unproven.
+  let (wb, sheet) = fixture()
+  sheet.set(at("A1"), Text("Region"))
+  let reader = @read.MbtexcelReader::new()
+  let recovered = reader.read(@emit.to_bytes(wb))
+  assert_eq(recovered.workbook.sheets.length(), 1)
+  assert_eq(cell_at(recovered.workbook.sheets[0], "A1"), Some(Text("Region")))
+}
+
+///|
 test "the values a cell can hold come back as themselves" {
   let (wb, sheet) = fixture()
   sheet.set(at("A1"), Text("Region"))
@@ -79,15 +92,7 @@ test "plain text does not come back as a one-run rich text" {
 ///|
 test "text that really does mix fonts comes back as runs" {
   let (wb, sheet) = fixture()
-  let italic : @model.Font = {
-    bold: None,
-    italic: Some(true),
-    underline: None,
-    strike: None,
-    size: None,
-    name: None,
-    color: None,
-  }
+  let italic : @model.Font = { ..@model.Font::empty(), italic: Some(true) }
   sheet.set(
     at("A1"),
     RichText([
@@ -108,15 +113,7 @@ test "a style comes back, and cells that shared one still share it" {
   let (wb, sheet) = fixture()
   let header : @model.Style = {
     ..@model.Style::empty(),
-    font: Some({
-      bold: Some(true),
-      italic: None,
-      underline: None,
-      strike: None,
-      size: None,
-      name: None,
-      color: None,
-    }),
+    font: Some({ ..@model.Font::empty(), bold: Some(true) }),
     fill: Some({ color: @units.Color::parse("1F3864").unwrap() }),
   }
   sheet.set(at("A1"), Text("Region"), style=header)

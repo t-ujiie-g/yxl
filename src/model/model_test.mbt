@@ -48,15 +48,7 @@ test "set folds a format shorthand into a style, and merges with an explicit sty
   let sheet = wb.add_sheet("S")
   let bold : @model.Style = {
     ..@model.Style::empty(),
-    font: Some({
-      bold: Some(true),
-      italic: None,
-      underline: None,
-      strike: None,
-      size: None,
-      name: None,
-      color: None,
-    }),
+    font: Some({ ..Font::empty(), bold: Some(true) }),
   }
   // A `format` shorthand alone becomes a number-format-only style.
   sheet.set(@units.CellRef::new(col=1, row=1), Number(1.0), format="0%")
@@ -91,13 +83,10 @@ test "Style::is_empty distinguishes the default style from any set attribute" {
 test "Style::over keeps what the overriding style leaves unset" {
   let base : @model.Style = {
     font: Some({
+      ..Font::empty(),
       bold: Some(false),
-      italic: None,
-      underline: None,
-      strike: None,
       size: Some(11.0),
       name: Some("Calibri"),
-      color: None,
     }),
     fill: Some({ color: red() }),
     borders: Some({
@@ -112,15 +101,7 @@ test "Style::over keeps what the overriding style leaves unset" {
   }
   let over : @model.Style = {
     ..@model.Style::empty(),
-    font: Some({
-      bold: Some(true),
-      italic: None,
-      underline: None,
-      strike: None,
-      size: None,
-      name: None,
-      color: None,
-    }),
+    font: Some({ ..Font::empty(), bold: Some(true) }),
     align: Some({ horizontal: Some(Center), vertical: None, wrap: None }),
   }
   let merged = over.over(base)
@@ -261,4 +242,49 @@ test "cells keep insertion order across multiple sheets" {
   assert_eq(wb.sheets.map(s => s.name), ["First", "Second"])
   assert_eq(wb.sheets[0].cells[0].value, Text("a"))
   assert_eq(wb.sheets[1].cells[0].value, Text("b"))
+}
+
+///|
+test "CellRange::parse is the inverse of to_a1, in either corner order" {
+  for text in ["A1:B9", "B9:A1", "A1:A1", "AA10:ZZ100"] {
+    let parsed = @model.CellRange::parse(text)
+    assert_true(parsed is Some(_))
+    guard parsed is Some(range) else { return }
+    // Canonical whichever way round it was written, so both orders agree.
+    assert_eq(@model.CellRange::parse(range.to_a1()), Some(range))
+  }
+  assert_eq(@model.CellRange::parse("A1:B9").unwrap().to_a1(), "A1:B9")
+  assert_eq(@model.CellRange::parse("B9:A1").unwrap().to_a1(), "A1:B9")
+}
+
+///|
+test "CellRange::parse refuses what is not two references around a colon" {
+  for text in ["A1", "", ":", "A1:", ":B9", "A1:B9:C1", "1:9", "A0:B9", "x:y"] {
+    assert_eq((text, @model.CellRange::parse(text)), (text, None))
+  }
+}
+
+///|
+test "parse_loose takes a single cell as the one-cell range it stands for" {
+  // Excel writes a validation or conditional format over one cell as a bare
+  // reference, which is the reason this variant exists.
+  let single = @model.CellRange::parse_loose("C3")
+  assert_true(single is Some(_))
+  guard single is Some(range) else { return }
+  assert_eq(range.top_left.to_a1(), "C3")
+  assert_eq(range.bottom_right.to_a1(), "C3")
+  assert_eq(@model.CellRange::parse_loose("A1:B9").unwrap().to_a1(), "A1:B9")
+  assert_eq(@model.CellRange::parse_loose("nonsense"), None)
+}
+
+///|
+test "Font::empty sets nothing, and says so" {
+  let font = @model.Font::empty()
+  assert_true(font.is_empty())
+  assert_eq(font.bold, None)
+  assert_eq(font.color, None)
+  assert_true(!{ ..@model.Font::empty(), bold: Some(true) }.is_empty())
+  // Two empty fonts are equal, which is what lets a style holding one intern
+  // with a style holding none.
+  assert_eq(@model.Font::empty(), @model.Font::empty())
 }

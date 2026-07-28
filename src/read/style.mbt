@@ -103,23 +103,10 @@ fn read_font(font : @xlsx.Font?, notes : Notes) -> @model.Font? {
       "a font effect the spec has no word for (outline, shadow, condense, extend, or super/subscript)",
     )
   }
-  if recovered == empty_font() {
+  if recovered.is_empty() {
     None
   } else {
     Some(recovered)
-  }
-}
-
-///|
-fn empty_font() -> @model.Font {
-  {
-    bold: None,
-    italic: None,
-    underline: None,
-    strike: None,
-    size: None,
-    name: None,
-    color: None,
   }
 }
 

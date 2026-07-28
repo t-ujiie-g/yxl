@@ -210,15 +210,23 @@ fn rich_run(run : @model.RichRun) -> @yaml.Node {
 ///|
 /// A whole number goes out as an integer, so a spec reads `2400000` rather than
 /// `2400000.0`. The value is the same either way; the spelling is not.
+///
+/// The bound is where a `Double` stops being able to tell one integer from the
+/// next: past it, `2^53 + 1` and `2^53` are the same value, and writing either
+/// as an integer would claim a precision the number does not have.
 fn number_scalar(number : Double) -> @yaml.Node {
   if number == number.trunc() &&
-    number.abs() < 9.007199254740992e15 &&
+    number.abs() <= EXACT_INTEGER_LIMIT &&
     !number.is_inf() {
     @yaml.Int(number.to_int64())
   } else {
     @yaml.Float(number)
   }
 }
+
+///|
+/// The largest magnitude a `Double` represents every integer up to: 2^53.
+const EXACT_INTEGER_LIMIT : Double = 9007199254740992.0
 
 ///|
 /// The same rule for a measurement that reached the model as a `Double`.

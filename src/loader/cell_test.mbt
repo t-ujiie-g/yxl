@@ -335,12 +335,8 @@ test "load parses a rich-text cell of plain and fonted runs" {
       {
         text: "bold red",
         font: Some({
+          ..@model.Font::empty(),
           bold: Some(true),
-          italic: None,
-          underline: None,
-          strike: None,
-          size: None,
-          name: None,
           color: @units.Color::parse("FF0000"),
         }),
       },

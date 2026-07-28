@@ -1067,6 +1067,43 @@ Phase 11's inline `values:` lands. `$include` splitting is never inferred.
 
 Reverse-chronological. One entry per user-visible or structural change.
 
+- **2026-07-28** — **A refactoring pass over the tree `extract` grew into.** Two
+  new packages and a schema key had landed in quick succession, so this is the
+  tidy-up: no behaviour changes, 550 tests still pass, and the only `.mbti` diff
+  is the four helpers below.
+
+  The largest find was **a seven-field `Font` literal written out in full in
+  nine files, seventeen times**, usually to set one attribute — `model` had
+  `Style::empty()` but no `Font::empty()`, so there was nothing else to write.
+  Adding it (with `is_empty`, which `read` had a local copy of) turned six lines
+  of `None` into the one attribute that was the point.
+
+  **A1 range parsing had drifted to three places.** `CellRange` lives in `model`,
+  so parsing one now does too — `CellRange::parse`, plus a `parse_loose` for the
+  bare `A1` Excel writes when a region is one cell. The loader keeps its own
+  corner-by-corner parse *and now says why*: it names which corner is wrong,
+  which is the whole of what a diagnostic is for (ADR-006).
+
+  `model.mbt` had reached 540 lines across two unrelated halves and is now split
+  at the boundary that was already there: the cell-level vocabulary in
+  `model.mbt`, the `Sheet`/`Workbook` containers and their methods in
+  `workbook.mbt`. The `Sheet` struct moved to sit with its own methods rather
+  than three files away from them.
+
+  Also: the exact-integer bound in `render` was a bare `9.007199254740992e15`
+  with no name and a different definition from `emit`'s, and is now
+  `EXACT_INTEGER_LIMIT` with the reason (past 2^53 a `Double` cannot tell one
+  integer from the next); the `LAST_SHEET_VIEW` that `emit` and `read` must agree
+  on now says in both places that it is shared and why there is no third home for
+  it; one comment restated the line under it and one referred to a ROADMAP
+  section rather than naming the thing (§8.6).
+
+  **`read`'s seam had no test through its trait**, only through the `from_bytes`
+  shorthand — where `emit`'s has had one all along. ADR-002's claim is that the
+  backend sits behind an interface, and exercising only the convenience wrapper
+  left the interface itself unproven. There is one now, plus tests for the four
+  new public helpers.
+
 - **2026-07-28** — **`yxl extract` works**: an existing workbook becomes a
   starting spec. Two new packages complete the pipeline in the other direction —
   `src/read` is the reader seam (the mirror of `emit`, and now the only other

@@ -15,15 +15,7 @@ fn formatted(code : String) -> @model.Style {
 fn bold() -> @model.Style {
   {
     ..@model.Style::empty(),
-    font: Some({
-      bold: Some(true),
-      italic: None,
-      underline: None,
-      strike: None,
-      size: None,
-      name: None,
-      color: None,
-    }),
+    font: Some({ ..@model.Font::empty(), bold: Some(true) }),
   }
 }
 

@@ -170,6 +170,28 @@ pub(all) struct Font {
 } derive(Eq, Hash, Debug)
 
 ///|
+/// The empty font — every attribute defaulted, so it inherits everything from
+/// whatever the cell already wears. Spelling all seven fields out to set one of
+/// them is the kind of noise that hides which attribute was the point.
+pub fn Font::empty() -> Font {
+  {
+    bold: None,
+    italic: None,
+    underline: None,
+    strike: None,
+    size: None,
+    name: None,
+    color: None,
+  }
+}
+
+///|
+/// Whether the font sets nothing (equal to `empty`).
+pub fn Font::is_empty(self : Font) -> Bool {
+  self == Font::empty()
+}
+
+///|
 /// A solid cell fill in a single color.
 pub(all) struct Fill {
   color : @units.Color

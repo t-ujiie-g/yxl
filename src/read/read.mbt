@@ -4,8 +4,8 @@
 //
 // The boundary is the **schema**, not the file: recover what `model` can hold,
 // never guess at what it cannot, and record every drop so the caller can say
-// what was lost. Recovering everything would be a round trip by another route,
-// which §2 rules out.
+// what was lost. Recovering everything would be a round-trip contract by
+// another route, which this direction deliberately does not offer (ADR-017).
 
 ///|
 /// What one read produced: the workbook, and a note for everything in the file
@@ -124,42 +124,17 @@ fn used_range(
   backend : @xlsx.Workbook,
   sheet_name : String,
 ) -> @model.CellRange? raise {
-  let dimension = backend.get_sheet_dimension(sheet_name)
-  guard !dimension.is_empty() else { return None }
-  let (left, right) = match dimension.split_once(":") {
-    Some((left, right)) => (left.to_owned(), right.to_owned())
-    None => (dimension, dimension)
-  }
-  guard @units.CellRef::parse_a1(left) is Some(first) &&
-    @units.CellRef::parse_a1(right) is Some(second) else {
-    return None
-  }
-  let (top_left, bottom_right) = @units.CellRef::rect(first, second)
-  Some({ top_left, bottom_right })
+  @model.CellRange::parse_loose(backend.get_sheet_dimension(sheet_name))
 }
 
 ///|
 /// A sheet's merged regions.
 fn read_merges(backend : @xlsx.Workbook, sheet : @model.Sheet) -> Unit raise {
   for reference in backend.get_merge_cells(sheet.name) {
-    if parse_range(reference) is Some(range) {
+    if @model.CellRange::parse(reference) is Some(range) {
       sheet.merge(range.top_left, range.bottom_right)
     }
   }
-}
-
-///|
-/// A `TopLeft:BottomRight` range as the backend spells it. Unparseable input is
-/// `None` rather than an error: this is a *reader*, and a region it cannot make
-/// sense of is one more thing the schema will not carry.
-fn parse_range(reference : String) -> @model.CellRange? {
-  guard reference.split_once(":") is Some((left, right)) else { return None }
-  guard @units.CellRef::parse_a1(left.to_owned()) is Some(first) &&
-    @units.CellRef::parse_a1(right.to_owned()) is Some(second) else {
-    return None
-  }
-  let (top_left, bottom_right) = @units.CellRef::rect(first, second)
-  Some({ top_left, bottom_right })
 }
 
 ///|

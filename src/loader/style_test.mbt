@@ -26,10 +26,8 @@ test "load parses a full style: font, fill, border, alignment, and number format
     Some(@model.Style::{
       number_format: Some("0.00%"),
       font: Some({
+        ..@model.Font::empty(),
         bold: Some(true),
-        italic: None,
-        underline: None,
-        strike: None,
         size: Some(12.0),
         name: Some("Calibri"),
         color: @units.Color::parse("FF0000"),
@@ -199,15 +197,7 @@ test "a named style is declared once and referenced by name from many cells" {
   let sheet = workbook.sheets[0]
   let header : @model.Style = {
     ..@model.Style::empty(),
-    font: Some({
-      bold: Some(true),
-      italic: None,
-      underline: None,
-      strike: None,
-      size: None,
-      name: None,
-      color: None,
-    }),
+    font: Some({ ..@model.Font::empty(), bold: Some(true) }),
     fill: Some({ color: @units.Color::parse("DDDDDD").unwrap() }),
   }
   // Both cells and the column band resolve to the one declared style, so the

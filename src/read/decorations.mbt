@@ -83,7 +83,7 @@ fn read_validations(
     // A validation may cover several disjoint regions in one record. The schema
     // gives each its own entry, which says the same thing.
     for reference in validation.sqref.split(" ") {
-      guard parse_range_or_cell(reference.to_owned()) is Some(at) else {
+      guard @model.CellRange::parse_loose(reference.to_owned()) is Some(at) else {
         continue
       }
       guard read_validation_rule(validation, dates, notes) is Some(rule) else {
@@ -241,8 +241,8 @@ fn read_tables(
   notes : Notes,
 ) -> Unit raise {
   for table in backend.get_tables(sheet.name) {
-    guard parse_range(table.range_ref) is Some(at) else {
-      guard parse_range(table.range) is Some(at) else { continue }
+    guard @model.CellRange::parse(table.range_ref) is Some(at) else {
+      guard @model.CellRange::parse(table.range) is Some(at) else { continue }
       add_table(sheet, at, table, notes)
       continue
     }
@@ -293,7 +293,7 @@ fn read_filter(
   notes : Notes,
 ) -> Unit raise {
   guard backend.get_auto_filter(sheet.name) is Some(filter) else { return }
-  guard parse_range(filter.range_ref) is Some(range) else { return }
+  guard @model.CellRange::parse(filter.range_ref) is Some(range) else { return }
   if !filter.columns.is_empty() {
     notes.drop(
       "a filter with criteria already applied, kept as the plain filter over its range",
@@ -308,26 +308,13 @@ fn parse_sheet_range(text : String) -> @model.SheetRange? {
   let bare = text.replace_all(old="$", new="").replace_all(old="'", new="")
   match bare.split_once("!") {
     Some((name, rest)) =>
-      match parse_range_or_cell(rest.to_owned()) {
+      match @model.CellRange::parse_loose(rest.to_owned()) {
         Some(range) => Some({ sheet: Some(name.to_owned()), range })
         None => None
       }
     None =>
-      match parse_range_or_cell(bare) {
+      match @model.CellRange::parse_loose(bare) {
         Some(range) => Some({ sheet: None, range })
-        None => None
-      }
-  }
-}
-
-///|
-/// A range, or a single cell standing for the one-cell range.
-fn parse_range_or_cell(reference : String) -> @model.CellRange? {
-  match parse_range(reference) {
-    Some(range) => Some(range)
-    None =>
-      match @units.CellRef::parse_a1(reference) {
-        Some(at) => Some({ top_left: at, bottom_right: at })
         None => None
       }
   }

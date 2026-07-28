@@ -26,15 +26,7 @@ fn formatted(code : String) -> @model.Style {
 fn bold() -> @model.Style {
   {
     ..@model.Style::empty(),
-    font: Some({
-      bold: Some(true),
-      italic: None,
-      underline: None,
-      strike: None,
-      size: None,
-      name: None,
-      color: None,
-    }),
+    font: Some({ ..@model.Font::empty(), bold: Some(true) }),
   }
 }
 
@@ -284,18 +276,7 @@ test "rich text renders its runs, plain ones as bare strings" {
     at("A1"),
     RichText([
       { text: "plain ", font: None },
-      {
-        text: "bold",
-        font: Some({
-          bold: Some(true),
-          italic: None,
-          underline: None,
-          strike: None,
-          size: None,
-          name: None,
-          color: None,
-        }),
-      },
+      { text: "bold", font: Some({ ..@model.Font::empty(), bold: Some(true) }) },
     ]),
   )
   inspect(
