@@ -501,6 +501,36 @@ gate, which is why none carries a box:
             holds a serial and the spec wants a written date), **conditional
             formats of every rule the schema names**, tables, and the auto
             filter's range
+      - [ ] **Slice 4 — the floating features**, all of which the backend does
+            hand back as *typed* records that map onto the schema's own
+            vocabulary, so each is a translation like slice 3 rather than a
+            piece of research. Checked against `.mooncakes/`, not assumed:
+            - [ ] **Form controls** — `get_form_controls` returns
+                  `{ cell, control_type, text, checked, cell_link, width,
+                  height, current_val, min_val, max_val, inc_change,
+                  page_change, horizontally }`, which is `model.FormControl`
+                  almost field for field. The easiest of the four
+            - [ ] **Slicers** — `get_slicers` returns
+                  `{ cell, table_name, caption, width, height, display_header }`,
+                  likewise 1:1
+            - [ ] **Sparklines** — `Worksheet::sparkline_groups` returns the
+                  group with its type, its cells, and the options the schema
+                  names (markers, high/low/first/last, manual bounds, weight)
+            - [ ] **Shapes** — `Worksheet::shapes` returns
+                  `{ cell, shape_type, text, width, height, fill_color, … }`.
+                  One caveat already on the books: the backend lowercases the
+                  `prst` token (§9), so a geometry whose name carries a capital
+                  reads back as one the schema does not name, and has to be
+                  reported rather than guessed at
+      - [ ] **Slice 5 — charts and pivots**, which are *not* the same kind of
+            work. The backend types only the anchor and the geometry and hands
+            the thing itself over as a raw part — `Chart { reference, xml, … }`,
+            `PivotTable { table_xml, cache_definition_xml, … }`. Recovering
+            `model.Chart` (kind, series, title, legend, axes) or `model.Pivot`
+            (source, rows, columns, values) therefore means **parsing DrawingML
+            and the pivot cache ourselves**, which is a reader of its own, not a
+            translation. Worth doing only if a real workbook makes the gap hurt;
+            until then `extract` names them as dropped, which it does
       - [ ] **CSV extraction**, which also settles one-file vs. many: a
             contiguous all-literal region with homogeneous column types becomes
             a `data:` entry. `data:` reads a *path* and has no inline form, so
@@ -508,7 +538,25 @@ gate, which is why none carries a box:
             inline `values:` lands first, in which case one file can carry it.
             `$include` splitting beyond that is *not* inferred: which files
             change together is the author's judgement and the workbook holds no
-            evidence of it
+            evidence of it.
+            **Images and sheet backgrounds wait on the same decision**: their
+            bytes come back whole (`get_pictures` carries `data` and
+            `extension`), so nothing is missing — but writing a picture out is a
+            second file, exactly as a CSV is, and the two should be answered
+            together rather than one at a time
+      - [ ] **Blocked, not deferred** — these are the two `extract` cannot do
+            anything about on its own:
+            - **Print setup**, because `page_layout_with_defaults` aliases a
+              module-level default instead of copying it, so reading one sheet's
+              setup leaks it to every later sheet and to every later workbook
+              read in the same process. Becomes a plain read the day that is a
+              copy; worth an upstream report
+            - **Shared-formula followers**, so a `formulas:` range comes back as
+              a formula on its master cell and cached values under it.
+              `Worksheet::formula_refs` lists the cells holding formula *text*,
+              which is the masters; nothing public says which cells follow one.
+              A `formula_shared_index` exists on the backend's own `Cell`, but
+              no public accessor returns it
 
 ### Phase 11 — Authoring ergonomics (added after the v0.1.0 review, §11)
 These sharpen what §1 already claims, so they land **before the schema freeze**;
@@ -1066,6 +1114,39 @@ Phase 11's inline `values:` lands. `$include` splitting is never inferred.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-28** — **What `extract` still misses, sorted by what it would take.**
+  Documentation only. The nine unrecovered sheet features had been listed as one
+  undifferentiated pile of "future work", which is the same flattening that had
+  conditional formats written off — so each was checked against `.mooncakes/`
+  and they turn out to be three different jobs.
+
+  **Typed already, so a translation** (slice 4): form controls, slicers,
+  sparklines, and shapes. `get_form_controls` hands back `{ cell, control_type,
+  text, checked, cell_link, width, height, current_val, min_val, max_val,
+  inc_change, page_change, horizontally }` — `model.FormControl` almost field for
+  field — and the other three are the same shape. Shapes carry one caveat already
+  on the books: the backend lowercases the `prst` token (§9), so a geometry whose
+  name has a capital reads back as one the schema does not name.
+
+  **A reader of its own** (slice 5): charts and pivots. The backend types only
+  the anchor and the geometry and hands the thing itself over as a raw part —
+  `Chart { reference, xml, … }`, `PivotTable { table_xml,
+  cache_definition_xml, … }` — so recovering the model's chart or pivot means
+  parsing DrawingML and the pivot cache. Worth doing when a real workbook makes
+  the gap hurt, not before.
+
+  **Waiting on a decision already open**: images and sheet backgrounds. Their
+  bytes come back whole, so nothing is missing; what stops them is that writing a
+  picture out is a *second file*, which is the same one-file-or-many question CSV
+  extraction asks. The two should be answered together.
+
+  **Blocked rather than deferred**: print setup (the backend aliases a
+  module-level default instead of copying it, so one sheet's setup leaks to every
+  later one) and shared-formula followers (`formula_refs` lists the masters;
+  nothing public says which cells follow one, though the backend's own `Cell`
+  carries a `formula_shared_index`). `docs/spec.md` §22 now says which is which
+  in the same three groups.
 
 - **2026-07-28** — **A refactoring pass over the tree `extract` grew into.** Two
   new packages and a schema key had landed in quick succession, so this is the
