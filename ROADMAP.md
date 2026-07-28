@@ -1037,6 +1037,25 @@ Phase 11's inline `values:` lands. `$include` splitting is never inferred.
 
 ## 9. Risks
 
+- **Windows cannot build, and it is not our code.** `moon build --target native`
+  fails on the Windows runner with MSVC's `C1026: parser stack overflow`, in
+  `bobzhang/mbtexcel`'s `eval_function` — one ~4900-line function matching 365
+  formula names, which lowers to an if/else chain deeper than `cl.exe`'s parser
+  stack. It is a formula *evaluator* yxl never calls (§2: Excel computes), but it
+  is in the same package as everything we do use, so it compiles into every
+  binary that touches the backend. We had been sitting just under the limit;
+  whatever landed next was going to cross it.
+  Neither way round works from here. `clang-cl` is the documented substitute and
+  gets past C1026, but `moon`'s Windows native path then fails to spawn its own
+  toolchain (`CreateProcessW`, whatever form the name is given in). The LLVM
+  target is closed off for a different reason: the backend depends on
+  `moonbitlang/async`, whose `raw_fd` declares `supported_targets = "-all+native"`.
+  **Mitigation: Windows is experimental** — its CI leg runs and reports but does
+  not block, a release ships without it, and the README and `install.ps1` say so
+  in as many words. The fix is upstream: that function wants splitting. Revisit
+  the moment it is, and before v1.0 either way, since "experimental" is not a
+  state to freeze a release policy around.
+
 - **Backend API churn (mbtexcel 0.1.x).** Mitigation: pin the version; the
   ADR-002 seam contains the blast radius.
 - **Heavy / native-only transitive deps.** Mitigation: accept the native target
@@ -1122,6 +1141,31 @@ Phase 11's inline `values:` lands. `$include` splitting is never inferred.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-29** — **Windows is experimental**, because it cannot build at all.
+  Reordering CI to build before testing turned "some tests fail on Windows" into
+  the fact that mattered: `moon build --target native --release` fails there,
+  with MSVC's `C1026: parser stack overflow` on `bobzhang/mbtexcel`'s
+  `eval_function` — one ~4900-line function matching 365 formula names. It is a
+  formula *evaluator* yxl never calls, and it is in a dependency, so neither the
+  cause nor the cure is here. We had been just under the limit; the pictures
+  commit crossed it, and whatever came next would have.
+
+  Two escapes were tried and both are closed. `clang-cl` is what `moon`'s own
+  message asks for and it does get past C1026, but the Windows native path then
+  fails to spawn its toolchain — bare name, absolute path, with and without
+  `.exe`, and the archiver named too. And the LLVM target cannot be reached at
+  all: the backend depends on `moonbitlang/async`, whose `raw_fd` declares
+  `supported_targets = "-all+native"`. That is a fact worth having written down,
+  since "try LLVM" is the obvious next idea.
+
+  So Windows **runs and reports but does not block**, a tagged release ships
+  Linux and macOS without waiting on it, and the README, `install.ps1`, and §9
+  all say why rather than leaving a 404 to be puzzled over. Leaving the leg red
+  and required would only teach everyone to ignore a red tick; dropping it would
+  hide a platform going quietly stale. The real fix is upstream, and this is
+  revisited before v1.0 either way — "experimental" is not a state to freeze a
+  release policy around.
 
 - **2026-07-28** — **`extract` writes the files its spec names**, which settles
   the one-file-or-many question the phase item left open: **many**. `Extracted`

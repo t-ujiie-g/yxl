@@ -46,6 +46,11 @@ jobs:
           # billing was not confirmed. Intel Macs build from source — an arm64
           # binary cannot run there, so shipping one would be worse than none.
     runs-on: ${{ matrix.os }}
+    # Windows is experimental and does not block a release: the binary cannot be
+    # built there today (see ci.yml for why), so a tag ships Linux and macOS and
+    # the Windows asset is simply absent. `install.ps1` says so when it cannot
+    # find one, which is better than a release that never happens.
+    continue-on-error: ${{ matrix.os == 'windows-latest' }}
     # Git Bash ships on the Windows runners, so packaging is one script for all
     # three platforms; only the installer and the archive format differ.
     defaults:

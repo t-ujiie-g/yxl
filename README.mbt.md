@@ -112,9 +112,8 @@ YXL_VERSION=0.1.0 YXL_INSTALL_DIR=/usr/local/bin \
   curl -fsSL https://raw.githubusercontent.com/t-ujiie-g/yxl/main/install.sh | sh
 ```
 
-Prebuilt binaries cover **Linux x86_64**, **macOS arm64** (Apple silicon), and
-**Windows x86_64**. On an Intel Mac, or any other platform, build from source
-below. Piping
+Prebuilt binaries cover **Linux x86_64** and **macOS arm64** (Apple silicon).
+On an Intel Mac, or any other platform, build from source below. Piping
 a script into a shell is worth doing deliberately — [read
 `install.sh`](./install.sh) first if you would rather, or install by hand from
 the release assets, or build from source:
@@ -136,7 +135,15 @@ with `xattr -d com.apple.quarantine ~/.local/bin/yxl`.
 Paths may use either separator, so `yxl build specs\report.yaml` works on
 Windows and a spec's own `$include: data/x.yaml` stays portable.
 
-**One Windows limitation:** the *command line* cannot carry non-ASCII today —
+> **Windows is experimental, and a release may carry no binary for it.** The
+> Excel library yxl is built on contains a single function matching 365 formula
+> names, and the Microsoft C compiler cannot parse what that compiles to
+> (`C1026: parser stack overflow`). It is code yxl never runs — formulas are
+> Excel's to evaluate, not yxl's — but it sits in the same package, so the
+> Windows build fails on it. Linux and macOS are unaffected. Until it is fixed
+> upstream, build from source or run yxl under WSL.
+
+**One further Windows limitation:** the *command line* cannot carry non-ASCII today —
 `yxl build 売上\report.yaml` fails, because the runtime reads arguments as UTF-8
 while Windows hands them over in the system code page
 ([upstream](https://github.com/moonbitlang/x): "TODO: Handle other encodings").

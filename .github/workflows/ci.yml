@@ -20,6 +20,20 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
+    # Windows runs and reports but does not block, because it currently cannot
+    # get as far as running: `moon build --target native` fails with MSVC's
+    # `C1026: parser stack overflow` on the Excel backend's formula dispatcher
+    # — one ~4900-line function matching 365 names, which the compiler cannot
+    # parse. It is code yxl never calls (formulas are Excel's to evaluate), it
+    # is in a dependency, and there is no way round it from here: `clang-cl`
+    # cannot be substituted (moon's Windows path fails to spawn its own
+    # toolchain), and the LLVM target is closed off because the backend depends
+    # on `moonbitlang/async`, which declares itself native-only.
+    #
+    # So Windows is **experimental** until the dependency splits that function.
+    # Leaving the leg red and required would only train everyone to ignore a red
+    # tick; leaving it out entirely would hide a platform going quietly stale.
+    continue-on-error: ${{ matrix.os == 'windows-latest' }}
     steps:
       - uses: actions/checkout@v5
 
