@@ -125,3 +125,71 @@ test "load rejects a pointless or malformed freeze, split, and tab color" {
     Some("spec.yaml: sheet 'gridlines' must be true or false"),
   )
 }
+
+///|
+test "load rejects a sheet name Excel would refuse, and says which rule" {
+  // The backend refuses these too, but only as a bare `InvalidSheetName` with
+  // neither the sheet nor the rule in it — so an author who hit that had to go
+  // looking for Excel's list. These messages are the list (ADR-006).
+  assert_eq(
+    schema_message("sheets:\n  - name: \"\"\n"),
+    Some("spec.yaml: a sheet's 'name' is empty; Excel needs a name"),
+  )
+  assert_eq(
+    schema_message("sheets:\n  - name: \"Q3/Q4\"\n"),
+    Some(
+      "spec.yaml: sheet name 'Q3/Q4' contains '/', which Excel does not allow in a sheet name",
+    ),
+  )
+  assert_eq(
+    schema_message("sheets:\n  - name: \"a]b\"\n"),
+    Some(
+      "spec.yaml: sheet name 'a]b' contains ']', which Excel does not allow in a sheet name",
+    ),
+  )
+  assert_eq(
+    schema_message("sheets:\n  - name: \"" + "a".repeat(32) + "\"\n"),
+    Some(
+      "spec.yaml: sheet name '" +
+      "a".repeat(32) +
+      "' is 32 characters; Excel allows at most 31",
+    ),
+  )
+  // Reserved whatever its case: Excel writes `History` itself for a shared
+  // workbook, so a sheet of that name would collide with one it creates.
+  assert_eq(
+    schema_message("sheets:\n  - name: history\n"),
+    Some(
+      "spec.yaml: sheet name 'history' is reserved by Excel for a shared workbook's change log",
+    ),
+  )
+  assert_eq(
+    schema_message("sheets:\n  - name: \"'Q3\"\n"),
+    Some(
+      "spec.yaml: sheet name ''Q3' starts or ends with an apostrophe, which Excel uses to quote a sheet name in a reference",
+    ),
+  )
+}
+
+///|
+test "a name at the limit, and one that is not ASCII, are accepted" {
+  // The length is in *characters*, not bytes: a five-character Japanese name is
+  // five, and counting its bytes would refuse names Excel accepts.
+  let long = "a".repeat(31)
+  assert_eq(
+    load_ok("sheets:\n  - name: \"" + long + "\"\n").sheets[0].name,
+    long,
+  )
+  assert_eq(
+    load_ok("sheets:\n  - name: 売上サマリ\n").sheets[0].name,
+    "売上サマリ",
+  )
+}
+
+///|
+test "an empty 'sheets' says so rather than blaming visibility" {
+  assert_eq(
+    schema_message("sheets: []\n"),
+    Some("spec.yaml: 'sheets' is empty; a workbook needs a sheet"),
+  )
+}

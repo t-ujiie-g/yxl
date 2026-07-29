@@ -622,7 +622,17 @@ gate, which is why none carries a box:
               module-level default instead of copying it, so reading one sheet's
               setup leaks it to every later sheet and to every later workbook
               read in the same process. Becomes a plain read the day that is a
-              copy; worth an upstream report
+              copy; worth an upstream report.
+              **Route found, not yet taken:** `pub struct Worksheet` exposes
+              `page_layout`, `page_margins`, `header_footer`, `row_breaks`, and
+              `col_breaks` as *fields*, all `Option`, so presence and content
+              can be read without going near the aliasing accessor at all — the
+              detection that now reports the loss already does exactly this.
+              Recovering `model.PageSetup` from them is a real piece of work
+              with its own tests (the print area is a `_xlnm.Print_Area`
+              defined name, and `PageLayoutOptions` splits scaling across
+              `adjust_to` / `fit_to_width` / `fit_to_height`), so it is its own
+              item rather than a footnote here
             - **Shared-formula followers**, so a `formulas:` range comes back as
               a formula on its master cell and cached values under it.
               `Worksheet::formula_refs` lists the cells holding formula *text*,
@@ -1217,6 +1227,42 @@ Phase 11's inline `values:` lands. `$include` splitting is never inferred.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-29** — **Four silent failures in `yxl extract`, and a diagnostic
+  that named nothing.** Found by enumeration rather than by reading code: every
+  `model` field against every stage, then every backend `Worksheet` and
+  `Workbook` field against what `read` ever names.
+
+  **Three features vanished without a word.** Charts, pivot tables, and print
+  setup are all documented in `docs/spec.md` §22 as not recovered — and the
+  command said nothing about any of them, then printed "everything else rebuilds
+  the workbook as read". The cause is structural and worth naming: every other
+  loss is reported as a *side effect of translating something*, so a feature no
+  code touches at all reports nothing, because there is no code to report from.
+  `src/read/unsupported.mbt` is the fix, and it is the only file here whose job
+  is to run when nothing else did.
+
+  **A chart sheet failed the whole extraction.** `get_sheet_list` names one
+  alongside the worksheets while every per-sheet accessor answers
+  `SheetNotFound`, so a workbook with a chart moved to its own tab — a
+  right-click away in Excel — died with `Excel backend:
+  bobzhang/mbtexcel/xlsx.XlsxError.SheetNotFound` and nothing to act on. Now
+  skipped and named. Which kind it is comes off `chart_sheet(name)` rather than
+  off the assumption that a non-worksheet must be a chart sheet: Excel also has
+  dialog and macro sheets, and calling one of those a chart would be a confident
+  wrong answer where "not a grid" is a true one.
+
+  **An invalid sheet name leaked the backend's error.** `name: "Q3/Q4"` compiled
+  to `Excel backend: …XlsxError.InvalidSheetName` — which sheet? which rule? The
+  loader now checks Excel's own list (1–31 *characters*, none of `: \ / ? * [ ]`,
+  no leading or trailing apostrophe, not `History`) and names both. `sheets: []`
+  said "every sheet is hidden", which is a different mistake with no sheet to
+  unhide; it now says so.
+
+  Refactoring lenses §8.1, §8.2 and §8.8 came back clean — no magic numbers left
+  unnamed, no dead code, no TODOs, no deprecation warnings, and nothing over 500
+  lines outside tests. The previous two passes did their job; this one was
+  almost entirely defects.
 
 - **2026-07-29** — **A `data:` entry can carry its rows inline**, not only read
   them from a file: `- { at: A2, values: [[APAC, 2400000], [EMEA, 1750000]] }`

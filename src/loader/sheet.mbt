@@ -23,6 +23,64 @@ fn load_sheets(
 }
 
 ///|
+/// Excel's own rules for a sheet's name (ECMA-376 §18.4.7 and the constraints
+/// its UI enforces), checked here so a broken one is a diagnostic naming the
+/// sheet and the rule rather than the backend's bare `InvalidSheetName`.
+///
+/// The backend refuses these too — but by the time it does, the spec's own
+/// vocabulary is gone, and "InvalidSheetName" tells an author neither which
+/// sheet nor which rule (ADR-006).
+fn check_sheet_name(
+  name : String,
+  file~ : String,
+) -> Unit raise @diag.SchemaError {
+  fn refuse(reason : String) -> @diag.SchemaError {
+    schema_error(file~, "sheet name '\{name}' \{reason}")
+  }
+
+  guard !name.is_empty() else {
+    raise schema_error(file~, "a sheet's 'name' is empty; Excel needs a name")
+  }
+  guard name.char_length() <= max_sheet_name_length else {
+    raise refuse(
+      "is \{name.char_length()} characters; Excel allows at most \{max_sheet_name_length}",
+    )
+  }
+  for ch in name {
+    if forbidden_sheet_name_chars.contains(ch) {
+      raise refuse(
+        "contains '\{ch}', which Excel does not allow in a sheet name",
+      )
+    }
+  }
+  // Excel writes its own `History` sheet when a workbook is shared, so the name
+  // is reserved whatever its case.
+  guard name.to_lower() != reserved_sheet_name.to_lower() else {
+    raise refuse("is reserved by Excel for a shared workbook's change log")
+  }
+  guard !(name.has_prefix("'") || name.has_suffix("'")) else {
+    raise refuse(
+      "starts or ends with an apostrophe, which Excel uses to quote a sheet name in a reference",
+    )
+  }
+}
+
+///|
+/// The longest sheet name Excel accepts.
+let max_sheet_name_length : Int = 31
+
+///|
+/// The characters Excel refuses in a sheet name — the four a formula reference
+/// would misread, plus the two that delimit a workbook name.
+let forbidden_sheet_name_chars : Array[Char] = [
+  ':', '\\', '/', '?', '*', '[', ']',
+]
+
+///|
+/// The one name Excel keeps for itself.
+let reserved_sheet_name : String = "History"
+
+///|
 /// Add one sheet to the workbook and return its name (for duplicate checking).
 fn load_sheet(
   node : @yaml.Node,
@@ -39,6 +97,7 @@ fn load_sheet(
     raise schema_error(file~, "a sheet is missing required key 'name'")
   }
   let sheet_name = expect_string(name_node, file~, context="sheet 'name'")
+  check_sheet_name(sheet_name, file~)
   let visibility = match find_key(entries, "visibility") {
     Some(value) => load_visibility(value, file~)
     None => @model.Visible

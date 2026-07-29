@@ -75,7 +75,32 @@ fn recover(bytes : Bytes) -> Recovered raise {
   )
   let styles = StyleTable::new()
   read_workbook_keys(backend, workbook, notes)
-  for name in backend.get_sheet_list() {
+  let sheet_names = backend.get_sheet_list()
+  // A chart sheet is a whole tab that is one chart, and `get_sheet_list` names
+  // it alongside the worksheets while every per-sheet accessor answers
+  // `SheetNotFound` for it. Walking it as a grid used to fail the whole read
+  // with the backend's own error and nothing to act on. It is skipped and said
+  // aloud instead: recovering it as an empty sheet would claim a data tab the
+  // workbook does not have.
+  let worksheets = sheet_names.filter(name => {
+    if backend.sheet(name) is Some(_) {
+      true
+    } else {
+      // Which kind it is comes off the backend rather than off the assumption
+      // that a non-worksheet must be a chart sheet: Excel also has dialog and
+      // macro sheets, and calling one of those a chart would be a confident
+      // wrong answer where "not a grid" is a true one.
+      notes.drop(
+        if backend.chart_sheet(name) is Some(_) {
+          "the sheet '\{name}', which is a chart sheet rather than a grid — the spec has no way to declare one, and the chart on it is raw XML besides"
+        } else {
+          "the sheet '\{name}', which is not a worksheet — the spec declares grids, and the backend offers nothing to read this one as"
+        },
+      )
+      false
+    }
+  })
+  for name in worksheets {
     let sheet = workbook.add_sheet(
       name,
       visibility=read_visibility(backend, name),
@@ -92,14 +117,19 @@ fn recover(bytes : Bytes) -> Recovered raise {
     read_sparklines(
       backend,
       sheet,
-      qualified_ranges=backend.get_sheet_list().length() > 1,
+      qualified_ranges=worksheets.length() > 1,
       notes,
     )
     read_sheet_protection(backend, sheet, notes)
+    read_unsupported(backend, sheet, notes)
   }
-  // The tab Excel opens on. Index 0 is the default, and saying so adds nothing.
+  // The tab Excel opens on. Index 0 is the default, and saying so adds nothing —
+  // and a chart sheet that was skipped above is no longer a tab this spec has,
+  // so naming it would produce one the loader refuses.
   let active = backend.get_active_sheet_index()
-  if active > 0 && backend.get_sheet_name(active) is Some(name) {
+  if active > 0 &&
+    backend.get_sheet_name(active) is Some(name) &&
+    worksheets.contains(name) {
     workbook.set_active_sheet(name)
   }
   { workbook, dropped: notes.take() }

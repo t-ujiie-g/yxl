@@ -110,6 +110,12 @@ pub fn load(
   check_formula_ranges(workbook, file~)
   check_slicers(workbook, file~)
   check_pivots(workbook, file~)
+  // Two different mistakes, and one message for both would name neither: an
+  // empty `sheets:` has no sheet to unhide, and a workbook of hidden sheets has
+  // sheets but no tab Excel can open on.
+  guard !workbook.sheets.is_empty() else {
+    raise schema_error(file~, "'sheets' is empty; a workbook needs a sheet")
+  }
   guard workbook.sheets.iter().any(sheet => sheet.visibility is Visible) else {
     raise schema_error(
       file~,
