@@ -144,7 +144,9 @@ test "load rejects malformed data entries and unusable tables" {
   )
   assert_eq(
     schema_message("sheets:\n  - name: S\n    data:\n      - at: A1\n"),
-    Some("spec.yaml: a 'data' entry needs a 'csv' or 'json' source"),
+    Some(
+      "spec.yaml: a 'data' entry needs a source: 'values' for rows written here, or 'csv' or 'json' for a file",
+    ),
   )
   assert_eq(
     schema_message(
@@ -152,7 +154,7 @@ test "load rejects malformed data entries and unusable tables" {
       files={ "x.csv": "", "x.json": "[]" },
     ),
     Some(
-      "spec.yaml: a 'data' entry sets more than one source (a table comes from one file)",
+      "spec.yaml: a 'data' entry sets more than one source (a table's rows come from one place: 'values', 'csv', or 'json')",
     ),
   )
   assert_eq(
@@ -202,6 +204,148 @@ test "load rejects malformed data entries and unusable tables" {
     ),
     Some(
       "x.json: row 1 has a field that is an array or object; a cell holds a string, number, boolean, or null",
+    ),
+  )
+}
+
+///|
+test "rows written in the spec land like a file's, typed by YAML" {
+  // The point of the inline form is diffs, but the reason it is worth having
+  // over `csv:` is *types*: YAML already said what each field is, so nothing
+  // has to be inferred from text the way a CSV field does.
+  let workbook = load_ok(
+    (
+      #|sheets:
+      #|  - name: S
+      #|    data:
+      #|      - at: B2
+      #|        values:
+      #|          - [APAC, 2400000, true]
+      #|          - [EMEA, 1.5, "007"]
+      #|
+    ),
+  )
+  let cells = workbook.sheets[0].cells
+  assert_eq(cells.length(), 6)
+  assert_eq(cells[0].pos, @units.CellRef::new(col=2, row=2))
+  assert_eq(cells[0].value, @model.Text("APAC"))
+  assert_eq(cells[1].value, @model.Number(2400000.0))
+  assert_eq(cells[2].value, @model.Bool(true))
+  assert_eq(cells[3].pos, @units.CellRef::new(col=2, row=3))
+  assert_eq(cells[4].value, @model.Number(1.5))
+  // Quoted in the spec, so it stays text — no inference step to get wrong.
+  assert_eq(cells[5].value, @model.Text("007"))
+}
+
+///|
+test "an inline null is a blank cell, and a short row stops where it stops" {
+  let workbook = load_ok(
+    (
+      #|sheets:
+      #|  - name: S
+      #|    data:
+      #|      - at: A1
+      #|        values:
+      #|          - [a, null, c]
+      #|          - [d]
+      #|
+    ),
+  )
+  let cells = workbook.sheets[0].cells
+  // Four cells, not six: the null wrote nothing and row two is one field long.
+  assert_eq(cells.length(), 3)
+  assert_eq(cells[0].pos.to_a1(), "A1")
+  assert_eq(cells[1].pos.to_a1(), "C1")
+  assert_eq(cells[2].pos.to_a1(), "A2")
+  assert_eq(cells[2].value, @model.Text("d"))
+}
+
+///|
+test "inline rows compose with the bands that style them" {
+  // `data:` carries no formatting of its own by design (ADR-005), so this is
+  // the whole story of how an inline table gets a look.
+  let workbook = load_ok(
+    (
+      #|sheets:
+      #|  - name: S
+      #|    data:
+      #|      - at: A1
+      #|        values: [[APAC, 2400000]]
+      #|    columns:
+      #|      - at: B
+      #|        format: "#,##0"
+      #|
+    ),
+  )
+  let sheet = workbook.sheets[0]
+  assert_eq(sheet.cells.length(), 2)
+  assert_eq(sheet.columns.length(), 1)
+}
+
+///|
+test "load rejects inline rows it cannot place" {
+  assert_eq(
+    schema_message(
+      (
+        #|sheets:
+        #|  - name: S
+        #|    data:
+        #|      - at: A1
+        #|        values: [[1]]
+        #|        csv: x.csv
+        #|
+      ),
+      files={ "x.csv": "" },
+    ),
+    Some(
+      "spec.yaml: a 'data' entry sets more than one source (a table's rows come from one place: 'values', 'csv', or 'json')",
+    ),
+  )
+  assert_eq(
+    schema_message(
+      (
+        #|sheets:
+        #|  - name: S
+        #|    data:
+        #|      - at: A1
+        #|        values: [[1]]
+        #|        columns: [a]
+        #|
+      ),
+    ),
+    Some(
+      "spec.yaml: 'columns' names the fields of JSON objects; inline rows are written in the order they should occupy",
+    ),
+  )
+  // A bare scalar where a row belongs: easy to write when a one-row table's
+  // brackets are forgotten, so the message names the row.
+  assert_eq(
+    schema_message(
+      (
+        #|sheets:
+        #|  - name: S
+        #|    data:
+        #|      - at: A1
+        #|        values: [1, 2]
+        #|
+      ),
+    ),
+    Some("spec.yaml: row 1 of 'data' 'values' must be a sequence"),
+  )
+  // `null` is admitted, so the message that refuses a nested value says so.
+  assert_eq(
+    schema_message(
+      (
+        #|sheets:
+        #|  - name: S
+        #|    data:
+        #|      - at: A1
+        #|        values: [[1, [2]]]
+        #|
+      ),
+    ),
+    Some(
+      "spec.yaml: a field in row 1 of 'data' 'values' must be text, a number, a boolean, or null for a blank cell",
     ),
   )
 }

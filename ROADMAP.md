@@ -556,7 +556,22 @@ gate, which is why none carries a box:
             (source, rows, columns, values) therefore means **parsing DrawingML
             and the pivot cache ourselves**, which is a reader of its own, not a
             translation. Worth doing only if a real workbook makes the gap hurt;
-            until then `extract` names them as dropped, which it does
+            until then `extract` names them as dropped, which it does.
+            **Correction, after measuring rather than asserting:** bundling the
+            two here overstated the chart half. A chart part is 1–3 KB and
+            `model.Chart` needs about ten named paths out of it — the chart-type
+            element name, `c:ser`'s `c:tx`/`c:cat/c:f`/`c:val/c:f`,
+            `c:title//a:t`, `c:legendPos`, and the axis `min`/`max` — while
+            `at` and `size` come off the backend's own typed fields. That is a
+            focused parse, not a DrawingML reader. Pivots really are the harder
+            half: `table_xml` names its fields by *index* into
+            `cache_definition_xml`, so two documents have to be correlated, and
+            filters are already blocked upstream (office.mbt#264). The remaining
+            risk on the chart side is the slice-4 one — a workbook Excel wrote is
+            far bulkier than one yxl wrote, and a half-read chart (stacked vs
+            clustered, a secondary axis) would be a *plausible wrong answer*
+            rather than a gap. Same discipline applies: recover only what can be
+            named confidently, report the rest
       - [x] **CSV extraction**, which settled one-file vs. many: **many**.
             `Extracted` carries `companions` — the files the spec names, as
             bytes — and `cmd/main` writes them beside it, making the directory
@@ -618,15 +633,27 @@ gate, which is why none carries a box:
 ### Phase 11 — Authoring ergonomics (added after the v0.1.0 review, §11)
 These sharpen what §1 already claims, so they land **before the schema freeze**;
 the first item changes what a spec looks like.
-- [ ] **Diff-stable tables.** A `cells:` mapping is keyed by A1 address, so
+- [x] **Diff-stable tables.** A `cells:` mapping is keyed by A1 address, so
       inserting a row rewrites every key below it — `git diff` reports the whole
-      block as changed, which undercuts the "diffable" headline. Fix by letting a
-      `data:` entry carry its rows **inline** rather than only from a file:
-      `- { at: A2, values: [[APAC, 2400000], [EMEA, 1750000]] }`. A row insert is
-      then a one-line diff, the anchor localizes addresses to one place, and it
-      reuses the anchored-table machinery `csv:`/`json:` already go through
-      instead of inventing a second concept. `cells:` stays for scattered,
-      individually-styled cells, which is what it is good at.
+      block as changed, which undercuts the "diffable" headline. Fixed by letting
+      a `data:` entry carry its rows **inline** rather than only from a file:
+      `- { at: A2, values: [[APAC, 2400000], [EMEA, 1750000]] }`. The anchor
+      localizes addresses to one place, and it reuses the anchored-table
+      machinery `csv:`/`json:` already go through instead of inventing a second
+      concept. `cells:` stays for scattered, individually-styled cells, which is
+      what it is good at.
+      **Shipped** as a third `data:` source (`docs/spec.md` §9, renamed from
+      "External data" since a table's rows need not be external any more). The
+      one-line-diff claim is measured, not assumed: inserting a region into a
+      three-row block is `+6/-4` written as `cells:` and `+1/-0` written as
+      `values:`. Inline fields also keep the types YAML gave them, so `"007"`
+      stays text with no inference step — a `csv:` field cannot manage that,
+      since CSV carries no types and every field has to be guessed at.
+      Follow-on now unlocked, deliberately not taken here: **`yxl extract
+      --flat` should emit `values:` rather than a `cells:` block** — the flat
+      form exists to give one file and, until this landed, inline had no good
+      shape to take. That is a change to `extract` with its own tests, not part
+      of this schema addition.
 - [x] **Filled formula columns.** A formula translated down a column — `E2` is
       `C2*D2`, `E3` is `C3*D3` — is the commonest structure in a real workbook
       and the schema cannot say it. `defs.formulas` does not: a `$ref` compiles
@@ -1190,6 +1217,23 @@ Phase 11's inline `values:` lands. `$include` splitting is never inferred.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-29** — **A `data:` entry can carry its rows inline**, not only read
+  them from a file: `- { at: A2, values: [[APAC, 2400000], [EMEA, 1750000]] }`
+  (`docs/spec.md` §9).
+
+  This is the diff-stability fix. A `cells:` mapping is keyed by address, so
+  inserting a row rewrites every key below it. Measured on a three-row block:
+  inserting one region is **`+6/-4` as `cells:` and `+1/-0` as `values:`**.
+
+  It also turns out to be the *better-typed* form, which was not the reason for
+  adding it. A `values:` field keeps the type YAML gave it, so `"007"` is text
+  and `007` is the number 7 — while a `csv:` field arrives as text and has to be
+  guessed at, because CSV carries no types. So inline rows are not merely CSV
+  written in place; they say more.
+
+  §9 is renamed from "External data" to "Tabular data", since a table's rows are
+  no longer necessarily external.
 
 - **2026-07-29** — **Two things `yxl build` never drew, found by opening the
   files rather than diffing them.** Both predate the extract work and neither is
