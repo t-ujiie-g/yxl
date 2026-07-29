@@ -77,7 +77,7 @@ sheets:
 
 | Key | Type | Notes |
 |---|---|---|
-| `name` | text | **Required.** Must be unique in the workbook. |
+| `name` | text | **Required.** Must be unique in the workbook, and follow Excel's rules — see below. |
 | `cells` | mapping | A1 reference → value. §3. |
 | `formulas` | sequence | One formula filled across a region. §3. |
 | `data` | sequence | Anchored tables — rows written inline, or read from CSV/JSON. §9. |
@@ -107,6 +107,12 @@ sheets:
 
 Sheet keys apply **in the order written**, so where a `data:` table and `cells:`
 overlap, whichever comes last wins.
+
+**Sheet names follow Excel's own rules**, checked when the spec loads rather
+than left to fail deep in the writer: 1–31 characters (counted as characters,
+so a Japanese name is as long as it looks), none of `: \ / ? * [ ]`, not
+starting or ending with an apostrophe, and not `History`, which Excel keeps for
+a shared workbook's change log. Breaking one names the sheet and the rule.
 
 ## 3. Cells
 
@@ -1212,6 +1218,11 @@ calculation settings, the default font, and each sheet's protection.
   sparkline that plotted another sheet comes back plotting this one — the same
   shape of answer with the wrong numbers in it. `extract` says so whenever a
   workbook has more than one sheet; with a single sheet nothing can be lost.
+- **A sheet that is not a grid is skipped and named.** A chart sheet — a whole
+  tab that is one chart, which Excel makes when you move a chart to its own
+  sheet — has no shape the spec can declare, and the chart on it is raw XML
+  besides. It is left out with a note rather than recovered as an empty sheet,
+  which would claim a data tab the workbook does not have.
 - **Charts and pivots are not recovered yet.** They are in the file and neither
   is a limit of the format: the Excel backend hands both back as raw XML parts,
   so recovering them means reading DrawingML and the pivot cache, which is a
