@@ -968,7 +968,7 @@ preset (ECMA-376 §20.1.10.56); an unknown name is a diagnostic.
 into the file, and DrawingML's tokens are case-sensitive — `roundRect` written
 as `roundrect` is a geometry Excel does not recognize. The kinds whose token
 carries a capital are therefore *refused by name*, with the reason: the
-rounded rectangle, the right triangle, the eight straight arrows, and the four
+rounded rectangle, the right triangle, the six straight arrows, and the four
 callouts. They become plain schema additions the day the backend keeps the
 token's case. An offset in from the anchor cell (which images take) is not
 available either: the backend's shape constructor does not accept one.

@@ -441,7 +441,7 @@ gate, which is why none carries a box:
   [office.mbt#264](https://github.com/moonbitlang/office.mbt/issues/264) rather
   than on us; both become schema changes the day it is fixed
 - **shape geometries whose DrawingML token carries a capital** — the rounded
-  rectangle, right triangle, the eight straight arrows, and the four callouts —
+  rectangle, right triangle, the six straight arrows, and the four callouts —
   blocked on the backend lowercasing `prst` (§9); each becomes one more row in
   the preset table the day it keeps the token's case
 - **form controls Excel actually draws.** Found by opening a built workbook
@@ -1130,7 +1130,8 @@ Phase 11's inline `values:` lands. `$include` splitting is never inferred.
   stack. It is a formula *evaluator* yxl never calls (§2: Excel computes), but it
   is in the same package as everything we do use, so it compiles into every
   binary that touches the backend. We had been sitting just under the limit;
-  whatever landed next was going to cross it.
+  whatever landed next was going to cross it. **It is still growing**: 4 917
+  lines in 0.1.8, 5 054 in 0.1.9, so the margin is moving the wrong way.
   Neither way round works from here. `clang-cl` is the documented substitute and
   gets past C1026, but `moon`'s Windows native path then fails to spawn its own
   toolchain (`CreateProcessW`, whatever form the name is given in). The LLVM
@@ -1227,6 +1228,19 @@ Phase 11's inline `values:` lands. `$include` splitting is never inferred.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-29** — **Docs: six straight arrows, not eight.** `docs/spec.md` §18
+  and `ROADMAP.md` §9 both described the shape presets the backend cannot write
+  as "the eight straight arrows"; `model.unwritable_shape_presets` lists six
+  (`rightArrow`, `leftArrow`, `upArrow`, `downArrow`, `leftRightArrow`,
+  `upDownArrow`), twelve tokens in all. Caught while fact-checking an upstream
+  bug report against the table rather than against the prose.
+
+  Also checked `mbtexcel@0.1.9` against the defects we work around: the
+  workbook-protection element order, the aliased page-layout and page-margin
+  defaults, and the lowercased shape `prst` all reproduce unchanged, and
+  `eval_function` — the Windows `C1026` blocker — has grown from 4 917 lines to
+  5 054.
 
 - **2026-07-29** — **Four silent failures in `yxl extract`, and a diagnostic
   that named nothing.** Found by enumeration rather than by reading code: every
