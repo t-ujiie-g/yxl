@@ -70,7 +70,8 @@ sheets:
       B7: { formula: "SUM(B4:B6)", style: total }
     data:
       - at: A4
-        csv: data/sales.csv  # the rows come from a file the spec never restates
+        csv: data/sales.csv  # rows from a file the spec never restates —
+                             # or write them here with `values:` instead
     print:
       area: A1:B7
       orientation: landscape
@@ -179,7 +180,7 @@ so the pages cannot drift from the compiler:
 
 | Example | Shows |
 |---|---|
-| [`quickstart.yxl.yaml`](./examples/quickstart.yxl.yaml) | cell kinds, number formats, a formula |
+| [`quickstart.yxl.yaml`](./examples/quickstart.yxl.yaml) | cell kinds, number formats, a formula, a filled formula column, a block of rows written inline |
 | [`styling.yxl.yaml`](./examples/styling.yxl.yaml) | declare-once styles, `extends`, defined names, rich text, conditional formatting |
 | [`layout.yxl.yaml`](./examples/layout.yxl.yaml) | merges, frozen headers, sized and grouped bands, sheet visibility, print setup, document properties, an image, a watermark background |
 | [`modular.yxl.yaml`](./examples/modular.yxl.yaml) | `$include`, CSV / JSON `data:`, an Excel table over the region they fill, a slicer filtering it |

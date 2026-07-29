@@ -80,7 +80,7 @@ sheets:
 | `name` | text | **Required.** Must be unique in the workbook. |
 | `cells` | mapping | A1 reference → value. §3. |
 | `formulas` | sequence | One formula filled across a region. §3. |
-| `data` | sequence | External CSV/JSON tables. §9. |
+| `data` | sequence | Anchored tables — rows written inline, or read from CSV/JSON. §9. |
 | `columns` / `rows` | sequence | Bands. §4. |
 | `merges` | sequence of `A1:B2` | Corners in any order; the merge shows the top-left value. |
 | `visibility` | bareword | `hidden` can be undone in Excel's UI; `very_hidden` only via VBA. **At least one sheet must stay visible.** |
@@ -373,15 +373,20 @@ sheets:
 > unknown tags silently, which would turn a typo into a plain string instead of
 > a diagnostic (ADR-014).
 
-## 9. External data
+## 9. Tabular data
 
-`data:` anchors a CSV or JSON table at a cell; its rows run down and its fields
-right. The values become ordinary cells.
+`data:` anchors a table at a cell; its rows run down and its fields right. The
+rows may be written **here** or read from a **CSV or JSON file**. Either way the
+values become ordinary cells.
 
 ```yaml
 data:
   - at: A2
-    csv: data/sales.csv
+    values:                         # rows written here
+      - [APAC, 2400000]
+      - [EMEA, 1750000]
+  - at: A8
+    csv: data/sales.csv             # or read from a file
   - at: D1
     json: data/notes.json
     columns: [label, count]
@@ -390,11 +395,35 @@ data:
 | Key | Notes |
 |---|---|
 | `at` | **Required.** The top-left field lands here. |
-| `csv` / `json` | The source path. Exactly one. |
+| `values` / `csv` / `json` | Where the rows come from. **Exactly one.** |
 | `columns` | **Only for JSON objects**: the fields to take, in order. |
 
 **Formatting is not part of a data block** — style the region with `columns:` /
 `rows:` bands. That is what keeps data and formatting separable.
+
+### Inline rows, and why they exist
+
+A `cells:` mapping is keyed by address, so **inserting a row rewrites every key
+below it** and `git diff` reports the whole block as changed. An anchored table
+puts the addresses in one place — `at:` — so inserting a row is a one-line diff
+and moving the block is a one-word one:
+
+```yaml
+data:
+  - at: A2
+    values:
+      - [APAC, 2400000]
+      - [LATAM, 900000]     # <- the only line a `git diff` shows
+      - [EMEA, 1750000]
+```
+
+Fields keep the types YAML gave them, exactly as a `cells:` value does (§3): a
+bare `007` is the number 7 and a quoted `"007"` is text. That is sharper than
+CSV, where every field arrives as text and has to be guessed at. `null` is a
+blank cell, and a short row simply stops — nothing is padded.
+
+Use `cells:` for scattered, individually-styled cells, which is what it is good
+at, and `values:` for a block of rows that belong together.
 
 ### CSV
 

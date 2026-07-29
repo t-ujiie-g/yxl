@@ -40,3 +40,16 @@ sheets:
     formulas:
       - at: C2:C3
         formula: "B2*0.05"
+
+    # A block of rows that belong together reads better as an anchored table
+    # than as one `cells:` key per address. `cells:` is keyed by address, so
+    # inserting a row rewrites every key below it and `git diff` shows the whole
+    # block; here only the inserted line moves. Fields keep YAML's types, same
+    # as above. Swap `values:` for `csv:` and the rows come from a file instead.
+    data:
+      - at: A9
+        values:
+          - [Quarter, Bookings]
+          - [Q1, 980000]
+          - [Q2, 1120000]
+          - [Q3, 1300000]

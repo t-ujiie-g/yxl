@@ -1,7 +1,8 @@
-// External data feeding a sheet region: a sheet's `data:` list places a CSV or
-// JSON table at an anchor cell, its rows running down and its fields right from
-// there. The rows become ordinary cells at load time — the model is always the
-// final grid — so nothing below this file knows the values came from elsewhere.
+// Tabular data feeding a sheet region: a sheet's `data:` list places a table at
+// an anchor cell, its rows running down and its fields right from there. The
+// rows come either from a CSV or JSON file or from the spec itself. They become
+// ordinary cells at load time — the model is always the final grid — so nothing
+// below this file knows a region was written as a table at all.
 //
 // Formatting is not duplicated here: a data region is styled with the `columns:`
 // and `rows:` bands that already exist, which is what keeps data and formatting
@@ -20,10 +21,17 @@
 // missing piece as source spans, ADR-010) would let both rules agree.
 
 ///|
-/// One table's source file. Exactly one form may be given per entry.
+/// Where one table's rows come from. Exactly one form may be given per entry.
+///
+/// `Inline` is the odd one out: it is not a path but the rows themselves,
+/// written in the spec. It exists for *diffs* — a `cells:` mapping is keyed by
+/// address, so inserting a row rewrites every key below it and `git diff` calls
+/// the whole block changed. Anchored rows move the addresses into one `at:`, so
+/// inserting one is a one-line diff.
 priv enum DataSource {
   Csv(String)
   Json(String)
+  Inline(Rows)
 }
 
 ///|
@@ -32,8 +40,8 @@ priv enum DataSource {
 type Rows = Array[Array[@model.CellValue?]]
 
 ///|
-/// Load a sheet's `data:` sequence: each entry places an external table with its
-/// top-left field at `at`.
+/// Load a sheet's `data:` sequence: each entry places a table with its top-left
+/// field at `at`.
 fn load_data(
   node : @yaml.Node,
   sheet : @model.Sheet,
@@ -46,9 +54,9 @@ fn load_data(
 }
 
 ///|
-/// One `data:` entry: `at` (the anchor), one of `csv:` / `json:` (the source
-/// path), and, for a JSON array of objects, `columns:` naming the fields to take
-/// and their order.
+/// One `data:` entry: `at` (the anchor), one source — `values:` for rows written
+/// in the spec, `csv:` or `json:` for a path — and, for a JSON array of objects,
+/// `columns:` naming the fields to take and their order.
 fn load_data_entry(
   node : @yaml.Node,
   sheet : @model.Sheet,
@@ -69,25 +77,27 @@ fn load_data_entry(
     match key {
       "at" => () // the anchor, read above
       "csv" | "json" => {
-        guard source is None else {
-          raise schema_error(
-            file~,
-            "a 'data' entry sets more than one source (a table comes from one file)",
-          )
-        }
+        guard source is None else { raise one_source(file~) }
         let path = expect_string(value, file~, context="'data' '\{key}'")
         source = Some(if key == "csv" { Csv(path) } else { Json(path) })
+      }
+      "values" => {
+        guard source is None else { raise one_source(file~) }
+        source = Some(Inline(load_inline_rows(value, file~)))
       }
       "columns" => columns = Some(load_column_names(value, file~))
       _ =>
         raise schema_error(
           file~,
-          "unknown key '\{key}' in a 'data' entry (expected 'at', 'csv', 'json', or 'columns')",
+          "unknown key '\{key}' in a 'data' entry (expected 'at', 'csv', 'json', 'values', or 'columns')",
         )
     }
   }
   guard source is Some(source) else {
-    raise schema_error(file~, "a 'data' entry needs a 'csv' or 'json' source")
+    raise schema_error(
+      file~,
+      "a 'data' entry needs a source: 'values' for rows written here, or 'csv' or 'json' for a file",
+    )
   }
   let rows = match source {
     Csv(path) => {
@@ -104,8 +114,78 @@ fn load_data_entry(
       let table = resolve(file, path)
       parse_json_table(table.source, file=table.name, columns~)
     }
+    Inline(rows) => {
+      guard columns is None else {
+        raise schema_error(
+          file~,
+          "'columns' names the fields of JSON objects; inline rows are written in the order they should occupy",
+        )
+      }
+      rows
+    }
   }
   write_rows(sheet, anchor, rows)
+}
+
+///|
+/// One entry, one source. Naming both a file and inline rows leaves no way to
+/// say which wins, and guessing is what ADR-006 refuses.
+fn one_source(file~ : String) -> @diag.SchemaError {
+  schema_error(
+    file~,
+    "a 'data' entry sets more than one source (a table's rows come from one place: 'values', 'csv', or 'json')",
+  )
+}
+
+///|
+/// A `values:` block: a sequence of rows, each a sequence of scalars.
+///
+/// The scalars keep the types YAML gave them, so a quoted `"007"` stays text
+/// and a bare `007` is the number 7 — the same rule a `cells:` value follows
+/// (`docs/spec.md` §3), and a sharper one than CSV can offer, where every field
+/// arrives as text and has to be guessed at.
+///
+/// `null` is a blank cell, left untouched rather than written as empty text —
+/// matching a JSON table's `null` and a CSV's empty field.
+fn load_inline_rows(
+  node : @yaml.Node,
+  file~ : String,
+) -> Rows raise @diag.SchemaError {
+  let rows : Rows = []
+  for index, item in expect_seq(node, file~, context="'data' 'values'") {
+    // Rows are 1-based in the message: the reader is looking at data, not code.
+    let row_number = index + 1
+    let values = []
+    for
+      field in expect_seq(
+        item,
+        file~,
+        context="row \{row_number} of 'data' 'values'",
+      ) {
+      values.push(
+        match field {
+          @yaml.Null => None
+          @yaml.Seq(_) | @yaml.Map(_) =>
+            // Not `scalar_value`'s wording: `null` is admitted here and a
+            // reader who reached this message needs to know that.
+            raise schema_error(
+              file~,
+              "a field in row \{row_number} of 'data' 'values' must be text, a number, a boolean, or null for a blank cell",
+            )
+          _ =>
+            Some(
+              scalar_value(
+                field,
+                file~,
+                context="a field in row \{row_number} of 'data' 'values'",
+              ),
+            )
+        },
+      )
+    }
+    rows.push(values)
+  }
+  rows
 }
 
 ///|
