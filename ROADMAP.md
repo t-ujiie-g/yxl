@@ -593,6 +593,26 @@ gate, which is why none carries a box:
             rather than a factor and the backend reports the factor back as `1`
             whatever it was, so a scaled picture cannot be told from an unscaled
             one
+      - [ ] **Fix: `extract` can write a conditional rule the loader refuses.**
+            Found on the first run over a real workbook (§11, 2026-07-31): one
+            rule came out as a range and a condition with no `style:` —
+            plausibly a rule whose dxf held only what the schema cannot carry,
+            such as the theme-indexed font colour the same run reported
+            dropping — and the loader requires a `style` or `format` on every
+            rule, so the extraction's own verify pass ended in "the extracted
+            spec did not compile". The invariant is the one the verify pass
+            exists to keep: render must emit only what the loader accepts. A
+            rule left with nothing to apply is dropped and named as a loss,
+            not written
+      - [ ] **Fix: a companion file's stem flattens every non-ASCII letter.**
+            `file_stem` keeps `a-z0-9` and turns everything else into `_`, so
+            a Japanese-named sheet's CSV lands as `data/_____.csv` — the same
+            run produced `_____.csv` and `_______.csv`, distinguishable by
+            underscore count alone. Collisions are already suffixed (`_2`), so
+            nothing is overwritten, but nothing is legible either. Keep
+            letters and digits in any script: the quoting concern that
+            motivated the flattening is about spaces and punctuation, not
+            scripts
       - [ ] **Blocked, not deferred** — these are what `extract` cannot do
             anything about on its own. All but the last two were found by
             probing the backend's read path rather than by reading its
@@ -683,6 +703,25 @@ the first item changes what a spec looks like.
       to a shared formula so a 500-row column stores one. Pulled ahead of
       `extract`, whose slice 1 would otherwise emit 499 lines a reader would
       delete; wanted independently, since an author writing by hand hit it too.
+- [ ] **Agent Skills for the extract-then-rewrite workflow.** The intended use
+      of `yxl extract` on a living workbook is now measured rather than assumed
+      (§11, 2026-07-31): the output is a *starting point*, and the manageable
+      form is a hand-written spec — report sheets rewritten with `formulas:`
+      ranges, bands, and `defs.styles`; data sheets moved to `data:` + CSV that
+      the source system refreshes monthly. That rewrite is judgement-shaped
+      work an AI agent does well with a checklist in hand, so ship the
+      checklist as **Agent Skills**: the SKILL.md format Claude Code, Codex,
+      Cursor, and OpenCode all read — the same tool-agnostic stance as
+      AGENTS.md. A `skills/` directory in this repo, one skill per task,
+      starting with *extract-to-spec* (run `extract`, split report sheets from
+      data sheets, rewrite formula grids as `formulas:` ranges, reuse the
+      interned styles, carry the reported losses into the spec as decisions).
+      Distribution is solved off the shelf: any GitHub repo holding SKILL.md
+      files installs with `npx skills add <owner>/yxl`
+      ([vercel-labs/skills](https://github.com/vercel-labs/skills) recognizes
+      the `skills/` layout), and a `.claude-plugin/marketplace.json` can make
+      Claude Code's `/plugin` flow work from the same files; there is no
+      `gh skill` to wait for
 - [ ] **A JSON Schema for the spec, generated from `docs/spec.md`'s contents.**
       Publishing one lets an author write
       `# yaml-language-server: $schema=…` and get completion and validation in
@@ -1228,6 +1267,18 @@ Phase 11's inline `values:` lands. `$include` splitting is never inferred.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-31** — **First `extract` of a real workbook, measured.** A 32-sheet,
+  1.6M-cell monthly report (12 MB, ~315k formulas, 198 conditional blocks)
+  extracted in ~15 s to a 59 MB / 2M-line spec plus three CSVs. Two readings.
+  The shape of use is confirmed: only three all-plain sheets crossed the
+  deliberately narrow CSV bar, shared-formula followers came back as cached
+  values (the known blocked item), and so the output is a starting point to
+  rewrite, not a spec to keep — which is what §22 promises, and now what the
+  new Phase 11 skills item builds on. And the run surfaced two defects, both
+  now Phase 10 items: a conditional rule extracted without a `style:` fails
+  the self-check compile, and `file_stem` flattens non-ASCII sheet names to
+  bare underscores (`data/_____.csv` beside `data/_______.csv`).
 
 - **2026-07-29** — **Docs: six straight arrows, not eight.** `docs/spec.md` §18
   and `ROADMAP.md` §9 both described the shape presets the backend cannot write
