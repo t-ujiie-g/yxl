@@ -1,0 +1,19 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "yxl-plugins",
+  "metadata": {
+    "version": "1.0.0",
+    "description": "Agent skills for working with yxl, the YAML-to-Excel compiler"
+  },
+  "owner": {
+    "name": "t-ujiie-g"
+  },
+  "plugins": [
+    {
+      "name": "yxl-skills",
+      "description": "Skills for working with yxl: authoring specs from scratch, editing and operating existing ones (yxl-authoring), and migrating an existing .xlsx into a maintainable spec (extract-to-spec).",
+      "source": "./",
+      "category": "productivity"
+    }
+  ]
+}

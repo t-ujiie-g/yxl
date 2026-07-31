@@ -1,0 +1,8 @@
+{
+  "name": "yxl-skills",
+  "description": "Skills for working with yxl: authoring specs from scratch, editing and operating existing ones (yxl-authoring), and migrating an existing .xlsx into a maintainable spec (extract-to-spec).",
+  "author": {
+    "name": "t-ujiie-g"
+  },
+  "repository": "https://github.com/t-ujiie-g/yxl"
+}

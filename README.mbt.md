@@ -159,11 +159,13 @@ be in any script.
 yxl build report.yxl.yaml -o report.xlsx     # compile
 yxl build report.yxl.yaml --check            # validate, write nothing
 yxl build report.yxl.yaml -o r.xlsx --set region=EMEA
+yxl extract legacy.xlsx -o legacy.yxl.yaml   # existing workbook → starting spec
 yxl version                                  # print the version
 yxl help                                     # full usage
 ```
 
-The full schema is in [`docs/spec.md`](./docs/spec.md).
+The full schema is in [`docs/spec.md`](./docs/spec.md); `extract` — a one-way
+migration aid, not a round trip — is its §22.
 
 Exit codes are stable across releases:
 
@@ -194,6 +196,23 @@ so the pages cannot drift from the compiler:
 ```bash
 yxl build examples/quickstart.yxl.yaml -o quickstart.xlsx
 ```
+
+## AI skills
+
+[`skills/`](./skills) holds Agent Skills — workflow checklists an AI coding
+agent (Claude Code, Codex, Cursor, OpenCode, …) can follow:
+
+| Skill | Covers |
+|---|---|
+| [`yxl-authoring`](./skills/yxl-authoring/SKILL.md) | the general workflow: writing a spec from scratch, editing an existing one, and operating it month to month (data refresh, params, the verify loop) |
+| [`extract-to-spec`](./skills/extract-to-spec/SKILL.md) | migration: `yxl extract` gives a starting point from an existing workbook, and this is the rewrite that makes it maintainable |
+
+```bash
+npx skills add t-ujiie-g/yxl        # any agent — installs from skills/
+```
+
+Claude Code users can instead add this repository as a plugin marketplace
+(`/plugin` → Add Marketplace → `t-ujiie-g/yxl`) and install `yxl-skills`.
 
 ## How it works
 
