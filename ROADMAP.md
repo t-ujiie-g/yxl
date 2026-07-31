@@ -593,7 +593,7 @@ gate, which is why none carries a box:
             rather than a factor and the backend reports the factor back as `1`
             whatever it was, so a scaled picture cannot be told from an unscaled
             one
-      - [ ] **Fix: `extract` can write a conditional rule the loader refuses.**
+      - [x] **Fix: `extract` can write a conditional rule the loader refuses.**
             Found on the first run over a real workbook (§11, 2026-07-31): one
             rule came out as a range and a condition with no `style:` —
             plausibly a rule whose dxf held only what the schema cannot carry,
@@ -603,8 +603,14 @@ gate, which is why none carries a box:
             spec did not compile". The invariant is the one the verify pass
             exists to keep: render must emit only what the loader accepts. A
             rule left with nothing to apply is dropped and named as a loss,
-            not written
-      - [ ] **Fix: a companion file's stem flattens every non-ASCII letter.**
+            not written.
+            **Fixed in the reader**, which now mirrors the loader's split from
+            the other side: a highlighting rule recovered with no expressible
+            style is dropped and named, and a style recovered on a rule that
+            draws its own appearance is dropped and named while the rule is
+            kept — that half only a foreign file can produce, since the
+            backend writes `dxfId` on highlighting rules alone
+      - [x] **Fix: a companion file's stem flattens every non-ASCII letter.**
             `file_stem` keeps `a-z0-9` and turns everything else into `_`, so
             a Japanese-named sheet's CSV lands as `data/_____.csv` — the same
             run produced `_____.csv` and `_______.csv`, distinguishable by
@@ -612,7 +618,20 @@ gate, which is why none carries a box:
             nothing is overwritten, but nothing is legible either. Keep
             letters and digits in any script: the quoting concern that
             motivated the flattening is about spaces and punctuation, not
-            scripts
+            scripts.
+            **Fixed** exactly so: past ASCII only whitespace (U+3000 included)
+            and control characters flatten, and the sheet's own name is the
+            file's
+      - [x] **Fix: a carriage return in cell text does not survive the round
+            trip.** Found by the same workbook the moment the fix above let
+            the verify pass reach its cell comparison: every multi-line cell
+            rebuilt to a different value, because Excel stores Alt+Enter line
+            breaks as CRLF. The YAML parser's escape table decodes `\r` as
+            U+13 — decimal code points written as hex, which also bends `\v`,
+            `\f`, `\e`, and `\ ` (§9) — so the CR our writer spelled `\r` came
+            back as a different character. **Fixed in our writer**, the half
+            that is ours (ADR-009): every control character but `\n` and `\t`
+            goes out as `\u00XX`, the form the parser does read right
       - [ ] **Blocked, not deferred** — these are what `extract` cannot do
             anything about on its own. All but the last two were found by
             probing the backend's read path rather than by reading its
@@ -1243,6 +1262,19 @@ Phase 11's inline `values:` lands. `$include` splitting is never inferred.
   what `yxl` actually emits (`Worksheet::images()`, `Worksheet::charts()`) over
   the whole-workbook lookups. If a needed API drags the evaluator in, the escape
   hatch is `MOON_CC=clang-cl` on the Windows runner. Found in Phase 9's images.
+- **The YAML parser decodes `\r` as the wrong character.** Its escape table
+  writes decimal code points where hex is meant, so a double-quoted `\r` loads
+  as U+13, `\v` as U+11, `\f` as U+12, `\e` as `'`, and `\ ` as `2`; `\n`,
+  `\t`, and the `\xXX`/`\uXXXX` forms are decoded right
+  (`moonbit-community/yaml@0.0.6`, `lexer.mbt`'s
+  `resolve_flow_scalar_escape_sequence`; pending an upstream report). Our
+  writer never emits the broken spellings — every control character but `\n`
+  and `\t` goes out as `\u00XX` — so extracted specs are unaffected. A *hand*
+  author who writes `"\r\n"` still gets the wrong character with no
+  diagnostic, which ADR-006 exists to prevent and the seam cannot catch: the
+  parser hands back only the decoded value, and by then U+13 is
+  indistinguishable from a deliberate one. Revisit the pin when upstream
+  fixes it.
 - **A headline the schema does not earn.** §1 leads with "diffable", and a
   `cells:`-keyed spec is not, under row insertion. Mitigation: Phase 11's inline
   tables, before the schema freeze; until then §1 and the README say which half
@@ -1267,6 +1299,20 @@ Phase 11's inline `values:` lands. `$include` splitting is never inferred.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-31** — **The real workbook now extracts and verifies clean.** The
+  three defects the measured run below surfaced are fixed, each at the layer
+  that owns it. The reader now mirrors the loader's conditional-format split,
+  so a rule recovered with nothing the schema can apply is dropped and named
+  instead of written into a spec that does not compile. `file_stem` flattens
+  only spaces and punctuation, so a Japanese-named sheet's CSV is named by the
+  sheet (`data/売上.csv`), not by underscore count. And the YAML writer spells
+  every control character but `\n` and `\t` as `\u00XX`, stepping around the
+  parser's mis-decoded escape letters (§9) — which is what made every
+  multi-line cell (CRLF, Excel's Alt+Enter) rebuild to a different value once
+  the first fix let the verify pass reach the comparison. `yxl extract` on the
+  32-sheet workbook now ends with "everything else rebuilds the workbook as
+  read".
 
 - **2026-07-31** — **First `extract` of a real workbook, measured.** A 32-sheet,
   1.6M-cell monthly report (12 MB, ~315k formulas, 198 conditional blocks)
