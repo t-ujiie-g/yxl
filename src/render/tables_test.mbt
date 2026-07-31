@@ -108,6 +108,27 @@ test "a sheet name that is not a file name becomes one" {
 }
 
 ///|
+test "a sheet named in another script keeps its name" {
+  // Flattening is for spaces and punctuation, not scripts — a real workbook's
+  // Japanese-named sheets once landed as `_____.csv` and `_______.csv`,
+  // telling them apart by underscore count alone.
+  let wb = @model.Workbook::new()
+  for name in ["売上", "売上前年", "DB店舗一覧", "月次　実績"] {
+    let sheet = wb.add_sheet(name)
+    for row in 1..<=@render.min_csv_rows {
+      for col in 1..<=@render.min_csv_columns {
+        sheet.set(@units.CellRef::new(col~, row~), Number(1.0))
+      }
+    }
+  }
+  assert_eq(@render.data_tables(wb).map(table => table.path), [
+    "data/売上.csv", "data/売上前年.csv", "data/db店舗一覧.csv",
+    // The ideographic space (U+3000) flattens like any other whitespace.
+     "data/月次_実績.csv",
+  ])
+}
+
+///|
 test "text that would read back as another type is quoted" {
   let wb = @model.Workbook::new()
   let sheet = wb.add_sheet("S")

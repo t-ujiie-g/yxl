@@ -63,12 +63,13 @@ fn Names::claim(
 const FALLBACK_STEM : String = "sheet"
 
 ///|
-/// A sheet's name as part of a file name: lower case, with anything that is not
-/// a letter or a digit turned into an underscore.
+/// A sheet's name as part of a file name: lower case, with whatever would make
+/// the path need quoting on a command line turned into an underscore.
 ///
-/// A sheet may be called `Q3 Sales (final)`, and a path that needs quoting on a
-/// command line is a worse thing to hand somebody than a plain one that has lost
-/// the punctuation.
+/// That is spaces and punctuation — a sheet may be called `Q3 Sales (final)` —
+/// not scripts: a letter or digit passes through whatever alphabet it is from,
+/// because a sheet called `売上` flattened to `__` names nothing, and beside a
+/// second such sheet it is legible only by counting underscores.
 fn file_stem(sheet_name : String) -> String {
   let out = StringBuilder::new()
   for ch in sheet_name {
@@ -76,8 +77,14 @@ fn file_stem(sheet_name : String) -> String {
       out.write_char(ch)
     } else if ch is ('A'..='Z') {
       out.write_char(ch.to_ascii_lowercase())
-    } else {
+    } else if ch is ('\u{00}'..='\u{7f}') ||
+      ch.is_whitespace() ||
+      ch.is_control() {
+      // The rest of ASCII is the punctuation the flattening exists for; past
+      // ASCII only whitespace (U+3000, say) needs the same treatment.
       out.write_char('_')
+    } else {
+      out.write_char(ch)
     }
   }
   out.to_string()

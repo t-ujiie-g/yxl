@@ -1230,6 +1230,12 @@ calculation settings, the default font, and each sheet's protection.
 - **A colour scale's stops are not kept**, only its colours: the schema places
   them at the range's own low and high, which is Excel's default and what an
   author writing the spec by hand would get.
+- **A conditional rule with nothing the spec can apply is not kept.** A
+  highlighting rule whose style holds only what the schema has no words for —
+  a theme-indexed colour, say — would match cells and change nothing, which is
+  a spec the loader refuses (§10). It is dropped and reported instead; so is a
+  style found on a scale, a bar, or an icon set, which draw their own
+  appearance and give a style no place.
 - **A filter's saved criteria are not kept**, only the range it covers: which
   rows somebody last chose to hide is a view of the sheet, not a description
   of it.

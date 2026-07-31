@@ -207,8 +207,62 @@ test "a conditional format keeps its own look and its stop flag" {
   sheet.add_conditional_format({
     at: { top_left: at("A1"), bottom_right: at("A9") },
     rule: Unique,
-    style: None,
+    style: Some({
+      ..@model.Style::empty(),
+      fill: Some({ color: @units.Color::parse("FFC7CE").unwrap() }),
+    }),
     stop_if_true: true,
   })
   assert_eq(only_sheet(wb).conditional_formats[0].stop_if_true, true)
+}
+
+///|
+test "a highlighting rule with no expressible style is dropped and named" {
+  // The real case is a dxf holding only what the schema cannot say — a
+  // theme-indexed colour recovers as no style at all — and writing the rule
+  // out anyway makes a spec the loader refuses, which is how a real workbook
+  // failed the extraction's verify pass. Emitting `style: None` reaches the
+  // reader the same way.
+  let (wb, sheet) = fixture()
+  sheet.set(at("A1"), Number(1.0))
+  sheet.add_conditional_format({
+    at: { top_left: at("A1"), bottom_right: at("A9") },
+    rule: Unique,
+    style: None,
+    stop_if_true: false,
+  })
+  let recovered = round_trip(wb)
+  assert_eq(recovered.workbook.sheets[0].conditional_formats, [])
+  assert_true(
+    recovered.dropped
+    .iter()
+    .any(note => note.contains("would match cells and change nothing")),
+  )
+}
+
+///|
+test "a style on a self-drawing rule is dropped and named, the rule kept" {
+  // The loader refuses a 'style' on a scale, a bar, or an icon set, so one
+  // recovered from a file has nowhere to go; the rule itself is fine. Only a
+  // foreign file can put a dxfId on a data bar — the backend writes that
+  // attribute for highlighting rules alone — so the rule is injected as the
+  // raw cfRule such a file would carry.
+  let backend = @xlsx.Workbook::new()
+  let _ = backend.new_sheet("S")
+  backend.set_cell_int("S", "A1", 1)
+  let dxf = backend.new_conditional_style(
+    @xlsx.Style::fill(@xlsx.Fill::solid("FFC7CE")),
+  )
+  guard backend.sheet("S") is Some(source)
+  source.conditional_formats.push(
+    "<conditionalFormatting sqref=\"A1:A9\"><cfRule type=\"dataBar\" dxfId=\"\{dxf}\" priority=\"1\"><dataBar><cfvo type=\"min\"/><cfvo type=\"max\"/><color rgb=\"FF63BE7B\"/></dataBar></cfRule></conditionalFormatting>",
+  )
+  let recovered = @read.from_bytes(backend.write_to_buffer())
+  guard recovered.workbook.sheets[0].conditional_formats
+    is [{ rule: DataBar(..), style: None, .. }]
+  assert_true(
+    recovered.dropped
+    .iter()
+    .any(note => note.contains("draws its own appearance")),
+  )
 }

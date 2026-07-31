@@ -224,7 +224,11 @@ fn is_plain_start(ch : Char) -> Bool {
 ///|
 /// Text in double quotes, with the escapes YAML's double-quoted style defines.
 /// Control characters go out as `\u00XX`, which is the only form that survives
-/// a round trip.
+/// a round trip — including the ones YAML gives a letter: the parser reads
+/// `\r` as U+13 rather than U+0D (its escape table holds decimal code points
+/// written as hex), so a carriage return spelled the friendly way comes back
+/// as a different character. Only `\n` and `\t` are decoded right, and only
+/// they are written.
 fn quote(text : String) -> String {
   let out = StringBuilder::new()
   out.write_char('"')
@@ -233,7 +237,6 @@ fn quote(text : String) -> String {
       '"' => out.write_string("\\\"")
       '\\' => out.write_string("\\\\")
       '\n' => out.write_string("\\n")
-      '\r' => out.write_string("\\r")
       '\t' => out.write_string("\\t")
       _ =>
         if ch.to_int() < 0x20 || ch.to_int() == 0x7F {

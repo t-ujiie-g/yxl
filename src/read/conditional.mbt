@@ -25,14 +25,48 @@ fn read_conditional_formats(
       guard read_conditional_rule(options, dates, notes) is Some(rule) else {
         continue
       }
+      let style = read_conditional_style(backend, options.format, notes)
+      // The schema's split, mirrored from the loader: a scale, a bar, and an
+      // icon set draw their own appearance, and every other rule needs a style
+      // to apply where it matches. A file can violate either half — a dxf
+      // holding only what the schema cannot say (a theme-indexed colour)
+      // recovers as no style at all — and writing the violation out would make
+      // a spec the loader refuses, failing the verify pass on the way.
+      if draws_itself(rule) {
+        if style is Some(_) {
+          notes.drop(
+            "a style on a conditional rule that draws its own appearance, which the spec gives no place",
+          )
+        }
+        sheet.add_conditional_format({
+          at,
+          rule,
+          style: None,
+          stop_if_true: options.stop_if_true,
+        })
+        continue
+      }
+      guard style is Some(_) else {
+        notes.drop(
+          "a conditional rule whose style holds nothing the spec can say, which would match cells and change nothing",
+        )
+        continue
+      }
       sheet.add_conditional_format({
         at,
         rule,
-        style: read_conditional_style(backend, options.format, notes),
+        style,
         stop_if_true: options.stop_if_true,
       })
     }
   }
+}
+
+///|
+/// Whether a rule supplies its own appearance rather than applying a style —
+/// the same split the loader enforces on a spec's way in.
+fn draws_itself(rule : @model.ConditionalRule) -> Bool {
+  rule is (ColorScale(..) | DataBar(..) | IconSet(..))
 }
 
 ///|
