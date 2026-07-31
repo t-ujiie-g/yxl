@@ -722,7 +722,7 @@ the first item changes what a spec looks like.
       to a shared formula so a 500-row column stores one. Pulled ahead of
       `extract`, whose slice 1 would otherwise emit 499 lines a reader would
       delete; wanted independently, since an author writing by hand hit it too.
-- [ ] **Agent Skills for the extract-then-rewrite workflow.** The intended use
+- [x] **Agent Skills for the extract-then-rewrite workflow.** The intended use
       of `yxl extract` on a living workbook is now measured rather than assumed
       (§11, 2026-07-31): the output is a *starting point*, and the manageable
       form is a hand-written spec — report sheets rewritten with `formulas:`
@@ -740,7 +740,20 @@ the first item changes what a spec looks like.
       ([vercel-labs/skills](https://github.com/vercel-labs/skills) recognizes
       the `skills/` layout), and a `.claude-plugin/marketplace.json` can make
       Claude Code's `/plugin` flow work from the same files; there is no
-      `gh skill` to wait for
+      `gh skill` to wait for.
+      **Shipped as two skills**, after review asked for more than the
+      migration: `skills/yxl-authoring/SKILL.md` is the general workflow —
+      writing a spec from scratch, editing an existing one without forking its
+      `defs:`, and operating it month to month (data swap, `params:`, the
+      verify loop) — and `skills/extract-to-spec/SKILL.md` is the migration:
+      read the loss report as a decision list, classify report against data
+      sheets, restore `formulas:` ranges over the cached values extract cannot
+      re-share, rename interned styles, move pasted rectangles to `data:` +
+      CSV, then compile / re-extract / open in Excel; it hands over to
+      yxl-authoring once verified. `.claude-plugin/marketplace.json` +
+      `plugin.json` (mirroring moonbitlang/skills' manifests) serve the same
+      files to Claude Code's `/plugin` flow, and the README section covers
+      both install routes
 - [ ] **A JSON Schema for the spec, generated from `docs/spec.md`'s contents.**
       Publishing one lets an author write
       `# yaml-language-server: $schema=…` and get completion and validation in
@@ -1299,6 +1312,16 @@ Phase 11's inline `values:` lands. `$include` splitting is never inferred.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-07-31** — **Agent Skills: `yxl-authoring` and `extract-to-spec`.**
+  Working with yxl is now packaged for AI agents as two checklists:
+  `yxl-authoring` for writing a spec from scratch, editing an existing one,
+  and operating it month to month, and `extract-to-spec` for the
+  migration workflow the measured run below settled on. Installable into any
+  SKILL.md-reading agent with `npx skills add t-ujiie-g/yxl`, and into Claude
+  Code via this repository's new `.claude-plugin/` marketplace manifests.
+  README gains the install section — and its first mention of `yxl extract`
+  at all, which was a gap.
 
 - **2026-07-31** — **The real workbook now extracts and verifies clean.** The
   three defects the measured run below surfaced are fixed, each at the layer
