@@ -24,6 +24,35 @@ yxl build report.yxl.yaml -o r.xlsx --set month=2026-07
 yxl extract legacy.xlsx -o legacy.yxl.yaml   # existing workbook → starting spec
 ```
 
+## Prerequisite: the `yxl` CLI
+
+Check with `yxl version`. If it is missing, install it — prebuilt binaries
+cover Linux x86_64 and macOS arm64:
+
+```bash
+# Linux / macOS
+curl -fsSL https://raw.githubusercontent.com/t-ujiie-g/yxl/main/install.sh | sh
+```
+
+```powershell
+# Windows (PowerShell) — experimental; a release may carry no Windows binary
+irm https://raw.githubusercontent.com/t-ujiie-g/yxl/main/install.ps1 | iex
+```
+
+The script verifies the release's SHA-256 and installs into `~/.local/bin`
+(`%LOCALAPPDATA%\yxl\bin` on Windows); make sure that directory is on `PATH`.
+On any other platform, build from source with
+[MoonBit](https://www.moonbitlang.com/download) installed:
+
+```bash
+git clone https://github.com/t-ujiie-g/yxl.git && cd yxl
+moon build --target native --release
+install -m 755 _build/native/release/build/cmd/main/main.exe ~/.local/bin/yxl
+```
+
+The README's Install section is the authoritative version of this, including
+the Windows caveats (no non-ASCII spec path on the command line).
+
 ## Writing a spec from scratch
 
 Start minimal and grow it under `--check`; do not draft a hundred lines and

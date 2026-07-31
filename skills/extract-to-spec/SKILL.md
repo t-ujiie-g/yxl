@@ -36,6 +36,9 @@ rewrite of a sheet is verified, then delete the literal version of that sheet.
 
 ## 1. Extract, and read the report
 
+Needs the `yxl` CLI (`yxl version` to check) — the yxl-authoring skill's
+*Prerequisite* section has the install one-liners if it is missing.
+
 ```sh
 yxl extract workbook.xlsx -o spec.yxl.yaml
 ```
