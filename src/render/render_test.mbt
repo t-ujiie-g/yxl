@@ -167,6 +167,33 @@ test "a format worn once goes out as the bare shorthand, not as a style" {
 }
 
 ///|
+test "a blank cell renders as its styling alone" {
+  // The one cell shape with nothing under `value:` — what a shaded box or a
+  // ruled table edge comes out as. The loader reads this form back, so the two
+  // sides have to agree on it.
+  let (wb, sheet) = fixture()
+  sheet.set(at("A1"), Text("Region"))
+  sheet.set(at("B1"), Blank, style=formatted("0.0%"))
+  sheet.set(at("C1"), Blank, style=bold())
+  inspect(
+    spec(wb),
+    content=(
+      #|sheets:
+      #|  - name: S
+      #|    cells:
+      #|      A1: Region
+      #|      B1:
+      #|        format: "0.0%"
+      #|      C1:
+      #|        style:
+      #|          font:
+      #|            bold: true
+      #|
+    ),
+  )
+}
+
+///|
 test "names collide into a numbered suffix rather than overwriting" {
   let (wb, sheet) = fixture()
   // Two different looks that both describe as `percent`.

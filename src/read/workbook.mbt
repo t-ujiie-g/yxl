@@ -46,14 +46,14 @@ const EXCEL_DEFAULT_FONT : String = "Calibri"
 fn read_defined_names(
   backend : @xlsx.Workbook,
   workbook : @model.Workbook,
-  slicer_caches : Map[String, Unit],
+  slicer_caches : @set.Set[String],
   notes : Notes,
 ) -> Unit {
   for defined in backend.get_defined_names() {
     if defined.name.has_prefix(EXCEL_RESERVED_NAME_PREFIX) {
       continue
     }
-    if slicer_caches.get(defined.name) is Some(_) {
+    if slicer_caches.contains(defined.name) {
       continue
     }
     // A workbook-wide name is scoped `Workbook`, not to nothing; a name scoped

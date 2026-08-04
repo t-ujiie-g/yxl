@@ -147,6 +147,7 @@ fn tracks(records : Array[(Int, Track)]) -> Array[Band] {
 fn read_presentation(
   backend : @xlsx.Workbook,
   sheet : @model.Sheet,
+  notes : Notes,
 ) -> Unit raise {
   let panes = backend.get_panes(sheet.name)
   if panes.freeze && (panes.x_split > 0 || panes.y_split > 0) {
@@ -166,7 +167,19 @@ fn read_presentation(
     sheet.set_gridlines(false)
   }
   let props = backend.get_sheet_props(sheet.name)
-  if props.tab_color_rgb is Some(hex) && @units.Color::parse(hex) is Some(color) {
+  // A tab is coloured from the theme as often as from a literal RGB — the
+  // colour picker offers the theme row first — so it resolves through the same
+  // path a font or a fill does.
+  if resolve_color(
+      backend,
+      props.tab_color_rgb,
+      theme=props.tab_color_theme,
+      indexed=props.tab_color_indexed,
+      tint=props.tab_color_tint,
+      what="a sheet tab's",
+      notes~,
+    )
+    is Some(color) {
     sheet.set_tab_color(color)
   }
 }

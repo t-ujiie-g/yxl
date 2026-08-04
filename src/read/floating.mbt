@@ -207,8 +207,8 @@ fn read_slicers(
 /// slicer back out writes the name back out too. The names come off the slicers
 /// themselves rather than off the spelling convention, so a workbook whose
 /// slicer names collided and were numbered is still recognised.
-fn slicer_caches(backend : @xlsx.Workbook) -> Map[String, Unit] {
-  let caches : Map[String, Unit] = Map([])
+fn slicer_caches(backend : @xlsx.Workbook) -> @set.Set[String] {
+  let caches : @set.Set[String] = Set([])
   for name in backend.get_sheet_list() {
     let slicers = backend.get_slicers(name) catch {
       // A sheet the backend will not answer for holds no name we could keep
@@ -217,7 +217,7 @@ fn slicer_caches(backend : @xlsx.Workbook) -> Map[String, Unit] {
     }
     for slicer in slicers {
       if !slicer.cache.is_empty() {
-        caches[slicer.cache] = ()
+        caches.add(slicer.cache)
       }
     }
   }
@@ -471,7 +471,14 @@ fn read_sparkline_group(
 }
 
 ///|
-/// A sparkline colour, when the file gives one as plain hex.
+/// A sparkline colour, and only where the file names one outright.
+///
+/// The theme index beside it is deliberately *not* resolved, unlike a font's or
+/// a fill's: Excel gives every sparkline group four colours it never asked for
+/// — high, low, first, last — as theme references, so resolving them would put
+/// four `RRGGBB` values on every group in the spec to say what the default
+/// already says. An unset colour reads as "whatever the theme paints", which is
+/// what the group meant.
 fn sparkline_color(
   color : @xlsx.SparklineColor?,
   notes : Notes,

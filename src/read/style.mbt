@@ -173,10 +173,9 @@ fn resolve_color(
     return read_color(color, notes)
   }
   guard theme is Some(_) || indexed is Some(_) else { return None }
-  // `get_base_color` answers the theme's or the palette's own spelling, which is
-  // `RRGGBB` from a theme and `00RRGGBB` from a `<indexedColors>` table — the
-  // legacy palette writes an alpha byte it does not mean, so drop it rather
-  // than read it as "fully transparent".
+  // `get_base_color` answers the theme's or the palette's own spelling — the
+  // theme's is `RRGGBB` and a `<indexedColors>` table's is `00RRGGBB` — and the
+  // empty string where it can resolve neither index.
   let base = backend.get_base_color(
     "",
     indexed.unwrap_or(-1),
@@ -188,11 +187,9 @@ fn resolve_color(
     )
     return None
   }
-  let rgb = parsed.hex()
-  let rgb = if rgb.length() == 8 { rgb[2:].to_owned() } else { rgb }
   // `theme_color` applies the tint in HLS (ECMA-376 §18.3.1.15) and answers
   // `AARRGGBB`.
-  read_color(Some(@xlsx.theme_color(rgb, tint.unwrap_or(0.0))), notes)
+  read_color(Some(@xlsx.theme_color(parsed.rgb(), tint.unwrap_or(0.0))), notes)
 }
 
 ///|

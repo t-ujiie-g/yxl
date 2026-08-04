@@ -13,7 +13,7 @@ fn read_cells(
   notes : Notes,
 ) -> Unit raise {
   guard used_range(backend, sheet.name) is Some(range) else { return }
-  let source = backend.sheet(sheet.name)
+  guard backend.sheet(sheet.name) is Some(source) else { return }
   let folded = fold_shared_formulas(
     backend, source, sheet, range, styles, notes,
   )
@@ -24,7 +24,7 @@ fn read_cells(
       // A cell a `formulas:` range already covers must not be written again:
       // the loader refuses a range that overlaps a `cells:` entry, so writing
       // both would produce a spec that does not compile.
-      if folded.get(reference) is Some(_) {
+      if folded.contains(reference) {
         continue
       }
       let value = read_value(backend, source, sheet.name, at, notes)
@@ -44,93 +44,12 @@ fn read_cells(
 }
 
 ///|
-/// The shared-formula masters whose whole range comes back as one `formulas:`
-/// entry, as the set of cell addresses those ranges cover.
-///
-/// A shared formula is Excel's own form of the reuse ADR-004 asks for: the file
-/// stores the text once against the range it governs and marks the rest of the
-/// range as following it. Recovering that as the `formulas:` range it came from
-/// keeps the sharing; recovering it cell by cell would emit N copies of
-/// something the file declared once.
-///
-/// The fold is refused where a cell in the range wears a style, because a
-/// `formulas:` range carries no styling (docs/spec.md §3) and there would be
-/// nowhere to put it — those ranges come back as ordinary cells instead, each
-/// with its own translated formula, which loses the sharing but nothing else.
-fn fold_shared_formulas(
-  backend : @xlsx.Workbook,
-  source : @xlsx.Worksheet?,
-  sheet : @model.Sheet,
-  used : @model.CellRange,
-  styles : StyleTable,
-  notes : Notes,
-) -> Map[String, Unit] raise {
-  let covered : Map[String, Unit] = Map([])
-  guard source is Some(source) else { return covered }
-  for row in used.top_left.row..<=used.bottom_right.row {
-    for col in used.top_left.col..<=used.bottom_right.col {
-      guard source.get_cell_formula_info_rc(row, col) is Some(info) else {
-        continue
-      }
-      // A master is the cell that holds the text *and* names the range; a
-      // follower holds the index alone.
-      guard info.shared_index is Some(index) &&
-        info.range_ref is Some(reference) &&
-        !info.formula.is_empty() else {
-        continue
-      }
-      guard @model.CellRange::parse(reference) is Some(range) else { continue }
-      if range_follows(source, backend, sheet.name, range, index, styles, notes) {
-        sheet.add_formula({ at: range, formula: info.formula })
-        for r in range.top_left.row..<=range.bottom_right.row {
-          for c in range.top_left.col..<=range.bottom_right.col {
-            covered[@units.CellRef::new(col=c, row=r).to_a1()] = ()
-          }
-        }
-      }
-    }
-  }
-  covered
-}
-
-///|
-/// Whether every cell of `range` follows the shared formula `index` and carries
-/// no style of its own — the two things a `formulas:` range needs to be true of
-/// the region it replaces.
-fn range_follows(
-  source : @xlsx.Worksheet,
-  backend : @xlsx.Workbook,
-  sheet_name : String,
-  range : @model.CellRange,
-  index : UInt,
-  styles : StyleTable,
-  notes : Notes,
-) -> Bool raise {
-  for row in range.top_left.row..<=range.bottom_right.row {
-    for col in range.top_left.col..<=range.bottom_right.col {
-      guard source.get_cell_formula_info_rc(row, col) is Some(info) else {
-        return false
-      }
-      guard info.shared_index is Some(other) && other == index else {
-        return false
-      }
-      let reference = @units.CellRef::new(col~, row~).to_a1()
-      if read_cell_style(backend, sheet_name, reference, styles, notes)
-        is Some(_) {
-        return false
-      }
-    }
-  }
-  true
-}
-
-///|
 /// What one cell holds: a formula, rich text, or a plain value — in that order,
 /// because a formula cell also carries a cached result and rich text also reads
 /// back as its concatenation.
 fn read_value(
   backend : @xlsx.Workbook,
-  source : @xlsx.Worksheet?,
+  source : @xlsx.Worksheet,
   sheet_name : String,
   at : @units.CellRef,
   notes : Notes,
@@ -158,37 +77,9 @@ fn read_value(
   // nothing; only a cell that genuinely mixes fonts needs the long form.
   if backend.get_cell_rich_text(sheet_name, reference) is Some(runs) &&
     is_mixed(runs) {
-    return Some(RichText(runs.map(run => read_run(run, notes))))
+    return Some(RichText(runs.map(run => read_run(backend, run, notes))))
   }
   read_scalar(backend, sheet_name, reference)
-}
-
-///|
-/// The formula a shared-formula follower stands for, translated from its master
-/// to this cell's position, or `None` where the cell follows nothing.
-///
-/// The translation is the backend's own — the same shifting Excel applies when
-/// it opens the file — so `D3` under a master `B2*C2` at `D2` comes back as
-/// `B3*C3`, and an absolute `$C$2` does not move.
-fn shared_follower_formula(
-  source : @xlsx.Worksheet?,
-  at : @units.CellRef,
-  notes : Notes,
-) -> String? raise {
-  guard source is Some(source) else { return None }
-  guard source.get_cell_formula_info_rc(at.row, at.col) is Some(info) else {
-    return None
-  }
-  guard info.formula.is_empty() && info.shared_index is Some(index) else {
-    return None
-  }
-  guard source.shared_formula_master(index) is Some(master) else {
-    notes.drop(
-      "a cell following a shared formula whose master the file does not hold, which leaves nothing to translate",
-    )
-    return None
-  }
-  Some(master.translate_to(at.row, at.col))
 }
 
 ///|
@@ -226,7 +117,11 @@ fn read_scalar(
 ///|
 /// One run of rich text. The run's font is narrower here than in the file — see
 /// `read_font` for what the schema cannot say.
-fn read_run(run : @xlsx.RichTextRun, notes : Notes) -> @model.RichRun {
+fn read_run(
+  backend : @xlsx.Workbook,
+  run : @xlsx.RichTextRun,
+  notes : Notes,
+) -> @model.RichRun {
   let font : @model.Font? = match run.font {
     Some(font) =>
       Some({
@@ -236,7 +131,18 @@ fn read_run(run : @xlsx.RichTextRun, notes : Notes) -> @model.RichRun {
         strike: some_true(font.strike),
         size: font.size,
         name: font.family,
-        color: read_color(font.color, notes),
+        // A run's font carries the theme and palette indices a cell's font
+        // does, and resolves them the same way: a run left out of that would
+        // lose its colour where the cell beside it kept one.
+        color: resolve_color(
+          backend,
+          font.color,
+          theme=font.color_theme,
+          indexed=font.color_indexed,
+          tint=font.color_tint,
+          what="a rich-text run's",
+          notes~,
+        ),
       })
     None => None
   }

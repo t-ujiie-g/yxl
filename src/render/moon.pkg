@@ -10,4 +10,6 @@ import {
   "t-ujiie-g/yxl/model",
   "t-ujiie-g/yxl/units",
   "t-ujiie-g/yxl/yaml",
+  // Sets of the addresses and names already spoken for.
+  "moonbitlang/core/set",
 }

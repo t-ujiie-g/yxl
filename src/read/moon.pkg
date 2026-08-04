@@ -11,6 +11,8 @@ import {
   "bobzhang/mbtexcel/xlsx",
   // Parsing a validation bound out of the formula the file stores it as.
   "moonbitlang/core/string",
+  // The set of cells a recovered `formulas:` range already covers.
+  "moonbitlang/core/set",
 }
 
 // The tests build a model, compile it with `emit`, and read the bytes back —

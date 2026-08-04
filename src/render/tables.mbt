@@ -32,7 +32,7 @@ pub(all) struct DataTable {
   /// The file's contents.
   csv : String
   /// The addresses this covers, so the `cells:` block can leave them out.
-  covered : Map[String, Unit]
+  covered : @set.Set[String]
 }
 
 ///|
@@ -75,17 +75,17 @@ fn literal_region(sheet : @model.Sheet) -> @model.CellRange? {
   let width = bounds.bottom_right.col - bounds.top_left.col + 1
   let height = bounds.bottom_right.row - bounds.top_left.row + 1
   guard height >= min_csv_rows && width >= min_csv_columns else { return None }
-  let filled : Map[String, Unit] = Map([])
+  let filled : @set.Set[String] = Set([])
   for cell in sheet.cells {
     guard is_literal(cell) else { return None }
-    filled[cell.pos.to_a1()] = ()
+    filled.add(cell.pos.to_a1())
   }
   // Every cell the sheet has must lie inside the rectangle, and the rectangle
   // must be full: a ragged region would need blank fields the CSV cannot tell
   // from empty text.
   for row in bounds.top_left.row..<=bounds.bottom_right.row {
     for col in bounds.top_left.col..<=bounds.bottom_right.col {
-      guard filled.get(@units.CellRef::new(col~, row~).to_a1()) is Some(_) else {
+      guard filled.contains(@units.CellRef::new(col~, row~).to_a1()) else {
         return None
       }
     }
@@ -137,10 +137,10 @@ fn region_table(
   path : String,
 ) -> DataTable {
   let values : Map[String, @model.CellValue] = Map([])
-  let covered : Map[String, Unit] = Map([])
+  let covered : @set.Set[String] = Set([])
   for cell in sheet.cells {
     values[cell.pos.to_a1()] = cell.value
-    covered[cell.pos.to_a1()] = ()
+    covered.add(cell.pos.to_a1())
   }
   let out = StringBuilder::new()
   for row in region.top_left.row..<=region.bottom_right.row {

@@ -2,6 +2,7 @@
 package "t-ujiie-g/yxl/render"
 
 import {
+  "moonbitlang/core/set",
   "t-ujiie-g/yxl/model",
   "t-ujiie-g/yxl/units",
   "t-ujiie-g/yxl/yaml",
@@ -26,7 +27,7 @@ pub(all) struct DataTable {
   at : @units.CellRef
   path : String
   csv : String
-  covered : Map[String, Unit]
+  covered : @set.Set[String]
 }
 
 pub(all) struct Picture {

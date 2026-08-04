@@ -26,6 +26,7 @@ pub fn CellRef::to_absolute_a1(Self) -> String
 pub struct Color(String) derive(Eq, Hash, @debug.Debug)
 pub fn Color::hex(Self) -> String
 pub fn Color::parse(String) -> Self?
+pub fn Color::rgb(Self) -> String
 
 pub(all) enum DateSystem {
   Date1900

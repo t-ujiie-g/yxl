@@ -208,6 +208,27 @@ test "a theme or palette colour resolves to the RGB it stands for" {
 }
 
 ///|
+test "a theme index the workbook does not define is named, not guessed at" {
+  // The theme in the file runs `lt1, dk1, lt2, dk2, accent1..6`; the hyperlink
+  // pair sits past the end of it. A colour there is a real loss and the
+  // extract-to-spec checklist tells a reader to act on the note, so the note
+  // has to be there.
+  let backend = @xlsx.Workbook::new()
+  let _ = backend.new_sheet("S")
+  backend.set_cell_str("S", "A1", "linked")
+  let hyperlink = backend.new_style(
+    @xlsx.Style::font(@xlsx.Font::with_values(color_theme=10)),
+  )
+  backend.set_cell_style("S", "A1", hyperlink)
+  let recovered = @read.from_bytes(backend.write_to_buffer())
+  assert_true(
+    recovered.dropped
+    .iter()
+    .any(note => note.contains("the workbook does not define")),
+  )
+}
+
+///|
 test "a shared formula comes back as the range that declared it" {
   let (wb, sheet) = fixture()
   sheet.set(at("B2"), Number(2.0))

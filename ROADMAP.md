@@ -1394,6 +1394,44 @@ Phase 11's inline `values:` lands. `$include` splitting is never inferred.
 
 Reverse-chronological. One entry per user-visible or structural change.
 
+- **2026-08-05** — **Refactor after the field report, and it found two more
+  colours going missing.** The §8 lenses over the whole tree; §8.1 was clean and
+  §8.5 had already been done with the fixes, so the findings were these.
+
+  **§8.2, one concept in one place.** #50 taught `read` to resolve a theme or
+  palette index against the workbook's own theme — and taught it in `read_font`
+  and `read_fill` only. Two more readers take the same `@xlsx` fields and were
+  reading the literal `rgb` alone: **a rich-text run's font**, so a theme colour
+  survived on a plain cell and vanished on the mixed-font cell beside it, and **a
+  sheet's tab colour**, which the colour picker offers from the theme row first
+  and which was being dropped without even a note. Both now go through
+  `resolve_color`. A sparkline's is the one that stays literal, and now says why
+  in the code rather than only here: Excel hands every group four theme-referenced
+  colours nobody asked for, so resolving them would write four `RRGGBB` values
+  onto every group to restate the default.
+
+  **§8.1, the newtype should own its spelling.** `resolve_color` was slicing
+  `00RRGGBB` down to `RRGGBB` with string arithmetic, in the package furthest
+  from the type that exists to keep colours out of bare `String` (§7). That is
+  `@units.Color::rgb()` now.
+
+  **§8.3, a boundary the other packages already draw.** `read/cells.mbt` had
+  grown a second job — walking the grid, *and* recovering shared formulas — where
+  `emit` and `loader` each keep that work in their own `formulas.mbt`. Split to
+  `read/formulas.mbt`, which also let the `@xlsx.Worksheet?` be guarded once at
+  the top of the scan instead of threaded as an `Option` through four signatures.
+
+  **§8.8, a set is a `Set`.** Eight places built one out of `Map[K, Unit]` and
+  wrote `m[k] = ()` / `m.get(k) is Some(_)`. `moonbitlang/core/set` is what the
+  standard library reaches for now, and `Notes::drop`'s test-then-insert collapses
+  into one `add_and_check`. `render.DataTable.covered` is public, so the `.mbti`
+  moves with it — the only public change besides `Color::rgb`.
+
+  **§8.4** added the two tests the fixes had left uncovered: a theme index past
+  the end of the theme (the hyperlink pair) reports rather than guesses, and
+  `render` writes a style-only cell as `{ style: … }`, which is the spelling the
+  loader has to read back.
+
 - **2026-08-05** — **The field report: issues #45–#52 from a production
   workbook.** Eight defects raised against v0.3.1 by converting a 32-sheet
   monthly report, and the first of them meant *no openpyxl-produced workbook
