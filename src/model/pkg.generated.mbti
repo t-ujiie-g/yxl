@@ -125,6 +125,7 @@ pub(all) enum CellValue {
   Error(String)
   Formula(formula~ : String, cached~ : CellValue?)
   RichText(Array[RichRun])
+  Blank
 } derive(Eq, @debug.Debug)
 
 pub(all) struct Chart {
@@ -664,4 +665,3 @@ pub(all) struct WorkbookProtection {
 // Type aliases
 
 // Traits
-

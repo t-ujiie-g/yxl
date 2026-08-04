@@ -415,12 +415,35 @@ test "a structure cannot be coerced to text" {
 }
 
 ///|
-test "load rejects an expanded cell missing its value" {
+test "load rejects an expanded cell saying nothing at all" {
+  assert_eq(
+    schema_message("sheets:\n  - name: S\n    cells:\n      A1: {}\n"),
+    Some("spec.yaml: cell 'A1' needs a 'value', a 'formula', or a 'style'"),
+  )
+}
+
+///|
+test "load accepts a cell that is a style and nothing else" {
+  // A shaded box, a ruled table edge, the blank half of a merged heading: the
+  // cell exists to be drawn, and stays blank to `ISBLANK` and `COUNTA` (#48).
+  let wb = load_ok(
+    "sheets:\n  - name: S\n    cells:\n      B2: { style: { fill: FFFF0000 } }\n",
+  )
+  let cell = wb.sheets[0].cells[0]
+  assert_eq(cell.pos.to_a1(), "B2")
+  assert_true(cell.value is Blank)
+  assert_true(cell.style is Some(style) && style.fill is Some(_))
+}
+
+///|
+test "load rejects a type on a cell with no value to apply it to" {
   assert_eq(
     schema_message(
-      "sheets:\n  - name: S\n    cells:\n      A1: { format: \"0%\" }\n",
+      "sheets:\n  - name: S\n    cells:\n      A1: { type: date, style: bold }\n",
     ),
-    Some("spec.yaml: cell 'A1' needs a 'value' or a 'formula'"),
+    Some(
+      "spec.yaml: cell 'A1' cannot give a 'type' with no value to apply it to",
+    ),
   )
 }
 

@@ -43,7 +43,7 @@ test "a chart on a sheet is named rather than dropped in silence" {
   let _ = backend.new_sheet("S")
   backend.set_cell_str("S", "A1", "Region")
   backend.set_cell_int("S", "B1", 1)
-  guard backend.sheet("S") is Some(source)
+  guard! backend.sheet("S") is Some(source)
   source.add_chart("D2", chart_xml())
   let recovered = @read.from_bytes(backend.write_to_buffer())
   assert_eq(recovered.workbook.sheets[0].charts, [])

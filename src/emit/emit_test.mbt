@@ -26,6 +26,46 @@ test "to_bytes round-trips a model through real .xlsx bytes" {
 }
 
 ///|
+test "a blank cell is written for its style alone" {
+  let wb = @model.Workbook::new()
+  let sheet = wb.add_sheet("S")
+  sheet.set(@units.CellRef::new(col=2, row=2), Blank, style={
+    ..@model.Style::empty(),
+    fill: Some({ color: @units.Color::parse("FFFF0000").unwrap() }),
+  })
+  let reopened = @xlsx.read(@emit.to_bytes(wb)[:])
+  // The cell exists and wears the fill; the backend cannot yet leave it without
+  // a value, so it holds the empty string (docs/spec.md §3).
+  assert_true(reopened.get_cell_style("S", "B2") is Some(_))
+  guard reopened.get_cell_style("S", "B2") is Some(id) else { return }
+  let style = reopened.get_style(id)
+  assert_true(style.fill is Some(_))
+}
+
+///|
+test "every part of the package is deflated" {
+  // The backend stores each part uncompressed, which made a real workbook ten
+  // times the size Excel writes for it (#46). Asserted on the archive rather
+  // than on a byte count, so it fails for the reason it exists rather than
+  // because some part happened to compress well.
+  let wb = @model.Workbook::new()
+  let sheet = wb.add_sheet("S")
+  for row in 1..<200 {
+    sheet.set(@units.CellRef::new(col=1, row~), Text("a repetitive value"))
+  }
+  let bytes = @emit.to_bytes(wb)
+  let archive = @zip.read(bytes[:])
+  assert_true(archive.entries().length() > 0)
+  for entry in archive.entries() {
+    assert_true(entry.compression() is Deflate)
+  }
+  // Reading the package back is what proves the compressed bytes are sound;
+  // an inflater that disagreed with our deflater would show up here.
+  let reopened = @xlsx.read(bytes[:])
+  assert_eq(reopened.get_cell("S", "A1"), Some("a repetitive value"))
+}
+
+///|
 test "MbtexcelEmitter emits every sheet in order" {
   let wb = @model.Workbook::new()
   wb.add_sheet("First").set(@units.CellRef::new(col=1, row=1), Text("a"))

@@ -133,6 +133,7 @@ cells:
     rich:
       - "Plain then "
       - { text: bold, font: { bold: true } }
+  B3: { style: shaded }                       # a look and nothing in it
 ```
 
 YAML's own types carry over: a bare `1` is a number, a quoted `"1"` is text.
@@ -146,7 +147,7 @@ YAML's own types carry over: a bare `1` is a number, a quoted `"1"` is text.
 | `rich` | A sequence of runs: a plain string, or `{ text:, font: }`. Mixes fonts inside one cell. |
 | `type` | `text` \| `number` \| `bool` \| `date` \| `duration` \| `error` — coerces the value. Cannot be combined with `formula`. |
 | `format` | An Excel number-format code, e.g. `"#,##0.00"`, `"0.0%"`. |
-| `style` | A style name (bareword) or an inline style mapping. §6. |
+| `style` | A style name (bareword) or an inline style mapping. §6. On its own — with no `value` or `formula` — it makes a blank cell that carries the styling. |
 
 `type: date` accepts `YYYY-MM-DD` or `YYYY-MM-DD HH:MM:SS` and stores an Excel
 serial. Without an explicit `format`, a date defaults to `yyyy-mm-dd` and a
@@ -161,6 +162,25 @@ of rolling into days.
 `type: error` accepts Excel's error literals: `#DIV/0!`, `#N/A`, `#NAME?`,
 `#NULL!`, `#NUM!`, `#REF!`, `#VALUE!`, `#SPILL!`, `#CALC!`, and
 `#GETTING_DATA`.
+
+A cell may be a **style and nothing else** — `B3: { style: shaded }` — which is
+how a shaded box, the ruled edge of a table, or the blank half of a merged
+heading is drawn. `value:` and `formula:` are then both absent, and `type:` has
+nothing to apply itself to, so it is refused. A cell needs at least one of
+`value`, `formula`, `rich`, `style`, or `format`.
+
+> **The Excel backend cannot yet write a *truly* blank styled cell**: it stores
+> one as an empty string, so `ISBLANK` on it is `FALSE` and `COUNTA` counts it.
+> The drawing is right and the formulas around it may not be; where that matters,
+> style the region with a `columns:` / `rows:` band (§4) instead, which reaches
+> the cell without creating it.
+
+**Line breaks inside a cell** are `\n` in a double-quoted scalar (`"line
+one\nline two"`), the character Excel itself stores for Alt+Enter. Write `\n`
+rather than `\r` or `\r\n`: a carriage return goes into the file literally,
+and XML 1.0 §2.11 has every reader — Excel included — normalize it to a line
+feed on the way back in, so the two spellings open the same and only the second
+one survives a re-`extract` unchanged.
 
 > **`yxl` emits formulas; Excel computes them.** There is no evaluator here.
 
@@ -1155,9 +1175,14 @@ spec is the picture the workbook held.
 
 ### What it recovers
 
-Cell values, formulas, and mixed-font rich text. Styles, **interned**: a look
-worn by forty cells becomes one `defs.styles` entry, because the file kept the
-sharing even though it lost the name. Merged ranges. Column and row bands —
+Cell values, formulas, and mixed-font rich text — including the cells that
+**follow a shared formula**, which come back as the `formulas:` range (§3) they
+were declared as where the whole range is unstyled, and as their own translated
+`formula:` where it is not. Cells that are a **style and nothing else** (§3).
+Styles, **interned**: a look worn by forty cells becomes one `defs.styles`
+entry, because the file kept the sharing even though it lost the name — with
+**theme and palette colours resolved to RGB**, tint included, against the theme
+the workbook carries. Merged ranges. Column and row bands —
 widths, heights, hidden, outline levels — with adjacent equal ones collapsed
 back into a single entry. Frozen and split panes, gridlines, tab colours, sheet
 order, hidden sheets, the active tab, and the 1904 date system.
@@ -1193,9 +1218,16 @@ calculation settings, the default font, and each sheet's protection.
   a guess about intent, and the number plus its format compiles back to the
   identical cell.
 - **A formula's cached result is left behind.** Excel recomputes it on open.
-- **A shared formula is recovered at its master cell only.** The reader does not
-  expose which cells follow it, so the rest arrive as the values they cached.
-  A `formulas:` range (§3) is the spelling to restore by hand.
+- **A theme colour on a *border* is not recovered.** Fonts and fills resolve
+  theirs against the theme in the file; the Excel backend's border reader takes
+  a literal `rgb` alone and has no field for a theme index, so a theme-coloured
+  edge arrives already colourless — and, since that is also what an
+  Excel-default border looks like, it cannot even be reported.
+- **A column marked `customWidth="0"` comes back with its width written out.**
+  Such a column is at Excel's *default* width and the stored number is
+  informational, but the backend does not read the flag, so rebuilding turns it
+  into an explicitly sized column and Excel stops auto-fitting it. Delete the
+  `width:` where the original did not set one.
 - **A picture's scale is not recovered.** The file records how big to draw it in
   absolute units rather than as a factor, and the Excel backend reports the
   factor back as `1` whatever it was — so a scaled picture cannot be told from an

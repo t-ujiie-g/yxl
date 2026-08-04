@@ -240,6 +240,9 @@ fn one_cell(cell : @model.Cell, styles : StyleNames) -> @yaml.Node {
           }
           entries.push(("rich", @yaml.Seq(rendered)))
         }
+        // Nothing to say about what the cell holds — the `style:` or `format:`
+        // below is the whole entry, which is what a style-only cell is.
+        Blank => ()
       }
       if format is Some(code) {
         entries.push(("format", @yaml.Str(code)))

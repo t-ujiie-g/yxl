@@ -9,8 +9,8 @@ fn main {
 ///|
 /// Parse arguments, run the requested command, and return a process exit code.
 fn run() -> Int {
-  // `get_cli_args` includes the program name at index 0.
-  let args = @sys.get_cli_args()[1:]
+  // `args` includes the program name at index 0.
+  let args = @env.args()[1:]
   let command = @cli.parse_args(args) catch {
     @diag.CliError(d) => {
       report(d.render())

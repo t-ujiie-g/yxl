@@ -28,7 +28,7 @@ source = "src"
 description = "A YAML-driven Excel (.xlsx) compiler and CLI — manage spreadsheets as version-controllable YAML with reuse/dedup, built on bobzhang/mbtexcel."
 
 import {
-  "bobzhang/mbtexcel@0.1.8",
+  "bobzhang/mbtexcel@0.1.9",
   "moonbit-community/yaml@0.0.6",
-  "moonbitlang/x@0.4.47",
+  "moonbitlang/x@0.4.48",
 }

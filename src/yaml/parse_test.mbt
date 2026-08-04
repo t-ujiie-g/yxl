@@ -28,6 +28,37 @@ test "parse handles nested sequences and mappings" {
 }
 
 ///|
+test "the control-character escapes the library mis-decodes come back right" {
+  // The parser library's escape table writes each code point's decimal value as
+  // a hex literal, so `\r` used to decode to U+0013 (DC3) — a character XML
+  // cannot carry, which made the workbook Excel opened a broken one (#45).
+  let node = @yaml.parse(
+    "a: \"x\\ry\"\nb: \"x\\vy\"\nc: \"x\\fy\"\n",
+    file="t.yaml",
+  )
+  @debug.debug_inspect(
+    node,
+    content=(
+      #|Map([("a", Str("x\ry")), ("b", Str("x\u{0b}y")), ("c", Str("x\u{0c}y"))])
+    ),
+  )
+}
+
+///|
+test "the escapes the library gets right are left alone" {
+  let node = @yaml.parse(
+    "a: \"x\\ny\"\nb: \"x\\ty\"\nc: \"2'\"\n",
+    file="t.yaml",
+  )
+  @debug.debug_inspect(
+    node,
+    content=(
+      #|Map([("a", Str("x\ny")), ("b", Str("x\ty")), ("c", Str("2'"))])
+    ),
+  )
+}
+
+///|
 test "parse treats an empty source as the null document" {
   assert_eq(@yaml.parse("", file="t.yaml"), @yaml.Null)
 }

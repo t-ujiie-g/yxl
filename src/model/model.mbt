@@ -20,6 +20,11 @@ pub(all) enum CellValue {
   /// A single string built from runs, each with its own optional font — Excel's
   /// inline rich text. Ordered; at least one run.
   RichText(Array[RichRun])
+  /// Nothing at all: the cell exists so that it can wear a style. Excel writes
+  /// it as a `<c>` with a style id and no `<v>`, which is how a shaded box, a
+  /// ruled table edge, or the blank half of a merged heading is drawn. A blank
+  /// cell is still blank to `ISBLANK` and to `COUNTA`.
+  Blank
 } derive(Eq, Debug)
 
 ///|

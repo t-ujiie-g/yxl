@@ -56,4 +56,3 @@ pub fn Duration::to_serial(Self) -> Double
 // Type aliases
 
 // Traits
-

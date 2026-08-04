@@ -23,4 +23,3 @@ pub impl Emitter for MbtexcelEmitter
 pub trait Emitter {
   fn emit(Self, @model.Workbook) -> Bytes raise @diag.EmitError
 }
-

@@ -40,4 +40,3 @@ pub fn Picture::key(String, @units.CellRef?) -> String
 // Type aliases
 
 // Traits
-

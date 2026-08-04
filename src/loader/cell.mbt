@@ -102,9 +102,31 @@ fn load_expanded_cell(
       }
       None => {
         guard value_node is Some(value_node) else {
-          raise schema_error(
-            file~,
-            "cell '\{reference}' needs a 'value' or a 'formula'",
+          // A cell with a look and nothing in it: a shaded box, the ruled edge
+          // of a table, the blank half of a merged heading. It stays blank to
+          // `ISBLANK` and to `COUNTA` — the styling is all that is being asked
+          // for, and `value: ""` would be a different cell.
+          guard style_node is Some(_) || format is Some(_) else {
+            raise schema_error(
+              file~,
+              "cell '\{reference}' needs a 'value', a 'formula', or a 'style'",
+            )
+          }
+          guard type_ is None else {
+            raise schema_error(
+              file~,
+              "cell '\{reference}' cannot give a 'type' with no value to apply it to",
+            )
+          }
+          return (
+            @model.Blank,
+            combine_style(
+              style_node,
+              format,
+              file~,
+              defs~,
+              context="cell '\{reference}'",
+            ),
           )
         }
         if as_ref(value_node) is Some(name) {

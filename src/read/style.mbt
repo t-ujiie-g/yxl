@@ -50,7 +50,7 @@ fn read_style_id(
   if styles.by_id.get(id) is Some(cached) {
     return cached
   }
-  let style = read_style(backend.get_style(id), notes)
+  let style = read_style(backend, backend.get_style(id), notes)
   let recovered = if style.is_empty() { None } else { Some(style) }
   styles.by_id[id] = recovered
   recovered
@@ -60,10 +60,14 @@ fn read_style_id(
 /// One backend style as the schema can say it. Everything the schema has no
 /// words for is dropped *and named*: a spec that quietly lost the gradient
 /// behind a heading would be worse than one that says it did.
-fn read_style(style : @xlsx.Style, notes : Notes) -> @model.Style {
+fn read_style(
+  backend : @xlsx.Workbook,
+  style : @xlsx.Style,
+  notes : Notes,
+) -> @model.Style {
   {
-    font: read_font(style.font, notes),
-    fill: read_fill(style.fill, notes),
+    font: read_font(backend, style.font, notes),
+    fill: read_fill(backend, style.fill, notes),
     borders: read_borders(style.border, notes),
     align: read_alignment(style.alignment, notes),
     number_format: read_number_format(style, notes),
@@ -75,9 +79,12 @@ fn read_style(style : @xlsx.Style, notes : Notes) -> @model.Style {
 /// A font, narrowed to what the schema holds. Underline is a *style* in Excel
 /// (`single`, `double`, `singleAccounting`, …) and a plain flag here, so
 /// anything but `single` is recorded as narrowed rather than silently squared
-/// off; the same goes for a colour given as a theme or palette index, which has
-/// no meaning without the theme the schema does not carry.
-fn read_font(font : @xlsx.Font?, notes : Notes) -> @model.Font? {
+/// off.
+fn read_font(
+  backend : @xlsx.Workbook,
+  font : @xlsx.Font?,
+  notes : Notes,
+) -> @model.Font? {
   guard font is Some(font) else { return None }
   let recovered : @model.Font = {
     bold: font.bold,
@@ -86,13 +93,15 @@ fn read_font(font : @xlsx.Font?, notes : Notes) -> @model.Font? {
     strike: font.strike,
     size: font.size,
     name: font.family,
-    color: read_color(font.color, notes),
-  }
-  if font.color is None &&
-    (font.color_theme is Some(_) || font.color_indexed is Some(_)) {
-    notes.drop(
-      "a font colour given as a theme or palette index, which needs the theme the spec does not carry",
-    )
+    color: resolve_color(
+      backend,
+      font.color,
+      theme=font.color_theme,
+      indexed=font.color_indexed,
+      tint=font.color_tint,
+      what="a font",
+      notes~,
+    ),
   }
   if font.outline is Some(true) ||
     font.shadow is Some(true) ||
@@ -126,9 +135,7 @@ fn read_underline(underline : String?, notes : Notes) -> Bool? {
 }
 
 ///|
-/// A hex colour, when there is one to have. A theme or indexed colour resolves
-/// only against a theme the spec cannot express, so it is left out; the caller
-/// notes it where it knows what it was for.
+/// A hex colour, when there is one to have.
 fn read_color(color : String?, notes : Notes) -> @units.Color? {
   guard color is Some(text) && !text.is_empty() else { return None }
   match @units.Color::parse(text) {
@@ -141,8 +148,60 @@ fn read_color(color : String?, notes : Notes) -> @units.Color? {
 }
 
 ///|
+/// A colour the file may have written as an RGB value, as an index into the
+/// workbook's theme, or as one into the legacy palette — resolved to RGB either
+/// way, with the `tint` Excel lightens or darkens the base colour by applied
+/// (ECMA-376 §18.3.1.15).
+///
+/// The spec carries RGB alone, so an unresolved index would be a lost colour;
+/// resolving it here is what lets a workbook whose headings are all theme
+/// colours — which is to say most real workbooks — come back looking like
+/// itself. `what` names the thing wearing the colour, for the note left behind
+/// when even the theme cannot say what it was: the hyperlink pair (`hlink`,
+/// `folHlink`) is in the file's theme but not in the table the backend parses
+/// out of it.
+fn resolve_color(
+  backend : @xlsx.Workbook,
+  color : String?,
+  theme~ : Int?,
+  indexed~ : Int?,
+  tint~ : Double?,
+  what~ : String,
+  notes~ : Notes,
+) -> @units.Color? {
+  if color is Some(text) && !text.is_empty() {
+    return read_color(color, notes)
+  }
+  guard theme is Some(_) || indexed is Some(_) else { return None }
+  // `get_base_color` answers the theme's or the palette's own spelling, which is
+  // `RRGGBB` from a theme and `00RRGGBB` from a `<indexedColors>` table — the
+  // legacy palette writes an alpha byte it does not mean, so drop it rather
+  // than read it as "fully transparent".
+  let base = backend.get_base_color(
+    "",
+    indexed.unwrap_or(-1),
+    theme_color?=theme,
+  )
+  guard @units.Color::parse(base) is Some(parsed) else {
+    notes.drop(
+      "\{what} colour given as a theme or palette index the workbook does not define",
+    )
+    return None
+  }
+  let rgb = parsed.hex()
+  let rgb = if rgb.length() == 8 { rgb[2:].to_owned() } else { rgb }
+  // `theme_color` applies the tint in HLS (ECMA-376 §18.3.1.15) and answers
+  // `AARRGGBB`.
+  read_color(Some(@xlsx.theme_color(rgb, tint.unwrap_or(0.0))), notes)
+}
+
+///|
 /// A fill, which the schema knows only as a single solid colour.
-fn read_fill(fill : @xlsx.Fill?, notes : Notes) -> @model.Fill? {
+fn read_fill(
+  backend : @xlsx.Workbook,
+  fill : @xlsx.Fill?,
+  notes : Notes,
+) -> @model.Fill? {
   guard fill is Some(fill) else { return None }
   if fill.typ is Some("gradient") {
     notes.drop(
@@ -150,13 +209,25 @@ fn read_fill(fill : @xlsx.Fill?, notes : Notes) -> @model.Fill? {
     )
     return None
   }
-  guard fill.colors is Some(colors) && !colors.is_empty() else { return None }
   // Pattern 1 is a plain solid; anything else paints a texture through two
   // colours, of which only the foreground survives.
   if fill.pattern is Some(pattern) && pattern != 1 && pattern != 0 {
     notes.drop("a patterned fill, kept as its foreground colour alone")
   }
-  match read_color(Some(colors[0]), notes) {
+  let foreground = match fill.colors {
+    Some(colors) if !colors.is_empty() => Some(colors[0])
+    _ => None
+  }
+  match
+    resolve_color(
+      backend,
+      foreground,
+      theme=fill.fg_theme,
+      indexed=fill.fg_indexed,
+      tint=fill.fg_tint,
+      what="a fill",
+      notes~,
+    ) {
     Some(color) => Some({ color, })
     None => None
   }
@@ -327,6 +398,13 @@ fn builtin_number_format(id : Int, notes : Notes) -> String? {
 
 ///|
 /// The built-in number formats whose codes ECMA-376 §18.8.30 fixes.
+///
+/// Ids 37–40 are spelled as *Excel* writes them rather than as §18.8.30 prints
+/// them: the standard shows a space where Office uses `_)`, the "as wide as a
+/// `)`" padding that lines a positive number up with a parenthesised negative
+/// one (MS-OI29500 §2.1.601). Excel maps a cell formatted `#,##0_);(#,##0)`
+/// onto id 37 and writes no `numFmt` element, so the standard's spelling would
+/// come back out of `extract` as a different — and visibly misaligned — format.
 let builtin_number_formats : Array[(Int, String)] = [
   (1, "0"),
   (2, "0.00"),
@@ -346,10 +424,10 @@ let builtin_number_formats : Array[(Int, String)] = [
   (20, "h:mm"),
   (21, "h:mm:ss"),
   (22, "m/d/yy h:mm"),
-  (37, "#,##0 ;(#,##0)"),
-  (38, "#,##0 ;[Red](#,##0)"),
-  (39, "#,##0.00;(#,##0.00)"),
-  (40, "#,##0.00;[Red](#,##0.00)"),
+  (37, "#,##0_);(#,##0)"),
+  (38, "#,##0_);[Red](#,##0)"),
+  (39, "#,##0.00_);(#,##0.00)"),
+  (40, "#,##0.00_);[Red](#,##0.00)"),
   (45, "mm:ss"),
   (46, "[h]:mm:ss"),
   (47, "mmss.0"),
