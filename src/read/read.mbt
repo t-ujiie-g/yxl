@@ -40,14 +40,24 @@ pub fn MbtexcelReader::new() -> MbtexcelReader {
 pub impl Reader for MbtexcelReader with fn read(_self, bytes) {
   recover(bytes) catch {
     @diag.ReadError(_) as ours => raise ours
-    err => {
-      // Upcast to `Error` for its `Show`; the concrete `XlsxError` has none.
-      let reason : Error = err
+    err =>
       raise @diag.ReadError(
-        @diag.Diagnostic::new("Excel backend: " + reason.to_string()),
+        @diag.Diagnostic::new("Excel backend: " + backend_reason(err)),
       )
-    }
   }
+}
+
+///|
+/// What the backend actually said, rather than the name of the case it raised.
+///
+/// `Show` on an error gives the constructor alone — `…XlsxError.InvalidXml` —
+/// which names the *kind* of problem and nothing about the file, so a reader who
+/// hit one had to bisect the package part by part to find out what was
+/// unreadable. `XlsxError` derives `Debug`, and every case that carries a
+/// `msg~`, a `path~`, or an `index~` puts the useful half there; `Debug` renders
+/// those fields, so it is what the message is built from.
+fn backend_reason(err : Error) -> String {
+  @debug.to_string(err)
 }
 
 ///|

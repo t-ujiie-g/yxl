@@ -8,6 +8,8 @@ import {
   "bobzhang/mbtexcel/xlsx",
   // Compressing the package the backend hands over as a ZIP archive.
   "bobzhang/mbtexcel/zip",
+  // Rendering the backend error's payload, which its `Show` drops.
+  "moonbitlang/core/debug",
   // `Int`'s bounds, to keep an integral validation bound out of float notation.
   "moonbitlang/core/int",
 }

@@ -689,6 +689,24 @@ gate, which is why none carries a box:
               `set_zip_writer` that deflates each part. Costs about as much CPU
               again as the rest of the compile — measured at ~14 MB/s of XML —
               which is the right trade against a tenfold file
+      - [x] **Fix: a failed read said which case it raised, not what was
+            wrong.** Asked for twice over in the field report (#55, #56) and
+            true of every `yxl extract` failure since the command shipped:
+            the whole message was
+            `t-ujiie-g/yxl/diag.ReadError.ReadError`, so finding out *what* in
+            a workbook was unreadable meant swapping parts out one at a time
+            and bisecting cells. Two independent causes, both ours:
+            `cli.error_message` knew four of the six subdomain errors —
+            `ReadError` and `ResolveError` fell through to `Show` on the error
+            itself, which renders the type's name — and the reader seam then
+            built its message with that same `Show`, which on the backend's
+            error gives the constructor and drops the payload. `XlsxError`
+            derives `Debug` and every case keeps the useful half in a `msg~`,
+            a `path~` or an `index~`, so the seam renders that instead. The
+            same message now reads
+            `Excel backend: InvalidXml(msg="MCE AlternateContent has no Choice
+            element")`, which is what made the rest of this triage possible at
+            all. `emit` had the identical defect and got the identical fix
       - [ ] **Blocked, not deferred** — these are what `extract` cannot do
             anything about on its own. All but the last two were found by
             probing the backend's read path rather than by reading its
@@ -1393,6 +1411,35 @@ Phase 11's inline `values:` lands. `$include` splitting is never inferred.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-08-05** — **A failed read now says what was wrong with the file.**
+  Every `yxl extract` failure since the command shipped printed
+  `t-ujiie-g/yxl/diag.ReadError.ReadError` and nothing else, so working out
+  which part of a workbook was unreadable meant swapping parts out one at a
+  time. Two causes, both ours and both one-liners once found.
+  `cli.error_message` matched four of the six subdomain errors — `ReadError`
+  and `ResolveError` fell through to `Show` on the error, which renders the
+  type's name — and the reader seam built its own message with that same
+  `Show`, which on the backend's error gives the constructor and throws the
+  payload away. `XlsxError` derives `Debug` and keeps the useful half in a
+  `msg~`, a `path~` or an `index~`, so that is what the message is built from
+  now: `Excel backend: InvalidXml(msg="MCE AlternateContent has no Choice
+  element")`. `emit` had the identical defect and got the identical fix.
+
+  Worth recording *why* this came first: it was the tool needed to triage the
+  three bugs reported against v0.3.2, and with it in hand two of them stopped
+  reproducing. A faithful reconstruction of an Excel-written `workbook.xml` —
+  `mc:AlternateContent` wrapping an `x15ac:absPath`, `xr:revisionPtr`, the
+  `mc:Ignorable` list, a `mc:Fallback` — reads clean. What does *not* read is
+  MCE that is genuinely malformed: `Requires="x15"` where `xmlns:x15` was
+  never declared, an `mc:Ignorable` naming an undeclared prefix, an
+  `AlternateContent` with no `Choice`. The reported minimal repro is the first
+  of those. That leaves a real question upstream — **`extract` reads foreign
+  files, so ADR-006's fail-fast is the wrong stance there**: MCE exists so a
+  consumer can ignore what it does not understand, and rejecting a whole
+  workbook over a stale prefix in an `Ignorable` list is not what Excel itself
+  does. Pending the real file, since a reconstruction that passes is not
+  evidence about one that fails.
 
 - **2026-08-05** — **Refactor after the field report, and it found two more
   colours going missing.** The §8 lenses over the whole tree; §8.1 was clean and

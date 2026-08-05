@@ -13,6 +13,8 @@ import {
   "moonbitlang/core/string",
   // The set of cells a recovered `formulas:` range already covers.
   "moonbitlang/core/set",
+  // Rendering the backend error's payload, which its `Show` drops.
+  "moonbitlang/core/debug",
 }
 
 // The tests build a model, compile it with `emit`, and read the bytes back —

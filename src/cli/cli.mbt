@@ -16,7 +16,7 @@ pub let exit_usage : Int = 2
 ///|
 /// The version this binary reports. Kept in step with `moon.mod`'s `version`;
 /// CI fails the build if the two drift.
-pub let version : String = "0.3.2"
+pub let version : String = "0.3.3"
 
 ///|
 /// What the command line asked for. `params` carries the `--set name=value`
@@ -233,10 +233,14 @@ pub fn compile(
 /// where it carries none, the message is the plain single line.
 pub fn error_message(err : Error, source? : String) -> String {
   let diagnostic = match err {
-    @diag.YamlError(d) | @diag.SchemaError(d) | @diag.EmitError(d) => Some(d)
+    @diag.YamlError(d)
+    | @diag.SchemaError(d)
+    | @diag.ResolveError(d)
+    | @diag.EmitError(d) => Some(d)
     // A usage error is about the command line, not the spec, so it never has a
-    // source position to point into.
-    @diag.CliError(d) => return d.render()
+    // source position to point into. Neither does a read error: `yxl extract`
+    // is given a `.xlsx`, and there is no spec text yet to quote a line from.
+    @diag.CliError(d) | @diag.ReadError(d) => return d.render()
     _ => None
   }
   match (diagnostic, source) {
