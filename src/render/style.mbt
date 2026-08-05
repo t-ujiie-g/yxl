@@ -51,12 +51,12 @@ fn StyleNames::of(wb : @model.Workbook) -> StyleNames {
   // Declaration order follows first appearance, so a reader meets `defs.styles`
   // in the order the sheets use it rather than in a hash order.
   let ordered : Array[@model.Style] = []
-  let seen : Map[@model.Style, Unit] = Map([])
+  let seen : @set.Set[@model.Style] = Set([])
   fn remember(style : @model.Style?) -> Unit {
     if style is Some(style) &&
       counts.get(style).unwrap_or(0) >= SHARED_AT_LEAST &&
-      seen.get(style) is None {
-      seen[style] = ()
+      !seen.contains(style) {
+      seen.add(style)
       ordered.push(style)
     }
   }
@@ -72,12 +72,12 @@ fn StyleNames::of(wb : @model.Workbook) -> StyleNames {
       remember(cell.style)
     }
   }
-  let taken : Map[String, Unit] = Map([])
+  let taken : @set.Set[String] = Set([])
   let declared = []
   let by_style : Map[@model.Style, String] = Map([])
   for style in ordered {
     let name = unique(describe(style), taken)
-    taken[name] = ()
+    taken.add(name)
     declared.push((name, style))
     by_style[style] = name
   }
@@ -180,12 +180,12 @@ fn named_format(code : String) -> String? {
 
 ///|
 /// `base`, or `base_2`, `base_3`, … where the plain form is already taken.
-fn unique(base : String, taken : Map[String, Unit]) -> String {
-  if taken.get(base) is None {
+fn unique(base : String, taken : @set.Set[String]) -> String {
+  if !taken.contains(base) {
     return base
   }
   let mut suffix = 2
-  while taken.get("\{base}_\{suffix}") is Some(_) {
+  while taken.contains("\{base}_\{suffix}") {
     suffix += 1
   }
   "\{base}_\{suffix}"

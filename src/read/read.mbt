@@ -108,7 +108,7 @@ fn recover(bytes : Bytes) -> Recovered raise {
     read_cells(backend, sheet, styles, notes)
     read_merges(backend, sheet)
     read_bands(backend, sheet, styles, notes)
-    read_presentation(backend, sheet)
+    read_presentation(backend, sheet, notes)
     read_decorations(backend, sheet, dates, notes)
     read_images(backend, sheet, notes)
     read_controls(backend, sheet, notes)
@@ -182,20 +182,19 @@ fn read_merges(backend : @xlsx.Workbook, sheet : @model.Sheet) -> Unit raise {
 /// was met and deduplicated — a workbook with a gradient fill on 400 cells
 /// should say so once.
 priv struct Notes {
-  seen : Map[String, Unit]
+  seen : @set.Set[String]
   order : Array[String]
 }
 
 ///|
 fn Notes::new() -> Notes {
-  { seen: Map([]), order: [] }
+  { seen: Set([]), order: [] }
 }
 
 ///|
 /// Record that something was dropped. Repeats are folded together.
 fn Notes::drop(self : Notes, note : String) -> Unit {
-  if self.seen.get(note) is None {
-    self.seen[note] = ()
+  if self.seen.add_and_check(note) {
     self.order.push(note)
   }
 }

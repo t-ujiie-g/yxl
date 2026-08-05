@@ -59,4 +59,3 @@ pub fn Span::render(Self) -> String
 // Type aliases
 
 // Traits
-

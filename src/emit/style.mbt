@@ -326,7 +326,7 @@ fn render_cached(
     Bool(flag) => if flag { "TRUE" } else { "FALSE" }
     Date(datetime) => datetime.to_serial(date_system).to_string()
     Error(text) => text
-    Formula(..) | RichText(_) => ""
+    Formula(..) | RichText(_) | Blank => ""
   }
 }
 

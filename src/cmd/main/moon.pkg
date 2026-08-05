@@ -6,6 +6,7 @@ import {
   // For the `$include` resolver's return type; the loader itself reads nothing.
   "t-ujiie-g/yxl/loader",
   "t-ujiie-g/yxl/diag",
+  "moonbitlang/core/env",
   "moonbitlang/x/fs",
   "moonbitlang/x/sys",
 }

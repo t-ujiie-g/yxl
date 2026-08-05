@@ -28,4 +28,3 @@ pub type BytesResolver = (String, String) -> IncludedBytes raise
 pub type IncludeResolver = (String, String) -> Included raise
 
 // Traits
-

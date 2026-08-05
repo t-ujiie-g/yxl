@@ -24,7 +24,7 @@ pub fn parse(source : String, file~ : String) -> Node raise @diag.YamlError {
 /// scalar the parser could not represent; we fail fast rather than pass it on.
 fn convert(value : @yamllib.Yaml, file : String) -> Node raise @diag.YamlError {
   match value {
-    @yamllib.String(text) => Str(text)
+    @yamllib.String(text) => Str(repair_escapes(text))
     @yamllib.Integer(number) => Int(number)
     @yamllib.Real(number, ..) => Float(number)
     @yamllib.Boolean(flag) => Bool(flag)
@@ -39,7 +39,7 @@ fn convert(value : @yamllib.Yaml, file : String) -> Node raise @diag.YamlError {
     @yamllib.Map(entries) => {
       let converted = []
       for key, child in entries {
-        converted.push((key, convert(child, file)))
+        converted.push((repair_escapes(key), convert(child, file)))
       }
       Map(converted)
     }
@@ -48,6 +48,44 @@ fn convert(value : @yamllib.Yaml, file : String) -> Node raise @diag.YamlError {
         @diag.Diagnostic::new("\{file}: unrecognized or malformed YAML value"),
       )
   }
+}
+
+///|
+/// Undo the parser library's mis-decoding of `\v`, `\f` and `\r`.
+///
+/// Its escape table writes each code point's *decimal* value as a hex literal,
+/// so `\r` yields U+0013 (DC3) rather than U+000D. A cell that says `\r` then
+/// carries a character XML 1.0 has no way to write, and the workbook Excel opens
+/// is a broken one. The seam is where a defect of the chosen parser gets
+/// corrected (ADR-009), and this correction is exact: YAML forbids an
+/// unescaped C0 control in a source document, so a U+0011, U+0012 or U+0013 in
+/// a parsed scalar can only have come from one of these escapes.
+///
+/// `\e` and `\ ` are mis-decoded the same way and are *not* repaired: they land
+/// on `'` and `2`, which a scalar may perfectly well contain, so there is
+/// nothing here to tell an escape from an ordinary character (§9). Write
+/// `` and ` ` for those.
+fn repair_escapes(text : String) -> String {
+  let mut needs_repair = false
+  for ch in text {
+    if ch is ('\u{11}' | '\u{12}' | '\u{13}') {
+      needs_repair = true
+      break
+    }
+  }
+  guard needs_repair else { return text }
+  let repaired = StringBuilder::new()
+  for ch in text {
+    repaired.write_char(
+      match ch {
+        '\u{11}' => '\u{0B}'
+        '\u{12}' => '\u{0C}'
+        '\u{13}' => '\u{0D}'
+        other => other
+      },
+    )
+  }
+  repaired.to_string()
 }
 
 ///|

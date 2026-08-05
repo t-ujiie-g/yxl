@@ -88,9 +88,9 @@ fn one_sheet(
   // holds outside it still goes in `cells:`.
   let covered = match table {
     Some(table) => table.covered
-    None => Map([])
+    None => @set.Set::Set([])
   }
-  if sheet.cells.iter().any(cell => covered.get(cell.pos.to_a1()) is None) {
+  if sheet.cells.iter().any(cell => !covered.contains(cell.pos.to_a1())) {
     entries.push(("cells", cells(sheet, styles, covered)))
   }
   if table is Some(table) {
@@ -183,9 +183,9 @@ fn one_sheet(
 fn cells(
   sheet : @model.Sheet,
   styles : StyleNames,
-  covered : Map[String, Unit],
+  covered : @set.Set[String],
 ) -> @yaml.Node {
-  let ordered = sheet.cells.filter(cell => covered.get(cell.pos.to_a1()) is None)
+  let ordered = sheet.cells.filter(cell => !covered.contains(cell.pos.to_a1()))
   ordered.sort_by((left, right) => {
     if left.pos.row != right.pos.row {
       left.pos.row - right.pos.row
@@ -240,6 +240,9 @@ fn one_cell(cell : @model.Cell, styles : StyleNames) -> @yaml.Node {
           }
           entries.push(("rich", @yaml.Seq(rendered)))
         }
+        // Nothing to say about what the cell holds — the `style:` or `format:`
+        // below is the whole entry, which is what a style-only cell is.
+        Blank => ()
       }
       if format is Some(code) {
         entries.push(("format", @yaml.Str(code)))

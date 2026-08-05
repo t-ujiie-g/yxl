@@ -79,7 +79,7 @@ fn read_conditional_style(
   notes : Notes,
 ) -> @model.Style? raise {
   guard id is Some(id) else { return None }
-  let style = read_style(backend.get_conditional_style(id), notes)
+  let style = read_style(backend, backend.get_conditional_style(id), notes)
   if style.is_empty() {
     None
   } else {

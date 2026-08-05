@@ -58,7 +58,7 @@ test "DateTime::parse reads dates and date-times" {
       second: 0,
     }),
   )
-  guard @units.DateTime::parse("2026-07-23") is Some(date)
+  guard! @units.DateTime::parse("2026-07-23") is Some(date)
   assert_false(date.has_time())
   assert_eq(
     @units.DateTime::parse("2026-07-23 14:30:05"),
@@ -72,7 +72,7 @@ test "DateTime::parse reads dates and date-times" {
     }),
   )
   // 'T' separator and an omitted seconds field are both accepted.
-  guard @units.DateTime::parse("2026-07-23T14:30") is Some(datetime)
+  guard! @units.DateTime::parse("2026-07-23T14:30") is Some(datetime)
   assert_true(datetime.has_time())
   assert_eq(datetime.second, 0)
   // A leap day in a real leap year is valid.

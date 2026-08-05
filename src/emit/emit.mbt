@@ -112,7 +112,24 @@ fn build_workbook(wb : @model.Workbook) -> Bytes raise {
       ),
     )
   }
+  backend.set_zip_writer(deflate_archive)
   @xlsx.write(backend)
+}
+
+///|
+/// Serialize the backend's package with every entry deflated.
+///
+/// A `.xlsx` is a ZIP, and the backend stores each part uncompressed; XML
+/// compresses roughly tenfold, so an untouched package is about ten times the
+/// size Excel and openpyxl write for the same workbook. Nothing else changes:
+/// the entries are copied in the backend's own order, each with the same name
+/// and bytes, and only the compression method differs.
+fn deflate_archive(archive : @zip.Archive) -> Bytes raise {
+  let compressed = @zip.Archive::new()
+  for entry in archive.entries() {
+    compressed.add(entry.name(), entry.data(), compression=Deflate)
+  }
+  @zip.write(compressed)
 }
 
 ///|
@@ -288,6 +305,9 @@ fn emit_cell(
         reference,
         runs.map(build_rich_run)[:],
       )
+    // Nothing to write: the style below is the whole of what this cell is for,
+    // and giving it a value would make it non-blank to `ISBLANK` and `COUNTA`.
+    Blank => ()
   }
   if style is Some(style) {
     backend.set_cell_style(
@@ -313,7 +333,7 @@ fn refers_to(
     Date(datetime) => datetime.to_serial(date_system).to_string()
     Error(text) => text
     Formula(formula~, ..) => formula
-    RichText(_) => ""
+    RichText(_) | Blank => ""
   }
 }
 

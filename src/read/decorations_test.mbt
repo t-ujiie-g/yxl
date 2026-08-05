@@ -253,12 +253,12 @@ test "a style on a self-drawing rule is dropped and named, the rule kept" {
   let dxf = backend.new_conditional_style(
     @xlsx.Style::fill(@xlsx.Fill::solid("FFC7CE")),
   )
-  guard backend.sheet("S") is Some(source)
+  guard! backend.sheet("S") is Some(source)
   source.conditional_formats.push(
     "<conditionalFormatting sqref=\"A1:A9\"><cfRule type=\"dataBar\" dxfId=\"\{dxf}\" priority=\"1\"><dataBar><cfvo type=\"min\"/><cfvo type=\"max\"/><color rgb=\"FF63BE7B\"/></dataBar></cfRule></conditionalFormatting>",
   )
   let recovered = @read.from_bytes(backend.write_to_buffer())
-  guard recovered.workbook.sheets[0].conditional_formats
+  guard! recovered.workbook.sheets[0].conditional_formats
     is [{ rule: DataBar(..), style: None, .. }]
   assert_true(
     recovered.dropped

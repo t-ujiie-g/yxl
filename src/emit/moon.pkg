@@ -6,6 +6,8 @@ import {
   "t-ujiie-g/yxl/units",
   "t-ujiie-g/yxl/diag",
   "bobzhang/mbtexcel/xlsx",
+  // Compressing the package the backend hands over as a ZIP archive.
+  "bobzhang/mbtexcel/zip",
   // `Int`'s bounds, to keep an integral validation bound out of float notation.
   "moonbitlang/core/int",
 }

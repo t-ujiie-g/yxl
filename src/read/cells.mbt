@@ -13,19 +13,31 @@ fn read_cells(
   notes : Notes,
 ) -> Unit raise {
   guard used_range(backend, sheet.name) is Some(range) else { return }
+  guard backend.sheet(sheet.name) is Some(source) else { return }
+  let folded = fold_shared_formulas(
+    backend, source, sheet, range, styles, notes,
+  )
   for row in range.top_left.row..<=range.bottom_right.row {
     for col in range.top_left.col..<=range.bottom_right.col {
       let at = @units.CellRef::new(col~, row~)
       let reference = at.to_a1()
-      let value = read_value(backend, sheet.name, reference, notes)
+      // A cell a `formulas:` range already covers must not be written again:
+      // the loader refuses a range that overlaps a `cells:` entry, so writing
+      // both would produce a spec that does not compile.
+      if folded.contains(reference) {
+        continue
+      }
+      let value = read_value(backend, source, sheet.name, at, notes)
       let style = read_cell_style(backend, sheet.name, reference, styles, notes)
-      // A cell with neither is one the file never wrote.
       match (value, style) {
         (Some(value), _) => sheet.set(at, value, style?)
-        // A styled but empty cell carries formatting alone. The schema has no
-        // way to say that without also saying *something* is there, so the
-        // emptiness wins and the formatting is left to whatever band covers it.
-        (None, _) => ()
+        // A cell with a style and nothing in it — the shaded box, the ruled
+        // table edge, the blank half of a merged heading. It is written as a
+        // blank cell wearing that style rather than left out: a real workbook
+        // has these by the hundred thousand, and dropping them redrew it.
+        (None, Some(style)) => sheet.set(at, Blank, style~)
+        // A cell with neither is one the file never wrote.
+        (None, None) => ()
       }
     }
   }
@@ -37,10 +49,12 @@ fn read_cells(
 /// back as its concatenation.
 fn read_value(
   backend : @xlsx.Workbook,
+  source : @xlsx.Worksheet,
   sheet_name : String,
-  reference : String,
+  at : @units.CellRef,
   notes : Notes,
 ) -> @model.CellValue? raise {
+  let reference = at.to_a1()
   if backend.get_cell_formula(sheet_name, reference) is Some(formula) &&
     !formula.is_empty() {
     // The cached result is deliberately left behind. It is a display cache Excel
@@ -49,13 +63,21 @@ fn read_value(
     // reads like an assertion about the formula's answer.
     return Some(Formula(formula~, cached=None))
   }
+  // A shared formula's followers store no text of their own: the file says only
+  // which master they follow, and the formula is that master's with its relative
+  // references shifted. Leaving them out turned a calculated cell into whatever
+  // stale number was cached beside it (#52) — a spec that looks right and stops
+  // recalculating.
+  if shared_follower_formula(source, at, notes) is Some(formula) {
+    return Some(Formula(formula~, cached=None))
+  }
   // The backend answers `get_cell_rich_text` for *every* shared string, since a
   // plain one is a single run with no font. Recovering that as `rich:` would
   // turn every piece of text in the workbook into a three-line block saying
   // nothing; only a cell that genuinely mixes fonts needs the long form.
   if backend.get_cell_rich_text(sheet_name, reference) is Some(runs) &&
     is_mixed(runs) {
-    return Some(RichText(runs.map(run => read_run(run, notes))))
+    return Some(RichText(runs.map(run => read_run(backend, run, notes))))
   }
   read_scalar(backend, sheet_name, reference)
 }
@@ -95,7 +117,11 @@ fn read_scalar(
 ///|
 /// One run of rich text. The run's font is narrower here than in the file — see
 /// `read_font` for what the schema cannot say.
-fn read_run(run : @xlsx.RichTextRun, notes : Notes) -> @model.RichRun {
+fn read_run(
+  backend : @xlsx.Workbook,
+  run : @xlsx.RichTextRun,
+  notes : Notes,
+) -> @model.RichRun {
   let font : @model.Font? = match run.font {
     Some(font) =>
       Some({
@@ -105,7 +131,18 @@ fn read_run(run : @xlsx.RichTextRun, notes : Notes) -> @model.RichRun {
         strike: some_true(font.strike),
         size: font.size,
         name: font.family,
-        color: read_color(font.color, notes),
+        // A run's font carries the theme and palette indices a cell's font
+        // does, and resolves them the same way: a run left out of that would
+        // lose its colour where the cell beside it kept one.
+        color: resolve_color(
+          backend,
+          font.color,
+          theme=font.color_theme,
+          indexed=font.color_indexed,
+          tint=font.color_tint,
+          what="a rich-text run's",
+          notes~,
+        ),
       })
     None => None
   }

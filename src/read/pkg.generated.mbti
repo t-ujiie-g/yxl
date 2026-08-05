@@ -28,4 +28,3 @@ pub struct Recovered {
 pub trait Reader {
   fn read(Self, Bytes) -> Recovered raise @diag.ReadError
 }
-

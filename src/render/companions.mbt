@@ -25,12 +25,12 @@ let asset_directory : String = "assets"
 /// `assets/…`, so the two kinds cannot collide with each other — but nothing
 /// stops a caller sharing one across both if the directories ever converge.
 priv struct Names {
-  taken : Map[String, Unit]
+  taken : @set.Set[String]
 }
 
 ///|
 fn Names::new() -> Names {
-  { taken: Map([]) }
+  { taken: Set([]) }
 }
 
 ///|
@@ -49,11 +49,11 @@ fn Names::claim(
   let base = if stem.is_empty() { FALLBACK_STEM } else { stem }
   let mut path = "\{directory}/\{base}.\{extension}"
   let mut suffix = 2
-  while self.taken.get(path) is Some(_) {
+  while self.taken.contains(path) {
     path = "\{directory}/\{base}_\{suffix}.\{extension}"
     suffix += 1
   }
-  self.taken[path] = ()
+  self.taken.add(path)
   path
 }
 

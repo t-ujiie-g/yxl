@@ -49,11 +49,13 @@ yxl extract workbook.xlsx -o spec.yxl.yaml
   Typical drops and what to do:
   - *print setup* — not recoverable; re-add a `print:` block (§5) by hand where
     a sheet is actually printed.
-  - *theme/palette colour* — pick the concrete `RRGGBB` the workbook shows and
-    put it in the style.
+  - *theme/palette colour* — fonts and fills resolve theirs to RGB
+    automatically; this line means a colour the workbook's own theme does not
+    define. Pick the concrete `RRGGBB` the workbook shows and put it in the
+    style.
   - *a conditional rule with nothing to apply* — the original rule changed
     nothing visible; usually delete-and-forget, occasionally a sign the rule's
-    look lived in a theme colour worth restoring by hand.
+    look lived in a colour the theme could not resolve.
   - *sheet-local defined names* — often legacy junk; see step 5.
 - The final line matters: `everything else rebuilds the workbook as read`
   means the spec is a faithful starting point. A verify failure is reported
@@ -101,19 +103,22 @@ For each data sheet, replace its inline `cells:` block with an anchored table:
 
 Rewrite these by hand, using the extracted YAML as the answer sheet.
 
-- **Restore formula ranges (§3).** This is the single biggest compression, and
-  the one extract cannot do for you: the file stores a shared formula only at
-  its master cell, so extract recovers `E2` as the formula and `E3:E500` as
-  the values it last computed. Delete the cached values and declare the fill:
+- **Fold the remaining formula runs into ranges (§3).** Extract already writes
+  a `formulas:` range wherever the file stored a shared formula over an
+  unstyled block. What it leaves cell by cell is a run whose cells carry their
+  own style — a `formulas:` range holds no styling, so it cannot fold one —
+  and any column Excel wrote out formula by formula in the first place. Both
+  look the same in the output: a column of `formula:` entries that differ only
+  by row.
 
   ```yaml
   formulas:
     - { at: E2:E500, formula: "IFERROR(C2*D2, \"\")" }
   ```
 
-  Find the ranges by reading the master-cell formulas extract kept and asking
-  "which block of cached values under it follows the same shape". Spot-check
-  two or three rows against the original workbook before deleting.
+  Move the styling to a `columns:` band (§4), which reaches every cell the
+  range fills, then declare the fill. Spot-check two or three rows against the
+  original workbook before deleting the per-cell entries.
 - **Name the styles (§6).** Extract has already interned duplicates into
   `defs.styles` under neutral names (`style`, `style_2`, …) and descriptive
   ones where the evidence was strong (`header`, `percent`). Rename the ones
@@ -122,7 +127,11 @@ Rewrite these by hand, using the extracted YAML as the answer sheet.
   entries nothing references.
 - **Bands, not per-cell layout (§4).** Column widths, row heights, hidden
   ranges, and outline levels are `columns:` / `rows:` bands; extract already
-  collapsed equal neighbours, so mostly this is keeping what it wrote.
+  collapsed equal neighbours, so mostly this is keeping what it wrote. One
+  thing to trim: a `width:` extract wrote for a column the original left at
+  Excel's default (§22) — keeping it stops Excel auto-fitting that column.
+  Suspect any band that is a bare `width:` on a column whose look is otherwise
+  untouched.
 - **Keep the decorations declarative.** Conditional formats, validations,
   merges, filters, and freeze panes all have spec forms (§10); extract
   recovers them, so review rather than rewrite. Re-add the dropped `print:`
@@ -155,10 +164,10 @@ yxl extract rebuilt.xlsx -o check.yxl.yaml   # should verify clean
   rewrite claims equivalence — values and formulas should match; deliberate
   cleanups (dead names, do-nothing rules) are the diff you expect to see.
 - Formula ranges compile to *shared* formulas, so the rebuilt file stores one
-  formula where the original stored one — but the followers' cached values are
-  gone until Excel opens the file. **Open `rebuilt.xlsx` in Excel** (or
-  LibreOffice) once: formulas recompute, lookups resolve, nothing shows `#REF!`
-  or a repair dialog.
+  formula where the original stored one — but no cached values, so every
+  calculated cell is empty until Excel opens the file. **Open `rebuilt.xlsx` in
+  Excel** (or LibreOffice) once: formulas recompute, lookups resolve, nothing
+  shows `#REF!` or a repair dialog.
 - From then on, the spec is the source of truth: data refresh = replace the
   CSVs; design change = edit the spec and re-review the diff.
 

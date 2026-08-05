@@ -27,3 +27,18 @@ pub fn Color::parse(text : String) -> Color? {
 pub fn Color::hex(self : Color) -> String {
   self.0
 }
+
+///|
+/// The `RRGGBB` half alone, dropping an alpha byte where the colour carries one.
+///
+/// Excel's legacy palette writes its entries as `00RRGGBB` — an alpha byte it
+/// does not mean, since a fully transparent palette would paint nothing — so a
+/// caller that needs the three channels asks for them here rather than slicing
+/// the hex itself.
+pub fn Color::rgb(self : Color) -> String {
+  if self.0.length() == 8 {
+    self.0[2:].to_owned()
+  } else {
+    self.0
+  }
+}

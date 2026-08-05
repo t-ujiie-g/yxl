@@ -632,6 +632,63 @@ gate, which is why none carries a box:
             back as a different character. **Fixed in our writer**, the half
             that is ours (ADR-009): every control character but `\n` and `\t`
             goes out as `\u00XX`, the form the parser does read right
+      - [x] **Fix: the field report, issues #45–#52.** Eight defects raised
+            against v0.3.1 from converting a 32-sheet production workbook.
+            Five were ours and are fixed; two were the backend's and the
+            `mbtexcel@0.1.9` upgrade fixed them; one is still the backend's and
+            is under "blocked" below. In the order they bite:
+            - **#47, empty container elements** (`<definedNames/>`,
+              `<numFmts count="0"/>`) failed the whole read, and openpyxl writes
+              both — so *no* openpyxl-produced workbook could be extracted at
+              all. Fixed upstream in `mbtexcel@0.1.9`, whose tag matcher handles
+              a self-closing element
+            - **#52, shared-formula followers.** Was on this list as blocked;
+              `0.1.9` publishes `Cell.formula_shared_index`,
+              `Worksheet::shared_formula_master` and
+              `SharedFormulaMaster::translate_to`, so it is a read now. A master
+              whose whole range follows it and wears no cell style folds back
+              into the one `formulas:` entry it came from, which is the sharing
+              ADR-004 asks for; where a cell in the range carries a style —
+              which a `formulas:` range cannot — each follower comes back as its
+              own translated `formula:` instead. Either way the calculation
+              survives, where before it silently became whatever stale number
+              was cached beside it
+            - **#48, style-only cells.** A cell with a fill, a border or a
+              format and no value vanished without even a `dropped:` line — 600k
+              of them in the reported workbook, which is every merged heading's
+              blank half and every ruled table edge. Both halves are fixed: the
+              schema gains the style-only cell (`B3: { style: shaded }`,
+              `model.Blank`), and `read` writes one. The backend has no way to
+              store a *truly* blank styled cell — it writes an empty string, so
+              `ISBLANK` is `FALSE` there — which `docs/spec.md` §3 says out loud
+              and the "blocked" list carries
+            - **#50, theme and palette colours** were reported as a loss on
+              every font and fill that used one, which in a real workbook is
+              most of them. `0.1.9` publishes `Workbook.theme_colors` and
+              `theme_color(base, tint)`, so the theme in the file being read now
+              resolves to the RGB the spec carries, tint included. Borders are
+              still lost: the backend's border reader takes `rgb` alone and has
+              no field for a theme index — under "blocked"
+            - **#49, built-in number formats 37–40.** Ours: the table in
+              `read/style.mbt` was copied from ECMA-376 §18.8.30, which prints a
+              space where Office writes `_)` (MS-OI29500 §2.1.601). Excel maps a
+              cell formatted `#,##0_);(#,##0)` onto id 37 and writes no `numFmt`
+              element, so an extracted spec came back with a *different* format
+              — the accounting alignment the `_)` exists for, gone
+            - **#45, `\r` in a cell value.** The parser library decodes it as
+              U+13, and 0x13 is not a character XML 1.0 can carry, so v0.3.1
+              wrote a workbook Excel offered to repair. Fixed at our parse seam,
+              which is where a defect of the chosen parser gets corrected
+              (ADR-009): U+11, U+12 and U+13 in a parsed scalar can only have
+              come from `\v`, `\f` or `\r`, since YAML forbids an unescaped C0
+              control in a source document, so mapping them back is exact.
+              `\e` and `\ ` are not repairable and stay in §9 — they land on `'`
+              and `2`, which a scalar may perfectly well contain
+            - **#46, an uncompressed package.** Every ZIP entry was STORED, so a
+              13 MB workbook rebuilt to 132 MB. `emit` now hands the backend a
+              `set_zip_writer` that deflates each part. Costs about as much CPU
+              again as the rest of the compile — measured at ~14 MB/s of XML —
+              which is the right trade against a tenfold file
       - [ ] **Blocked, not deferred** — these are what `extract` cannot do
             anything about on its own. All but the last two were found by
             probing the backend's read path rather than by reading its
@@ -672,12 +729,34 @@ gate, which is why none carries a box:
               defined name, and `PageLayoutOptions` splits scaling across
               `adjust_to` / `fit_to_width` / `fit_to_height`), so it is its own
               item rather than a footnote here
-            - **Shared-formula followers**, so a `formulas:` range comes back as
-              a formula on its master cell and cached values under it.
-              `Worksheet::formula_refs` lists the cells holding formula *text*,
-              which is the masters; nothing public says which cells follow one.
-              A `formula_shared_index` exists on the backend's own `Cell`, but
-              no public accessor returns it
+            - ~~**Shared-formula followers**~~ — **unblocked in
+              `mbtexcel@0.1.9`**, which publishes `Cell.formula_shared_index`,
+              `Worksheet::shared_formula_master` and
+              `SharedFormulaMaster::translate_to`. Read, and done (#52 above)
+            - **A column's `customWidth` flag** (#51). `<col width="9.14"
+              customWidth="0"/>` is a column at its *default* width — the width
+              attribute is informational (ECMA-376 §18.3.1.13) — and `parse_cols`
+              never looks at the flag, so `ColDimension` has no field for it and
+              `extract` writes the width as if it had been set. Rebuilding turns
+              a default column into an explicit one, which stops Excel
+              auto-fitting it. The heuristic that suggests itself — treat a width
+              equal to the sheet's default as not custom — is refused: with no
+              `defaultColWidth` in the file it depends on reconstructing Excel's
+              implicit default from `baseColWidth` and the workbook font, and
+              getting that wrong drops a width an author did set. Becomes a
+              one-line read the day `ColDimension` carries the flag
+            - **A theme or palette colour on a *border*** (#50). Fonts and fills
+              resolve now; the backend's border reader takes the `rgb` attribute
+              alone, and `Border` has no `color_theme` / `color_indexed` field,
+              so a theme-coloured edge arrives already colourless. Not even
+              reportable: a border with no colour is also what an
+              Excel-default-coloured border looks like
+            - **A truly blank styled cell** (#48). `set_cell_style` on a cell
+              that holds nothing creates it as an empty *string*, and the writer
+              has no branch that emits `<c s="…"/>` with no value, so a
+              style-only cell is written as `t="s"` pointing at `""`. It draws
+              correctly and `ISBLANK` disagrees. `emit_cell`'s `Blank => ()` is
+              the one line that changes the day the backend can express it
 
 ### Phase 11 — Authoring ergonomics (added after the v0.1.0 review, §11)
 These sharpen what §1 already claims, so they land **before the schema freeze**;
@@ -1282,12 +1361,14 @@ Phase 11's inline `values:` lands. `$include` splitting is never inferred.
   (`moonbit-community/yaml@0.0.6`, `lexer.mbt`'s
   `resolve_flow_scalar_escape_sequence`; pending an upstream report). Our
   writer never emits the broken spellings — every control character but `\n`
-  and `\t` goes out as `\u00XX` — so extracted specs are unaffected. A *hand*
-  author who writes `"\r\n"` still gets the wrong character with no
-  diagnostic, which ADR-006 exists to prevent and the seam cannot catch: the
-  parser hands back only the decoded value, and by then U+13 is
-  indistinguishable from a deliberate one. Revisit the pin when upstream
-  fixes it.
+  and `\t` goes out as `\u00XX` — so extracted specs are unaffected.
+  **Three of the five are now repaired at our parse seam** (#45): U+11, U+12
+  and U+13 map back to `\v`, `\f` and `\r`, which is exact rather than a guess
+  because YAML forbids an unescaped C0 control in a source document, so nothing
+  else can produce one. `\e` and `\ ` remain broken and unrepairable — they land
+  on `'` and `2`, which any scalar may hold, so there is nothing to tell an
+  escape from an ordinary character. Write `` and ` ` for those. Revisit the
+  pin when upstream fixes the table.
 - **A headline the schema does not earn.** §1 leads with "diffable", and a
   `cells:`-keyed spec is not, under row insertion. Mitigation: Phase 11's inline
   tables, before the schema freeze; until then §1 and the README say which half
@@ -1312,6 +1393,98 @@ Phase 11's inline `values:` lands. `$include` splitting is never inferred.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-08-05** — **Refactor after the field report, and it found two more
+  colours going missing.** The §8 lenses over the whole tree; §8.1 was clean and
+  §8.5 had already been done with the fixes, so the findings were these.
+
+  **§8.2, one concept in one place.** #50 taught `read` to resolve a theme or
+  palette index against the workbook's own theme — and taught it in `read_font`
+  and `read_fill` only. Two more readers take the same `@xlsx` fields and were
+  reading the literal `rgb` alone: **a rich-text run's font**, so a theme colour
+  survived on a plain cell and vanished on the mixed-font cell beside it, and **a
+  sheet's tab colour**, which the colour picker offers from the theme row first
+  and which was being dropped without even a note. Both now go through
+  `resolve_color`. A sparkline's is the one that stays literal, and now says why
+  in the code rather than only here: Excel hands every group four theme-referenced
+  colours nobody asked for, so resolving them would write four `RRGGBB` values
+  onto every group to restate the default.
+
+  **§8.1, the newtype should own its spelling.** `resolve_color` was slicing
+  `00RRGGBB` down to `RRGGBB` with string arithmetic, in the package furthest
+  from the type that exists to keep colours out of bare `String` (§7). That is
+  `@units.Color::rgb()` now.
+
+  **§8.3, a boundary the other packages already draw.** `read/cells.mbt` had
+  grown a second job — walking the grid, *and* recovering shared formulas — where
+  `emit` and `loader` each keep that work in their own `formulas.mbt`. Split to
+  `read/formulas.mbt`, which also let the `@xlsx.Worksheet?` be guarded once at
+  the top of the scan instead of threaded as an `Option` through four signatures.
+
+  **§8.8, a set is a `Set`.** Eight places built one out of `Map[K, Unit]` and
+  wrote `m[k] = ()` / `m.get(k) is Some(_)`. `moonbitlang/core/set` is what the
+  standard library reaches for now, and `Notes::drop`'s test-then-insert collapses
+  into one `add_and_check`. `render.DataTable.covered` is public, so the `.mbti`
+  moves with it — the only public change besides `Color::rgb`.
+
+  **§8.4** added the two tests the fixes had left uncovered: a theme index past
+  the end of the theme (the hyperlink pair) reports rather than guesses, and
+  `render` writes a style-only cell as `{ style: … }`, which is the spelling the
+  loader has to read back.
+
+- **2026-08-05** — **The field report: issues #45–#52 from a production
+  workbook.** Eight defects raised against v0.3.1 by converting a 32-sheet
+  monthly report, and the first of them meant *no openpyxl-produced workbook
+  could be extracted at all*. Seven are closed, one is blocked upstream.
+
+  **Two were the backend's and the `mbtexcel@0.1.9` upgrade closed them.**
+  `<definedNames/>` and `<numFmts count="0"/>` — both of which openpyxl always
+  writes — failed the whole read on a tag matcher that could not see a
+  self-closing element (#47). And shared-formula followers, on this roadmap as
+  blocked since slice 1, are a read now: `0.1.9` publishes
+  `Cell.formula_shared_index`, `Worksheet::shared_formula_master` and
+  `SharedFormulaMaster::translate_to` (#52). A master whose whole range follows
+  it folds back into the single `formulas:` entry it came from; where a cell in
+  the range wears a style — which a `formulas:` range cannot carry — each
+  follower comes back as its own translated `formula:`. Before this, 105k cells
+  of the reported workbook turned into stale cached numbers that would never
+  recalculate: a silent correctness bug, which is the worst kind this direction
+  can have.
+
+  **Two were ours, and both changed what a spec can say.** A cell with a style
+  and no value — 600k of them in that workbook, every merged heading's blank
+  half and every ruled table edge — was dropped without even a `dropped:` line,
+  and the schema had no way to write one back. Both halves are fixed:
+  `B3: { style: shaded }` is now a cell, and `extract` writes it (#48). And
+  theme and palette colours, which in a real workbook are *most* colours, were
+  reported as a loss on every font and fill; the theme is in the file being
+  read, so they resolve to RGB now, tint included (#50).
+
+  **Three were ours and quieter.** The built-in number formats 37–40 were
+  copied from ECMA-376 §18.8.30, which prints a space where Office writes `_)`
+  (MS-OI29500 §2.1.601) — so an accounting column extracted to a format that
+  no longer lines its digits up (#49). A `\r` in a cell value became U+13,
+  which XML 1.0 cannot carry, so `yxl build` wrote a workbook Excel offered to
+  repair; repaired at the parse seam, where a defect of the chosen parser
+  belongs (ADR-009, §9) (#45). And every ZIP entry was STORED, so a 13 MB
+  workbook rebuilt to 132 MB; `emit` now deflates the package through
+  `set_zip_writer` (#46). Compression costs about as much CPU again as the rest
+  of the compile — the scaling guardrail's ratio moved from 16.2 to 18.6
+  against a ceiling of 26 — which is the right trade against a tenfold file.
+
+  **One is blocked upstream** (#51): `customWidth="0"` marks a column at its
+  *default* width, and `parse_cols` never reads the flag, so `ColDimension`
+  cannot carry it and `extract` writes the width as though it had been set.
+  The heuristic that suggests itself is refused rather than shipped — see the
+  Phase 10 blocked list for why.
+
+  Two dependency bumps came with this. `moonbitlang/x@0.4.48` is not optional:
+  `@sys.get_cli_args` compiled to the `$moonbit.get_cli_args` intrinsic, which
+  the 2026-08 toolchain dropped, so `moon build --target native` failed to link
+  and **CI had been broken since the toolchain moved**. `main` now calls
+  `@env.args()` from core directly. `mbtexcel@0.1.9` is the fix for #47 and
+  #52 above; the three defects §11's 2026-07-29 entry checked it against still
+  reproduce unchanged.
 
 - **2026-07-31** — **Agent Skills: `yxl-authoring` and `extract-to-spec`.**
   Working with yxl is now packaged for AI agents as two checklists:
