@@ -316,6 +316,23 @@ test "compile surfaces a schema error carrying the file name" {
 }
 
 ///|
+test "extract surfaces what the backend could not read, not the error's name" {
+  // `error_message` knew four of the six subdomain errors, so a failed
+  // `yxl extract` printed `t-ujiie-g/yxl/diag.ReadError.ReadError` and nothing
+  // else — a reader who hit one had to bisect the package part by part to find
+  // out what was wrong with it (#55).
+  let caught = try {
+    @cli.extract(b"this is not a workbook", file="report.xlsx") |> ignore
+    None
+  } catch {
+    err => Some(@cli.error_message(err))
+  }
+  guard caught is Some(message) else { fail("expected a ReadError") }
+  assert_false(message.contains("diag.ReadError"))
+  assert_true(message.contains("unreadable ZIP package"))
+}
+
+///|
 test "directory_of names the directory a path sits in, on either platform" {
   // The executable makes this directory before writing a file an extracted spec
   // names, so it has to answer for the paths `resolve_path` produces — including

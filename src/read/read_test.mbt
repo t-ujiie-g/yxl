@@ -53,6 +53,23 @@ test "the reader seam works through the trait, not only the shorthand" {
 }
 
 ///|
+test "a backend failure carries what it said, not just which case it raised" {
+  // `Show` on the backend's error renders the constructor alone, so every
+  // unreadable workbook reported `…XlsxError.InvalidPackage` and left the
+  // reader to guess which part was at fault. `XlsxError` derives `Debug`, and
+  // the `msg~` is where it keeps the answer.
+  let caught = try {
+    @read.from_bytes(b"this is not a workbook") |> ignore
+    None
+  } catch {
+    @diag.ReadError(d) => Some(d.render())
+  }
+  guard caught is Some(message) else { fail("expected a ReadError") }
+  assert_true(message.contains("Excel backend:"))
+  assert_true(message.contains("unreadable ZIP package"))
+}
+
+///|
 test "the values a cell can hold come back as themselves" {
   let (wb, sheet) = fixture()
   sheet.set(at("A1"), Text("Region"))

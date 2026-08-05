@@ -23,13 +23,13 @@ pub impl Emitter for MbtexcelEmitter with fn emit(_self, wb) {
     // A limit of the backend that we describe ourselves, already worded for
     // the reader; it passes through rather than being wrapped again.
     @diag.EmitError(_) as ours => raise ours
-    err => {
-      // Upcast to `Error` for its `Show`; the concrete `XlsxError` has none.
-      let reason : Error = err
+    // `Show` on the backend's error gives the constructor alone; `Debug`
+    // renders the `msg~` or `path~` that says which part of the workbook it
+    // was actually complaining about.
+    err =>
       raise @diag.EmitError(
-        @diag.Diagnostic::new("Excel backend: " + reason.to_string()),
+        @diag.Diagnostic::new("Excel backend: " + @debug.to_string(err)),
       )
-    }
   }
 }
 
