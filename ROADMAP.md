@@ -554,30 +554,34 @@ gate, which is why none carries a box:
                   ends: `roundRect` reads back as `roundrect`, which names no
                   geometry in the table and cannot be told from any other, so
                   the shape is reported rather than guessed at
-      - [ ] **Slice 5 — charts and pivots**, which are *not* the same kind of
-            work. The backend types only the anchor and the geometry and hands
-            the thing itself over as a raw part — `Chart { reference, xml, … }`,
-            `PivotTable { table_xml, cache_definition_xml, … }`. Recovering
-            `model.Chart` (kind, series, title, legend, axes) or `model.Pivot`
-            (source, rows, columns, values) therefore means **parsing DrawingML
-            and the pivot cache ourselves**, which is a reader of its own, not a
-            translation. Worth doing only if a real workbook makes the gap hurt;
-            until then `extract` names them as dropped, which it does.
-            **Correction, after measuring rather than asserting:** bundling the
-            two here overstated the chart half. A chart part is 1–3 KB and
-            `model.Chart` needs about ten named paths out of it — the chart-type
-            element name, `c:ser`'s `c:tx`/`c:cat/c:f`/`c:val/c:f`,
-            `c:title//a:t`, `c:legendPos`, and the axis `min`/`max` — while
-            `at` and `size` come off the backend's own typed fields. That is a
-            focused parse, not a DrawingML reader. Pivots really are the harder
-            half: `table_xml` names its fields by *index* into
-            `cache_definition_xml`, so two documents have to be correlated, and
-            filters are already blocked upstream (office.mbt#264). The remaining
-            risk on the chart side is the slice-4 one — a workbook Excel wrote is
-            far bulkier than one yxl wrote, and a half-read chart (stacked vs
-            clustered, a secondary axis) would be a *plausible wrong answer*
-            rather than a gap. Same discipline applies: recover only what can be
-            named confidently, report the rest
+      - [x] **Slice 5a — charts.** Done, and the correction that split this item
+            from the pivots below it held up: `at` and `size` come off the
+            backend's typed fields and the rest is ten named paths out of a
+            1–3 KB part. What the estimate left out is that there was **no XML
+            reader in the tree at all** — every other thing `read` recovers
+            arrives as a typed record — so the slice is a small one of those
+            (`src/read/xml.mbt`) plus the mapping (`src/read/chart.mbt`) plus
+            the inverse in `render`, which had no charts either.
+            The reader is deliberately more than a scan, and for the reason this
+            item was warned about: it **tracks nesting**, so the `<c:tx>` on a
+            series' data labels is not read as the series' own name, and it
+            **resolves namespace prefixes to URIs**, so a part that binds the
+            chart namespace to something other than `c:` still reads. Both are
+            the difference between a gap and a confident wrong answer.
+            Everything the schema cannot say is refused whole and named: a
+            combination chart, a grouping with no word (stacked line), a kind
+            outside §12, a series holding its numbers rather than pointing at
+            cells. Two smaller ones are named while the chart is kept: a title
+            read from a cell, and a series name pointing at a range
+      - [ ] **Slice 5b — pivots**, the harder half, and the reason the two were
+            split: `table_xml` names its fields by *index* into
+            `cache_definition_xml`, so two documents have to be correlated
+            rather than one translated, and filters are blocked upstream
+            besides ([office.mbt#264](https://github.com/moonbitlang/office.mbt/issues/264) — fixed in main, unpublished). The XML
+            reader slice 5a needed is in the tree now, so this is the
+            correlation and the mapping, not the parsing. Worth doing when a
+            real workbook makes the gap hurt; until then `extract` names a pivot
+            as dropped, which it does
       - [x] **CSV extraction**, which settled one-file vs. many: **many**.
             `Extracted` carries `companions` — the files the spec names, as
             bytes — and `cmd/main` writes them beside it, making the directory
@@ -1438,6 +1442,39 @@ Phase 11's inline `values:` lands. `$include` splitting is never inferred.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-08-08** — **`yxl extract` brings charts back.** The last thing on a
+  sheet that came back as a line in the loss report rather than as a block in
+  the spec — kind, series, title, legend, size, axes. What the roadmap's own
+  estimate missed is that a chart is the only thing in a workbook the backend
+  hands over as *raw text*, and there was no XML reader anywhere in the tree to
+  meet it with: everything else `read` recovers arrives as a typed record.
+
+  So the slice is three parts. `src/read/xml.mbt` is a small reader — a
+  tokenizer and a tree, no dependency — and it is deliberately more than a scan
+  over the interesting bits. It **tracks nesting**, because a series' name and
+  its data labels' are both `<c:tx>` and only depth tells them apart; and it
+  **resolves namespace prefixes to URIs**, because a chart part may bind the
+  chart namespace to any prefix it likes and matching on the literal `c:` would
+  read the files yxl wrote and miss the ones Excel wrote. Both are the
+  difference between a gap, which shows up in the loss report, and a confident
+  wrong answer, which does not. `src/read/chart.mbt` maps the ten paths onto
+  `model.Chart`, and `src/render/chart.mbt` is the inverse — `render` had no
+  charts either, since nothing had ever produced one.
+
+  The discipline is slice 4's, and it decided every hard case. A chart that
+  says something the schema cannot is refused **whole** and named: a
+  combination chart, a stacked line (the schema has `line` and no variant of
+  it, and "line" would plot the same numbers a different way), a kind outside
+  §12, a series holding its numbers rather than pointing at cells. Two smaller
+  losses are named while the chart is kept: a title read from a cell, and a
+  series name pointing at a range rather than a cell. The axes are matched to
+  their chart group **by the ids the group lists**, not by the order they sit
+  in the plot area, because a chart with a secondary axis has four of them.
+
+  `examples/charts.yxl.yaml` now extracts back to itself, down to the sheet
+  qualification the file adds — `Figures!B2:B4` for what the spec wrote as
+  `B2:B4`, which is what the file stores and what compiles to the same bytes.
 
 - **2026-08-07** — **CI now asks whether Excel would open the workbook, and the
   first answer was no.** Every check up to here re-opened our own bytes with the

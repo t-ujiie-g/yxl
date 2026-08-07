@@ -120,6 +120,7 @@ fn recover(bytes : Bytes) -> Recovered raise {
     read_bands(backend, sheet, styles, notes)
     read_presentation(backend, sheet, notes)
     read_decorations(backend, sheet, dates, notes)
+    read_charts(backend, sheet, notes)
     read_images(backend, sheet, notes)
     read_controls(backend, sheet, notes)
     read_slicers(backend, sheet, notes)
