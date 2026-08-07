@@ -23,8 +23,11 @@ fn apply_shape(
       paragraph?,
       width?=shape.width,
       height?=shape.height,
-      fill_color?=shape.fill.map(color => color.hex()),
-      line_color?=shape.line_color.map(color => color.hex()),
+      // A shape is DrawingML, where a colour is three bytes and the backend
+      // writes this string through verbatim; an alpha byte reaches the file as
+      // `<a:srgbClr val="FF1F77B4"/>`, which is one byte too many.
+      fill_color?=shape.fill.map(color => color.rgb()),
+      line_color?=shape.line_color.map(color => color.rgb()),
       line_width?=shape.line_width,
       alt_text?=shape.alt_text,
       positioning=positioning(shape.positioning),

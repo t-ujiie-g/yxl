@@ -214,9 +214,11 @@ fn emit_sheet(
     )
   }
   if sheet.tab_color is Some(color) {
+    // `<tabColor rgb="…">` is four bytes and the backend writes this string
+    // through verbatim — unlike the style colours, which it widens itself.
     backend.set_sheet_props(
       sheet.name,
-      Some(@xlsx.SheetPropsOptions::with_values(tab_color_rgb=color.hex())),
+      Some(@xlsx.SheetPropsOptions::with_values(tab_color_rgb=color.argb())),
     )
   }
   if sheet.page is Some(page) {

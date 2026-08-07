@@ -86,16 +86,19 @@ fn conditional_options(
           None => "2_color_scale"
         },
       )
-      options.set_min_color(low.hex())
-      options.set_max_color(high.hex())
+      // These four take the three colour bytes and prepend the alpha
+      // themselves, so an `AARRGGBB` handed over here reaches the file as ten
+      // hex digits.
+      options.set_min_color(low.rgb())
+      options.set_max_color(high.rgb())
       if middle is Some(middle) {
-        options.set_mid_color(middle.hex())
+        options.set_mid_color(middle.rgb())
       }
       options
     }
     DataBar(color~, bar_only~) => {
       let options = @xlsx.ConditionalFormatOptions::new("data_bar")
-      options.set_bar_color(color.hex())
+      options.set_bar_color(color.rgb())
       options.set_bar_only(bar_only)
       options
     }
