@@ -1,0 +1,24 @@
+# Open XML validity findings that are the Excel backend's and cannot be fixed
+# from here. `.github/scripts/validate-xlsx.sh` compares a run's findings
+# against this file: anything not listed fails, and so does anything listed
+# that has stopped happening — a waiver nobody has to remove is a waiver that
+# outlives its reason.
+#
+# Everything below `#` is data and must match the validator's output exactly.
+# Comment lines and blank lines are stripped before the comparison.
+#
+# ---------------------------------------------------------------------------
+# modular.xlsx — a table-backed slicer's cache writes `ext` in the wrong
+# namespace. `write_slicer_cache_xml_table` (mbtexcel `xlsx/slicer.mbt`) makes
+# the x14 namespace the part's default and then writes a bare `<ext>`, which
+# therefore lands in x14; `CT_SlicerCacheDefinition`'s `extLst` is typed
+# `x:CT_ExtensionList`, so the child has to be `x:ext`. The `x` prefix is
+# already declared on the root element, so upstream's fix is the prefix.
+# The pivot-backed path is unaffected — there the part's default namespace *is*
+# the main one, so its bare `<ext>` is already right, which is why the
+# backend's own demos do not show this.
+# Not reported upstream yet — see ROADMAP §9, which also records why waiving
+# it beats the alternative of refusing table slicers.
+modular.xlsx
+  Sch_InvalidElementContentExpectingComplex /x14:slicerCacheDefinition[1]/x14:extLst[1]
+    The element has invalid child element 'http://schemas.microsoft.com/office/spreadsheetml/2009/9/main:ext'. List of possible elements expected: <http://schemas.openxmlformats.org/spreadsheetml/2006/main:ext>.

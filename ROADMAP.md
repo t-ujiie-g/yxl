@@ -115,8 +115,14 @@ ADR-008). Dependencies point *downward*; lower packages never import higher.
   no assertions, or an assertion naming a spec that is gone, fails. CI then runs
   the **shipped binary** over the same files, which is what exercises the on-disk
   include/data path resolution and the real exit codes.
-- **Tier 3 — Real applications** (manual, at the v1.0 gate). Open `yxl` output in
-  Microsoft Excel, LibreOffice Calc, and Google Sheets.
+- **Tier 3 — Real applications.** The cheap half is automated and runs in CI:
+  `.github/scripts/validate-xlsx.sh` puts every `examples/` output through the
+  Open XML SDK's validator — each part against the ECMA-376 schema plus the
+  SDK's semantic rules — which is the first thing Excel does and the check
+  Tiers 1 and 2 cannot perform, since both re-open our bytes with the library
+  that wrote them. The other half stays manual and stays at the v1.0 gate: open
+  the output in Microsoft Excel, LibreOffice Calc, and Google Sheets and *look*
+  at it. A schema-valid workbook can still be a wrong one.
 
 ---
 
@@ -863,12 +869,19 @@ the first item changes what a spec looks like.
       freezes is written: [`docs/spec.md`](./docs/spec.md)
 - [x] Stand up Tier 2: an `examples/` corpus that CI compiles and asserts on
       (§5), which is also what stops the README and cookbook drifting
-- [ ] Tier-3 manual: Excel / LibreOffice / Google Sheets open cleanly — and
-      *automate the cheap half of it first*: a workbook that makes Excel show its
-      repair dialog is the classic way an xlsx writer fails, and nothing in CI
-      would currently catch it. Opening every `examples/` output with LibreOffice
-      headless, or reading it back with `openpyxl`, would (post-v0.1.0 review,
-      §11)
+- [x] **The cheap half of Tier 3, automated.** A workbook that makes Excel show
+      its repair dialog is the classic way an xlsx writer fails, and nothing in
+      CI caught it. The judge is the **Open XML SDK's own validator**
+      (`tools/openxml-validator`, driven by `.github/scripts/validate-xlsx.sh`)
+      rather than the LibreOffice-headless or `openpyxl` pass this item first
+      proposed: those two are *lenient readers*, and a reader that quietly
+      repairs what it is given cannot report that it had to. The SDK validator
+      checks every part against the ECMA-376 schema and answers with the
+      element, the attribute, and the XPath. It found two defects on its first
+      run, which is the argument for it — see the §11 entry
+- [ ] Tier-3 manual: Excel / LibreOffice / Google Sheets open cleanly *and show
+      the right thing*. The half above cannot be automated away: a schema-valid
+      workbook can still put the pivot in the wrong place
 - [ ] Cookbook + CLI docs complete — `examples/` and `docs/spec.md` exist and CI
       keeps them honest; what remains is filling them out as Phase 9 lands
 - [ ] Release policy: v1.0.0 ships when the schema + CLI are stable
@@ -1321,11 +1334,25 @@ Phase 11's inline `values:` lands. `$include` splitting is never inferred.
   lean on `mbtexcel` for Excel features rather than reimplementing them.
 - **A workbook Excel refuses to open cleanly.** The classic xlsx-writer failure:
   output that our own round-trip tests read back happily, and that Excel greets
-  with a repair dialog. Nothing in CI would catch it — Tier 1 re-opens with the
-  same library that wrote the file, which cannot disagree with itself, and Tier 3
-  is manual and scheduled for the v1.0 gate. Mitigation: automate the cheap half
-  (LibreOffice headless, or `openpyxl`, over the `examples/` outputs) rather than
-  wait for v1.0. Raised in the post-v0.1.0 review.
+  with a repair dialog. Nothing in CI caught it — Tier 1 re-opens with the same
+  library that wrote the file, which cannot disagree with itself. **Mitigated**:
+  the Open XML SDK's validator now runs over every `examples/` output in CI
+  (§5, and the §11 entry for what it found). What it does *not* cover is a
+  workbook that is schema-valid and still wrong — the pivot in the wrong place,
+  the `#SPILL!` below — so the manual Tier-3 pass stays at the v1.0 gate.
+  Raised in the post-v0.1.0 review.
+- **The backend writes a table slicer's cache extension in the wrong
+  namespace.** `write_slicer_cache_xml_table` makes x14 the part's default
+  namespace and then writes a bare `<ext>`, which therefore lands in x14;
+  `CT_SlicerCacheDefinition`'s `extLst` is typed `x:CT_ExtensionList`, so the
+  child must be `x:ext`. The `x` prefix is already declared on the root
+  element, so the fix upstream is the prefix. The pivot-backed slicer is
+  unaffected — there the part's default namespace *is* the main one — which is
+  why the backend's own demos, which validate, do not show it. Nothing to work
+  around from here short of refusing table slicers, which would cost a shipped
+  feature for a violation Excel may well tolerate, so it is **waived by name**
+  in `tools/openxml-validator/known-defects.txt` and the waiver fails the day
+  it stops happening. Found by the new validity check, first run.
 - **Backend defects that only Excel reveals.** Phase 9's pivot tables shipped
   round-trip-green while Excel showed `#SPILL!`, because the backend writes a
   fixed `<location>`; a second defect gives every pivot the same `cacheId`, so a
@@ -1411,6 +1438,53 @@ Phase 11's inline `values:` lands. `$include` splitting is never inferred.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-08-07** — **CI now asks whether Excel would open the workbook, and the
+  first answer was no.** Every check up to here re-opened our own bytes with the
+  library that wrote them, so the one failure mode that matters most to a user
+  — the repair dialog — was invisible to all of it. The judge is now the **Open
+  XML SDK's validator** (`tools/openxml-validator`, two source files, driven by
+  `.github/scripts/validate-xlsx.sh`), run over every compiled `examples/`
+  output on the Linux leg. It was chosen over the LibreOffice-headless or
+  `openpyxl` pass the roadmap first sketched because those are lenient readers,
+  and a reader that silently repairs cannot report that it had to; the SDK
+  validator names the element, the attribute, and the XPath.
+
+  **It failed two of the ten examples immediately**, and one was ours.
+  `<tabColor rgb="1F77B4"/>`: SpreadsheetML colour attributes are
+  `ST_UnsignedIntHex` — four bytes, `AARRGGBB` (ECMA-376 §18.18.86) — and the
+  backend writes this one through verbatim where it widens the style colours
+  itself. So **every workbook with a coloured sheet tab was a workbook Excel
+  offered to repair**, and had been since tab colours shipped.
+
+  Pulling on it found the whole class, by handing an `AARRGGBB` to each of the
+  ten places a spec can name a colour and validating what came out. Excel has
+  **two** colour attribute types and the backend's APIs disagree about which
+  one they take: the style colours widen 6 to 8 and pass 8 through, sparklines
+  do the same, `tabColor` takes 8 only, a shape is DrawingML and takes 6 only
+  (`ST_HexColorRGB`, §20.1.10.42 — `FF1F77B4` is one byte too long), and the
+  conditional-format colours take 6 and prepend the alpha themselves, so an 8
+  arrives as ten hex digits. Three of the five were wrong. `@units.Color` now
+  renders both forms by name — `argb` and `rgb`, with `hex` left for showing a
+  colour back to a human — and each emit site asks for the one its part of the
+  schema takes. Tests assert on the bytes in the part rather than on the round
+  trip, because the backend's reader normalizes a colour on the way in and
+  would have read every one of these back as correct.
+
+  The other direction got the matching rule, which the fix above forced and
+  which turned out to be overdue. `read_color` now drops a fully opaque alpha,
+  so a colour recovered from a file is spelled the way a spec spells one. It
+  had not been: a theme-resolved font colour came back `FF4F81BD` and a
+  sparkline's `FF1F77B4`, while a literal one came back `4F81BD` — the same
+  colour, two spellings, depending on which backend reader happened to trim the
+  byte. `docs/spec.md` documents `RRGGBB` throughout, so that is what `extract`
+  writes now. A partial alpha is kept; that one is a choice.
+
+  The second failure is the backend's and is waived by name
+  (`known-defects.txt`, §9): a table-backed slicer's cache writes its `ext` in
+  the x14 namespace where the schema types it `x:ext`. The waiver is scoped to
+  one file and one finding, and the check fails if it ever stops happening, so
+  it cannot outlive its reason.
 
 - **2026-08-05** — **A failed read now says what was wrong with the file.**
   Every `yxl extract` failure since the command shipped printed
