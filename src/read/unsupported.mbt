@@ -24,14 +24,9 @@ fn read_unsupported(
   notes : Notes,
 ) -> Unit {
   guard backend.sheet(sheet.name) is Some(source) else { return }
-  if !source.charts().is_empty() {
-    // The backend hands a chart over as its raw XML part, so recovering the
-    // series, axes, and title behind it means reading DrawingML — a reader of
-    // its own rather than a translation.
-    notes.drop(
-      "a chart, which the Excel backend hands back as raw XML rather than as the series and axes the spec names",
-    )
-  }
+  // Charts are not here: `chart.mbt` reads the part itself and reports each one
+  // it cannot follow, with the reason. A blanket note would say less and would
+  // fire on the charts that did come back.
   if !source.pivot_tables.is_empty() {
     notes.drop(
       "a pivot table, which the Excel backend hands back as raw XML rather than as the fields the spec names",

@@ -37,22 +37,9 @@ test "a chart sheet is skipped and named, not walked as a grid" {
   )
 }
 
-///|
-test "a chart on a sheet is named rather than dropped in silence" {
-  let backend = @xlsx.Workbook::new()
-  let _ = backend.new_sheet("S")
-  backend.set_cell_str("S", "A1", "Region")
-  backend.set_cell_int("S", "B1", 1)
-  guard! backend.sheet("S") is Some(source)
-  source.add_chart("D2", chart_xml())
-  let recovered = @read.from_bytes(backend.write_to_buffer())
-  assert_eq(recovered.workbook.sheets[0].charts, [])
-  assert_true(
-    recovered.dropped
-    .iter()
-    .any(note => note.contains("a chart, which the Excel backend")),
-  )
-}
+// A chart *on a sheet* is read rather than reported now, and what it does with
+// the parts it cannot follow is in `chart_test.mbt`. Only the chart sheet above
+// belongs here, because that is a loss about the kind of tab, not the chart.
 
 ///|
 test "print setup is named rather than dropped in silence" {

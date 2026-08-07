@@ -153,6 +153,9 @@ fn one_sheet(
     }
   }
   decorations(sheet, entries)
+  if !sheet.charts.is_empty() {
+    entries.push(("charts", charts(sheet)))
+  }
   if !sheet.shapes.is_empty() {
     entries.push(("shapes", shapes(sheet)))
   }

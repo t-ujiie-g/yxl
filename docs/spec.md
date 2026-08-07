@@ -1196,6 +1196,11 @@ error dialogs, and — for a `date` rule — bounds turned back from serials int
 written dates), conditional formats of every rule the format names, Excel
 tables, and the auto filter's range.
 
+Charts (§12), with the kind — including which way the bars run and how they are
+grouped — the ranges each series plots, the title, the legend's place, the size
+where it is not Excel's own, and each axis' title and manual bounds. Every range
+comes back sheet-qualified, because that is how the file stores one.
+
 The four things that float over a sheet rather than sitting in it: shapes (§18)
 with their geometry, text, size, fill, outline, and anchor; sparklines (§19)
 with their kind, points, bounds, weight, and any colour the file names outright;
@@ -1255,10 +1260,19 @@ calculation settings, the default font, and each sheet's protection.
   sheet — has no shape the spec can declare, and the chart on it is raw XML
   besides. It is left out with a note rather than recovered as an empty sheet,
   which would claim a data tab the workbook does not have.
-- **Charts and pivots are not recovered yet.** They are in the file and neither
-  is a limit of the format: the Excel backend hands both back as raw XML parts,
-  so recovering them means reading DrawingML and the pivot cache, which is a
-  reader of its own rather than a translation.
+- **Pivot tables are not recovered yet.** They are in the file and it is not a
+  limit of the format: the Excel backend hands a pivot back as two raw XML
+  parts, and the one naming the fields refers to the other by position, so
+  recovering it means correlating two documents rather than translating one.
+- **A chart that says something the schema cannot is refused whole, not
+  half-read.** A combination chart (bars with a line over them), a grouping the
+  schema has no word for such as a stacked line, a kind outside §12's list, a
+  series holding its numbers rather than pointing at cells: each is reported
+  with the reason and no chart is written. Half of one would compile to a
+  picture of the wrong thing, and nothing about the result would look wrong.
+  Two details are dropped while the chart is kept, and both are named: a title
+  **read from a cell** rather than written out, and a series name that points at
+  more than one cell.
 - **A colour scale's stops are not kept**, only its colours: the schema places
   them at the range's own low and high, which is Excel's default and what an
   author writing the spec by hand would get.
