@@ -1306,6 +1306,38 @@ Phase 11's inline `values:` lands. `$include` splitting is never inferred.
 - **Q6 — Distribution.** Native binary only, or also a wasm CLI? A wasm target
   would favor a lighter backend (`moon-xlsx`) via the ADR-002 seam.
 
+- **Q11 — A chart series with no `categories:`, which §12 promises and the
+  backend refuses.** Found while writing the chart-extraction tests
+  (§11, 2026-08-08), and it is **a spec the schema accepts and the compiler
+  cannot build**:
+
+  ```console
+  $ yxl build chart.yxl.yaml -o out.xlsx
+  yxl: Excel backend: InvalidSheetOperation(msg="chart series categories/values must be non-empty")
+  ```
+
+  `emit/chart.mbt` passes `""` for an absent categories range — the comment
+  there says the backend "spells that as an empty string" — and
+  `ChartSeries::new` raises on an empty one. So the case §12 documents ("Without
+  it Excel numbers the points 1, 2, 3, …") has never worked. `extract` is
+  unaffected: a file always stores a `c:cat`, so nothing recovered lands here.
+
+  Three ways out, and it is a schema decision rather than a bug fix, which is
+  why it is a question:
+  1. **Make `categories` required** in the loader, refused by name with the
+     reason, and say so in §12. Honest and small; costs a case Excel itself
+     allows.
+  2. **Emit a synthetic categories range** — the values' own range, or a count
+     — so the numbering happens without the author naming it. Cheap, and a
+     guess: the chart would carry a range the spec never wrote.
+  3. **Upstream**: `ChartSeries::new` has no reason to refuse an empty
+     `categories` when `<c:cat>` is optional in ECMA-376 §21.2.2.24. The
+     smallest correct fix, and the slowest.
+
+  Decide before the schema freeze (§6, v1.0 gate) — after it, option 1 is a
+  breaking change rather than a correction. Until then §12 says the key is
+  required in practice.
+
 ## 9. Risks
 
 - **Windows cannot build, and it is not our code.** `moon build --target native`
@@ -1442,6 +1474,16 @@ Phase 11's inline `values:` lands. `$include` splitting is never inferred.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-08-08** — **`docs/spec.md` stops promising a chart series can omit
+  `categories:`.** It cannot: the Excel backend refuses to build a series with
+  an empty categories range, so the case §12 documented — "Without it Excel
+  numbers the points 1, 2, 3, …" — has never compiled. §12 now says the key is
+  required in practice, prints the error, and points at the open question; its
+  own example had a series without one and now has it. Recorded rather than
+  fixed because the fix is a schema decision (§8 Q11: make the key required,
+  synthesize a range, or take it upstream) and it belongs before the freeze.
+  Nothing about `extract` is affected — a file always stores a `c:cat`.
 
 - **2026-08-08** — **`yxl extract` brings charts back.** The last thing on a
   sheet that came back as a line in the loss report rather than as a block in
