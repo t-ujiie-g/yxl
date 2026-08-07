@@ -116,14 +116,32 @@ jobs:
       # Tier 2 (ROADMAP §5). `moon test` already compiles the corpus in-process
       # and asserts on the cells; this runs the shipped binary over the same
       # files, which is what exercises the on-disk include/data path resolution
-      # and the exit codes a user actually sees.
+      # and the exit codes a user actually sees. The workbooks are written
+      # rather than `--check`ed because the next step reads them.
       - name: Examples compile with the built binary
         run: |
           yxl=_build/native/release/build/cmd/main/main.exe
+          mkdir -p _build/examples
           for spec in examples/*.yxl.yaml; do
             echo "--- $spec"
-            "$yxl" build "$spec" --check
+            "$yxl" build "$spec" -o "_build/examples/$(basename "$spec" .yxl.yaml).xlsx"
           done
+
+      # The automated half of Tier 3 (ROADMAP §5), and the only check here that
+      # a second implementation performs: everything above re-opens our bytes
+      # with the library that wrote them, which cannot disagree with itself, so
+      # a workbook that makes Excel show its repair dialog passes all of it. The
+      # Open XML SDK's validator is the disagreeing party. One platform is
+      # enough — the bytes do not differ by runner.
+      - name: Install .NET (for the Open XML validator)
+        if: runner.os == 'Linux'
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Examples open cleanly (Open XML validity)
+        if: runner.os == 'Linux'
+        run: .github/scripts/validate-xlsx.sh _build/examples/*.xlsx
 
       # The release archive is built by the same script `release.yml` uses, so
       # a packaging step that only works on some platforms fails here rather

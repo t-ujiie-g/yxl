@@ -278,3 +278,30 @@ test "conditional formats are emitted in declaration order, which is priority" {
   assert_eq(formats.get("A1:A9").unwrap()[0].format_type, "duplicate")
   assert_eq(formats.get("B1:B9").unwrap()[0].format_type, "unique")
 }
+
+///|
+test "a data bar's colour is written as four bytes, not five" {
+  // The backend prepends the alpha byte to whatever it is given, so an
+  // `AARRGGBB` handed over here reaches the file as ten hex digits — which
+  // `ST_UnsignedIntHex` (ECMA-376 §18.18.86) does not admit.
+  let wb = with_rule(
+    DataBar(color=@units.Color::parse("80638EC6").unwrap(), bar_only=false),
+  )
+  let xml = part(wb, "xl/worksheets/sheet1.xml")
+  assert_true(xml.contains("<color rgb=\"FF638EC6\"/>"))
+}
+
+///|
+test "a colour scale's colours are written as four bytes, not five" {
+  let wb = with_rule(
+    ColorScale(
+      low=@units.Color::parse("FFF8696B").unwrap(),
+      middle=Some(@units.Color::parse("FFFFEB84").unwrap()),
+      high=@units.Color::parse("FF63BE7B").unwrap(),
+    ),
+  )
+  let xml = part(wb, "xl/worksheets/sheet1.xml")
+  assert_true(xml.contains("<color rgb=\"FFF8696B\"/>"))
+  assert_true(xml.contains("<color rgb=\"FFFFEB84\"/>"))
+  assert_true(xml.contains("<color rgb=\"FF63BE7B\"/>"))
+}

@@ -444,11 +444,12 @@ test "a sparkline colour comes back only where the file names one" {
   })
   sheet.add_sparkline_group(bare_group(Column, "D1"))
   let recovered = only_sheet(wb)
-  // The file writes an ARGB, so a colour comes back with the alpha it carries.
-  assert_eq(recovered.sparklines[0].color.map(c => c.hex()), Some("FF1F77B4"))
+  // The file writes an ARGB and the alpha here is `FF`, which says nothing a
+  // spec needs to carry, so the colour comes back spelled the way it went in.
+  assert_eq(recovered.sparklines[0].color.map(c => c.hex()), Some("1F77B4"))
   assert_eq(
     recovered.sparklines[0].high_color.map(c => c.hex()),
-    Some("FFCC0000"),
+    Some("CC0000"),
   )
   // A group that named no colour gets the theme's, which is not a colour the
   // spec can write down — and saying it would put four on every group.

@@ -136,10 +136,22 @@ fn read_underline(underline : String?, notes : Notes) -> Bool? {
 
 ///|
 /// A hex colour, when there is one to have.
+///
+/// A fully opaque alpha byte is dropped: the file writes SpreadsheetML colours
+/// as `AARRGGBB` and `FF` there says nothing a spec needs to carry, so an
+/// extracted spec spells a colour the way an author would. A partial alpha is
+/// kept, since that one *is* a choice. Most of the backend's colour readers
+/// have already trimmed the byte by the time they get here; the sheet tab's
+/// has not.
 fn read_color(color : String?, notes : Notes) -> @units.Color? {
   guard color is Some(text) && !text.is_empty() else { return None }
   match @units.Color::parse(text) {
-    Some(color) => Some(color)
+    Some(color) =>
+      if color.hex().has_prefix("FF") && color.hex().length() == 8 {
+        @units.Color::parse(color.rgb())
+      } else {
+        Some(color)
+      }
     None => {
       notes.drop("a colour written as '\{text}', which is not plain hex")
       None

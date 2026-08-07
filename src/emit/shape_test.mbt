@@ -93,3 +93,27 @@ test "a shape's text lines each round-trip as their own paragraph" {
   assert_eq(shape.paragraph[0].text, "next")
   assert_eq(shape.paragraph[1].text, "quarter")
 }
+
+///|
+test "a shape's colours are written as three bytes" {
+  // A shape is DrawingML, whose `ST_HexColorRGB` (ECMA-376 §20.1.10.42) is
+  // three bytes, and the backend writes the string through verbatim. An alpha
+  // byte — which a spec may perfectly well carry, and which every other colour
+  // in the schema accepts — would reach the file one byte too long.
+  let (wb, sheet) = fixture()
+  sheet.add_shape({
+    at: @units.CellRef::new(col=3, row=3),
+    preset: "rect",
+    text: None,
+    width: None,
+    height: None,
+    fill: @units.Color::parse("801F77B4"),
+    line_color: @units.Color::parse("FF333333"),
+    line_width: Some(2.0),
+    alt_text: None,
+    positioning: Move,
+  })
+  let xml = part(wb, "xl/drawings/drawing1.xml")
+  assert_true(xml.contains("<a:srgbClr val=\"1F77B4\"/>"))
+  assert_true(xml.contains("<a:srgbClr val=\"333333\"/>"))
+}

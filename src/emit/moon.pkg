@@ -13,3 +13,9 @@ import {
   // `Int`'s bounds, to keep an integral validation bound out of float notation.
   "moonbitlang/core/int",
 }
+
+// Reading a part of the compiled package back as text, for the claims the
+// backend's own reader normalizes away.
+import {
+  "moonbitlang/core/encoding/utf8",
+} for "test"

@@ -43,6 +43,36 @@ test "a blank cell is written for its style alone" {
 }
 
 ///|
+test "a sheet tab colour is written as four bytes" {
+  // `<tabColor rgb="…">` is `ST_UnsignedIntHex` (ECMA-376 §18.18.86) — four
+  // bytes — and the backend writes this attribute through verbatim, where it
+  // widens the style colours itself. Six digits is a schema violation, and a
+  // schema violation is Excel's repair dialog.
+  let wb = @model.Workbook::new()
+  let sheet = wb.add_sheet("S")
+  sheet.set(@units.CellRef::new(col=1, row=1), Text("a"))
+  sheet.set_tab_color(@units.Color::parse("1F77B4").unwrap())
+  assert_true(
+    part(wb, "xl/worksheets/sheet1.xml").contains(
+      "<tabColor rgb=\"FF1F77B4\"/>",
+    ),
+  )
+}
+
+///|
+test "a tab colour that carries its own alpha keeps it" {
+  let wb = @model.Workbook::new()
+  let sheet = wb.add_sheet("S")
+  sheet.set(@units.CellRef::new(col=1, row=1), Text("a"))
+  sheet.set_tab_color(@units.Color::parse("801F77B4").unwrap())
+  assert_true(
+    part(wb, "xl/worksheets/sheet1.xml").contains(
+      "<tabColor rgb=\"801F77B4\"/>",
+    ),
+  )
+}
+
+///|
 test "every part of the package is deflated" {
   // The backend stores each part uncompressed, which made a real workbook ten
   // times the size Excel writes for it (#46). Asserted on the archive rather
@@ -263,7 +293,9 @@ test "frozen panes, gridlines, and a tab color survive a round trip" {
   assert_eq(panes.top_left_cell, "B2")
   assert_eq(panes.active_pane, "bottomRight")
   assert_eq(reopened.get_sheet_view("Report", -1).show_grid_lines, Some(false))
-  assert_eq(reopened.get_sheet_props("Report").tab_color_rgb, Some("1F77B4"))
+  // Four bytes, which is what the attribute's type is; the backend's reader
+  // hands this one back as written rather than trimming the alpha.
+  assert_eq(reopened.get_sheet_props("Report").tab_color_rgb, Some("FF1F77B4"))
 }
 
 ///|

@@ -27,6 +27,21 @@ fn reopen(wb : @model.Workbook) -> @xlsx.Workbook raise {
 }
 
 ///|
+/// One part of the compiled package, as text.
+///
+/// The round trip above cannot see everything: the backend's reader normalizes
+/// a colour on the way in, so a value written at the wrong width is read back
+/// at the right one and the test stays green while Excel refuses the file. A
+/// claim about what is *in* the file is asserted here instead.
+fn part(wb : @model.Workbook, name : String) -> String raise {
+  let archive = @zip.read(@emit.to_bytes(wb)[:])
+  guard archive.get(name) is Some(bytes) else {
+    fail("the package has no \{name}")
+  }
+  @utf8.decode_lossy(bytes)
+}
+
+///|
 /// The sole validation the round-tripped workbook carries.
 fn only_validation(wb : @model.Workbook) -> @xlsx.DataValidation raise {
   let reopened = reopen(wb)

@@ -219,7 +219,9 @@ test "a theme or palette colour resolves to the RGB it stands for" {
     }
     colors.push(font.color.map(color => color.hex()))
   }
-  assert_eq(colors, [Some("FF4F81BD"), Some("FF95B3D7"), Some("FFFF0000")])
+  // Resolving a theme index gives an ARGB; the opaque alpha is not part of the
+  // colour the spec writes down.
+  assert_eq(colors, [Some("4F81BD"), Some("95B3D7"), Some("FF0000")])
   // Nothing was reported lost: the whole point is that these are recoverable.
   assert_false(recovered.dropped.iter().any(note => note.contains("colour")))
 }
