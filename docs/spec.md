@@ -692,6 +692,7 @@ charts:
         categories: A2:A4  # the labels down the category axis
         name_from: B1      # the legend entry, read from a cell
       - values: Figures!C2:C4
+        categories: Figures!A2:A4
         name: Cost         # …or written out
 ```
 
@@ -715,9 +716,21 @@ variants, stock charts, and bubble charts are not expressible yet.
 | Key | Notes |
 |---|---|
 | `values` | **Required.** The cells plotted. `Sheet!A1:A9` names another sheet, which must be declared. |
-| `categories` | The labels down the category axis — for a `scatter` chart, the X values. Without it Excel numbers the points 1, 2, 3, … |
+| `categories` | **Required in practice** — see below. The labels down the category axis; for a `scatter` chart, the X values. |
 | `name` | What the legend calls the series, written out. |
 | `name_from` | A cell to read that name from — usually the column header, so renaming the header renames the series. Mutually exclusive with `name`. |
+
+**`categories` cannot be omitted today.** Excel numbers the points 1, 2, 3, …
+for a series that names no category range, but the Excel backend refuses to
+build such a series at all, so a spec leaving it out fails to compile:
+
+```
+yxl: Excel backend: InvalidSheetOperation(msg="chart series categories/values must be non-empty")
+```
+
+Give every series a `categories` range until that is resolved. Which way it is
+resolved — the key becomes required, or the omission starts working — is open
+and is settled before the schema freeze.
 
 A literal `name` may not contain `!`: Excel reads a series name holding one as a
 reference to a cell, so it would quietly become a lookup. Use `name_from`.
