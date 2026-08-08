@@ -573,15 +573,33 @@ gate, which is why none carries a box:
             outside §12, a series holding its numbers rather than pointing at
             cells. Two smaller ones are named while the chart is kept: a title
             read from a cell, and a series name pointing at a range
-      - [ ] **Slice 5b — pivots**, the harder half, and the reason the two were
-            split: `table_xml` names its fields by *index* into
-            `cache_definition_xml`, so two documents have to be correlated
-            rather than one translated, and filters are blocked upstream
-            besides ([office.mbt#264](https://github.com/moonbitlang/office.mbt/issues/264) — fixed in main, unpublished). The XML
-            reader slice 5a needed is in the tree now, so this is the
-            correlation and the mapping, not the parsing. Worth doing when a
-            real workbook makes the gap hurt; until then `extract` names a pivot
-            as dropped, which it does
+      - [ ] **Slice 5b — pivots. Deliberately waiting on the backend release,
+            and it is not the parsing that is holding it up.**
+            **The correlation was overstated too**, the same way the chart half
+            was before anyone measured it. `table_xml` does name its fields by
+            index into `cache_definition_xml`, but that is *one lookup*:
+            `<field x="0"/>` and `<dataField fld="3"/>` index `<cacheFields>`,
+            whose entries carry the name. Everything else is sitting in
+            attributes — `source` is `<worksheetSource ref="A1:D7"
+            sheet="Orders"/>` verbatim, `at` is `<location ref>`, the
+            aggregation is `subtotal="sum"`, and `name`, `style` and the two
+            grand-total flags are attributes of the definition. With the XML
+            reader from 5a in the tree this is the same size of job as the chart
+            half, or smaller.
+            **What is actually holding it up** is that the loader currently
+            refuses the two shapes a real workbook's pivots most often take, and
+            both refusals are workarounds for one unpublished upstream fix
+            ([office.mbt#264](https://github.com/moonbitlang/office.mbt/issues/264), merged, awaiting a `bobzhang/mbtexcel` release):
+            `filters:` (page fields), and a second pivot over a *different*
+            source. Building the reader now would mean writing recovery for
+            those two shapes as "reported, not recovered", then deleting that
+            code weeks later — where every refusal slice 5a shipped is permanent,
+            because the schema genuinely has no word for a combination chart.
+            **So this lands with the pin bump**, as one change: raise
+            `mbtexcel`, lift the four workarounds that release unblocks, and
+            recover pivots whole. Until then `extract` names a pivot as dropped,
+            which it does. Revisit sooner only if a real workbook makes the gap
+            hurt before the release does
       - [x] **CSV extraction**, which settled one-file vs. many: **many**.
             `Extracted` carries `companions` — the files the spec names, as
             bytes — and `cmd/main` writes them beside it, making the directory
