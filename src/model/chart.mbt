@@ -1,24 +1,18 @@
-// Charts: a picture of cells that already exist. A chart names the ranges it
-// plots and where it sits; Excel draws it, and redraws it whenever those cells
-// change — so nothing here is a value, only a reference to one.
-
 ///|
-/// A chart anchored on a sheet.
+/// A chart anchored on a sheet: `at` is the cell its top-left corner floats
+/// over, since a chart sits above the grid rather than filling cells. `series`
+/// is in the order the legend lists it, and needs at least one entry — a pie or
+/// doughnut draws only the first. `x_axis` is the category (horizontal) axis
+/// and `y_axis` the value (vertical) one.
+///
+/// Every optional field left `None` keeps Excel's own default.
 pub(all) struct Chart {
-  /// The cell the chart's top-left corner sits over. A chart floats above the
-  /// grid rather than filling cells, so this only positions it.
   at : @units.CellRef
   kind : ChartKind
-  /// What is plotted, in the order the legend lists it. A chart needs at least
-  /// one series; a pie or doughnut draws only the first.
   series : Array[ChartSeries]
   title : String?
-  /// Where the legend sits, or `NoLegend`; `None` keeps Excel's default.
   legend : LegendPosition?
-  /// The chart's size in pixels; `None` keeps the default size.
   size : ChartSize?
-  /// The category (horizontal) and value (vertical) axes. `None` leaves both to
-  /// Excel, which scales them to the data.
   x_axis : ChartAxis?
   y_axis : ChartAxis?
 } derive(Eq, Debug)
@@ -48,16 +42,16 @@ pub(all) enum ChartKind {
 } derive(Eq, Debug)
 
 ///|
-/// One plotted series: the values, what to call them, and what to label them
-/// along the category axis.
+/// One plotted series: the cells plotted, what the legend calls them, and what
+/// labels them along the category axis — for a scatter chart, the X values.
+/// Either range may name another sheet, since a chart is routinely put on a
+/// sheet of its own.
+///
+/// `categories` unset numbers the points 1, 2, 3, …; `name` unset leaves
+/// Excel's "Series 1".
 pub(all) struct ChartSeries {
-  /// The cells plotted. May name another sheet, since a chart is routinely put
-  /// on a sheet of its own.
   values : SheetRange
-  /// The labels down the category axis — for a scatter chart, the X values.
-  /// `None` numbers the points 1, 2, 3, …
   categories : SheetRange?
-  /// What the legend calls this series; `None` leaves Excel's "Series 1".
   name : SeriesName?
 } derive(Eq, Debug)
 

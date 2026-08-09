@@ -1,6 +1,3 @@
-// Round-trip tests for slicers: compile to real bytes, re-open, and assert on
-// the panel the sheet carries.
-
 ///|
 /// A sheet with a named three-column table for a slicer to filter.
 fn table_fixture(sheet : @model.Sheet, name : String) -> Unit {
@@ -69,7 +66,6 @@ test "a slicer may sit on one sheet and filter a table on another" {
   let slicers = reopened.get_slicers("S")
   assert_eq(slicers.length(), 1)
   assert_eq(slicers[0].name, "Type")
-  // The emitter resolved the table's own sheet, not the slicer's.
   assert_eq(slicers[0].table_sheet, "Data")
   assert_eq(slicers[0].table_name, "Orders")
 }

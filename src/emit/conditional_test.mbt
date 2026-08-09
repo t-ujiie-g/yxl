@@ -1,6 +1,3 @@
-// Round-trip tests for conditional formats: each compiles to real `.xlsx` bytes
-// and is read back with the backend's reader.
-
 ///|
 /// A workbook whose one sheet carries `rule` over `B2:B9`, with `style`.
 fn with_rule(
@@ -251,7 +248,6 @@ test "rules sharing a style share one differential format id" {
     guard formats.get(key) is Some(rules) else { fail("no rule at \{key}") }
     rules[0].format
   }
-  // Three rules, one id; the odd one out gets its own.
   assert_eq(id("A1:A9"), Some(0))
   assert_eq(id("B1:B9"), Some(0))
   assert_eq(id("D1:D9"), Some(0))

@@ -1,5 +1,3 @@
-// Schema tests for a sheet's `controls:`.
-
 ///|
 /// The sole control a spec loads.
 fn loaded_control(body : String) -> @model.FormControl raise {

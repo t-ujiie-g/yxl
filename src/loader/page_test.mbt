@@ -1,5 +1,3 @@
-// The per-sheet `print:` block (`page.mbt`).
-
 ///|
 test "load parses a print block: area, orientation, margins, fit, header/footer, breaks" {
   let workbook = load_ok(
@@ -37,7 +35,6 @@ test "load parses a print block: area, orientation, margins, fit, header/footer,
       footer: None,
     }),
   )
-  // An axis left out of `fit` is unconstrained.
   assert_eq(page.scale, Some(Fit(width=1, height=0)))
   assert_eq(page.header, Some("&CQuarterly report"))
   assert_eq(page.footer, Some("&LPage &P of &N"))
@@ -45,10 +42,8 @@ test "load parses a print block: area, orientation, margins, fit, header/footer,
     @units.CellRef::new(col=1, row=21),
     @units.CellRef::new(col=3, row=1),
   ])
-  // A percentage scale is the other half of Excel's scaling control.
   let scaled = load_ok("sheets:\n  - name: S\n    print: { scale: 80 }\n")
   assert_eq(scaled.sheets[0].page.unwrap().scale, Some(Percent(80)))
-  // No `print:` block leaves Excel's defaults throughout.
   assert_eq(load_ok("sheets:\n  - name: S\n").sheets[0].page, None)
 }
 

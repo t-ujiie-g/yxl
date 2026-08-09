@@ -1,8 +1,3 @@
-// Loading a sheet's `controls:` — a button, check box, or slider over the
-// grid. Each kind takes its own subset of the keys, exactly the combinations
-// Excel's "Format Control" dialog offers; anything else is a diagnostic
-// naming what the key actually belongs to (ADR-006).
-
 ///|
 /// The seven kinds, as Excel's Forms toolbar names them. One table serves
 /// both the lookup and the diagnostic.

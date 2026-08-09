@@ -1,14 +1,3 @@
-// The other direction across the parser seam: a `Node` back to YAML text.
-// `parse` exists so the pipeline never depends on the backend parser; this
-// exists because nothing in the toolchain writes YAML at all, and `yxl extract`
-// (ADR-017) has to produce a spec somebody would keep. So readability is the
-// requirement, not an afterthought: block style throughout, no more quoting than
-// the syntax forces, and the key order the caller chose left alone.
-//
-// The rules below are pinned to what *our* parser does, verified against it
-// rather than assumed from the YAML spec — it reads `yes` as text but `TRUE` as
-// a boolean, `007` as the number 7, and a lone `-` not at all.
-
 ///|
 /// Render a document as YAML text, ending in a newline.
 ///

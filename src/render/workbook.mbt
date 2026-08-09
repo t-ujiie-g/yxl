@@ -1,7 +1,3 @@
-// Rendering the workbook-level keys: the named definitions, what the workbook
-// says about itself, and how Excel recalculates on open. Sheet protection is
-// here too, since it is written in the same vocabulary.
-
 ///|
 /// The `defs.values` and `defs.formulas` blocks, beside whatever `defs.styles`
 /// the styles produced. `None` when the workbook declares neither.

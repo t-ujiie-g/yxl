@@ -1,24 +1,20 @@
-// Slicers: the button panel that filters an Excel table. One button per
-// distinct value of one table column; clicking filters the table, visibly.
-
 ///|
 /// A slicer over a declared table. The table is named, not pointed at: table
 /// names share one workbook-wide namespace (Excel's own rule), so the name
 /// finds it whatever sheet it sits on.
+///
+/// `at` is the cell the panel's top-left corner floats over, `table` the
+/// declared `name:` it filters, and `column` one of that table's header cells,
+/// whose values become the buttons. `caption` unset leaves Excel showing the
+/// column name; `width`/`height` are pixels and unset keeps the backend's
+/// 200×200; `header` unset keeps Excel's default.
 pub(all) struct Slicer {
-  /// The cell the slicer panel's top-left corner sits over.
   at : @units.CellRef
-  /// The declared `name:` of the table it filters.
   table : String
-  /// The table column whose values become the buttons — one of the table's
-  /// header cells.
   column : String
-  /// The panel's title; `None` leaves Excel showing the column name.
   caption : String?
-  /// The panel's size in pixels; `None` keeps the backend default (200×200).
   width : Int?
   height : Int?
-  /// Whether the panel shows its header row; `None` keeps Excel's default.
   header : Bool?
 } derive(Eq, Debug)
 

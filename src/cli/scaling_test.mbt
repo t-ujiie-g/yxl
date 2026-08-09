@@ -1,30 +1,3 @@
-// The guardrail the benchmark next door cannot be: a check that fails the build
-// when compile cost stops being linear in spec size.
-//
-// A wall-clock threshold cannot do that job. A hosted runner is several times
-// slower than a laptop and varies run to run, so any fixed number is either so
-// tight it fails on a slow morning or so loose it catches nothing. A *ratio*
-// measured in one job on one machine has no such problem: whatever slows the
-// large spec slows the small one too, and the machine's speed cancels out.
-//
-// So what is asserted here is the shape of the curve rather than a point on it.
-// Sixteen times the rows should cost about sixteen times as much, which is what
-// the pipeline does today. The regression this catches is the one that actually
-// matters — a scan nested inside the per-cell loop, turning the pipeline
-// quadratic. A constant-factor slowdown moves the ratio not at all and is
-// deliberately *not* caught here: `moon bench` measures that, and a human reads
-// it.
-//
-// The band below is **calibrated against a real injected regression**, not
-// guessed. Textbook reasoning says a quadratic pipeline costs `factor` squared,
-// so any ceiling short of that will do; the pipeline is not a textbook, because
-// its linear work still dominates at these sizes and dilutes the quadratic term.
-// Measured on one machine, with a linear scan of the sheet's cells added to the
-// per-cell loop: at a factor of 8 the ratio moved only 7.0 → 15.0, so the
-// obvious ceiling of 20 would have let a genuinely quadratic loader through.
-// Widening to 16 separates them properly — 16.0 clean against 42.6 with the
-// scan — and the ceiling sits between the two, a little over 1.6× from each.
-
 ///|
 /// The small end of the comparison. The same size the benchmark reports, so its
 /// recorded figures describe this run too.
@@ -32,7 +5,7 @@ let scaling_base_rows : Int = bench_rows
 
 ///|
 /// How much larger the second spec is. Wide enough that a quadratic term shows
-/// through the linear work around it (see the calibration above), narrow enough
+/// through the linear work around it (see `max_scaling_ratio`), narrow enough
 /// that the whole check is under a second.
 let scaling_factor : Int = 16
 
@@ -65,9 +38,6 @@ test "compile cost stays linear in the size of the spec" {
   let small_us = fastest_compile(small)
   let large_us = fastest_compile(large)
   let ratio = large_us / small_us
-  // Printed whether or not it passes: a run that only says "ok" tells a reader
-  // reviewing a performance change nothing, and this is the one place in the
-  // suite where the number is the point.
   println(
     "scaling: \{scaling_base_rows} rows \{format_ms(small_us)} -> \{scaling_base_rows * scaling_factor} rows \{format_ms(large_us)}, ratio \{two_decimals(ratio)} for a \{scaling_factor}x (linear is \{scaling_factor}, ceiling \{two_decimals(max_scaling_ratio)})",
   )

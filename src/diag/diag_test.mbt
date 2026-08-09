@@ -41,11 +41,9 @@ test "each subdomain error wraps its diagnostic and is distinguishable" {
   let span = @diag.Span::point("in.yaml", @diag.Pos::new(1, 1))
   let d = @diag.Diagnostic::new("bad yaml", span~)
   let yaml = @diag.YamlError(d)
-  // Pattern-matching reaches the wrapped diagnostic...
   match yaml {
     YamlError(inner) => assert_eq(inner.render(), "in.yaml:1:1: bad yaml")
   }
-  // ...and each stage's error is a distinct type.
   assert_true(@diag.SchemaError(d) is @diag.SchemaError(_))
   assert_true(@diag.ResolveError(d) is @diag.ResolveError(_))
   assert_true(@diag.EmitError(d) is @diag.EmitError(_))
@@ -91,7 +89,6 @@ test "render_in quotes the offending line and points a caret at the column" {
 
 ///|
 test "render_in falls back when there is no span or the line is out of range" {
-  // No span at all: just the message, as `render` gives.
   let unanchored = @diag.Diagnostic::new("no input file given")
   assert_eq(unanchored.render_in("a: 1\n"), "no input file given")
   // A span pointing past the end of the source keeps the located one-liner
@@ -101,7 +98,6 @@ test "render_in falls back when there is no span or the line is out of range" {
     span=@diag.Span::point("x.yaml", @diag.Pos::new(99, 1)),
   )
   assert_eq(beyond.render_in("a: 1\n"), "x.yaml:99:1: something")
-  // The gutter widens with the line number so the bars stay aligned.
   let wide = @diag.Diagnostic::new(
     "boom",
     span=@diag.Span::point("x.yaml", @diag.Pos::new(10, 1)),

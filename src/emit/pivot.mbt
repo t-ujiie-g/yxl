@@ -1,7 +1,3 @@
-// Emitting pivot tables. Both ranges go to the backend sheet-qualified, the way
-// Excel stores them; the cache is left without records, so Excel builds the
-// summary from the source the moment the workbook opens.
-
 ///|
 /// Place a pivot table on a sheet.
 ///

@@ -1,6 +1,3 @@
-// Round-trip tests for form controls: compile to real bytes, re-open, and
-// assert on the controls the sheet carries.
-
 ///|
 /// The sole form control the round-tripped workbook carries.
 fn only_control(wb : @model.Workbook) -> @xlsx.FormControl raise {

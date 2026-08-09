@@ -1,7 +1,3 @@
-// Loading a sheet's `pivots:` — a summary of cells that live somewhere else.
-// Every field names a column of the source's header row, so the checks that
-// matter need the whole workbook and run from `check_pivots`.
-
 ///|
 /// How a value field is aggregated, as Excel's "Summarize Values By" menu names
 /// each. One table serves both the lookup and the diagnostic.

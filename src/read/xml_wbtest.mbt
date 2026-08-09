@@ -1,9 +1,3 @@
-// Whitebox tests for the small XML reader. It is package-private and has one
-// caller, but the two properties the chart reader leans on — that nesting is
-// tracked and that prefixes are resolved to namespaces — are exactly what a
-// looser scan gets wrong, so they are pinned here rather than only through a
-// chart.
-
 ///|
 /// The one namespace these tests bind, standing in for the chart part's.
 const NS : String = "urn:test"
@@ -60,7 +54,6 @@ test "a prefix rebound inside the document only applies to that subtree" {
     is Some(root) else {
     fail("did not parse")
   }
-  // Two `p:a` in the outer namespace, and the middle one somewhere else.
   assert_eq(root.children_named(NS, "a").length(), 2)
   guard root.child("", "s") is Some(inner) else { fail("missing s") }
   assert_eq(inner.children_named(NS, "a").length(), 0)

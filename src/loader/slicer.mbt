@@ -1,8 +1,3 @@
-// Loading a sheet's `slicers:` — the button panel that filters a table. A
-// slicer is entirely references, like a pivot: it names a table and one of
-// that table's columns, so the checks that matter need the whole workbook and
-// run from `check_slicers`.
-
 ///|
 /// A sheet's `slicers:` — a sequence of panels, each anchored at a cell.
 fn load_slicers(

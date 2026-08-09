@@ -1,12 +1,13 @@
-// The cell-level vocabulary of the model: what a cell holds, where it sits, and
-// the spans and regions the rest of the schema addresses. The workbook and sheet
-// that carry them are in `workbook.mbt`; styling, paging, and each richer
-// feature have a file of their own.
-
 ///|
 /// A cell's value: text, a number, a boolean, a date/time, an Excel error
 /// literal, a formula, or rich text. A `Date` is stored as civil components; the
 /// emitter renders it to an Excel serial using the workbook's date system.
+///
+/// A `Formula` is stored without its leading `=`, and its `cached` scalar is
+/// what Excel shows until it recomputes on open. `RichText` runs are ordered,
+/// and there is at least one. A `Blank` cell exists only so that it can wear a
+/// style — a shaded box, a ruled table edge, the blank half of a merged heading
+/// — and stays blank to `ISBLANK` and to `COUNTA`.
 pub(all) enum CellValue {
   Text(String)
   Number(Double)
@@ -14,16 +15,8 @@ pub(all) enum CellValue {
   Date(@units.DateTime)
   /// An Excel error literal, e.g. `#DIV/0!` or `#N/A`.
   Error(String)
-  /// A formula Excel recomputes on open (stored without a leading `=`), with an
-  /// optional cached result (a scalar value) shown until then.
   Formula(formula~ : String, cached~ : CellValue?)
-  /// A single string built from runs, each with its own optional font — Excel's
-  /// inline rich text. Ordered; at least one run.
   RichText(Array[RichRun])
-  /// Nothing at all: the cell exists so that it can wear a style. Excel writes
-  /// it as a `<c>` with a style id and no `<v>`, which is how a shaded box, a
-  /// ruled table edge, or the blank half of a merged heading is drawn. A blank
-  /// cell is still blank to `ISBLANK` and to `COUNTA`.
   Blank
 } derive(Eq, Debug)
 
@@ -154,7 +147,6 @@ pub(all) enum Panes {
 /// one spec line compile to one stored formula (ADR-004).
 pub(all) struct FormulaRange {
   at : CellRange
-  /// The formula body, without a leading `=`.
   formula : String
 } derive(Eq, Debug)
 

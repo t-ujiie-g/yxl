@@ -1,8 +1,3 @@
-// Round-trip tests for sparklines: compile to real bytes, re-open, and assert
-// on the groups the sheet carries. The x14 extension XML itself is the
-// backend's to write and its integration suite pins it; what is asserted here
-// is that everything the spec set survives to the part Excel reads.
-
 ///|
 /// The sole sparkline group the round-tripped workbook carries.
 fn only_sparkline_group(wb : @model.Workbook) -> @xlsx.SparklineGroup raise {

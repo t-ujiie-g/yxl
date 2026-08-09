@@ -132,6 +132,7 @@ in `ROADMAP.md` if it affects a roadmap item.
 | Update snapshots | `moon test --update` |
 | Format | `moon fmt` |
 | Regenerate `.mbti` | `moon info` |
+| Benchmark the pipeline | `moon bench src/cli` |
 | Coverage | `moon test --enable-coverage && moon coverage report` |
 | Add dependency | `moon add <user>/<module>` |
 
@@ -219,17 +220,58 @@ rather than mutate. `.mbti` is regenerated (`moon info`) and the diff is the
 intended public-API change.
 
 ### 8.6 Comment hygiene
-Comments must make sense to someone who never read `ROADMAP.md` and wasn't there
-when the code landed.
+**The default is no comment.** A comment is justified only when a reader of the
+code *cannot* recover the intent from the code itself; write one there and
+nowhere else. Every comment is a line that can go stale independently of the
+thing it describes, so each one has to earn its keep. Comments must also make
+sense to someone who never read `ROADMAP.md` and wasn't there when the code
+landed.
+
+Apply these in order — the first three delete, the last one keeps:
+
+- **Delete what the code already says.** If the comment is a paraphrase of the
+  line, the block, or the function name below it, it carries nothing: delete it,
+  and if the code really was unreadable, fix the *code* — a better name, a named
+  intermediate, a smaller function — rather than annotating it.
+- **Delete documentation that wandered into the source.** Format reference,
+  schema semantics, rationale for the design, the tour of how a package fits
+  together: that is `docs/spec.md`, `README.md`, `examples/`, or a `ROADMAP.md`
+  ADR. Written in both places it is duplicated, and the copy in the source is
+  the one that rots. Say it once, in the doc; the source may point at it
+  (`ADR-004`, `docs/spec.md §10`) but must not restate it. File-header essays
+  and section banners (`// ---- helpers ----`) are this failure mode — delete
+  them; `///|` already separates blocks and the file name already names the
+  subject.
+- **Delete narration of the past.** What used to happen, what a commit changed,
+  why a reviewer should be convinced — noise once merged. If a *bug* is the
+  reason for a non-obvious line, keep the reason and cite the issue (`#52`) in
+  one clause; drop the story.
+- **Keep the constraint the code can't show** — a spec rule (`ECMA-376
+  §18.8.30`), an invariant the compiler doesn't enforce, a deliberate deviation,
+  a *why* that is genuinely surprising. One or two lines, at the line it governs.
+  `///` doc comments on public APIs stay mandatory: they are API documentation,
+  not commentary, and are exempt from the delete rules above.
 - **No roadmap/phase codes in comments** (`Phase 3`, `roadmap §6.2`) — name the
   *thing* instead ("the shared-string table", "the dangling-reference check").
   ADR-nnn, ECMA-376 §, and issue #N references are fine — they're stable,
   findable.
-- **Delete comments the code already says** — restating the next line, narrating
-  what changed, or justifying the change to a reviewer is noise once merged.
-- **Keep comments carrying a constraint the code can't show** — spec rules,
-  non-obvious *why*, invariants, deliberate deviations. `///` doc comments on
-  public APIs stay mandatory.
+
+**Struct fields carry no `///` of their own.** A field doc does not reach the
+generated `.mbti` — only item-level docs do — so it is commentary, not API
+documentation, and the exemption above does not cover it. Annotating some
+fields and not others is the worst case: the reader can no longer scan the type
+at all. Say what a field needs said in the **type's own doc**, in one place
+(`model/decorations.mbt`'s `SheetRange` is the pattern), and leave the field
+list bare. Conventions that hold across the whole type — "`None` keeps Excel's
+default" — are stated once there, never per field.
+
+`enum` variants are the exception, and a narrow one: a one-word constructor can
+genuinely fail to say what it selects, so a single line naming the OOXML term or
+the Excel dialog wording earns its place. Two lines does not.
+
+Tests are code and get the same treatment. A test's name says what it asserts;
+a comment restating that is noise. Keep only the surprising *why* — why this
+value and not the obvious one, which past defect the case pins down.
 
 ### 8.7 Validation loop after refactoring
 ```bash
@@ -269,6 +311,8 @@ refactor, also:
 - ❌ Bare `Int`/`String` for cell refs, colors, or dimensions in internal APIs.
 - ❌ Filesystem access outside the `cli` layer.
 - ❌ Implementing formula *evaluation* (out of scope — Excel computes on open).
+- ❌ Comments that restate the code, or documentation duplicated from
+  `docs/`/`ROADMAP.md` into source comments (see §8.6).
 - ❌ Skipping `moon fmt` / `moon info` before committing.
 - ❌ Using `--no-verify` to bypass the pre-commit hook.
 - ❌ Suppressing deprecation warnings instead of migrating (see §8.8).

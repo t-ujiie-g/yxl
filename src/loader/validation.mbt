@@ -1,8 +1,3 @@
-// Loading `validations:` — what Excel will accept in a range: a drop-down, or a
-// value measured against a comparison. Split from `decorations.mbt`, which
-// holds the smaller sheet keys and the comparison parser this shares with
-// `conditional.mbt`.
-
 ///|
 /// A sheet's `validations:` — a sequence of rules, each over a range.
 fn load_validations(

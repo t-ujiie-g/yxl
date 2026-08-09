@@ -70,7 +70,6 @@ test "parse_args collects repeated --set overrides" {
   }
   assert_eq(params.get("region"), Some("EMEA"))
   assert_eq(params.get("rate"), Some("0.15"))
-  // A value may be empty; only the name may not.
   assert_eq(params.get("note"), Some(""))
 }
 
@@ -119,13 +118,11 @@ test "golden: --set overrides a declared parameter" {
     })[:],
   )
   assert_eq(overridden.get_cell("EMEA", "A1"), Some("Tax for EMEA"))
-  // The override stays a number cell, as the default was.
   assert_true(overridden.get_cell_value_raw("EMEA", "B1") is Some(Numeric(0.2)))
 }
 
 ///|
 test "parse_args recognises help, version, and --check" {
-  // A bare `yxl` is a request for help, not an error.
   assert_eq(@cli.parse_args([]), Help)
   for spelling in ["help", "--help", "-h"] {
     assert_eq(@cli.parse_args([spelling]), Help)
@@ -146,7 +143,6 @@ test "parse_args rejects --check with an output path" {
     usage_message(["build", "in.yaml", "--check", "-o", "out.xlsx"]),
     Some("'--check' writes nothing, so it cannot take '-o'"),
   )
-  // Without `--check`, an output is still required.
   assert_eq(
     usage_message(["build", "in.yaml"]),
     Some("no output file given (use -o <out.xlsx>)"),
@@ -215,7 +211,6 @@ test "golden: a typed date compiles to an Excel serial with a date format" {
   let reopened = @xlsx.read(@cli.compile(source, file="spec.yaml")[:])
   // The raw value is the 1900-system serial for 2000-01-01.
   assert_eq(reopened.get_cell_value("S", "A1", raw=true), Some("36526"))
-  // And the default date format renders it back as the date.
   assert_eq(reopened.get_cell_value("S", "A1", raw=false), Some("2000-01-01"))
 }
 
@@ -260,8 +255,6 @@ test "golden: explicit typing coerces the stored type, and errors survive" {
     #|      A3: { value: "#N/A", type: error }
     #|
   let reopened = @xlsx.read(@cli.compile(source, file="spec.yaml")[:])
-  // `type: text` on a number stores a string cell; `type: number` on a string
-  // stores a numeric cell.
   assert_true(reopened.get_cell_value_raw("S", "A1") is Some(String("42")))
   assert_true(reopened.get_cell_value_raw("S", "A2") is Some(Numeric(42.0)))
   assert_eq(reopened.get_cell_value("S", "A3", raw=true), Some("#N/A"))
@@ -293,7 +286,6 @@ test "golden: an included data file compiles into the same workbook" {
   let reopened = @xlsx.read(bytes[:])
   assert_eq(reopened.get_cell("S", "A1"), Some("Region"))
   assert_eq(reopened.get_cell("S", "B1"), Some("2400000"))
-  // The style came from the other file and really applied.
   let style = reopened.get_cell_style("S", "A1")
   assert_true(style is Some(_) && style != Some(0))
   assert_eq(reopened.get_style(style.unwrap()).font.unwrap().bold, Some(true))
@@ -317,10 +309,8 @@ test "compile surfaces a schema error carrying the file name" {
 
 ///|
 test "extract surfaces what the backend could not read, not the error's name" {
-  // `error_message` knew four of the six subdomain errors, so a failed
-  // `yxl extract` printed `t-ujiie-g/yxl/diag.ReadError.ReadError` and nothing
-  // else — a reader who hit one had to bisect the package part by part to find
-  // out what was wrong with it (#55).
+  // Four of the six subdomain errors were known, so a failed `yxl extract`
+  // printed `…diag.ReadError.ReadError` and nothing a reader could act on (#55).
   let caught = try {
     @cli.extract(b"this is not a workbook", file="report.xlsx") |> ignore
     None
@@ -334,25 +324,21 @@ test "extract surfaces what the backend could not read, not the error's name" {
 
 ///|
 test "directory_of names the directory a path sits in, on either platform" {
-  // The executable makes this directory before writing a file an extracted spec
-  // names, so it has to answer for the paths `resolve_path` produces — including
-  // the mixed separators a Windows spec ends up with.
+  // The executable makes this directory before writing an extracted spec's
+  // companions, so it has to answer for the mixed separators `resolve_path`
+  // produces on Windows.
   assert_eq(@cli.directory_of("specs/report.yaml"), Some("specs/"))
   assert_eq(@cli.directory_of("specs\\report.yaml"), Some("specs\\"))
   assert_eq(@cli.directory_of("a/b/data/sales.csv"), Some("a/b/data/"))
-  // The later separator wins, whichever kind it is.
   assert_eq(@cli.directory_of("specs\\data/sales.csv"), Some("specs\\data/"))
   assert_eq(@cli.directory_of("specs/data\\sales.csv"), Some("specs/data\\"))
-  // A file with no directory part has none to make.
   assert_eq(@cli.directory_of("report.yaml"), None)
   assert_eq(@cli.directory_of(""), None)
-  // A trailing separator is already a directory.
   assert_eq(@cli.directory_of("specs/"), Some("specs/"))
 }
 
 ///|
 test "resolve_path takes a path as relative to the file that wrote it" {
-  // The ordinary case, either separator.
   assert_eq(
     @cli.resolve_path("specs/report.yaml", "data/q3.yaml"),
     "specs/data/q3.yaml",
@@ -366,7 +352,6 @@ test "resolve_path takes a path as relative to the file that wrote it" {
     @cli.resolve_path("a/b/c.yaml", "../shared/theme.yaml"),
     "a/b/../shared/theme.yaml",
   )
-  // No directory part: the path stands alone.
   assert_eq(@cli.resolve_path("report.yaml", "data/q3.yaml"), "data/q3.yaml")
 }
 

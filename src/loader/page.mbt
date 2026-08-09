@@ -1,9 +1,3 @@
-// The `print:` block of a sheet spec: how it goes onto paper. Excel splits this
-// across three unrelated OOXML places (page setup, margins, header/footer) plus
-// a built-in defined name for the print area; the spec keeps them under one key
-// and the emitter distributes them. Structural loading lives in `loader.mbt`;
-// the shared `expect_*` helpers in `expect.mbt`.
-
 ///|
 /// A sheet's `print:` block — how it goes onto paper. Every key is optional:
 /// `area` (a range), `orientation`, `margins`, `scale` or `fit` (Excel offers

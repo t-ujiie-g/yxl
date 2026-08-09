@@ -1,7 +1,3 @@
-// Round-trip tests for the decorations: each compiles to real `.xlsx` bytes and
-// is read back with the backend's reader, so what is asserted is what Excel
-// would find in the file.
-
 ///|
 /// A one-sheet workbook, plus the sheet, ready to decorate.
 fn fixture() -> (@model.Workbook, @model.Sheet) {
@@ -284,7 +280,6 @@ test "an external link round-trips with its tooltip" {
   assert_eq(link.target, "https://example.com/q3")
   assert_true(link.link_type is External)
   assert_eq(link.tooltip, Some("The Q3 report"))
-  // A link adds no text of its own; the cell keeps the value it was given.
   assert_eq(reopened.get_cell("S", "A1"), Some("The report"))
 }
 

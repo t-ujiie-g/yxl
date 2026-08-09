@@ -1,6 +1,3 @@
-// Sheet presentation: visibility, the active sheet, panes, gridlines, and the
-// tab color (`loader.mbt`).
-
 ///|
 test "load parses sheet visibility and the active sheet, keeping declaration order" {
   let workbook = load_ok(
@@ -16,7 +13,6 @@ test "load parses sheet visibility and the active sheet, keeping declaration ord
       #|
     ),
   )
-  // Sheet order is declaration order — the spec is the tab order.
   assert_eq(workbook.sheets.map(sheet => sheet.name), [
     "Data", "Summary", "Scratch", "Internals",
   ])
@@ -27,7 +23,6 @@ test "load parses sheet visibility and the active sheet, keeping declaration ord
     VeryHidden,
   ])
   assert_eq(workbook.active_sheet, Some("Summary"))
-  // Left out, `active` opens on the first sheet and every tab is visible.
   let plain = load_ok("sheets:\n  - name: S\n")
   assert_eq(plain.active_sheet, None)
   assert_eq(plain.sheets[0].visibility, Visible)
@@ -80,9 +75,7 @@ test "load parses frozen and split panes, gridlines, and a tab color" {
   assert_eq(report.panes, Some(Freeze(@units.CellRef::new(col=2, row=2))))
   assert_eq(report.gridlines, Some(false))
   assert_eq(report.tab_color, @units.Color::parse("1F77B4"))
-  // An axis left out of `split` stays unsplit.
   assert_eq(workbook.sheets[1].panes, Some(Split(x=120.0, y=0.0)))
-  // Left out, all three keep Excel's defaults.
   let plain = load_ok("sheets:\n  - name: S\n")
   assert_eq(plain.sheets[0].panes, None)
   assert_eq(plain.sheets[0].gridlines, None)

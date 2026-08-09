@@ -1,8 +1,3 @@
-// Loading `conditional:` — formatting decided by a cell's value rather than its
-// address. Split from `decorations.mbt`, which holds the other sheet keys that
-// decorate rather than fill; the comparison vocabulary is shared from there, so
-// `at_least` means the same thing in both.
-
 ///|
 /// One endpoint of a conditional format's comparison, read as what it looks
 /// like: a number, a date if the text parses as one, and otherwise the text

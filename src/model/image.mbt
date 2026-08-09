@@ -1,28 +1,21 @@
-// Images anchored on a sheet. Unlike everything else a spec places, an image is
-// not made of text: the file's bytes are read while the spec loads and carried
-// in the model, so the emitter still writes a workbook from memory alone
-// (ADR-002, ADR-003).
-
 ///|
-/// A picture anchored on a sheet.
+/// A picture anchored on a sheet: `at` is the cell its top-left corner floats
+/// over, and the cells beneath it keep whatever they hold. `offset_x`/`offset_y`
+/// are pixels in from that corner and `scale_x`/`scale_y` are relative to the
+/// image's natural size, which is `1.0`.
+///
+/// `format` is a lower-case extension without the dot (`png`); Excel decodes the
+/// bytes by that rather than by inspecting them. `alt_text` is what a screen
+/// reader announces and Excel shows as "Alt Text".
 pub(all) struct Image {
-  /// The cell the image's top-left corner sits over. An image floats above the
-  /// grid; the cells beneath it keep whatever they hold.
   at : @units.CellRef
-  /// The file's bytes, as read.
   data : Bytes
-  /// The image's format, as a lower-case extension without the dot (`png`).
-  /// Excel decides how to decode the bytes by this, not by inspecting them.
   format : String
-  /// The description a screen reader announces, and Excel shows as "Alt Text".
   alt_text : String?
-  /// How the image is scaled from its natural size — `1.0` is that size.
   scale_x : Double
   scale_y : Double
-  /// Pixels in from the anchor cell's top-left corner.
   offset_x : Int
   offset_y : Int
-  /// What happens to the image when the cells under it move or resize.
   positioning : ImagePositioning
 } derive(Eq, Debug)
 
@@ -51,11 +44,10 @@ pub let image_formats : Array[String] = [
 /// A sheet's background: an image tiled behind the cells, like a watermark.
 /// Excel shows it on screen but never prints it. Same arrangement as an
 /// `Image`: the bytes are read while the spec loads, so the emitter writes
-/// from memory alone (ADR-003).
+/// from memory alone (ADR-003), and `format` is a lower-case extension without
+/// the dot (`png`).
 pub(all) struct SheetBackground {
-  /// The file's bytes, as read.
   data : Bytes
-  /// The image's format, as a lower-case extension without the dot (`png`).
   format : String
 } derive(Eq, Debug)
 

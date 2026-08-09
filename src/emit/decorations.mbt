@@ -1,8 +1,3 @@
-// Emitting the decorations laid over a sheet's cells: the auto filter, data
-// validations, hyperlinks, and comments. Conditional formats live in
-// `conditional.mbt`. Like the rest of `emit`, this is the only side of the
-// seam that names `@xlsx` (ADR-002).
-
 ///|
 /// Put Excel's filter dropdowns over a range. No per-column criteria are passed:
 /// the spec has no way to express them yet, and an empty list is how the backend

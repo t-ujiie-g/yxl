@@ -1,8 +1,3 @@
-// End-to-end tests for `extract`: compile a spec, extract it back, and check
-// what came out. The verify pass inside `extract` is itself under test here —
-// a version that never checked anything would report no warnings too, so the
-// tests that matter are the ones that make it *find* something.
-
 ///|
 /// Compile a spec, then extract the bytes back into one.
 fn extracted(source : String) -> @cli.Extracted raise {
@@ -170,7 +165,6 @@ test "a block of plain values is written beside the spec, not into it" {
   assert_eq(result.warnings, [])
   assert_eq(result.companions.length(), 1)
   assert_eq(result.companions[0].path, "data/sales.csv")
-  // The spec names the file and holds none of the values.
   assert_true(result.spec.contains("csv: data/sales.csv"))
   assert_true(!result.spec.contains("cells:"))
   inspect(
@@ -241,11 +235,9 @@ test "a picture is written beside the spec, and the spec names it" {
   })
   let result = @cli.extract(bytes, file="in.xlsx")
   assert_eq(result.warnings, [])
-  // One for the picture, one for the background.
   assert_eq(result.companions.length(), 2)
   let paths = result.companions.map(companion => companion.path)
   assert_eq(paths, ["assets/summary_e1.png", "assets/summary_background.png"])
-  // Byte for byte, both of them.
   for companion in result.companions {
     assert_eq(companion.content, png)
   }
@@ -329,9 +321,8 @@ test "the four things that float over a sheet come back as themselves" {
   assert_true(result.spec.contains("data: A2:B3"))
   assert_true(result.spec.contains("kind: check_box"))
   assert_true(result.spec.contains("column: Region"))
-  // A control's size is the one thing here the backend does not read back.
-  // Two, and only two: a control's size and a shape text's font, both of which
-  // the file records and the Excel backend's reader does not hand back.
+  // Two, and only two: a control's size and a shape text's font, which the
+  // file records and the backend's reader does not hand back.
   assert_eq(result.dropped.length(), 2)
   assert_true(result.dropped[0].contains("any size on a form control"))
   assert_true(result.dropped[1].contains("any font on a line of shape text"))

@@ -1,7 +1,3 @@
-// How a sheet prints: page orientation, margins, scaling, the print area, and
-// the running header/footer. Emitting these is `emit/page.mbt`'s job; loading
-// them is `loader/page.mbt`'s.
-
 ///|
 /// Which way the printed page runs.
 pub(all) enum Orientation {
@@ -24,12 +20,11 @@ pub(all) struct PageMargins {
 
 ///|
 /// How the sheet is sized onto the paper — the two mutually exclusive halves of
-/// Excel's scaling control.
+/// Excel's scaling control. A `Percent` lies within
+/// `min_page_scale`..`max_page_scale`; a `Fit` shrinks the sheet onto that many
+/// pages across and down, where `0` on an axis leaves it unconstrained.
 pub(all) enum PageScale {
-  /// A percentage of actual size, within `min_page_scale`..`max_page_scale`.
   Percent(Int)
-  /// Shrink until the sheet fits this many pages across and down; `0` on an
-  /// axis leaves it unconstrained.
   Fit(width~ : Int, height~ : Int)
 } derive(Eq, Debug)
 
@@ -46,7 +41,8 @@ pub let max_page_scale : Int = 400
 /// paper (`orientation`, `margins`, `scale`), and what runs along the top and
 /// bottom of every page (`header`, `footer`, in Excel's `&`-code syntax —
 /// ECMA-376 §18.3.1.46). Everything is optional; an unset field keeps Excel's
-/// default.
+/// default. Each of `breaks` puts a manual page break above and to the left of
+/// the cell it names.
 pub(all) struct PageSetup {
   area : CellRange?
   orientation : Orientation?
@@ -54,7 +50,6 @@ pub(all) struct PageSetup {
   scale : PageScale?
   header : String?
   footer : String?
-  /// Manual page breaks, each above and to the left of the given cell.
   breaks : Array[@units.CellRef]
 } derive(Eq, Debug)
 

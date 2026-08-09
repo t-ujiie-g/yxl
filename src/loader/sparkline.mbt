@@ -1,7 +1,3 @@
-// Loading a sheet's `sparklines:` — a chart inside one cell. Each entry is a
-// *group*: every sparkline in it shares the kind, the look, and any manual
-// bounds, which is Excel's own unit of styling and scaling.
-
 ///|
 /// The three kinds, as Excel's "Sparklines" ribbon names them. One table
 /// serves both the lookup and the diagnostic.
@@ -132,7 +128,6 @@ fn load_sparkline_group(
         )
     }
   }
-  // The two placement spellings: one sparkline, or a list of them.
   match (at, data, cells.is_empty()) {
     (Some(at), Some(data), true) => cells.push({ at, data })
     (Some(_), None, _) =>

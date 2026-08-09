@@ -1,15 +1,3 @@
-// Naming the files an extracted spec is written beside.
-//
-// Two kinds go out — a `data:` table as CSV, a picture as its own bytes — and
-// they are named the same way: a sheet's name flattened to something safe to
-// type, numbered if it is already taken. The two used to carry a copy of that
-// each, which is how the copies came to disagree about who records a name as
-// taken and how an extension is removed to number one.
-//
-// Nothing here is recovered. A workbook keeps its pictures as numbered parts
-// (`image1.png`) and remembers nothing at all about where a `data:` table came
-// from, so every one of these names is invented.
-
 ///|
 /// Where a recovered `data:` table is written, relative to the spec.
 let data_directory : String = "data"

@@ -1,6 +1,3 @@
-// Schema tests for a sheet's `formulas:` — one formula filled across a region,
-// including the collision checks that need the whole sheet.
-
 ///|
 /// A sheet with a small calculation table, plus `body`.
 fn formula_spec(body : String) -> String {

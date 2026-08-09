@@ -1,9 +1,3 @@
-// Turning a model style into the backend's: the `cellXfs` interning that makes
-// reuse compile to a single shared style id (ADR-004), plus the per-attribute
-// translation (font, fill, border, alignment) and the OOXML attribute codes the
-// backend expects as strings. The pipeline's own style vocabulary lives in
-// `@model`; nothing here escapes the emitter seam.
-
 ///|
 /// The style a cell is actually drawn in: its column band's, then its row
 /// band's, then its own, each layering over the last so a column can set the
@@ -21,8 +15,7 @@
 /// The band styles are still set on the column and row records as well, so the
 /// empty cells around the written ones look the same.
 fn effective_style(sheet : @model.Sheet, cell : @model.Cell) -> @model.Style? {
-  // Innermost wins: the cell over its row, the row over its column. A cell with
-  // no style of its own simply inherits whatever the bands leave.
+  // Innermost wins: the cell over its row, the row over its column.
   layer(inherited_onto(band_style_at(sheet, cell.pos), cell.value), cell.style)
 }
 

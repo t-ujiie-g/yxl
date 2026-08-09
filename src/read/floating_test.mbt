@@ -1,15 +1,3 @@
-// Tests for the four things that float over a sheet. Each builds a model,
-// compiles it, and reads the bytes back, so what is asserted is what survives a
-// real `.xlsx`.
-//
-// Two kinds of test carry most of the weight here. The first pins what the
-// backend *loses* — a control's size, a shape's font — because those notes are
-// claims about somebody else's parser, and a claim nothing checks is a claim
-// that quietly stops being true. The second builds models the loader would
-// never accept (a button that is checked, a column sparkline with markers) to
-// prove the reader drops what the schema forbids: a file yxl did not write can
-// hold those, and a spec carrying one would not compile.
-
 ///|
 /// Whether any note says this.
 fn noted(recovered : @read.Recovered, fragment : String) -> Bool {
@@ -243,7 +231,6 @@ test "a slicer's own defined name is not recovered as a definition" {
   })
   let recovered = round_trip(wb)
   assert_eq(recovered.workbook.defined_names, [])
-  // And the whole point: what came back compiles again.
   let _ = @emit.to_bytes(recovered.workbook)
 }
 
@@ -350,7 +337,6 @@ test "shape text comes back, and the font on it does not" {
     shapes[0].text,
     Some(Lines([{ text: "Next", font: None }, { text: "quarter", font: None }])),
   )
-  // One line is written the short way, whichever way it went out.
   assert_eq(shapes[1].text, Some(Plain("Approved")))
   assert_true(noted(recovered, "any font on a line of shape text"))
 }

@@ -1,6 +1,3 @@
-// Round-trip tests for shapes: compile the model to real bytes, re-open them
-// with the backend reader, and assert on the shape the sheet carries.
-
 ///|
 /// The sole shape the round-tripped workbook carries.
 fn only_shape(wb : @model.Workbook) -> @xlsx.Shape raise {

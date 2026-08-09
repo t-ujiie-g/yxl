@@ -1,8 +1,3 @@
-// Tests for how the four floating features read as a spec. What matters here is
-// the *spelling* — the keys, their order, and the shorthands — since whether the
-// result compiles is settled by `cli`'s verify pass. The text is asserted whole
-// rather than key by key, because a spec is read whole.
-
 ///|
 test "a shape renders as its geometry, then how it looks" {
   let (wb, sheet) = fixture()

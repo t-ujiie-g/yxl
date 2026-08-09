@@ -1,13 +1,3 @@
-// Rendering the four things that float over a sheet: shapes, sparklines, form
-// controls, and slicers — `docs/spec.md` §18–§21, and in that order.
-//
-// The reader has already dropped whatever the schema could not hold, so nothing
-// here decides what survives; what is decided here is only how it reads. Two
-// rules, both the same rule the rest of `render` follows: a value equal to the
-// schema's own default is left unsaid, and a shorthand is used where the long
-// form would say no more — one sparkline is `at:`/`data:` rather than a
-// `cells:` list of one.
-
 ///|
 /// A sheet's `shapes:` block.
 fn shapes(sheet : @model.Sheet) -> @yaml.Node {
@@ -74,7 +64,6 @@ fn sparklines(sheet : @model.Sheet) -> @yaml.Node {
   let rendered = []
   for group in sheet.sparklines {
     let entries = []
-    // One sparkline is placed the short way; several need the list.
     match group.cells {
       [only] => {
         entries.push(("at", @yaml.Str(only.at.to_a1())))
@@ -121,7 +110,6 @@ fn sparklines(sheet : @model.Sheet) -> @yaml.Node {
     if group.color is Some(color) {
       entries.push(("color", @yaml.Str(color.hex())))
     }
-    // The three point colours sit together under one key.
     let points = []
     for
       point in [

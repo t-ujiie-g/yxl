@@ -1,9 +1,3 @@
-// The print half of the emitter: Excel scatters a sheet's page setup across
-// three unrelated OOXML places (page setup, margins, header/footer) and stores
-// the print area as a built-in *defined name* rather than a sheet setting, so
-// one `@model.PageSetup` fans out into four backend calls. The matching spec
-// block is parsed in the loader's `page.mbt`.
-
 ///|
 /// Excel's built-in defined name for a sheet's print area (ECMA-376 §18.2.5);
 /// scoping it to the sheet is what makes it that sheet's area.

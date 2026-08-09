@@ -1,16 +1,3 @@
-// Naming what the reader knows about and does not recover.
-//
-// Every other file here reports a loss as a side effect of translating
-// something: the code runs, meets a value it cannot carry, and says so. That
-// leaves a hole exactly where it matters most — a feature no code touches at
-// all reports *nothing*, because there is no code to report from. A workbook
-// with three charts came back with no charts and no word about them, under a
-// closing line saying everything else rebuilt as read.
-//
-// `docs/spec.md` §22 promises each kind of loss is named once on the way out.
-// This file is what keeps that promise for the features the reader skips
-// wholesale rather than partially.
-
 ///|
 /// Note what this sheet holds that the reader will not bring back.
 ///

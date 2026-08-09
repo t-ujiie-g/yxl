@@ -1,14 +1,3 @@
-// Resolving one path against another — the rule `$include` and `data:` follow,
-// where a path written inside a spec is relative to the spec that wrote it.
-//
-// This is string work, not I/O, so it lives here rather than in the executable:
-// the rules below are worth testing on every platform, and these tests run on
-// all of them (ADR-003 keeps the actual reading in `cmd/main`).
-//
-// Both separators are accepted everywhere. Windows takes either, and a spec is
-// portable text — the same `$include: data/x.yaml` should work whichever machine
-// compiles it, whichever way the *outer* path was typed.
-
 ///|
 /// Whether `path` stands on its own rather than hanging off another. Covers
 /// POSIX (`/etc/x`), Windows drive paths (`C:\x`, `C:/x`), and UNC shares

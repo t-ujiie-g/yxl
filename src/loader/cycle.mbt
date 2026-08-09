@@ -1,9 +1,3 @@
-// Cycle detection, shared by the three things in a spec that can refer to one
-// another: an include naming a file that (transitively) includes it, a style
-// extending one that extends it, and a parameter whose default uses one that
-// uses it. Each resolves depth-first carrying the chain of names it is inside,
-// and reports the whole chain so the offending edge is findable.
-
 ///|
 /// The diagnostic for a chain that closed on itself. `kind` names what is
 /// looping ("include", "style inheritance", "parameter"), and `chain` is the

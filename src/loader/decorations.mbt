@@ -1,12 +1,3 @@
-// The smaller sheet keys that decorate cells rather than fill them — `filter:`,
-// `links:`, and `comments:` — together with the two parsers the bigger ones
-// share: the comparison vocabulary (`validation.mbt`, `conditional.mbt`) and
-// sheet-qualified range references.
-//
-// `validations:` and `conditional:` are each large enough for a file of their
-// own. Structural loading lives in `loader.mbt`; the shared `expect_*`
-// vocabulary lives in `expect.mbt`.
-
 ///|
 /// A sheet's `filter: <range>` — Excel's auto filter, whose top row is read as
 /// the header. A sheet has at most one, and a spec cannot ask for two: a

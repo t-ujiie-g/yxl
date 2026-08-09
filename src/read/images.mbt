@@ -1,10 +1,3 @@
-// Recovering the pictures on a sheet, and the one tiled behind it.
-//
-// These are the only things the reader hands back that are not text: the bytes
-// come out whole and stay in the model, exactly as they do on the way in
-// (ADR-003 — the core still opens nothing itself). Writing them out is the
-// caller's job, as the CSV tables are.
-
 ///|
 /// The pictures anchored on a sheet, and the sheet's background if it has one.
 fn read_images(
@@ -47,13 +40,10 @@ fn read_image(
   if !picture.print_object {
     notes.drop("a picture marked not to print, which the spec cannot say")
   }
-  // The scale is baked into an absolute size when the file is written, and the
-  // backend reports it back as 1 whatever it was — so a scaled picture cannot
-  // be told from an unscaled one, and every picture comes back at its natural
-  // size. Recovering the factor would mean reading the image's own header for
-  // its pixel dimensions, per format; until then this is said rather than
-  // silently applied, because a picture quietly twice its intended size is
-  // exactly the kind of change nobody looks for.
+  // The scale is baked into an absolute size when the file is written and the
+  // backend reports it back as 1 whatever it was, so every picture comes back
+  // at its natural size. Recovering the factor would mean reading the image's
+  // own header for its pixel dimensions, per format.
   notes.drop(
     "a picture's display size, which the file records as absolute dimensions rather than a scale — pictures come back at their natural size",
   )

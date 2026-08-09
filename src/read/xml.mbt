@@ -1,18 +1,3 @@
-// A small XML reader, for the one thing in a workbook the Excel backend hands
-// over as raw text rather than as a typed record: the chart part.
-//
-// Deliberately not a general parser — it reads what a chart part may contain
-// and refuses everything else. What it does do properly is the two things a
-// looser scan gets wrong on a file Excel wrote rather than one yxl wrote. It
-// tracks nesting, so the `<c:tx>` inside a series' data labels is not mistaken
-// for the series' own name; and it resolves namespace prefixes to URIs, so a
-// part that binds the chart namespace to a prefix other than `c` still reads.
-// Both are the difference between a gap and a confident wrong answer, which is
-// the failure this whole slice was warned about.
-//
-// Anything it cannot parse is `None`. The caller reports the chart as
-// unrecovered rather than guessing at it.
-
 ///|
 /// One element: its resolved namespace, its local name, its attributes by local
 /// name, its element children, and the text directly inside it.
@@ -92,16 +77,11 @@ fn XmlElement::attribute(self : XmlElement, name : String) -> String? {
   self.attributes.get(name)
 }
 
-// -------------------------------------------------------------------------
-
 ///|
 /// The reader's position, and the namespace prefixes in scope where it stands.
 priv struct XmlScanner {
   chars : Array[Char]
   mut at : Int
-  /// Prefix to namespace URI, innermost scope last. A stack rather than a map
-  /// because XML lets an element rebind a prefix for its own subtree; the empty
-  /// string is the default namespace's key.
   scopes : Array[Map[String, String]]
 }
 

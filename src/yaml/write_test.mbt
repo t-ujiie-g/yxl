@@ -1,8 +1,3 @@
-// Tests for the YAML writer. Two kinds: the *round trip* — every node comes
-// back as itself through `parse` — which is what makes the writer trustworthy,
-// and a handful of layout assertions, which are what make its output worth
-// reading. The first would pass on a writer that emitted one long quoted line.
-
 ///|
 /// Write a node and read it back, which must return the node unchanged.
 fn round_trip(node : @yaml.Node) -> @yaml.Node raise {
@@ -180,7 +175,6 @@ test "empty collections survive, in the only form they have" {
   survives(@yaml.Map([("a", @yaml.Seq([])), ("b", @yaml.Map([]))]))
   assert_eq(@yaml.write(@yaml.Map([("a", @yaml.Seq([]))])), "a: []\n")
   assert_eq(@yaml.write(@yaml.Map([("a", @yaml.Map([]))])), "a: {}\n")
-  // A whole document that is empty has nowhere to put a key.
   assert_eq(@yaml.write(@yaml.Map([])), "{}\n")
   assert_eq(@yaml.write(@yaml.Seq([])), "[]\n")
 }
@@ -223,7 +217,6 @@ test "the output is block style, indented two spaces, in the order given" {
       ),
     ]),
   )
-  // Key order is the caller's; nothing is sorted, and nothing is inlined.
   inspect(
     written,
     content=(

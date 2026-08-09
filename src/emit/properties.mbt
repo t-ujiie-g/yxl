@@ -1,6 +1,3 @@
-// Emitting what the workbook says about itself: the document properties Excel
-// shows in its info pane, and how it recalculates on open.
-
 ///|
 /// Write the document properties. Excel splits these across two parts — the
 /// *core* properties every OPC package has, and the *application* ones Office

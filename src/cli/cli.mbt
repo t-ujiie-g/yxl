@@ -1,6 +1,3 @@
-// Process exit codes, stable across releases. 2 for a usage/argument error is
-// the common Unix convention.
-
 ///|
 /// Success.
 pub let exit_ok : Int = 0
@@ -25,9 +22,7 @@ pub let version : String = "0.3.3"
 pub(all) enum Command {
   Build(input~ : String, output~ : String, params~ : Map[String, String])
   Check(input~ : String, params~ : Map[String, String])
-  /// The other direction (ADR-017): read a workbook and write the spec that
-  /// would rebuild it. `flat` keeps everything in the one file, where the
-  /// default writes a block of plain values out as a `data:` table beside it.
+  /// Read a workbook and write the spec that would rebuild it (ADR-017).
   Extract(input~ : String, output~ : String, flat~ : Bool)
   Version
   Help

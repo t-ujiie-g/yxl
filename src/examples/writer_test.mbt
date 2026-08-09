@@ -1,10 +1,3 @@
-// The YAML writer against the corpus. `src/yaml`'s own tests build nodes by
-// hand, which proves the rules; these run the writer over every spec a real
-// author wrote, which is what proves it on the shapes the schema actually takes.
-//
-// This is also a rehearsal of what `yxl extract` will do with its output
-// (ADR-017): write a spec, then check it means what it was built from.
-
 ///|
 /// Every spec in the corpus, by file name.
 fn corpus() -> Array[String] {
@@ -76,8 +69,6 @@ test "every example extracts back into a spec that checks out" {
     )
     let extracted = @cli.extract(bytes, file=path)
     assert_eq((name, extracted.warnings), (name, []))
-    // And the spec really is one: it loads and compiles from its own
-    // companions, which is the whole point of writing them beside it.
     let files : Map[String, Bytes] = Map([])
     for companion in extracted.companions {
       files[companion.path] = companion.content

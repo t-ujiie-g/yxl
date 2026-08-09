@@ -1,31 +1,27 @@
-// Sparklines: a chart inside one cell, for a row of figures beside it. They
-// come in *groups* — every cell in a group shares the kind, the look, and any
-// manual bounds, which is what makes a column of them read as one series.
-
 ///|
 /// A group of sparklines. Excel scales and styles a group as a unit.
+///
+/// - `cells` — where each sparkline lands and what it plots; at least one.
+/// - `markers`, `weight` — dot every point, and the line weight in points. Both
+///   belong to the line kind: the others already draw one mark per point.
+/// - `high`, `low`, `axis` — emphasize the extremes, and draw the horizontal
+///   axis at zero.
+/// - `min`, `max` — manual vertical bounds; unset lets Excel scale each end to
+///   the data. Whole numbers, because the backend accepts nothing finer.
+/// - the colours — unset keeps the style's.
 pub(all) struct SparklineGroup {
   kind : SparklineKind
-  /// Where each sparkline lands and what it plots; at least one.
   cells : Array[SparklineCell]
-  /// Dot every point (line kind only — the others already draw one mark per
-  /// point).
   markers : Bool
-  /// Emphasize the highest and lowest points.
   high : Bool
   low : Bool
-  /// Manual vertical bounds; `None` lets Excel scale each axis end to the
-  /// data. Whole numbers because the backend accepts nothing finer.
   min : Int?
   max : Int?
-  /// The line weight in points (line kind only); `None` keeps Excel's.
   weight : Double?
-  /// The series colour, and the marker colours; `None` keeps the style's.
   color : @units.Color?
   markers_color : @units.Color?
   high_color : @units.Color?
   low_color : @units.Color?
-  /// Draw the horizontal axis at zero.
   axis : Bool
 } derive(Eq, Debug)
 

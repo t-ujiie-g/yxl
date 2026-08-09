@@ -1,11 +1,3 @@
-// Tests for the features the reader knows about and does not bring back.
-//
-// These are the easiest notes in the codebase to lose: they are produced by
-// code that runs *because* nothing else ran, so deleting the note deletes the
-// only evidence the feature existed. Each one below therefore asserts both
-// halves — the loss happened, and it was said aloud — and one asserts the
-// opposite, that a workbook without the feature stays quiet.
-
 ///|
 /// The minimal `chartSpace` part the backend will store for a chart sheet.
 fn chart_xml() -> String {
@@ -27,8 +19,6 @@ test "a chart sheet is skipped and named, not walked as a grid" {
   backend.set_cell_str("Data", "A1", "Region")
   let _ = backend.add_chart_sheet("Picture", chart_xml())
   let recovered = @read.from_bytes(backend.write_to_buffer())
-  // The grid sheet came through; the chart sheet did not become an empty one,
-  // which would claim a data tab the workbook does not have.
   assert_eq(recovered.workbook.sheets.map(sheet => sheet.name), ["Data"])
   assert_true(
     recovered.dropped
@@ -36,10 +26,6 @@ test "a chart sheet is skipped and named, not walked as a grid" {
     .any(note => note.contains("chart sheet rather than a grid")),
   )
 }
-
-// A chart *on a sheet* is read rather than reported now, and what it does with
-// the parts it cannot follow is in `chart_test.mbt`. Only the chart sheet above
-// belongs here, because that is a loss about the kind of tab, not the chart.
 
 ///|
 test "print setup is named rather than dropped in silence" {

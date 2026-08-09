@@ -1,29 +1,3 @@
-// Recovering the four things that float over a sheet rather than sitting in it:
-// form controls, slicers, shapes, and sparklines.
-//
-// Each is a translation — the backend hands back a typed record and the schema
-// has words for nearly every field — but "nearly" is the whole job here. Four
-// things the file holds do not survive the backend's own reader, and each is
-// reported rather than guessed at:
-//
-//   * a form control's size, which the VML carries and the parser never reads;
-//   * the font on a line of shape text, likewise written and not read back;
-//   * a shape geometry whose DrawingML token has a capital, which comes back
-//     lowercased and so names no geometry the schema knows;
-//   * the sheet a sparkline plots from, which the reader strips off the range.
-//
-// The last is the dangerous one: a cross-sheet sparkline comes back looking
-// exactly like a same-sheet one, so it would compile to a chart of the wrong
-// numbers with nothing to show for it. It is called out whenever a workbook has
-// more than one sheet — with a single sheet, a qualifier could only have named
-// that sheet, so nothing can be lost.
-//
-// The other constraint running through this file: a spec that will not load is
-// worse than a spec that says less. The loader refuses a key that does not
-// belong to its subject's kind — `checked` on a button, `markers` on a column
-// sparkline — so a field the file carries in a place the schema forbids is
-// dropped here rather than written out for `yxl extract` to choke on.
-
 ///|
 /// The form controls on a sheet.
 fn read_controls(
@@ -111,13 +85,11 @@ fn read_control(
     min = None
     max = None
   }
-  // The size lives in the VML anchor's *far* corner — `x:Anchor` is
-  // `from-col, from-colOff, from-row, from-rowOff, to-col, …`, and the shape's
-  // `style="width:…"` is a constant the backend stamps on every control. The
-  // parser reads the anchor for its first two coordinates only, so a control
-  // comes back without a size whatever it was given. The note says *any* size
-  // rather than "this control's size", because a control that was never sized
-  // loses nothing — and the two cannot be told apart from here.
+  // The size lives in the VML anchor's *far* corner, and the backend's parser
+  // reads the anchor's first two coordinates only, so a control comes back
+  // without a size whatever it was given. The note says *any* size because a
+  // control that was never sized loses nothing, and the two cannot be told
+  // apart from here.
   if control.width is None && control.height is None {
     notes.drop(
       "any size on a form control, which the file records in its VML and the Excel backend does not read back — a control comes back at Excel's default size, and one that was sized cannot be told from one that was not",

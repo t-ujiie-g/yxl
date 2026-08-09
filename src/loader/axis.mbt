@@ -1,11 +1,3 @@
-// Column- and row-band interpretation for the loader: turning a sheet's
-// `columns:` / `rows:` sequences into `@model.AxisBand`s on the model sheet.
-// Each entry selects a band with `at` — a column label (`B`, `D-F`) or a row
-// number (`1`, `2-4`) — and carries a `{ style, format, width|height, hidden,
-// group }` spec, reusing the shared style parser in `style.mbt`. (A sequence,
-// not a mapping, because the YAML parser rejects bare integer keys, and row
-// selectors are integers.) Structural loading lives in `loader.mbt`.
-
 ///|
 /// Load a sheet's `columns:` sequence: each entry's `at` selects a column or
 /// column range (`B`, `D-F`) carrying that entry's band spec, whose size key is

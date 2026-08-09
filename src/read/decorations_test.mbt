@@ -1,6 +1,3 @@
-// Tests for the decorations a sheet carries. Each builds a model, compiles it,
-// and reads it back, so what is asserted is what a real `.xlsx` gives up.
-
 ///|
 test "notes come back with their text and author" {
   let (wb, sheet) = fixture()

@@ -1,7 +1,3 @@
-// Loading a sheet's `charts:` — a picture of cells that already exist. A chart
-// holds no values of its own: every part of it is a reference to a range, which
-// is why a chart may plot another sheet and why nothing here writes cells.
-
 ///|
 /// The chart kinds a spec may name, and what each means. One table serves both
 /// the lookup and the diagnostic, so the two cannot drift apart.

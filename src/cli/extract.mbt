@@ -1,6 +1,3 @@
-// The other direction of the pipeline: `.xlsx` bytes -> a spec (ADR-017).
-// I/O-free like `compile`, so it tests on bytes and strings.
-
 ///|
 /// What `extract` produced: the spec text, whatever files it refers to, and the
 /// honest account of what the schema could not carry.
@@ -8,11 +5,12 @@
 /// `dropped` names each kind of loss once, whatever the file did a hundred
 /// times. `warnings` is different — it holds the ways the *result* failed to
 /// check out, which should be empty and is the one thing worth reading twice.
+///
+/// `companions` are the files the spec names, keyed by the path it names them
+/// by — relative to the spec, as `docs/spec.md` §9 resolves them. Writing them
+/// is the caller's job, which is what keeps `extract` I/O-free (ADR-003).
 pub struct Extracted {
   spec : String
-  /// The files the spec names, keyed by the path it names them by — relative to
-  /// the spec, as `docs/spec.md` §9 resolves them. Writing these is the caller's
-  /// job, which is what keeps `extract` I/O-free (ADR-003).
   companions : Array[Companion]
   dropped : Array[String]
   warnings : Array[String]

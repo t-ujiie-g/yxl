@@ -1,8 +1,3 @@
-// Tests for the pictures a sheet carries. These are the only thing the reader
-// hands back that is not text, so what matters most is that the bytes arrive
-// unchanged — a picture that survives as "a picture of about the right size" is
-// not a picture that survived.
-
 ///|
 /// A minimal but real PNG, so the backend stores and returns actual bytes.
 fn png() -> Bytes {
@@ -40,7 +35,6 @@ test "a picture comes back where it was, with its bytes unchanged" {
   assert_eq(recovered.images.length(), 1)
   assert_eq(recovered.images[0].at.to_a1(), "E1")
   assert_eq(recovered.images[0].format, "png")
-  // Byte for byte: anything less is a different picture.
   assert_eq(recovered.images[0].data, png())
 }
 
@@ -78,8 +72,7 @@ test "a picture's scale is reported lost rather than silently applied" {
   sheet.add_image({ ..plain_image(), scale_x: 0.5, scale_y: 0.5 })
   let recovered = round_trip(wb)
   // The backend bakes the scale into an absolute size and reports 1 back, so a
-  // scaled picture cannot be told from an unscaled one. Saying so is the whole
-  // of what can be done about it.
+  // scaled picture cannot be told from an unscaled one.
   assert_eq(recovered.workbook.sheets[0].images[0].scale_x, 1.0)
   assert_true(
     recovered.dropped.iter().any(note => note.contains("natural size")),
@@ -105,8 +98,6 @@ test "a sheet with no pictures says nothing about pictures" {
   let recovered = round_trip(wb)
   assert_eq(recovered.workbook.sheets[0].images.length(), 0)
   assert_eq(recovered.workbook.sheets[0].background, None)
-  // The scale note is only worth making when there is a picture to make it
-  // about.
   assert_true(
     !recovered.dropped.iter().any(note => note.contains("natural size")),
   )

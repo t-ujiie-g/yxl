@@ -1,5 +1,3 @@
-// Schema tests for a sheet's `charts:`.
-
 ///|
 /// A sheet carrying a chart, plus a second sheet a chart may plot.
 fn chart_spec(body : String) -> String {
@@ -30,7 +28,6 @@ test "a chart loads its anchor, kind, and one series" {
   assert_eq(chart.series[0].values.range.bottom_right.to_a1(), "B4")
   assert_eq(chart.series[0].categories, None)
   assert_eq(chart.series[0].name, None)
-  // Everything unasked-for stays unset, so Excel's defaults apply.
   assert_eq(chart.title, None)
   assert_eq(chart.legend, None)
   assert_eq(chart.size, None)

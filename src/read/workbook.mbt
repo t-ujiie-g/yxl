@@ -1,7 +1,3 @@
-// Recovering what a workbook says about *itself* rather than about a sheet: the
-// default font, the named definitions, the document properties, and how Excel
-// recalculates on open.
-
 ///|
 /// The workbook-level keys, read onto an already-built workbook.
 fn read_workbook_keys(

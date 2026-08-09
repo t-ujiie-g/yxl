@@ -98,12 +98,10 @@ fn build_workbook(wb : @model.Workbook) -> Bytes raise {
         backend.set_sheet_visible(sheet.name, false, very_hidden=true)
     }
   }
-  // The tab Excel opens on, as an index into the sheet order.
   if wb.active_sheet is Some(name) {
     backend.set_active_sheet(backend.sheet_index(name))
   }
-  // Workbook defined names (ADR-013): each named value/formula the spec declared
-  // once, shared across the workbook and referenced by cells as `=name`.
+  // Workbook defined names (ADR-013).
   for defined_name in wb.defined_names {
     backend.set_defined_name(
       @xlsx.DefinedName::new(
@@ -143,9 +141,8 @@ fn emit_sheet(
   dxf_ids : Map[@model.Style, Int],
   date_system : @units.DateSystem,
 ) -> Unit raise {
-  // Column and row bands: one backend call per property per column/row in the
-  // span. A band's default style shares the cell style cache, so a column style
-  // equal to a cell style reuses the same id (ADR-004).
+  // A band's default style shares the cell style cache, so a column style equal
+  // to a cell style reuses the same id (ADR-004).
   for band in sheet.columns {
     let style_id = band_style_id(backend, style_ids, band)
     for col in band.first..<=band.last {
@@ -190,8 +187,8 @@ fn emit_sheet(
       style=effective_style(sheet, cell),
     )
   }
-  // Filled formula ranges after the cells. The loader has already refused any
-  // overlap with a `cells:` entry, so the two never contend for a cell.
+  // The loader has already refused a range overlapping a `cells:` entry, so
+  // these never contend with the cells written above.
   for range in sheet.formulas {
     apply_formula_range(backend, sheet.name, sheet, range, style_ids)
   }

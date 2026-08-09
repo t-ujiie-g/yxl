@@ -1,6 +1,3 @@
-// Schema tests for a sheet's `images:` — including the bytes seam, which these
-// exercise with an in-memory file rather than one on disk (ADR-003).
-
 ///|
 /// Stand-in file contents. Nothing here decodes an image, so any bytes will do.
 let logo : Bytes = b"\x89PNG\r\n\x1a\n"
@@ -32,8 +29,6 @@ test "an image loads its anchor, its bytes, and Excel's own placement" {
   assert_eq(image.data, logo)
   assert_eq(image.format, "png")
   assert_eq(image.alt_text, None)
-  // A pasted image is placed at its own size, in the cell's corner, and moves
-  // with the cells without resizing.
   assert_eq(image.scale_x, 1.0)
   assert_eq(image.scale_y, 1.0)
   assert_eq(image.offset_x, 0)

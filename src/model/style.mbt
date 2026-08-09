@@ -6,17 +6,17 @@
 /// structurally so the emitter can intern identical styles to a single Excel
 /// `cellXfs` id (ADR-004) — declare a look once, reference it many times, emit
 /// it once.
+///
+/// `number_format` is an Excel format code (`"#,##0.00"`, `"0%"`) and
+/// `protection` is what sheet protection does to a cell wearing this style.
+/// Both live in the style rather than on the cell — Excel's own arrangement —
+/// so both intern with the rest of the look.
 pub(all) struct Style {
   font : Font?
   fill : Fill?
   borders : Borders?
   align : Alignment?
-  /// An Excel number-format code, e.g. `"#,##0.00"` or `"0%"`. A number format
-  /// is part of the style (not a separate cell attribute) so it interns with
-  /// the rest of the look.
   number_format : String?
-  /// What sheet protection does to a cell wearing this style. Excel keeps this
-  /// in the style rather than on the cell, so it interns with the rest.
   protection : CellProtection?
 } derive(Eq, Hash, Debug)
 
@@ -27,11 +27,11 @@ pub(all) struct Style {
 /// Excel locks every cell by default, so protecting a sheet freezes all of it;
 /// the way to leave a form's input boxes editable is to give *them* a style
 /// with `locked: false`.
+///
+/// `hidden` keeps the cell's formula out of the formula bar while protected —
+/// the value still shows, and the file still contains the formula.
 pub(all) struct CellProtection {
-  /// `false` lets a protected sheet's cell still be edited.
   locked : Bool?
-  /// `true` hides the cell's formula from the formula bar while protected. The
-  /// value still shows, and the file still contains the formula.
   hidden : Bool?
 } derive(Eq, Hash, Debug)
 

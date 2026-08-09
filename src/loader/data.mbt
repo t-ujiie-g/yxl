@@ -1,25 +1,3 @@
-// Tabular data feeding a sheet region: a sheet's `data:` list places a table at
-// an anchor cell, its rows running down and its fields right from there. The
-// rows come either from a CSV or JSON file or from the spec itself. They become
-// ordinary cells at load time — the model is always the final grid — so nothing
-// below this file knows a region was written as a table at all.
-//
-// Formatting is not duplicated here: a data region is styled with the `columns:`
-// and `rows:` bands that already exist, which is what keeps data and formatting
-// separable (ADR-005).
-//
-// The files are read through the same resolver `$include` uses, so the core
-// stays I/O-free (ADR-003, ADR-014).
-//
-// One rule differs from `$include`, though: a data path is resolved against the
-// spec passed to `yxl build`, not against the file the `data:` entry was written
-// in. Includes are expanded into one tree *before* any schema key is read, and
-// the tree carries no per-node provenance, so by the time this file runs the
-// originating file is no longer known. A data path inside an included file that
-// sits in another directory therefore fails to resolve — loudly, with the path
-// it tried, never silently reading the wrong file. Per-node provenance (the same
-// missing piece as source spans, ADR-010) would let both rules agree.
-
 ///|
 /// Where one table's rows come from. Exactly one form may be given per entry.
 ///

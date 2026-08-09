@@ -1,7 +1,3 @@
-// Emitting slicers. The backend writes the several linked parts — the slicer,
-// its cache, the defined name that anchors it — from one options bundle; the
-// loader has already proven the table and column exist.
-
 ///|
 /// Place a slicer. The backend wants the sheet the table sits on; the loader
 /// proved the name resolves, so the scan here cannot miss.

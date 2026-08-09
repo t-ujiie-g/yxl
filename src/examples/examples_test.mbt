@@ -1,13 +1,3 @@
-// Verification tier 2: the `examples/` corpus is the cookbook, so it has to keep
-// working. Every `examples/*.yxl.yaml` is compiled here through the real
-// pipeline and the result re-opened, so an example that stops producing what its
-// comments claim fails the build rather than misleading a reader.
-//
-// `moon test` runs from the module root, so the paths below are the ones a
-// reader would type. The on-disk include/data resolution the CLI does is
-// exercised by `resolve_path`'s own test and by CI running the built binary over
-// the same corpus.
-
 ///|
 /// The directory holding the cookbook.
 const EXAMPLES : String = "examples"
@@ -40,54 +30,37 @@ fn promise(
 /// promise fails the coverage test below, so the corpus cannot quietly rot.
 fn promises() -> Array[Promise] {
   [
-    // quickstart: scalars keep YAML's types, a quoted number stays text, and a
-    // formula carries its cached result.
     promise("quickstart.yxl.yaml", "Sales", "A2", "APAC"),
     promise("quickstart.yxl.yaml", "Sales", "B2", "2400000"),
     promise("quickstart.yxl.yaml", "Sales", "A4", "007"),
     promise("quickstart.yxl.yaml", "Sales", "B5", "4150000"),
-    // A duration is a plain number in the file: 36 hours is a day and a half.
     promise("quickstart.yxl.yaml", "Sales", "B6", "1.5"),
-    // Inline `data:` rows land as ordinary cells at their anchor and run down
-    // and right — the header on the anchor row, the last row three below it.
     promise("quickstart.yxl.yaml", "Sales", "A9", "Quarter"),
     promise("quickstart.yxl.yaml", "Sales", "B12", "1300000"),
-    // styling: rich text reads back as its concatenated runs.
     promise("styling.yxl.yaml", "Report", "A1", "Region"),
     promise("styling.yxl.yaml", "Report", "B2", "2400000"),
     promise(
       "styling.yxl.yaml", "Report", "A8", "Figures are unaudited as of Q3.",
     ),
-    // layout: the merged title survives, and the hidden sheet still holds text.
     promise("layout.yxl.yaml", "Summary", "A1", "Regional summary"),
     promise("layout.yxl.yaml", "Detail", "A1", "Everything above, in full."),
-    // modular: these values come from the CSV and the JSON, not from the spec.
     promise("modular.yxl.yaml", "Sales", "A2", "APAC"),
     promise("modular.yxl.yaml", "Sales", "B4", "3100000"),
     promise("modular.yxl.yaml", "Sales", "D2", "closed"),
-    // parameters: the defaults, then the same spec with `--set` applied.
     promise("parameters.yxl.yaml", "APAC", "A1", "Q3 APAC summary"),
     promise("parameters.yxl.yaml", "APAC", "B4", "Q3"),
     promise("parameters.yxl.yaml", "EMEA", "A1", "Q4 EMEA summary", params={
       "region": "EMEA",
       "quarter": "Q4",
     }),
-    // interactive: the decorated cells keep their own values; what decorates
-    // them is asserted separately below.
     promise("interactive.yxl.yaml", "Orders", "B2", "Sent"),
     promise("interactive.yxl.yaml", "Statuses", "A3", "Paid"),
-    // charts: the cells a chart plots are ordinary cells, which is the point.
     promise("charts.yxl.yaml", "Figures", "A2", "APAC"),
     promise("charts.yxl.yaml", "Figures", "C4", "2600000"),
-    // pivots: likewise — the summary is Excel's work, the data is the spec's.
     promise("pivots.yxl.yaml", "Summary", "A1", "Revenue by region and quarter"),
     promise("pivots.yxl.yaml", "Orders", "D7", "3300000"),
-    // shapes: the cells beneath the drawings are ordinary cells; the shapes
-    // themselves are asserted separately below.
     promise("shapes.yxl.yaml", "Board", "A1", "Quarterly review"),
     promise("shapes.yxl.yaml", "Board", "B4", "2400000"),
-    // sparklines: the figures they plot are ordinary cells; the groups
-    // themselves are asserted separately below.
     promise("sparklines.yxl.yaml", "Dashboard", "E2", "3100"),
     promise("sparklines.yxl.yaml", "Results", "C3", "1"),
   ]
@@ -146,12 +119,10 @@ test "the interactive example decorates the cells it says it does" {
   }
   assert_eq(filter.range_ref, "A1:D1")
 
-  // Four validations, in the order the spec declares them.
   let validations = workbook.get_data_validations("Orders")
   assert_eq(validations.length(), 4)
   assert_eq(validations[0].sqref, "B2:B200")
   assert_eq(validations[0].validation_type, "list")
-  // The drop-down reads its choices from the other sheet, absolutely.
   assert_eq(validations[0].formula1, "'Statuses'!$A$1:$A$3")
   assert_eq(validations[0].error_style, Some("stop"))
   assert_eq(validations[1].validation_type, "whole")
@@ -162,7 +133,6 @@ test "the interactive example decorates the cells it says it does" {
   assert_eq(validations[2].formula1, "46023")
   assert_eq(validations[3].validation_type, "textLength")
 
-  // One link out of the workbook, one into it.
   guard workbook.get_cell_hyperlink("Orders", "A2") is Some(external) else {
     fail("expected a link out of the workbook")
   }
@@ -176,13 +146,11 @@ test "the interactive example decorates the cells it says it does" {
   assert_eq(internal.location, Some("'Statuses'!A1"))
   assert_eq(internal.tooltip, Some("The tracked statuses"))
 
-  // Two notes, the second naming its author.
   let comments = workbook.get_comments("Orders")
   assert_eq(comments.length(), 2)
   assert_eq(comments[0].cell, "C3")
   assert_eq(comments[1].author, "Finance")
 
-  // Two form controls write into their linked cells.
   let controls = workbook.get_form_controls("Orders")
   assert_eq(controls.length(), 2)
   assert_eq(controls[0].control_type, "CheckBox")
@@ -193,8 +161,6 @@ test "the interactive example decorates the cells it says it does" {
   assert_eq(controls[1].max_val, Some(5))
   assert_eq(controls[1].current_val, Some(3))
 
-  // The sheet is locked but still sortable and filterable, and the cells the
-  // form is filled in through are unlocked — which is what makes it a form.
   let protection = workbook.get_sheet_protection("Orders")
   assert_true(protection.sort)
   assert_true(protection.auto_filter)
@@ -225,13 +191,11 @@ test "the charts example draws what its comments describe" {
   assert_eq(charts.length(), 2)
   assert_eq(charts[0].reference, "E2")
   assert_true(charts[0].xml.contains("<c:barChart>"))
-  // Both series are named from their column headers, not written out.
   assert_true(charts[0].xml.contains("<c:f>'Figures'!$B$1</c:f>"))
   assert_true(charts[0].xml.contains("<c:f>'Figures'!$C$1</c:f>"))
   assert_eq(charts[1].reference, "E20")
   assert_true(charts[1].xml.contains("<c:pieChart>"))
 
-  // The summary's chart plots the other sheet's cells rather than copying them.
   guard workbook.sheet("Summary") is Some(summary) else {
     fail("expected the Summary sheet")
   }
@@ -302,8 +266,6 @@ test "the modular example declares its data region a table" {
   assert_eq(tables[0].name, "Revenue")
   assert_eq(tables[0].range_ref, "A1:B4")
   assert_eq(tables[0].style_name, "TableStyleMedium2")
-  // The column names come from the header row the spec writes, not from the CSV
-  // — the data starts at A2.
   assert_eq(tables[0].columns, ["Region", "Revenue"])
 }
 
@@ -335,7 +297,6 @@ test "the layout example carries its document properties and calc mode" {
   assert_eq(calc.calc_mode, Some("manual"))
   assert_eq(calc.full_calc_on_load, Some(true))
 
-  // And the logo, whose bytes travelled from disk into the package.
   guard workbook.sheet("Summary") is Some(summary) else {
     fail("expected the Summary sheet")
   }
@@ -368,15 +329,12 @@ test "the styling example's conditional formats share their declared looks" {
   guard formats.get("B2:B3") is Some(over_revenue) else {
     fail("expected conditional formats over B2:B3")
   }
-  // Two highlighting rules and a data bar, in the order the spec declares them.
   assert_eq(over_revenue.length(), 3)
   assert_eq(over_revenue[0].criteria, "greater than or equal to")
   assert_eq(over_revenue[1].criteria, "less than")
   assert_true(over_revenue[1].stop_if_true)
   assert_eq(over_revenue[2].format_type, "data_bar")
 
-  // The two highlighting rules wear different looks, and the data bar wears
-  // none — it draws its own.
   assert_eq(over_revenue[0].format, Some(0))
   assert_eq(over_revenue[1].format, Some(1))
   assert_eq(over_revenue[2].format, None)
@@ -480,10 +438,8 @@ test "the shapes example floats what its comments describe" {
   assert_eq(shapes[0].line_color, "1F77B4")
   assert_eq(shapes[0].paragraph[0].text, "Approved")
   assert_eq(shapes[0].format.alt_text, Some("An approval stamp"))
-  // The chevron's two lines, in order.
   assert_eq(shapes[1].shape_type, "chevron")
   assert_eq(shapes[1].paragraph.map(run => run.text), ["Next", "quarter"])
-  // The star is pinned to the sheet.
   assert_eq(shapes[2].shape_type, "star5")
   assert_true(shapes[2].format.positioning is Some(Absolute))
 }
@@ -501,7 +457,6 @@ test "the corpus and the promises cover each other" {
       assert_true(promised.contains(entry))
     }
   }
-  // And no promise names a spec that is not there.
   for promise in promises() {
     assert_true(specs.contains(promise.spec))
   }

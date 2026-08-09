@@ -1,6 +1,3 @@
-// Cell values: the scalar shorthand and the expanded `{ value:, formula:,
-// rich: }` forms, explicit typing, dates, and error literals (`cell.mbt`).
-
 ///|
 test "load parses a `type: date` cell with a default date format" {
   let workbook = load_ok(
@@ -306,7 +303,6 @@ test "load accepts the expanded cell form with a number format" {
   let cells = workbook.sheets[0].cells
   assert_eq(cells[0].value, @model.Number(0.5))
   assert_eq(cells[0].style, Some(@model.Style::number_format("0.00%")))
-  // A plain scalar cell keeps the General format.
   assert_eq(cells[1].value, @model.Number(42.0))
   assert_eq(cells[1].style, None)
 }
@@ -342,7 +338,6 @@ test "load parses a rich-text cell of plain and fonted runs" {
       },
     ]),
   )
-  // A rich-text cell may still carry a cell style (here, wrapping).
   assert_eq(
     cell.style,
     Some(@model.Style::{
@@ -505,12 +500,10 @@ test "named values and formulas become defined names, referenced as =name" {
     @model.Formula(formula="tax_rate", cached=Some(@model.Number(0.08))),
   )
   assert_eq(cells[1].style, Some(@model.Style::number_format("0.00%")))
-  // A formula reference caches the cell's own `value`.
   assert_eq(
     cells[2].value,
     @model.Formula(formula="subtotal", cached=Some(@model.Number(100.0))),
   )
-  // Every declared value/formula is registered as a defined name, in order.
   assert_eq(workbook.defined_names, [
     { name: "company", refers_to: @model.Text("Acme Corp") },
     { name: "tax_rate", refers_to: @model.Number(0.08) },

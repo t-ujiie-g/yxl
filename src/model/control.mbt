@@ -1,35 +1,29 @@
-// Form controls: a button, check box, or slider sitting over the grid, linked
-// to a cell. The value a control writes into its linked cell is what makes a
-// sheet a form — the same story `protection: { locked: false }` tells from
-// the other side.
-
 ///|
 /// A form control anchored at a cell. Which fields mean anything depends on
 /// the kind — the loader admits only the combinations Excel's own "Format
 /// Control" dialog offers.
+///
+/// `link` is the cell the control writes its value into: a boolean for a check
+/// box, the option's index for an option button, the number for a scroll bar or
+/// spin button. Same-sheet only, since the backend refuses a qualified
+/// reference. `min`/`max`/`step`/`page`/`value` are a scroll bar's or spin
+/// button's range, and all lie within `0..=max_form_control_value`; `page` (a
+/// click in the trough) is the scroll bar's alone. `width`/`height` are pixels,
+/// `horizontal` lays a scroll bar or spin button sideways, and `None` anywhere
+/// keeps the backend's default.
 pub(all) struct FormControl {
   at : @units.CellRef
   kind : FormControlKind
-  /// The caption (a button, check box, option button, group box, or label).
   text : String?
-  /// Whether a check box or option button starts ticked.
   checked : Bool?
-  /// The cell the control writes its value into — a boolean for a check box,
-  /// the option's index for an option button, the number for a scroll bar or
-  /// spin button. Same-sheet only: the backend refuses a qualified reference.
   link : @units.CellRef?
-  /// The control's size in pixels; `None` keeps the backend default.
   width : Int?
   height : Int?
-  /// A scroll bar's or spin button's range, step, and starting value —
-  /// `page` (a click in the trough) is the scroll bar's alone. All within
-  /// 0..=max_form_control_value, Excel's own dialog limit.
   min : Int?
   max : Int?
   step : Int?
   page : Int?
   value : Int?
-  /// Lay a scroll bar or spin button sideways.
   horizontal : Bool?
 } derive(Eq, Debug)
 

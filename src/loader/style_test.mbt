@@ -1,6 +1,3 @@
-// Styles: inline mappings, the `defs.styles` block, references by name, and
-// `extends:` inheritance (`style.mbt`, `defs.mbt`).
-
 ///|
 test "load parses a full style: font, fill, border, alignment, and number format" {
   let workbook = load_ok(
@@ -161,7 +158,6 @@ test "load parses column/row default styles and the workbook default font" {
   )
   assert_eq(workbook.default_font, Some("Calibri"))
   let sheet = workbook.sheets[0]
-  // Column B is bold; D-F share one number-format band.
   assert_eq(sheet.columns.length(), 2)
   assert_eq(sheet.columns[0].first, 2)
   assert_eq(sheet.columns[0].last, 2)
@@ -169,7 +165,6 @@ test "load parses column/row default styles and the workbook default font" {
   assert_eq(sheet.columns[1].first, 4)
   assert_eq(sheet.columns[1].last, 6)
   assert_eq(sheet.columns[1].style.unwrap().number_format, Some("0.00"))
-  // Row 1 filled; rows 2-3 right-aligned as one band.
   assert_eq(sheet.rows.length(), 2)
   assert_eq((sheet.rows[0].first, sheet.rows[0].last), (1, 1))
   assert_eq((sheet.rows[1].first, sheet.rows[1].last), (2, 3))
@@ -251,20 +246,14 @@ test "a style extends another, overriding attribute by attribute" {
   )
   let header = workbook.sheets[0].cells[0].style.unwrap()
   let font = header.font.unwrap()
-  // Set by the child.
   assert_eq(font.bold, Some(true))
   assert_eq(font.color, @units.Color::parse("FFFFFF"))
-  // Left alone by the child, so the base shows through — the merge reaches
-  // inside the font rather than replacing it whole.
   assert_eq(font.name, Some("Calibri"))
   assert_eq(font.size, Some(11.0))
-  // Same for alignment; `wrap` survives while `horizontal` is overridden.
   assert_eq(header.align.unwrap().horizontal, Some(Center))
   assert_eq(header.align.unwrap().wrap, Some(true))
-  // Borders come through untouched, and the child's own fill is added.
   assert_eq(header.borders.unwrap().left, Some({ style: Thin, color: None }))
   assert_eq(header.fill.unwrap().color, @units.Color::parse("1F3864").unwrap())
-  // The base itself is unchanged by having been extended.
   let base = workbook.sheets[0].cells[1].style.unwrap()
   assert_eq(base.font.unwrap().bold, None)
   assert_eq(base.fill, None)
@@ -272,7 +261,6 @@ test "a style extends another, overriding attribute by attribute" {
 
 ///|
 test "extends resolves forward references and works on an inline style" {
-  // `child` is declared before the `parent` it extends.
   let forward = load_ok(
     (
       #|defs:
@@ -289,7 +277,6 @@ test "extends resolves forward references and works on an inline style" {
   let font = forward.sheets[0].cells[0].style.unwrap().font.unwrap()
   assert_eq(font.bold, Some(true))
   assert_eq(font.size, Some(20.0))
-  // A chain of three, and an inline style extending a declared one.
   let chain = load_ok(
     (
       #|defs:
@@ -322,7 +309,6 @@ test "load rejects style inheritance cycles and a dangling extends" {
     ),
     Some("spec.yaml: style inheritance cycle: a -> b -> a"),
   )
-  // A style extending itself is the shortest cycle.
   assert_eq(
     schema_message(
       "defs:\n  styles:\n    a: { extends: a }\nsheets:\n  - name: S\n",

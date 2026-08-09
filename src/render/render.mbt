@@ -1,11 +1,3 @@
-// Model -> document tree: the inverse of `loader`, and the last step before
-// `@yaml.write` turns it into text.
-//
-// Everything here is a choice about *readability*, since correctness is settled
-// by `cli`'s verify pass re-compiling the result. Cells go out in reading order,
-// a style declared once becomes one `defs.styles` entry, and a key whose value
-// is Excel's default is left out rather than written down.
-
 ///|
 /// Render a workbook as the spec that would compile to it.
 ///
@@ -212,7 +204,6 @@ fn one_cell(cell : @model.Cell, styles : StyleNames) -> @yaml.Node {
   // bare `format:` and leaves the cell without a style at all.
   let (style_node, format) = styles.split(cell.style)
   match (cell.value, style_node, format) {
-    // The shorthand: a plain value with nothing layered over it.
     (Text(text), None, None) => @yaml.Str(text)
     (Number(number), None, None) => number_scalar(number)
     (Bool(flag), None, None) => @yaml.Bool(flag)

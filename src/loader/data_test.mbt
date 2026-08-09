@@ -1,5 +1,3 @@
-// External CSV and JSON data tables (`data.mbt`).
-
 ///|
 test "a CSV table lands at its anchor, typed field by field" {
   let workbook = load_ok(
@@ -11,7 +9,6 @@ test "a CSV table lands at its anchor, typed field by field" {
   )
   let cells = workbook.sheets[0].cells
   assert_eq(cells.length(), 6)
-  // The first field lands on the anchor, the rest run right and down.
   assert_eq(cells[0].pos, @units.CellRef::new(col=2, row=2))
   assert_eq(cells[0].value, @model.Text("APAC"))
   assert_eq(cells[1].pos, @units.CellRef::new(col=3, row=2))
@@ -19,7 +16,6 @@ test "a CSV table lands at its anchor, typed field by field" {
   assert_eq(cells[2].value, @model.Bool(true))
   assert_eq(cells[3].pos, @units.CellRef::new(col=2, row=3))
   assert_eq(cells[4].value, @model.Number(1.5))
-  // Quoted, so the leading zeros survive instead of becoming the number 7.
   assert_eq(cells[5].value, @model.Text("007"))
 }
 
@@ -37,7 +33,6 @@ test "CSV quoting, blanks, ragged rows, and CRLF" {
   assert_eq(cells[0].value, @model.Text("a,b"))
   assert_eq(cells[1].value, @model.Text("line\nbreak"))
   assert_eq(cells[2].value, @model.Text("say \"hi\""))
-  // The empty first field of row 2 wrote no cell at all; `x` sits in column B.
   assert_eq(cells.length(), 4)
   assert_eq(cells[3].pos, @units.CellRef::new(col=2, row=2))
   assert_eq(cells[3].value, @model.Text("x"))
@@ -52,14 +47,12 @@ test "a JSON table of arrays, and of objects with named columns" {
     },
   )
   let cells = arrays.sheets[0].cells
-  // `null` is a blank cell, so row 2 writes only two of its three fields.
   assert_eq(cells.length(), 5)
   assert_eq(cells[0].value, @model.Text("APAC"))
   assert_eq(cells[1].value, @model.Number(2400000.0))
   assert_eq(cells[2].value, @model.Bool(true))
   assert_eq(cells[3].pos, @units.CellRef::new(col=1, row=2))
   assert_eq(cells[4].pos, @units.CellRef::new(col=3, row=2))
-  // `columns` both selects the fields and fixes their order.
   let objects = load_ok(
     "sheets:\n  - name: S\n    data:\n      - at: A1\n        json: rows.json\n        columns: [revenue, region]\n",
     files={
@@ -92,10 +85,7 @@ test "a data table composes with band formatting and with plain cells" {
     files={ "sales.csv": "APAC,2400000\n" },
   )
   let sheet = workbook.sheets[0]
-  // Formatting comes from the column band, not from the data block — that is
-  // what keeps data and formatting separable.
   assert_eq(sheet.columns[0].style.unwrap().number_format, Some("#,##0"))
-  // Header cells and table cells coexist; the table's own cells carry no style.
   assert_eq(sheet.cells.length(), 4)
   assert_eq(sheet.cells[2].pos, @units.CellRef::new(col=1, row=2))
   assert_eq(sheet.cells[2].style, None)
@@ -173,7 +163,6 @@ test "load rejects malformed data entries and unusable tables" {
     ),
     Some("x.csv: CSV ends inside a quoted field"),
   )
-  // Object rows need `columns`, because JSON key order is not dependable.
   assert_eq(
     schema_message(
       "sheets:\n  - name: S\n    data:\n      - at: A1\n        json: x.json\n",
@@ -210,9 +199,6 @@ test "load rejects malformed data entries and unusable tables" {
 
 ///|
 test "rows written in the spec land like a file's, typed by YAML" {
-  // The point of the inline form is diffs, but the reason it is worth having
-  // over `csv:` is *types*: YAML already said what each field is, so nothing
-  // has to be inferred from text the way a CSV field does.
   let workbook = load_ok(
     (
       #|sheets:
@@ -233,7 +219,6 @@ test "rows written in the spec land like a file's, typed by YAML" {
   assert_eq(cells[2].value, @model.Bool(true))
   assert_eq(cells[3].pos, @units.CellRef::new(col=2, row=3))
   assert_eq(cells[4].value, @model.Number(1.5))
-  // Quoted in the spec, so it stays text — no inference step to get wrong.
   assert_eq(cells[5].value, @model.Text("007"))
 }
 
@@ -252,7 +237,6 @@ test "an inline null is a blank cell, and a short row stops where it stops" {
     ),
   )
   let cells = workbook.sheets[0].cells
-  // Four cells, not six: the null wrote nothing and row two is one field long.
   assert_eq(cells.length(), 3)
   assert_eq(cells[0].pos.to_a1(), "A1")
   assert_eq(cells[1].pos.to_a1(), "C1")
@@ -332,7 +316,6 @@ test "load rejects inline rows it cannot place" {
     ),
     Some("spec.yaml: row 1 of 'data' 'values' must be a sequence"),
   )
-  // `null` is admitted, so the message that refuses a nested value says so.
   assert_eq(
     schema_message(
       (

@@ -1,14 +1,3 @@
-// Loading a sheet's `formulas:` — one formula filled across a region, which
-// `cells:` cannot say. A `defs.formulas` reference is a different thing: it
-// compiles to a defined name, so every cell referencing it holds the *same*
-// formula. This fills a range with a formula that *moves* with each cell, which
-// is what a calculation column actually is.
-//
-// The checks that a range does not collide are here rather than in a
-// whole-workbook pass, because everything they need is one sheet's own content —
-// but they run from `check_formula_ranges`, once the sheet is fully loaded, since
-// `cells:` may be written after `formulas:`.
-
 ///|
 /// A sheet's `formulas:` — a sequence of filled ranges.
 fn load_formulas(
