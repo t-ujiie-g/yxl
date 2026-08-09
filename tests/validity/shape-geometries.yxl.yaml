@@ -1,0 +1,54 @@
+# Part of the validity corpus (ROADMAP §5).
+#
+# all twenty-three shape geometries, all three anchors, and a shape
+# carrying text, per-line fonts, alt text, fill and outline
+#
+# This is not the cookbook. `examples/` is written to be read and teaches one
+# thing at a time; this is written to be *validated*, and reaches for every
+# variant the schema offers — because the Open XML validator only ever judges
+# the files something actually produces. Three icon sets shipped invalid for
+# two phases because the cookbook happened to use one of the twenty.
+#
+# Nothing here needs to be legible or realistic. Add a row when the schema
+# grows a variant; never delete one to make a build pass.
+
+sheets:
+  - name: Geometry
+    cells:
+      A1: shapes
+    shapes:
+      - { at: A3, kind: rectangle, fill: "1F77B4", size: { width: 60, height: 40 } }
+      - { at: C3, kind: ellipse, fill: "1F77B4", size: { width: 60, height: 40 } }
+      - { at: E3, kind: triangle, fill: "1F77B4", size: { width: 60, height: 40 } }
+      - { at: G3, kind: diamond, fill: "1F77B4", size: { width: 60, height: 40 } }
+      - { at: I3, kind: parallelogram, fill: "1F77B4", size: { width: 60, height: 40 } }
+      - { at: K3, kind: trapezoid, fill: "1F77B4", size: { width: 60, height: 40 } }
+      - { at: M3, kind: pentagon, fill: "1F77B4", size: { width: 60, height: 40 } }
+      - { at: O3, kind: hexagon, fill: "1F77B4", size: { width: 60, height: 40 } }
+      - { at: A9, kind: octagon, fill: "1F77B4", size: { width: 60, height: 40 } }
+      - { at: C9, kind: decagon, fill: "1F77B4", size: { width: 60, height: 40 } }
+      - { at: E9, kind: star_5, fill: "1F77B4", size: { width: 60, height: 40 } }
+      - { at: G9, kind: plus, fill: "1F77B4", size: { width: 60, height: 40 } }
+      - { at: I9, kind: chevron, fill: "1F77B4", size: { width: 60, height: 40 } }
+      - { at: K9, kind: cube, fill: "1F77B4", size: { width: 60, height: 40 } }
+      - { at: M9, kind: can, fill: "1F77B4", size: { width: 60, height: 40 } }
+      - { at: O9, kind: donut, fill: "1F77B4", size: { width: 60, height: 40 } }
+      - { at: A15, kind: frame, fill: "1F77B4", size: { width: 60, height: 40 } }
+      - { at: C15, kind: heart, fill: "1F77B4", size: { width: 60, height: 40 } }
+      - { at: E15, kind: moon, fill: "1F77B4", size: { width: 60, height: 40 } }
+      - { at: G15, kind: sun, fill: "1F77B4", size: { width: 60, height: 40 } }
+      - { at: I15, kind: cloud, fill: "1F77B4", size: { width: 60, height: 40 } }
+      - { at: K15, kind: pie, fill: "1F77B4", size: { width: 60, height: 40 } }
+      - { at: M15, kind: line, line: { color: "333333", width: 2 }, size: { width: 60, height: 40 } }
+      - at: A22
+        kind: cloud
+        text:
+          - The first line
+          - { text: bold second, font: { bold: true, size: 14, color: "FFFFFF" } }
+        size: { width: 240, height: 120 }
+        fill: "1F77B4"
+        line: { color: "333333", width: 2 }
+        alt: An approval stamp
+        positioning: move
+      - { at: G22, kind: rectangle, fill: "AAAAAA", positioning: move_and_size, size: { width: 60, height: 40 } }
+      - { at: I22, kind: rectangle, fill: "AAAAAA", positioning: fixed, size: { width: 60, height: 40 } }

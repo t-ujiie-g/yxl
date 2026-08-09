@@ -154,14 +154,29 @@ pub(all) enum TextMatch {
 /// §18.18.42, `ST_IconSetType`). Excel's own vocabulary is used verbatim rather
 /// than translated, so a spec names the same thing its documentation does.
 ///
-/// The list is repeated from the backend so an unknown name fails as a
-/// diagnostic against the spec rather than as an error from deep inside the
-/// emitter (ADR-006); it is checked against the backend by a test.
+/// These are the seventeen the *base* schema's enumeration admits. Excel 2010
+/// added three more, which are a different matter — see
+/// `unwritable_icon_set_styles`.
 pub let icon_set_styles : Array[String] = [
-  "3Arrows", "3ArrowsGray", "3Flags", "3Signs", "3Stars", "3Symbols", "3Symbols2",
-  "3TrafficLights1", "3TrafficLights2", "3Triangles", "4Arrows", "4ArrowsGray", "4Rating",
-  "4RedToBlack", "4TrafficLights", "5Arrows", "5ArrowsGray", "5Boxes", "5Quarters",
-  "5Rating",
+  "3Arrows", "3ArrowsGray", "3Flags", "3Signs", "3Symbols", "3Symbols2", "3TrafficLights1",
+  "3TrafficLights2", "4Arrows", "4ArrowsGray", "4Rating", "4RedToBlack", "4TrafficLights",
+  "5Arrows", "5ArrowsGray", "5Quarters", "5Rating",
+]
+
+///|
+/// Icon sets Excel offers and the backend cannot write: added in Excel 2010,
+/// they live only in the `x14` extension schema, and the backend puts the name
+/// straight into the base `<iconSet iconSet="…">` attribute — whose enumeration
+/// (ECMA-376 §18.18.42) has seventeen values and none of these. A workbook
+/// naming one is schema-invalid and Excel offers to repair it.
+///
+/// Refused by name, with the reason, until that is fixed upstream
+/// (moonbitlang/office.mbt#403) — the same arrangement as the camel-case shape
+/// presets. The backend accepts all twenty, so this list cannot be derived from
+/// it: trusting the backend's acceptance for the set of legal values is what
+/// let these ship in the first place.
+pub let unwritable_icon_set_styles : Array[String] = [
+  "3Stars", "3Triangles", "5Boxes",
 ]
 
 ///|

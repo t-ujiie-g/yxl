@@ -7,6 +7,11 @@
 # Everything below `#` is data and must match the validator's output exactly.
 # Comment lines and blank lines are stripped before the comparison.
 #
+# A workbook is named here by its basename, which is why the script refuses a
+# run whose inputs share one: a waiver written for `examples/shapes.yxl.yaml`
+# would otherwise cover `tests/validity/shapes.yxl.yaml` without saying so.
+# Both corpora are ours to name, so a collision is always a rename away.
+#
 # ---------------------------------------------------------------------------
 # modular.xlsx — a table-backed slicer's cache writes `ext` in the wrong
 # namespace. `write_slicer_cache_xml_table` (mbtexcel `xlsx/slicer.mbt`) makes

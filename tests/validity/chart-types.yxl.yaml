@@ -1,0 +1,86 @@
+# Part of the validity corpus (ROADMAP §5).
+#
+# all fourteen chart types, plus one chart that sets every optional key
+# together
+#
+# This is not the cookbook. `examples/` is written to be read and teaches one
+# thing at a time; this is written to be *validated*, and reaches for every
+# variant the schema offers — because the Open XML validator only ever judges
+# the files something actually produces. Three icon sets shipped invalid for
+# two phases because the cookbook happened to use one of the twenty.
+#
+# Nothing here needs to be legible or realistic. Add a row when the schema
+# grows a variant; never delete one to make a build pass.
+
+sheets:
+  - name: Data
+    cells:
+      A1: Region
+      B1: Revenue
+      C1: Cost
+      A2: APAC
+      B2: 100
+      C2: 40
+      A3: EMEA
+      B3: 200
+      C3: 90
+      A4: AMER
+      B4: 150
+      C4: 60
+    charts:
+      - at: E2
+        type: column
+        series: [{ values: B2:B4, categories: A2:A4, name_from: B1 }]
+      - at: E20
+        type: column_stacked
+        series: [{ values: B2:B4, categories: A2:A4 }]
+      - at: E38
+        type: column_percent_stacked
+        series: [{ values: B2:B4, categories: A2:A4 }]
+      - at: N2
+        type: bar
+        series: [{ values: B2:B4, categories: A2:A4 }]
+      - at: N20
+        type: bar_stacked
+        series: [{ values: B2:B4, categories: A2:A4 }]
+      - at: N38
+        type: bar_percent_stacked
+        series: [{ values: B2:B4, categories: A2:A4 }]
+      - at: W2
+        type: line
+        series: [{ values: B2:B4, categories: A2:A4 }]
+      - at: W20
+        type: area
+        series: [{ values: B2:B4, categories: A2:A4 }]
+      - at: W38
+        type: area_stacked
+        series: [{ values: B2:B4, categories: A2:A4 }]
+      - at: AF2
+        type: area_percent_stacked
+        series: [{ values: B2:B4, categories: A2:A4 }]
+      - at: AF20
+        type: pie
+        series: [{ values: B2:B4, categories: A2:A4 }]
+      - at: AF38
+        type: doughnut
+        series: [{ values: B2:B4, categories: A2:A4 }]
+      - at: AO2
+        type: scatter
+        series: [{ values: C2:C4, categories: B2:B4 }]
+      - at: AO20
+        type: radar
+        series: [{ values: B2:B4, categories: A2:A4 }]
+      - at: AO38
+        type: line
+        legend: top_right
+        title: Everything at once
+        size: { width: 400, height: 240 }
+        x_axis: { title: Region }
+        y_axis: { title: Amount, min: 0, max: 300 }
+        series:
+          - values: B2:B4
+            categories: A2:A4
+            name: Revenue
+          - values: C2:C4
+            categories: A2:A4
+            name_from: C1

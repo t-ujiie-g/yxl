@@ -60,7 +60,11 @@ fn load_link(
         )
       "to" =>
         target = Some(
-          Location(expect_string(value, file~, context="\{context} 'to'")),
+          Location(
+            canonical_location(
+              expect_string(value, file~, context="\{context} 'to'"),
+            ),
+          ),
         )
       "tip" =>
         tip = Some(expect_string(value, file~, context="\{context} 'tip'"))
@@ -252,6 +256,36 @@ fn check_cross_sheet_references(
         )
       }
     }
+  }
+}
+
+///|
+/// A link's in-workbook target, spelled the way the file has to hold it.
+///
+/// Excel stores a hyperlink's `location` as a reference, and a reference to a
+/// sheet whose name is not a bare word has to quote it: `Q1 Sales!B2` is not a
+/// valid reference and Excel answers a click with "Reference isn't valid".
+/// Every other cross-sheet reference yxl writes travels as a parsed
+/// `SheetRange` and is quoted on the way out; a link's target is the one that
+/// stays text from the spec to the file, because it may equally be a defined
+/// name — so it is the one that has to be re-spelled here rather than echoed.
+///
+/// Quoting is applied unconditionally, which is what `emit`'s `quoted_sheet`
+/// does for every chart range: `'Statuses'!A1` is as valid as `Statuses!A1`,
+/// and one rule beats a second implementation of Excel's "is this a bare word"
+/// test.
+///
+/// A target naming no sheet is a defined name and is left exactly as written.
+/// So is one whose quoting is malformed — `location_sheet` deliberately leaves
+/// that to Excel rather than raising about a link that may not be a reference
+/// at all, and this follows it.
+fn canonical_location(location : String) -> String {
+  let (sheet, rest) = split_sheet_prefix(location, file="", what="") catch {
+    _ => return location
+  }
+  match sheet {
+    Some(name) => "'" + name.replace_all(old="'", new="''") + "'!" + rest
+    None => location
   }
 }
 

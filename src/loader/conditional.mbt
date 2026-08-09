@@ -353,6 +353,16 @@ fn load_icon_set(
     style = Some(expect_string(node, file~, context=what))
   }
   let style = style.unwrap()
+  // The three the backend would write into a base attribute that has no room
+  // for them are refused by name, so the author gets the reason instead of
+  // "unknown" (ADR-006) — and, more to the point, instead of a workbook Excel
+  // offers to repair.
+  if @model.unwritable_icon_set_styles.contains(style) {
+    raise schema_error(
+      file~,
+      "\{what} asks for '\{style}', which Excel 2010 added and the Excel backend writes into the base 'iconSet' attribute, whose ECMA-376 §18.18.42 enumeration does not have it — the workbook would not open cleanly. Pick one of the seventeen the base schema names, or wait for the upstream fix",
+    )
+  }
   guard @model.icon_set_styles.contains(style) else {
     raise unknown_value(
       style,

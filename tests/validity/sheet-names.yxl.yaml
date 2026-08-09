@@ -1,0 +1,78 @@
+# Part of the validity corpus (ROADMAP §5).
+#
+# sheet names that must be quoted in a reference, and names in a non-Latin
+# script, reached from every construct that can name a sheet: charts,
+# sparklines, validation sources, links, defined names and formulas
+#
+# This is not the cookbook. `examples/` is written to be read and teaches one
+# thing at a time; this is written to be *validated*, and reaches for every
+# variant the schema offers — because the Open XML validator only ever judges
+# the files something actually produces. Three icon sets shipped invalid for
+# two phases because the cookbook happened to use one of the twenty.
+#
+# Nothing here needs to be legible or realistic. Add a row when the schema
+# grows a variant; never delete one to make a build pass.
+
+defs:
+  values:
+    tax_rate: 0.085
+  formulas:
+    subtotal: "SUM('Q1 Sales'!B2:B4)"
+
+sheets:
+  - name: Q1 Sales
+    cells:
+      A1: Region
+      B1: Revenue
+      A2: APAC
+      B2: 100
+      A3: EMEA
+      B3: 200
+      A4: AMER
+      B4: 150
+      D1: { formula: { $ref: subtotal } }
+      D2: { $ref: tax_rate }
+      D3: "=SUM('Q1 Sales'!B2:B4)"
+    charts:
+      - at: F2
+        type: column
+        title: From a spaced sheet
+        series:
+          - values: "Q1 Sales!B2:B4"
+            categories: "Q1 Sales!A2:A4"
+            name_from: "Q1 Sales!B1"
+    sparklines:
+      - at: E2
+        data: "Q1 Sales!B2:B4"
+    validations:
+      - at: C2:C10
+        list: { from: "Q1 Sales!A2:A4" }
+    links:
+      A2: { to: "Q1 Sales!B2", tip: back }
+    comments:
+      A3: on a spaced sheet
+  - name: 売上
+    cells:
+      A1: 地域
+      B1: 売上高
+      A2: 東京
+      B2: 1000
+      A3: 大阪
+      B3: 2000
+    charts:
+      - at: D2
+        type: pie
+        series:
+          - values: "売上!B2:B3"
+            categories: "売上!A2:A3"
+    tab_color: "FF0000"
+  - name: Cross
+    cells:
+      A1: cross-sheet
+    charts:
+      - at: C2
+        type: line
+        series:
+          - values: "売上!B2:B3"
+            categories: "売上!A2:A3"
+            name: 合計

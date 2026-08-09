@@ -129,9 +129,12 @@ ADR-008). Dependencies point *downward*; lower packages never import higher.
   reaches for one icon set out of twenty and four chart types out of fourteen;
   everything it never reaches for is unvalidated however long it has shipped.
   Three icon sets turned out to write a workbook Excel offers to repair, and
-  they had been in the schema since Phase 9 (§9, §11). The corpus that closes
-  this is a *different* corpus — one entry per schema variant, breadth over
-  legibility, never shown to a reader — and it is a v1.0 gate item (§6).
+  they had been in the schema since Phase 9 (§9, §11). What closes this is a
+  *second* corpus, `tests/validity/` — one spec per feature reaching for every
+  variant of it, breadth over legibility, never shown to a reader. CI builds it
+  with the shipped binary and puts it through the same validator, which is why
+  it lives outside `src/examples`: that package asserts on cells and enforces
+  a coverage check both ways, and neither is what this corpus is for.
 
 ---
 
@@ -914,16 +917,15 @@ the first item changes what a spec looks like.
       checks every part against the ECMA-376 schema and answers with the
       element, the attribute, and the XPath. It found two defects on its first
       run, which is the argument for it — see the §11 entry
-- [ ] **A validity corpus covering every schema variant, not every lesson.**
-      The automated half above judges only the files `examples/` happens to
+- [x] **A validity corpus covering every schema variant, not every lesson.**
+      The automated half above judged only the files `examples/` happens to
       produce, and the cookbook is written for a reader: one icon set of twenty,
       four chart types of fourteen, two control kinds of seven. Three icon sets
       were writing an invalid workbook the whole time and nothing said so (§9).
-      What is wanted is a second corpus — breadth-first, one spec per feature
-      with every variant of it side by side, not meant to be read — run through
-      the same `validate-xlsx.sh`. It is cheap: the seven specs that found the
-      three icon sets, the unquoted link, and the lost split pane took an
-      afternoon
+      Closed by `tests/validity/` — eight specs, breadth-first, built by CI with
+      the shipped binary and put through the same `validate-xlsx.sh`. The script
+      now also refuses a run whose inputs share a basename, since that is what a
+      waiver is keyed by and two corpora make collisions possible
 - [ ] Tier-3 manual: Excel / LibreOffice / Google Sheets open cleanly *and show
       the right thing*. The half above cannot be automated away: a schema-valid
       workbook can still put the pivot in the wrong place
@@ -1456,8 +1458,12 @@ Phase 11's inline `values:` lands. `$include` splitting is never inferred.
   twenty; the shipped corpus uses exactly one icon set, which is why nothing
   caught it (§5). **Reported as [office.mbt#403](https://github.com/moonbitlang/office.mbt/issues/403)** — the machinery is already
   there, since `write.mbt` writes the same `x14:conditionalFormattings` block
-  for advanced data bars. Worked around here by refusing the three by name with
-  the reason, as the shape presets are.
+  for advanced data bars. **Fixed here** by refusing the three by name with the
+  reason, as the shape presets are: `model/decorations.mbt` keeps them in
+  `unwritable_icon_set_styles`, apart from the seventeen, and a test pins that
+  the two lists stay disjoint and add to twenty. `extract` names them apart
+  too, since "the spec does not name it" would send a reader hunting a typo.
+  They become plain schema additions the day #403 lands.
 
 - **A link into a sheet whose name needs quoting went out unquoted.**
   `links: { A2: { to: "Q1 Sales!B2" } }` reached the file as
@@ -1470,7 +1476,11 @@ Phase 11's inline `values:` lands. `$include` splitting is never inferred.
   `split_sheet_prefix`'s quoting rules), so the fix is to re-render rather than
   echo. **The validator cannot see this class**: `location` is a plain string
   in the schema, so the file is valid and only Excel disagrees. Ours, not the
-  backend's.
+  backend's. **Fixed** in `loader/decorations.mbt`'s `canonical_location`,
+  which quotes unconditionally — the same choice `emit`'s `quoted_sheet` makes
+  for every chart range, since `'Statuses'!A1` is as valid as `Statuses!A1` and
+  one rule beats a second implementation of Excel's "is this a bare word" test.
+  A target naming no sheet is a defined name and is untouched.
 
 - **A split pane was dropped on the way back, and silently.** `docs/spec.md`
   §22 promises frozen *and split* panes are recovered; a split one came back
@@ -1478,10 +1488,21 @@ Phase 11's inline `values:` lands. `$include` splitting is never inferred.
   contract forbids. The cause is upstream: `Worksheet::get_panes`
   (`xlsx/sheet_view_ops.mbt:100`) derives `freeze` from `state == "frozen"` and
   never sets `split`, so a split pane reads back as neither, and
-  `read/layout.mbt`'s `else if panes.split && …` falls through. **Workable
-  around from here** — a `<pane>` that exists and is not frozen is a split
-  one — so the one-line local fix does not wait on the release. Unreported;
-  part of the reader batch above.
+  `read/layout.mbt`'s `else if panes.split && …` falls through. **Fixed here**
+  rather than waited on: a `<pane>` that exists and is not frozen is a split
+  one, which is the same conclusion by a route the backend's reader does not
+  block. Unreported; part of the reader batch above.
+
+  **And behind it, a second defect the first one was hiding.** With the branch
+  reachable at last, `split: { x: 3000 }` came back as `x: 60000`. The
+  schema speaks points and OOXML stores a split position in twips
+  (ECMA-376 §18.3.1.66); `emit` multiplied by twenty and `read` never divided,
+  and no test could see it because the branch it lived in never ran. A freeze
+  is unaffected — there `xSplit` is a count of columns, not a measurement,
+  which is why the two branches convert differently. The lesson is the one §5
+  now carries: a code path no corpus reaches is not tested, it is merely
+  unaccused. Three round-trip tests pin it, including the sheet with no panes
+  at all, since the widened branch must not invent one.
 
 - **Backend defects that only Excel reveals.** Phase 9's pivot tables shipped
   round-trip-green while Excel showed `#SPILL!`, because the backend writes a
@@ -1600,6 +1621,60 @@ Phase 11's inline `values:` lands. `$include` splitting is never inferred.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-08-09** — **The validity gate stops depending on what the cookbook
+  happened to need.** `tests/validity/` is a second corpus with a different
+  job: eight specs that reach for every variant the schema offers — all
+  fourteen chart types, all twenty-three geometries, all seven control kinds,
+  every validation comparison, the workbook keys no example sets — and are not
+  meant to be read. CI builds them with the shipped binary alongside
+  `examples/` and puts both through the same validator, eighteen workbooks in
+  all. They live outside `src/examples` deliberately: that package asserts on
+  cells and enforces a coverage check both ways, and this corpus wants neither.
+
+  `validate-xlsx.sh` also grew a guard, because two corpora make a collision
+  possible that one could not: a waiver names a workbook by basename, so two
+  inputs sharing one are indistinguishable and a waiver for `examples/shapes`
+  would silently cover `tests/validity/shapes`. The script refuses such a run
+  outright rather than picking a winner, and the two colliding corpus specs
+  were renamed to `chart-types` and `shape-geometries`. Naming the hazard was
+  worth more than the rename: it is the same shape as the defects above — a
+  thing that looks checked and is not.
+
+- **2026-08-09** — **The three bugs the sweep found are fixed, and a fourth
+  that was hiding behind one of them.**
+
+  **An icon set the backend cannot write is refused by name.** `3Stars`,
+  `3Triangles` and `5Boxes` are Excel-2010 names living only in an extension
+  schema, and they were going into the base attribute, whose enumeration has
+  seventeen values and none of them — so the workbook did not open cleanly.
+  They now fail as a diagnostic that says which enumeration and why, the way
+  the camel-case shape presets do, and `docs/spec.md` §10 lists the seventeen
+  outright rather than trailing off in a "…". `extract` names the three apart
+  from an unknown one, because "the spec does not name it" would send a reader
+  hunting for a typo that is not there.
+
+  **A link into a sheet whose name needs quoting is quoted.** `to: "Q1 Sales!B2"`
+  reached the file verbatim, and Excel answers a click on that with "Reference
+  isn't valid". Every other cross-sheet reference was already right because
+  every other one travels as a parsed range; a link's target is the one thing
+  that stays text from the spec to the file, since it may equally be a defined
+  name. Quoting is now unconditional, matching what `emit` already does for
+  every chart range — one rule instead of a second implementation of Excel's
+  "is this a bare word" test. A `to:` naming no sheet is left alone.
+
+  **A split pane comes back.** `docs/spec.md` §22 promised frozen *and* split
+  panes were recovered and the split half never was — it vanished with no line
+  in the loss report, which is the one thing §22's contract forbids.
+
+  **And behind that one, the fourth.** With the branch reachable for the first
+  time, `split: { x: 3000 }` came back as `60000`: the schema speaks points,
+  OOXML stores twips, `emit` multiplied by twenty and `read` never divided.
+  Nothing could have caught it, because the code that would have been wrong
+  never ran. That is the sharper form of the lesson §5 now carries — an
+  unreached path is not tested, only unaccused — and it is the second time in
+  two days that fixing a reporting gap immediately exposed a real defect
+  underneath it.
 
 - **2026-08-09** — **A defect sweep, four upstream reports, and three bugs of
   our own.** The release we are waiting on left a gap with nothing to build in

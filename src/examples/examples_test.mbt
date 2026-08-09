@@ -170,7 +170,10 @@ test "the interactive example decorates the cells it says it does" {
   guard workbook.get_cell_hyperlink("Orders", "B1") is Some(internal) else {
     fail("expected a link into the workbook")
   }
-  assert_eq(internal.location, Some("Statuses!A1"))
+  // Sheet-qualified and quoted, as every reference yxl writes is: Excel reads
+  // a hyperlink's location as a reference, and an unquoted name with a space
+  // in it is not one.
+  assert_eq(internal.location, Some("'Statuses'!A1"))
   assert_eq(internal.tooltip, Some("The tracked statuses"))
 
   // Two notes, the second naming its author.

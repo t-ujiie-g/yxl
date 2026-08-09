@@ -156,9 +156,22 @@ fn read_presentation(
     sheet.set_panes(
       Freeze(@units.CellRef::new(col=panes.x_split + 1, row=panes.y_split + 1)),
     )
-  } else if panes.split && (panes.x_split > 0 || panes.y_split > 0) {
+  } else if panes.x_split > 0 || panes.y_split > 0 {
+    // Not `panes.split`: the backend's reader never sets that flag. It derives
+    // `freeze` from the pane's `state="frozen"` and leaves `split` false
+    // whatever the file said, so a split pane would read back as neither and
+    // vanish without a word — which is the one thing `docs/spec.md` §22
+    // promises cannot happen. A pane that exists and is not frozen is a split
+    // one, which is the same conclusion by a route the reader does not block.
+    //
+    // A split's position is stored in twips and the schema speaks points; a
+    // freeze's is a count of columns and rows and needs no conversion, which
+    // is why the two branches divide differently.
     sheet.set_panes(
-      Split(x=panes.x_split.to_double(), y=panes.y_split.to_double()),
+      Split(
+        x=panes.x_split.to_double() / TWIPS_PER_POINT,
+        y=panes.y_split.to_double() / TWIPS_PER_POINT,
+      ),
     )
   }
   let view = backend.get_sheet_view(sheet.name, LAST_SHEET_VIEW)
@@ -189,6 +202,13 @@ fn read_presentation(
 /// match the index `emit` writes to — the two packages are the only ones that
 /// speak to the backend, and there is no third place for a constant they share.
 const LAST_SHEET_VIEW : Int = -1
+
+///|
+/// Twips — 1/20 of a point — are the unit OOXML gives a split position in
+/// (ECMA-376 §18.3.1.66). The model speaks points, so this undoes what `emit`'s
+/// constant of the same name did, and for the same reason it lives in both
+/// packages: they are the only two that speak to the backend.
+const TWIPS_PER_POINT : Double = 20.0
 
 ///|
 /// **Page setup is not recovered**, and this is where it would be.

@@ -39,6 +39,8 @@ pub let shape_presets : Array[(String, String)]
 
 pub let table_style_families : Array[(String, Int)]
 
+pub let unwritable_icon_set_styles : Array[String]
+
 pub let unwritable_shape_presets : Array[(String, String)]
 
 // Errors

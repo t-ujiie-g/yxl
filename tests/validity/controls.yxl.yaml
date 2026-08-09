@@ -1,0 +1,31 @@
+# Part of the validity corpus (ROADMAP §5).
+#
+# all seven form-control kinds, and every key each one admits
+#
+# This is not the cookbook. `examples/` is written to be read and teaches one
+# thing at a time; this is written to be *validated*, and reaches for every
+# variant the schema offers — because the Open XML validator only ever judges
+# the files something actually produces. Three icon sets shipped invalid for
+# two phases because the cookbook happened to use one of the twenty.
+#
+# Nothing here needs to be legible or realistic. Add a row when the schema
+# grows a variant; never delete one to make a build pass.
+
+sheets:
+  - name: Widgets
+    cells:
+      A1: controls
+      G2: false
+      G3: false
+      G4: 3
+      G5: 40
+    controls:
+      - { at: A3, kind: button, text: Click me, size: { width: 100, height: 24 } }
+      - { at: A5, kind: check_box, text: Rush, checked: true, link: G2 }
+      - { at: A7, kind: option_button, text: First, checked: true, link: G3 }
+      - { at: A9, kind: option_button, text: Second, link: G3 }
+      - { at: A11, kind: spin_button, link: G4, min: 1, max: 5, step: 1, value: 3, size: { width: 24, height: 40 } }
+      - { at: A14, kind: spin_button, link: G4, min: 1, max: 5, horizontal: true, size: { width: 40, height: 24 } }
+      - { at: A17, kind: scroll_bar, link: G5, min: 0, max: 100, step: 5, page: 20, value: 40, horizontal: true, size: { width: 160, height: 20 } }
+      - { at: A20, kind: group_box, text: A group, size: { width: 160, height: 80 } }
+      - { at: A26, kind: label, text: A label, size: { width: 100, height: 20 } }

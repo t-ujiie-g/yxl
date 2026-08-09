@@ -378,6 +378,38 @@ test "frozen panes, gridlines, and the tab colour come back" {
 }
 
 ///|
+/// A split pane is the other half of what `docs/spec.md` §22 promises, and it
+/// used to come back as nothing at all: the backend's reader derives `freeze`
+/// from the pane's state and never sets its `split` flag, so a split pane
+/// answered false to both and fell through. A pane that exists and is not
+/// frozen is a split one.
+test "a split pane comes back a split pane, not nothing" {
+  let (wb, sheet) = fixture()
+  sheet.set(at("A1"), Text("x"))
+  sheet.set_panes(Split(x=3000.0, y=1200.0))
+  assert_eq(only_sheet(wb).panes, Some(Split(x=3000.0, y=1200.0)))
+}
+
+///|
+/// One split, not both: a sheet split one way only must not come back frozen
+/// or empty either.
+test "a split in one direction comes back too" {
+  let (wb, sheet) = fixture()
+  sheet.set(at("A1"), Text("x"))
+  sheet.set_panes(Split(x=2400.0, y=0.0))
+  assert_eq(only_sheet(wb).panes, Some(Split(x=2400.0, y=0.0)))
+}
+
+///|
+/// And a sheet with no panes still has none — the widened branch must not
+/// invent one.
+test "a sheet with no panes comes back with none" {
+  let (wb, sheet) = fixture()
+  sheet.set(at("A1"), Text("x"))
+  assert_eq(only_sheet(wb).panes, None)
+}
+
+///|
 test "sheet names, order, hiding, and the active tab come back" {
   let wb = @model.Workbook::new()
   let first = wb.add_sheet("Summary")
