@@ -1,5 +1,3 @@
-// Emitting a filled formula range as Excel's own shared formula.
-
 ///|
 /// Write one formula across a region.
 ///

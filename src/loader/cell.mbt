@@ -1,10 +1,3 @@
-// Cell-value interpretation for the loader: turning a `yaml.Node` cell into a
-// `model.CellValue` (+ optional style). Handles the scalar shorthand and the
-// expanded `{ value | formula, type, format, style }` form, including explicit
-// typing, dates, and error literals. Style parsing lives in `style.mbt`;
-// structural loading and the shared `expect_*`/`schema_error` helpers live in
-// `loader.mbt`.
-
 ///|
 /// A cell is either a scalar shorthand (`A1: 42`) or an expanded mapping with an
 /// optional `type` (currently `date`), `format`, `style`, and a value source: a
@@ -92,7 +85,6 @@ fn load_expanded_cell(
             "cell '\{reference}' cannot combine 'formula' and 'type'",
           )
         }
-        // A formula's `value` is its optional cached result.
         let cached = match value_node {
           Some(node) =>
             Some(scalar_value(node, file~, context="cell '\{reference}'"))

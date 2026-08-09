@@ -1,5 +1,3 @@
-// Schema tests for a sheet's `pivots:`.
-
 ///|
 /// A `Summary` sheet carrying `body`, and an `Orders` sheet with four named
 /// columns over two rows for a pivot to summarize.

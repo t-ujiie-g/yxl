@@ -1,11 +1,3 @@
-// Loading a sheet's `tables:` — Excel tables (ListObjects), which declare a
-// region to *be* a table rather than merely look like one.
-//
-// Most of the checking here cannot happen while the entry is read: a table's
-// header cells may be written by a `cells:` or `data:` key further down the
-// sheet, and a name must be unique across the whole workbook. Those checks run
-// from `check_tables`, once the spec is fully loaded.
-
 ///|
 /// A sheet's `tables:` — a sequence of tables, each over a range.
 fn load_tables(

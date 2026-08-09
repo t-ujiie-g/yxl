@@ -1,7 +1,3 @@
-// Emitting charts. Every range a chart plots is written the way Excel writes
-// one itself — sheet-qualified and absolute — because a chart lives in a part of
-// its own, where a bare `B2:B4` names nothing.
-
 ///|
 /// Anchor a chart on a sheet: its kind and series, then the trimmings that were
 /// asked for. Anything the spec left out keeps the backend's default rather than

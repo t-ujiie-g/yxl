@@ -1,11 +1,3 @@
-// Rendering a sheet's `charts:` block — `docs/spec.md` §12, the inverse of the
-// loader's chart reading.
-//
-// The reader has already refused whatever it could not name confidently, so
-// nothing here decides what survives. What is decided here is only how it
-// reads, under the same rule as the rest of `render`: a value equal to the
-// schema's own default is left unsaid.
-
 ///|
 /// A sheet's `charts:` block.
 fn charts(sheet : @model.Sheet) -> @yaml.Node {

@@ -1,6 +1,3 @@
-// Round-trip tests for images: each compiles to real `.xlsx` bytes and is read
-// back, so what is asserted is the picture Excel would find in the package.
-
 ///|
 /// A 1×1 transparent PNG, the smallest file that is genuinely one. Written out
 /// byte by byte so the test needs no fixture on disk: the signature, an `IHDR`
@@ -45,8 +42,6 @@ test "an image round-trips as its own bytes at its own anchor" {
   sheet.add_image(plain_image())
   let image = only_image(wb)
   assert_eq(image.reference, "D2")
-  // The bytes reach the package untouched — this is the one thing a spec
-  // carries that is not text.
   assert_eq(image.data, tiny_png)
   assert_eq(image.extension, "png")
   assert_eq(image.content_type, "image/png")

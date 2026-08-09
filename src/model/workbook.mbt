@@ -1,8 +1,3 @@
-// The containers: a workbook, its sheets, and the named definitions they share.
-// Everything here is *mutable in place* — the loader builds a sheet by adding to
-// it — which is why these carry methods where the value types in `model.mbt`
-// carry none.
-
 ///|
 /// A workbook-level named definition (ADR-012): a name and what it refers to — a
 /// constant (`Text`/`Number`/`Bool`/`Date`) or a formula (`Formula`, whose
@@ -23,23 +18,21 @@ pub let max_defined_name_length : Int = 255
 /// the date system that governs how dates serialize, and any workbook-level
 /// defined names. This is the entire input to the emitter seam
 /// (`model -> bytes`, ADR-002).
+///
+/// Only the *name* of `default_font` is a workbook-level default; size, colour
+/// and the rest are per-style. `defined_names` is in declaration order, so
+/// emission is deterministic; a reference cell holds `=name` and Excel resolves
+/// it. `active_sheet` names the tab Excel opens on, which the emitter resolves
+/// to an `activeTab` index. Every optional field unset keeps Excel's or the
+/// backend's default.
 pub(all) struct Workbook {
   sheets : Array[Sheet]
   date_system : @units.DateSystem
-  /// The workbook's default font face name (`None` keeps the backend default).
-  /// Only the name is a workbook-level default; size/color/etc. are per-style.
   default_font : String?
-  /// Named definitions shared across the workbook, in declaration order
-  /// (deterministic). A reference cell holds `=name`; Excel resolves the name.
   defined_names : Array[DefinedName]
-  /// The sheet selected when the workbook opens, by name (`None` selects the
-  /// first sheet). The emitter resolves it to Excel's `activeTab` index.
   mut active_sheet : String?
-  /// What the workbook says about itself; `None` writes no properties.
   mut properties : DocumentProperties?
-  /// How Excel recalculates on open; `None` keeps its defaults.
   mut calc : CalcSettings?
-  /// What a reader may not do to the workbook itself; `None` leaves it open.
   mut protection : WorkbookProtection?
 } derive(Eq, Debug)
 
@@ -131,6 +124,21 @@ pub fn Workbook::add_sheet(
 /// ranges, and how the sheet presents itself — tab visibility and color, frozen
 /// or split panes, and whether gridlines show. Turning these into the final
 /// workbook layout is the emitter's job.
+///
+/// Every list below it is in declaration order, and an unset optional keeps
+/// Excel's default. Where that order or that overlap means something:
+///
+/// - `conditional_formats` — declaration order *is* priority order, so an
+///   earlier rule wins where two match the same cell.
+/// - `validations` — ranges may overlap; Excel keeps them all, and the last one
+///   written wins where they do.
+/// - `tables` — ranges may not overlap: Excel refuses a workbook whose do.
+/// - `formulas` — ranges may not overlap each other or a populated cell, which
+///   the loader checks, so the order carries no precedence.
+/// - `filter` — a sheet has at most one, and its top row is the header.
+/// - `gridlines` — the on-screen grid, not cell borders, which are a style.
+/// - `background` — an image tiled behind the cells. Excel shows it on screen
+///   and never prints it.
 pub(all) struct Sheet {
   name : String
   cells : Array[Cell]
@@ -138,54 +146,25 @@ pub(all) struct Sheet {
   rows : Array[AxisBand]
   merges : Array[CellRange]
   visibility : SheetVisibility
-  /// How the sheet prints; `None` keeps Excel's defaults throughout.
   mut page : PageSetup?
-  /// Frozen or split panes; `None` leaves the sheet unsplit.
   mut panes : Panes?
-  /// Whether the on-screen gridlines show; `None` keeps Excel's default (they
-  /// do). This is the screen grid, not cell borders, which are part of a style.
   mut gridlines : Bool?
-  /// The tab's color; `None` keeps Excel's default (no color).
   mut tab_color : @units.Color?
-  /// The range Excel puts filter dropdowns over (its top row is the header);
-  /// `None` leaves the sheet unfiltered. A sheet has at most one.
   mut filter : CellRange?
-  /// Data validations, in declaration order. Ranges may overlap — Excel keeps
-  /// them all, and the last one written wins where they do.
   validations : Array[Validation]
-  /// Hyperlinks, one per cell, in declaration order.
   links : Array[Link]
-  /// Conditional formats, in declaration order — which is priority order, so an
-  /// earlier rule wins where two match the same cell.
   conditional_formats : Array[ConditionalFormat]
-  /// Notes attached to cells, in declaration order.
   comments : Array[Comment]
-  /// Excel tables over the sheet's regions, in declaration order. Ranges may not
-  /// overlap — Excel refuses a workbook whose tables do.
   tables : Array[Table]
-  /// Charts anchored on the sheet, in declaration order.
   charts : Array[Chart]
-  /// Images anchored on the sheet, in declaration order.
   images : Array[Image]
-  /// Shapes floating over the sheet, in declaration order.
   shapes : Array[Shape]
-  /// An image tiled behind the cells; `None` leaves the sheet plain. Excel
-  /// shows a background on screen but never prints it.
   mut background : SheetBackground?
-  /// Sparkline groups, in declaration order.
   sparklines : Array[SparklineGroup]
-  /// Form controls sitting over the grid, in declaration order.
   controls : Array[FormControl]
-  /// Slicers filtering declared tables, in declaration order.
   slicers : Array[Slicer]
-  /// Pivot tables placed on the sheet, in declaration order.
   pivots : Array[Pivot]
-  /// Formula ranges — one formula filled across a region, in declaration order.
-  /// Ranges may not overlap each other or a populated cell, which the loader
-  /// checks, so declaration order carries no precedence.
   formulas : Array[FormulaRange]
-  /// What a reader may still do once the sheet is protected; `None` leaves the
-  /// sheet unprotected.
   mut protection : SheetProtection?
 } derive(Eq, Debug)
 

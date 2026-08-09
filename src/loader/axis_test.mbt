@@ -1,5 +1,3 @@
-// Column and row bands, and merged ranges (`axis.mbt`, plus `load_merges`).
-
 ///|
 test "load rejects invalid column/row selectors and a missing 'at', and keeps empty bands out" {
   assert_eq(
@@ -24,7 +22,6 @@ test "load rejects invalid column/row selectors and a missing 'at', and keeps em
     schema_message("sheets:\n  - name: S\n    rows:\n      - format: \"0\"\n"),
     Some("spec.yaml: a row entry is missing required key 'at'"),
   )
-  // An empty band spec adds no band rather than erroring.
   let workbook = load_ok("sheets:\n  - name: S\n    columns:\n      - at: B\n")
   assert_eq(workbook.sheets[0].columns.length(), 0)
 }
@@ -67,7 +64,6 @@ test "load parses merges, column widths, and row heights" {
     ),
   )
   let sheet = workbook.sheets[0]
-  // Column B has just a width; D-F carries a style and a width on one band.
   assert_eq(sheet.columns.length(), 2)
   assert_eq((sheet.columns[0].first, sheet.columns[0].last), (2, 2))
   assert_eq(sheet.columns[0].size, Some(18.0))
@@ -112,7 +108,6 @@ test "load rejects bad merge ranges and a size key on the wrong axis" {
       "spec.yaml: 'Z0' is not a valid A1 cell reference in merge range 'A1:Z0'",
     ),
   )
-  // `width` belongs on a column band, `height` on a row band.
   assert_eq(
     schema_message(
       "sheets:\n  - name: S\n    rows:\n      - at: 1\n        width: 10\n",
@@ -144,7 +139,6 @@ test "load parses band visibility and outline grouping" {
     ),
   )
   let sheet = workbook.sheets[0]
-  // A collapsed group: the band is both grouped and hidden.
   assert_eq(sheet.columns[0], {
     first: 2,
     last: 3,
@@ -153,8 +147,6 @@ test "load parses band visibility and outline grouping" {
     hidden: Some(true),
     outline_level: Some(1),
   })
-  // Grouping and sizing coexist on one band; `group: 0` is "ungrouped", which is
-  // distinct from leaving the key out.
   assert_eq(sheet.columns[1], {
     first: 4,
     last: 4,

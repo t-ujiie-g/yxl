@@ -1,7 +1,3 @@
-// The inverse of `to_serial`, checked against it: every date that goes out as a
-// serial has to come back as itself. A table of expected pairs would test the
-// two functions against the same misunderstanding; a round trip cannot.
-
 ///|
 fn civil(year : Int, month : Int, day : Int) -> @units.DateTime {
   { year, month, day, hour: 0, minute: 0, second: 0 }

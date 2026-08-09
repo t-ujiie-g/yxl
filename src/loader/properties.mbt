@@ -1,6 +1,3 @@
-// Loading the top-level `properties:` and `calc:` — what the workbook says
-// about itself, and how Excel recalculates when it opens.
-
 ///|
 /// The top-level `properties:` mapping. Every key is optional, and one left out
 /// is left out of the file too.

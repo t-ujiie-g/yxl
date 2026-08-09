@@ -1,7 +1,3 @@
-// Schema tests for `validations:`. The shared `sheet_spec` /
-// `schema_message` / `load_ok` helpers live alongside the other loader
-// tests.
-
 ///|
 test "an inline list validation keeps its choices in order" {
   let wb = load_ok(

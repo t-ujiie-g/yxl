@@ -1,8 +1,3 @@
-// Tests for the one inference in `render` that *moves* something out of the
-// spec: a block of plain values becomes a file beside it. Which regions qualify
-// matters more than how the CSV is punctuated — a wrong "yes" silently changes
-// a workbook, where a wrong "no" only leaves a long `cells:` block.
-
 ///|
 /// A sheet of `rows` × `columns` plain values, filled from `A1`.
 fn literal_sheet(rows : Int, columns : Int) -> @model.Workbook {
@@ -24,7 +19,6 @@ test "a block of plain values becomes a table beside the spec" {
   assert_eq(tables[0].sheet, "Sales")
   assert_eq(tables[0].at.to_a1(), "A1")
   assert_eq(tables[0].path, "data/sales.csv")
-  // Every cell it covers leaves the `cells:` block, which is the point.
   assert_eq(
     tables[0].covered.length(),
     @render.min_csv_rows * @render.min_csv_columns,
@@ -139,7 +133,6 @@ test "text that would read back as another type is quoted" {
     sheet.set(@units.CellRef::new(col=1, row=row + 1), Text(text))
     sheet.set(@units.CellRef::new(col=2, row=row + 1), Number(1.0))
   }
-  // Pad to the size that earns a file.
   for row in tricky.length()..<@render.min_csv_rows {
     sheet.set(@units.CellRef::new(col=1, row=row + 1), Text("plain"))
     sheet.set(@units.CellRef::new(col=2, row=row + 1), Number(1.0))
@@ -170,7 +163,6 @@ test "a number goes out as a number and a boolean as a boolean" {
     sheet.set(@units.CellRef::new(col=2, row~), Bool(row % 2 == 0))
   }
   let lines = @render.data_tables(wb)[0].csv.split("\n").collect()
-  // A whole number keeps no fraction, so the field reads as the integer it is.
   assert_eq(lines[0].to_owned(), "1,false")
   assert_eq(lines[1].to_owned(), "2,true")
 }
@@ -207,8 +199,6 @@ fn with_pictures(names : Array[String]) -> @model.Workbook {
 
 ///|
 test "a table and a picture are named by the same rule" {
-  // Both flatten the sheet's name the same way and land under their own
-  // directory. They used to carry a copy of that rule each.
   let tables = @render.data_tables(literal_named("Q3 Sales (final)"))
   assert_eq(tables[0].path, "data/q3_sales__final_.csv")
   let pictures = @render.pictures(with_pictures(["Q3 Sales (final)"]))
@@ -217,7 +207,6 @@ test "a table and a picture are named by the same rule" {
 
 ///|
 test "a picture whose name is already taken is numbered, as a table is" {
-  // Two sheets flattening to one stem, each with a picture at the same cell.
   let pictures = @render.pictures(with_pictures(["Sales", "sales"]))
   assert_eq(pictures.length(), 2)
   assert_eq(pictures[0].path, "assets/sales_e1.png")

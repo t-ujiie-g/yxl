@@ -1,7 +1,3 @@
-// Round-trip tests for Excel tables: each compiles to real `.xlsx` bytes and is
-// read back with the backend's reader, so what is asserted is what Excel would
-// find in the file.
-
 ///|
 /// A sheet holding a three-column header row over two rows of data, ready to be
 /// declared a table.

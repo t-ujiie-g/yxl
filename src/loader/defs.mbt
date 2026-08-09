@@ -1,15 +1,3 @@
-// Named definitions and reference resolution for the loader (ADR-012, ADR-013).
-// The top-level `defs:` block declares reusable `styles`, `values`, and
-// `formulas` once; cells, columns, and rows reference them by name (a bareword
-// for styles, `{ $ref: name }` for values and formulas).
-//
-// Each declared value/formula is registered as a workbook *defined name*, and a
-// value/formula reference compiles to the formula `=name` — so editing the
-// defined name in Excel updates every reference (ADR-013). A style reference
-// instead resolves to the same model style, which the emitter's structural
-// interning (ADR-004) collapses to one `cellXfs` id. A reference to a name that
-// was never defined is a fail-fast `@diag.SchemaError` (ADR-006).
-
 ///|
 /// The named definitions in scope while loading a workbook, one namespace per
 /// kind: a reference's kind is fixed by where it appears (`style:` a style,

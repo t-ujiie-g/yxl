@@ -1,20 +1,11 @@
-// Rendering the pictures a workbook carries: the `images:` blocks and the sheet
-// backgrounds, each naming a file that goes out beside the spec.
-//
-// Unlike a CSV table this is not an inference — the model holds the bytes
-// because the workbook did, so there is nothing to decide. What is invented is
-// only the *file name*, which the workbook does not carry: Excel keeps its
-// pictures as numbered parts (`image1.png`), so the name here is built from
-// where the picture sits rather than recovered.
-
 ///|
-/// One picture the spec will name, and the bytes it names.
+/// One picture the spec will name, and the bytes it names: the sheet it belongs
+/// to, the cell it is anchored at — `None` for the one tiled behind the sheet,
+/// which is anchored nowhere — and the path the spec names it by, relative to
+/// the spec itself.
 pub(all) struct Picture {
-  /// The sheet it belongs to, and the cell it is anchored at — `None` for the
-  /// one tiled behind the sheet, which is anchored nowhere.
   sheet : String
   at : @units.CellRef?
-  /// The path the spec names it by, relative to the spec itself.
   path : String
   content : Bytes
 }

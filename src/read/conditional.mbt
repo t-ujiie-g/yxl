@@ -1,16 +1,3 @@
-// Recovering conditional formats.
-//
-// The backend hands these back as one flat options record whatever the rule is —
-// a `format_type` naming the kind, and whichever of thirty fields that kind
-// happens to use. The schema names a rule and puts its parts inside it, so this
-// is the widest translation in the reader; every field it reads is one the
-// emitter wrote, and the two are checked against each other by round trip.
-//
-// One vocabulary difference to know about: the emitter passes OOXML operator
-// names (`greaterThan`), and the backend normalises them into its own display
-// spelling (`greater than`) on the way back out. So the table below reads the
-// *display* names, which is what the file actually yields.
-
 ///|
 /// A sheet's conditional formats, in the order Excel evaluates them.
 fn read_conditional_formats(
@@ -26,12 +13,10 @@ fn read_conditional_formats(
         continue
       }
       let style = read_conditional_style(backend, options.format, notes)
-      // The schema's split, mirrored from the loader: a scale, a bar, and an
-      // icon set draw their own appearance, and every other rule needs a style
-      // to apply where it matches. A file can violate either half — a dxf
-      // holding only what the schema cannot say (a theme-indexed colour)
-      // recovers as no style at all — and writing the violation out would make
-      // a spec the loader refuses, failing the verify pass on the way.
+      // The loader takes a style on a highlighting rule and refuses one on a
+      // scale, a bar, or an icon set. A file can violate either half — a dxf
+      // holding only what the schema cannot say recovers as no style at all —
+      // and writing the violation out would make a spec that will not load.
       if draws_itself(rule) {
         if style is Some(_) {
           notes.drop(

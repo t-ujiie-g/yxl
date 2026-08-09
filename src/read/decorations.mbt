@@ -1,10 +1,3 @@
-// Recovering what decorates a sheet rather than fills it: notes, links,
-// validations, tables, and the auto filter.
-//
-// These are the constructs the schema names one way and the file another, so
-// most of the work here is translating a vocabulary. Where the file says
-// something the schema has no word for, the note goes out with the rest.
-
 ///|
 /// Everything layered over a sheet's cells.
 fn read_decorations(

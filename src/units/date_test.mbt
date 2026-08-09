@@ -31,7 +31,6 @@ test "DateTime::to_serial handles the 1904 system and time fractions" {
   assert_eq(midnight(1904, 1, 2).to_serial(Date1904), 1.0)
   // The 1904 epoch is 1462 days behind the 1900 epoch.
   assert_eq(midnight(2000, 1, 1).to_serial(Date1904), 36526.0 - 1462.0)
-  // Time of day is a fraction of a day.
   assert_eq(
     @units.DateTime::{
       year: 1900,
@@ -71,11 +70,9 @@ test "DateTime::parse reads dates and date-times" {
       second: 5,
     }),
   )
-  // 'T' separator and an omitted seconds field are both accepted.
   guard! @units.DateTime::parse("2026-07-23T14:30") is Some(datetime)
   assert_true(datetime.has_time())
   assert_eq(datetime.second, 0)
-  // A leap day in a real leap year is valid.
   assert_eq(
     @units.DateTime::parse("2024-02-29"),
     Some(@units.DateTime::{

@@ -1,7 +1,3 @@
-// Schema tests for the smaller decoration keys — `filter:`, `links:`, and
-// `comments:` — plus the cross-sheet reference check they share with
-// `validations:`.
-
 ///|
 /// A one-sheet spec whose sheet carries `body`, indented to sit under it.
 /// Shared with the `validations:`, `conditional:`, and `properties:` tests.

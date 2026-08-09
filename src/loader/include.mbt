@@ -1,13 +1,3 @@
-// `$include` expansion: the pre-pass that turns a multi-file spec into the one
-// document tree the schema loader sees. It runs before any schema key is
-// interpreted, so an include may stand wherever a node may — a whole `cells:`
-// block, one sheet, a `defs.styles` map — and every loader below this file stays
-// unaware that more than one file existed (ADR-005).
-//
-// Reading the files is *not* done here: the loader takes a resolver and the CLI
-// supplies one, so the compiler core stays I/O-free and tests run on in-memory
-// files (ADR-003).
-
 ///|
 /// The mapping key that marks an include. `$` marks it as a directive rather
 /// than spec data, matching `$ref` (ADR-012); a YAML `!include` tag is not an

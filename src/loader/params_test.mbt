@@ -1,5 +1,3 @@
-// Parameters and `${name}` substitution (`params.mbt`).
-
 ///|
 test "parameters substitute into values, keys, and sheet names" {
   let workbook = load_ok(
@@ -20,7 +18,6 @@ test "parameters substitute into values, keys, and sheet names" {
   let sheet = workbook.sheets[0]
   assert_eq(sheet.name, "APAC sales")
   assert_eq(sheet.cells[0].value, @model.Text("Report for APAC"))
-  // A parameter in a mapping key works too, and renders as text.
   assert_eq(sheet.cells[1].pos, @units.CellRef::new(col=1, row=3))
   // A string that is *exactly* one placeholder keeps the parameter's type, so
   // this is a number cell rather than the text "0.08".
@@ -43,7 +40,6 @@ test "a parameter default may use another, and an override replaces it" {
     load_ok(source).sheets[0].cells[0].value,
     @model.Text("Q3 FY26 results"),
   )
-  // An override reaches through the chain: `title` is rebuilt from it.
   assert_eq(
     load_ok(source, params={ "quarter": "Q4" }).sheets[0].cells[0].value,
     @model.Text("Q4 FY26 results"),
@@ -111,7 +107,6 @@ test "load rejects unknown, cyclic, and malformed parameters" {
     schema_message("params:\n  a: { x: 1 }\nsheets:\n  - name: S\n"),
     Some("spec.yaml: parameter 'a' must be text, a number, or a boolean"),
   )
-  // A typo in `--set` says so rather than quietly doing nothing.
   assert_eq(
     schema_message("params:\n  region: APAC\nsheets:\n  - name: S\n", params={
       "regoin": "EMEA",

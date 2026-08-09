@@ -1,5 +1,3 @@
-// Schema tests for a sheet's `tables:`.
-
 ///|
 /// A sheet with a three-column header row over one row of data, plus whatever
 /// `body` adds — enough for a table over `A1:C2` to be well formed.
@@ -25,7 +23,6 @@ test "a table loads its range and Excel's own defaults" {
   assert_eq(table.at.bottom_right.to_a1(), "C2")
   assert_eq(table.name, None)
   assert_eq(table.style, None)
-  // "Format as Table" bands the rows and emphasizes nothing else.
   assert_true(table.banded_rows)
   assert_false(table.banded_columns)
   assert_false(table.first_column)

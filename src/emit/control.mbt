@@ -1,7 +1,3 @@
-// Emitting form controls. Excel stores them as VML plus a control part; all
-// of that is the backend's — what crosses the seam is one `FormControl` per
-// control, and never a macro name (`.xlsx` carries no macros).
-
 ///|
 /// Place a form control on a sheet.
 fn apply_control(

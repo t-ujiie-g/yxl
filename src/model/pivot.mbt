@@ -1,8 +1,3 @@
-// Pivot tables: a summary of a region of cells, grouped down the rows and along
-// the columns and aggregated in the middle. Like a chart, a pivot holds no
-// values of its own — it names the region it summarizes, and Excel does the
-// summarizing, refreshing the whole thing whenever the source changes.
-
 ///|
 /// A pivot table placed on a sheet.
 ///
@@ -11,27 +6,28 @@
 /// emits does not account for the filter rows above the body, and Excel answers
 /// with `#SPILL!` (moonbitlang/office.mbt#264). The loader refuses `filters:` by
 /// name and says why.
+///
+/// - `at` — where the pivot starts. Excel grows it past this range as it needs
+///   to, so it is a corner rather than a promise about the size.
+/// - `source` — the cells summarized, header row first: the column names there
+///   are the field names every axis refers to. May name another sheet, which is
+///   the usual arrangement — raw data on one tab, the summary on another.
+/// - `rows`, `columns` — the fields grouped down the side and along the top.
+/// - `values` — the fields aggregated in the body, each with its function.
+/// - `name` — what formulas and the field list call this pivot; `None` leaves
+///   Excel to name it `PivotTable1`, `PivotTable2`, …
+/// - `style` — one of Excel's built-in pivot styles; `None` keeps the backend's
+///   default, `PivotStyleLight16`.
+/// - the grand totals down the right edge and along the bottom, both of which
+///   Excel shows by default.
 pub(all) struct Pivot {
-  /// Where the pivot is drawn. Excel grows it past this range as it needs to,
-  /// so this is the corner it starts from rather than a promise about its size.
   at : CellRange
-  /// The cells summarized, header row first — the column names there are the
-  /// field names every axis below refers to. May name another sheet, which is
-  /// the usual arrangement: raw data on one tab, the summary on another.
   source : SheetRange
-  /// The fields grouped down the side and along the top.
   rows : Array[PivotField]
   columns : Array[PivotField]
-  /// The fields aggregated in the body, each with the function to aggregate by.
   values : Array[PivotValue]
-  /// What formulas and the field list call this pivot; `None` leaves Excel to
-  /// name it `PivotTable1`, `PivotTable2`, …
   name : String?
-  /// One of Excel's built-in pivot styles; `None` keeps the backend's default,
-  /// `PivotStyleLight16`.
   style : String?
-  /// The totals down the right edge and along the bottom, both of which Excel
-  /// shows by default.
   row_grand_totals : Bool
   column_grand_totals : Bool
 } derive(Eq, Debug)

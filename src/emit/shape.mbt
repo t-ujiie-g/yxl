@@ -1,7 +1,3 @@
-// Emitting shapes. A shape crosses the seam as the backend's `Shape`, whose
-// unset options keep the backend defaults — a 160-pixel square in the theme
-// colours.
-
 ///|
 /// Float a shape over a sheet.
 fn apply_shape(

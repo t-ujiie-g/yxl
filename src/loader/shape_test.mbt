@@ -1,5 +1,3 @@
-// Schema tests for a sheet's `shapes:`.
-
 ///|
 /// The sole shape a spec loads.
 fn loaded_shape(body : String) -> @model.Shape raise {

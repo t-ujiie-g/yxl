@@ -1,8 +1,3 @@
-// Loading a sheet's `images:` — the one place a spec names a file that is not
-// text. The bytes are read here, through the resolver the caller supplied, so
-// the model that reaches the emitter is complete and the core still opens
-// nothing itself (ADR-003).
-
 ///|
 /// How an image behaves when the cells beneath it change, spelled as Excel's
 /// "Size and Properties" pane spells it.

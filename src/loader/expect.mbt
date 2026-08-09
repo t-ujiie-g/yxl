@@ -1,9 +1,3 @@
-// The shared vocabulary every loader file speaks: turning a `yaml.Node` into the
-// scalar or collection the schema expects, and turning a mismatch into a
-// `@diag.SchemaError` naming the file and what was being read (ADR-006). Each
-// takes a `context` describing the owner ("cell 'A1'", "'sheets'"), which is
-// what makes the diagnostics readable. Structural loading lives in `loader.mbt`.
-
 ///|
 /// A diagnostic naming the source file, the pipeline's one way to report a bad
 /// spec.

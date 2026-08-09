@@ -1,8 +1,3 @@
-// Tests for how a chart reads as a spec. What matters here is the *spelling* —
-// the keys, their order, and what is left unsaid — since whether the result
-// compiles is settled by `cli`'s verify pass. The text is asserted whole,
-// because a spec is read whole.
-
 ///|
 test "a chart renders as its identity, then its trimmings, then its series" {
   let (wb, sheet) = fixture()

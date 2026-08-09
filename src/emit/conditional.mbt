@@ -1,7 +1,3 @@
-// Emitting conditional formats. A rule crosses the seam as the backend's
-// options bundle; a rule's look is interned into Excel's *differential* format
-// table (`dxfs`), so a look several rules share is stored once (ADR-004).
-
 ///|
 /// Attach one conditional format. Its style, if it has one, is interned into
 /// Excel's *differential* format table (`dxfs`) — a table of its own, separate

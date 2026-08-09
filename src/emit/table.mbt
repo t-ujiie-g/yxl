@@ -1,6 +1,3 @@
-// Emitting Excel tables (ListObjects). A table names a region and how it looks;
-// the cells inside it are written as ordinary cells before this runs.
-
 ///|
 /// Declare a range an Excel table.
 ///

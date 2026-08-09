@@ -16,7 +16,6 @@ test "to_bytes round-trips a model through real .xlsx bytes" {
   assert_eq(bytes[0], b'P')
   assert_eq(bytes[1], b'K')
 
-  // Re-open and confirm the declared cells survived the round trip.
   let reopened = @xlsx.read(bytes[:])
   assert_eq(reopened.get_cell("Sheet1", "A1"), Some("yxl"))
   assert_eq(reopened.get_cell("Sheet1", "B1"), Some("42"))
@@ -104,7 +103,6 @@ test "MbtexcelEmitter emits every sheet in order" {
   let reopened = @xlsx.read(bytes[:])
   assert_eq(reopened.get_cell("First", "A1"), Some("a"))
   assert_eq(reopened.get_cell("Second", "A1"), Some("b"))
-  // Declaration order is the tab order.
   assert_eq(reopened.sheet_index("First"), 0)
   assert_eq(reopened.sheet_index("Second"), 1)
 }
@@ -122,7 +120,6 @@ test "sheet visibility and the active sheet survive a round trip" {
   assert_false(reopened.sheet_visible("Scratch"))
   assert_false(reopened.sheet_visible("Internals"))
   assert_true(reopened.sheet_visible("Summary"))
-  // `activeTab` is an index into the sheet order.
   assert_eq(reopened.get_active_sheet_index(), 2)
 }
 
@@ -140,12 +137,10 @@ test "number formats are applied, and equal formats share one style id" {
   sheet.set(@units.CellRef::new(col=4, row=1), Number(7.0))
   let reopened = reopen(wb)
 
-  // The format is really applied: the formatted read-back reflects it.
   assert_eq(reopened.get_cell_value("S", "A1", raw=false), Some("50.00%"))
   assert_eq(reopened.get_cell_value("S", "C1", raw=false), Some("1,234.50"))
 
-  // Interning (ADR-004): equal format codes compile to one shared style id,
-  // distinct codes to distinct ids, and an unformatted cell to the default.
+  // Interning (ADR-004).
   let percent = reopened.get_cell_style("S", "A1")
   assert_eq(reopened.get_cell_style("S", "B1"), percent)
   assert_not_eq(reopened.get_cell_style("S", "C1"), percent)
@@ -182,25 +177,22 @@ test "a full style round-trips its attributes and identical styles share one id"
   }
   sheet.set(@units.CellRef::new(col=1, row=1), Number(1.5), style~)
   sheet.set(@units.CellRef::new(col=2, row=1), Number(2.5), style~)
-  // The same look minus the font is a distinct style.
   sheet.set(@units.CellRef::new(col=3, row=1), Number(3.5), style={
     ..style,
     font: None,
   })
   let reopened = reopen(wb)
 
-  // Interning (ADR-004): identical styles share one id; a different style does not.
+  // Interning (ADR-004).
   let id = reopened.get_cell_style("S", "A1")
   assert_eq(reopened.get_cell_style("S", "B1"), id)
   assert_not_eq(reopened.get_cell_style("S", "C1"), id)
 
-  // The emitted style really carries the declared attributes.
   let readback = reopened.get_style(id.unwrap())
   assert_eq(readback.font.unwrap().bold, Some(true))
   assert_eq(readback.font.unwrap().italic, Some(true))
   assert_eq(readback.alignment.unwrap().horizontal, Some("center"))
   assert_eq(readback.alignment.unwrap().vertical, Some("center"))
-  // The number format still formats the value on read-back.
   assert_eq(reopened.get_cell_value("S", "A1", raw=false), Some("1.50"))
 }
 
@@ -212,16 +204,14 @@ test "column/row default styles emit and share the cell style cache; default fon
     ..@model.Style::empty(),
     font: Some({ ..@model.Font::empty(), bold: Some(true) }),
   }
-  // A bold cell, then the same bold look as a whole-column and whole-row band.
   sheet.set(@units.CellRef::new(col=1, row=1), Text("x"), style=bold)
   sheet.set_column_band(first=2, last=3, style=bold)
   sheet.set_row_band(first=5, last=5, style=bold)
   let reopened = reopen(wb)
 
-  // The workbook default font took effect.
   assert_eq(reopened.get_default_font(), "Arial")
 
-  // Interning (ADR-004): the cell, the columns, and the row all reuse one id.
+  // Interning (ADR-004): a cell, a column band and a row band reuse one id.
   let id = reopened.get_cell_style("S", "A1")
   assert_true(id is Some(_) && id != Some(0))
   assert_eq(reopened.get_col_style("S", 2), id)
@@ -245,7 +235,6 @@ test "merges, column widths, and row heights survive a round trip" {
   assert_eq(reopened.get_merge_cells("S"), ["A1:C1"])
   assert_eq(reopened.get_col_width("S", 2), Some(18.0))
   assert_eq(reopened.get_row_height("S", 1), Some(24.0))
-  // The merged cell keeps the top-left value.
   assert_eq(reopened.get_cell("S", "A1"), Some("title"))
 }
 
@@ -253,8 +242,6 @@ test "merges, column widths, and row heights survive a round trip" {
 test "hidden and grouped bands survive a round trip alongside their other properties" {
   let wb = @model.Workbook::new()
   let sheet = wb.add_sheet("S")
-  // A collapsed group: columns B-C are grouped one level deep and hidden, while
-  // D keeps a width and stays visible at the outer level.
   sheet.set_column_band(first=2, last=3, hidden=true, outline_level=1)
   sheet.set_column_band(first=4, last=4, width=12.0, outline_level=1)
   sheet.set_row_band(first=2, last=3, hidden=true, outline_level=2)
@@ -265,13 +252,11 @@ test "hidden and grouped bands survive a round trip alongside their other proper
   assert_true(reopened.col_visible("S", 4))
   assert_eq(reopened.col_outline_level("S", 3), 1)
   assert_eq(reopened.col_outline_level("S", 4), 1)
-  // The width on the grouped column is unaffected by the grouping.
   assert_eq(reopened.get_col_width("S", 4), Some(12.0))
   assert_false(reopened.row_visible("S", 2))
   assert_eq(reopened.row_outline_level("S", 2), 2)
   assert_true(reopened.row_visible("S", 4))
   assert_eq(reopened.get_row_height("S", 4), Some(30.0))
-  // A column that no band touched keeps Excel's defaults.
   assert_true(reopened.col_visible("S", 1))
   assert_eq(reopened.col_outline_level("S", 1), 0)
 }
@@ -301,7 +286,6 @@ test "frozen panes, gridlines, and a tab color survive a round trip" {
 ///|
 test "a split pane converts its point position to twips" {
   let wb = @model.Workbook::new()
-  // 120 points across, unsplit vertically.
   wb.add_sheet("Wide").set_panes(Split(x=120.0, y=0.0))
   let reopened = reopen(wb)
   let panes = reopened.get_panes("Wide")
@@ -403,12 +387,10 @@ test "a formula cell emits its formula and optional cached value" {
   let sheet = wb.add_sheet("S")
   sheet.set(@units.CellRef::new(col=1, row=1), Number(3.0))
   sheet.set(@units.CellRef::new(col=2, row=1), Number(4.0))
-  // A1+B1 with a cached result of 7.
   sheet.set(
     @units.CellRef::new(col=3, row=1),
     Formula(formula="A1+B1", cached=Some(Number(7.0))),
   )
-  // A formula without a cached value.
   sheet.set(
     @units.CellRef::new(col=4, row=1),
     Formula(formula="A1*B1", cached=None),
@@ -416,7 +398,6 @@ test "a formula cell emits its formula and optional cached value" {
   let reopened = reopen(wb)
   assert_eq(reopened.get_cell_formula("S", "C1"), Some("A1+B1"))
   assert_eq(reopened.get_cell_formula("S", "D1"), Some("A1*B1"))
-  // The cached value is stored and read back raw.
   assert_eq(reopened.get_cell_value("S", "C1", raw=true), Some("7"))
 }
 
@@ -426,7 +407,6 @@ test "defined names emit and a reference cell resolves them via =name" {
   wb.add_defined_name("tax_rate", Number(0.08))
   wb.add_defined_name("company", Text("Acme Corp"))
   let sheet = wb.add_sheet("S")
-  // A cell referencing the named value: the formula body is the name.
   sheet.set(
     @units.CellRef::new(col=1, row=1),
     Formula(formula="tax_rate", cached=Some(Number(0.08))),
@@ -443,7 +423,6 @@ test "defined names emit and a reference cell resolves them via =name" {
   assert_eq(by_name.get("tax_rate"), Some("0.08"))
   assert_eq(by_name.get("company"), Some("\"Acme Corp\""))
 
-  // The reference cell emits `=tax_rate`; Excel resolves the name on open.
   assert_eq(reopened.get_cell_formula("S", "A1"), Some("tax_rate"))
   assert_eq(reopened.get_cell_value("S", "A1", raw=true), Some("0.08"))
 }
@@ -465,9 +444,7 @@ test "a rich-text cell round-trips its runs and per-run fonts" {
     ]),
   )
   let reopened = reopen(wb)
-  // The concatenated text is what a plain read yields.
   assert_eq(reopened.get_cell("S", "A1"), Some("Plain bold red"))
-  // The runs survive with their fonts.
   let runs = reopened.get_cell_rich_text("S", "A1").unwrap()
   assert_eq(runs.length(), 2)
   assert_eq(runs[0].text, "Plain ")
@@ -499,6 +476,5 @@ test "a backend failure surfaces as an EmitError, not a backend error" {
     @diag.EmitError(d) => Some(d.render())
   }
   guard caught is Some(message) else { fail("expected an emit error") }
-  // The seam's wrapper wording, proving the backend error was translated.
   assert_true(message.has_prefix("Excel backend: "))
 }

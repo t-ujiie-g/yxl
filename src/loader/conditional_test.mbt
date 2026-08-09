@@ -1,6 +1,3 @@
-// Schema tests for `conditional:`. The shared `sheet_spec` / `schema_message` /
-// `load_ok` helpers live alongside the other loader tests.
-
 ///|
 /// A one-sheet spec whose sheet carries one conditional format built from
 /// `body`, with `good` declared as a style it can reference.

@@ -1,5 +1,3 @@
-// `$include` expansion across files (`include.mbt`).
-
 ///|
 test "an include stands wherever a node may, and nests" {
   let workbook = load_ok(
@@ -16,7 +14,6 @@ test "an include stands wherever a node may, and nests" {
       #|
     ),
     files={
-      // A `defs.styles` map, itself pulling one style from a third file.
       "theme.yaml": "header: { font: { bold: true } }\ntotal:\n  $include: total-style.yaml\n",
       "total-style.yaml": "font: { italic: true }\n",
       "layout.yaml": "- at: B\n  width: 14\n",
@@ -24,12 +21,10 @@ test "an include stands wherever a node may, and nests" {
     },
   )
   let sheet = workbook.sheets[0]
-  // The included cells, columns, and styles all landed in the one model.
   assert_eq(sheet.cells[0].value, @model.Text("Region"))
   assert_eq(sheet.cells[0].style.unwrap().font.unwrap().bold, Some(true))
   assert_eq(sheet.cells[1].value, @model.Number(42.0))
   assert_eq(sheet.columns[0].size, Some(14.0))
-  // The nested include resolved too: `total` came from a file inside a file.
   assert_eq(sheet.cells.length(), 2)
   let nested = load_ok(
     "sheets:\n  - name: S\n    cells:\n      A1: { value: x, style: total }\ndefs:\n  styles:\n    $include: theme.yaml\n",
@@ -57,7 +52,6 @@ test "a whole sheet, and a whole document, can be an include" {
 
 ///|
 test "load rejects include cycles, siblings, and a non-text path" {
-  // The cycle names the whole chain, so the offending edge is findable.
   assert_eq(
     schema_message("$include: a.yaml\n", files={
       "a.yaml": "$include: b.yaml\n",
@@ -65,14 +59,12 @@ test "load rejects include cycles, siblings, and a non-text path" {
     }),
     Some("b.yaml: include cycle: spec.yaml -> a.yaml -> b.yaml -> a.yaml"),
   )
-  // A file including itself is the shortest cycle.
   assert_eq(
     schema_message("$include: self.yaml\n", files={
       "self.yaml": "$include: self.yaml\n",
     }),
     Some("self.yaml: include cycle: spec.yaml -> self.yaml -> self.yaml"),
   )
-  // An include replaces its whole node, so siblings would be dropped.
   assert_eq(
     schema_message(
       "sheets:\n  - name: S\n    cells:\n      $include: data.yaml\n      A1: kept?\n",
@@ -90,7 +82,6 @@ test "load rejects include cycles, siblings, and a non-text path" {
 
 ///|
 test "a diagnostic in an included file names that file, not the including one" {
-  // The schema error is in data.yaml, and the message says so.
   assert_eq(
     schema_message(
       "sheets:\n  - name: S\n    cells:\n      $include: data.yaml\n",
@@ -98,12 +89,10 @@ test "a diagnostic in an included file names that file, not the including one" {
     ),
     Some("spec.yaml: 'ZZ' is not a valid A1 cell reference"),
   )
-  // A *syntax* error in an included file is reported against that file.
   assert_eq(
     schema_message("sheets:\n  $include: broken.yaml\n", files={
       "broken.yaml": "- [unclosed\n",
     }),
-    // The diagnostic names the included file *and* the position within it.
     Some(
       "broken.yaml:2:1: invalid YAML: while parsing a flow sequence, expected ',' or ']'",
     ),

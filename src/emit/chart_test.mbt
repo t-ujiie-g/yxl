@@ -1,7 +1,3 @@
-// Round-trip tests for charts. The backend's reader keeps a chart's XML rather
-// than parsing it into fields, so these assert on that XML — which is what Excel
-// reads too.
-
 ///|
 /// The sole chart the round-tripped workbook carries, as its anchor, its size in
 /// EMU, and its XML.
@@ -102,7 +98,6 @@ test "a series is named either outright or from a cell" {
     ],
   })
   let xml = only_chart(wb).xml
-  // A literal is written as a value; a cell as a reference Excel follows.
   assert_true(xml.contains("<c:tx><c:v>Revenue</c:v></c:tx>"))
   assert_true(
     xml.contains("<c:tx><c:strRef><c:f>'S'!$C$1</c:f></c:strRef></c:tx>"),

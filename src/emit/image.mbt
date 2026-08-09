@@ -1,7 +1,3 @@
-// Emitting images. The bytes were read while the spec loaded, so this writes
-// them into the package and says where they go — no file is opened here
-// (ADR-003).
-
 ///|
 /// Anchor an image on a sheet.
 fn apply_image(

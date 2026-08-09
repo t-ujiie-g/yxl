@@ -1,12 +1,3 @@
-// Finding the regions of a sheet that read better as a `data:` table than as a
-// `cells:` block, and writing them out as CSV.
-//
-// This is the one inference in `render` that *removes* something from the spec:
-// the cells it covers are written to a file instead. Nothing in the model says a
-// region came from a data block — `data:` rows become ordinary cells at load
-// time and the model is always the final grid — so this is a decision, not a
-// recovery, and the caller's verify pass is what keeps it honest (ADR-017).
-
 ///|
 /// The fewest rows a region needs before a file is better than a `cells:` block.
 ///
@@ -22,16 +13,15 @@ pub let min_csv_rows : Int = 8
 pub let min_csv_columns : Int = 2
 
 ///|
-/// A region of a sheet that will be written as a CSV file rather than as cells.
+/// A region of a sheet that will be written as a CSV file rather than as cells:
+/// the sheet it belongs to, the cell its top-left field lands on, the `path`
+/// the spec will name relative to itself, the file's contents, and the
+/// addresses it `covered`, so the `cells:` block can leave them out.
 pub(all) struct DataTable {
-  /// The sheet it belongs to, and the cell its top-left field lands on.
   sheet : String
   at : @units.CellRef
-  /// The path the spec will name, relative to the spec itself.
   path : String
-  /// The file's contents.
   csv : String
-  /// The addresses this covers, so the `cells:` block can leave them out.
   covered : @set.Set[String]
 }
 

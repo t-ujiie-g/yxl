@@ -1,7 +1,3 @@
-// Emitting sparklines. The backend writes them as the `x14` worksheet
-// extension Excel expects (ECMA-376 Part 4 §2.9); what crosses the seam here
-// is one options bundle per group.
-
 ///|
 /// Place one sparkline group on a sheet.
 fn apply_sparkline_group(

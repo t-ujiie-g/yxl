@@ -1,6 +1,3 @@
-// Schema tests for a sheet's `slicers:` — including the whole-workbook checks
-// that a slicer's table and column exist.
-
 ///|
 /// A sheet holding a named table for a slicer to filter, plus `body`.
 fn slicer_spec(body : String) -> String {

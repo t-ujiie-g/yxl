@@ -1,10 +1,3 @@
-// Things layered *over* cells rather than held *in* them: data validation, an
-// auto filter, and hyperlinks. Each names a cell or a range and adds behaviour
-// there — the cell's own value and style are unaffected, and a decoration on an
-// empty cell is legal (if rarely useful).
-//
-// They share a file because each is small on its own; they share nothing else.
-
 ///|
 /// A range that may name a sheet other than the one holding it: `A1:B9` on this
 /// sheet, `Lists!A1:A9` on another. A validation list is routinely sourced from
@@ -17,13 +10,11 @@ pub(all) struct SheetRange {
 } derive(Eq, Debug)
 
 ///|
-/// What a data validation accepts. Excel calls this the "Allow" setting.
+/// What a data validation accepts. Excel calls this the "Allow" setting. A
+/// `List`'s choices are offered in the order given.
 pub(all) enum ValidationRule {
-  /// A drop-down of literal choices, in the order given.
   List(Array[String])
-  /// A drop-down whose choices are read from cells.
   ListFrom(SheetRange)
-  /// A value of `kind` that must satisfy `check`.
   Compare(kind~ : ValidationKind, check~ : Comparison)
 } derive(Eq, Debug)
 
@@ -93,11 +84,11 @@ pub(all) enum ValidationErrorStyle {
 
 ///|
 /// A data validation over a range: what it accepts, whether an empty cell is
-/// allowed, and the messages shown on selection and on rejection.
+/// allowed (Excel's "Ignore blank"), and the messages shown on selection and on
+/// rejection.
 pub(all) struct Validation {
   at : CellRange
   rule : ValidationRule
-  /// `true` lets the cell be left empty — Excel's "Ignore blank".
   allow_blank : Bool
   prompt : ValidationPrompt?
   error : ValidationError?
@@ -117,16 +108,17 @@ pub let max_validation_list_length : Int = 255
 /// and a format carrying one of these without a style would do nothing visible.
 /// The last three *draw* instead — a gradient, a bar, or an icon per cell — and
 /// carry their own appearance, so a style would have nothing to apply.
+///
+/// A `Formula` is written relative to the range's top-left cell, as Excel's own
+/// dialog does.
 pub(all) enum ConditionalRule {
   /// The cell's value against a bound: `cellIs`.
   CellIs(Comparison)
   /// A formula evaluated per cell, matching where it is true: `expression`.
-  /// Written relative to the range's top-left cell, as Excel's own dialog does.
   Formula(String)
   /// The cell's text against a substring: `containsText` and its relatives.
   Text(match_~ : TextMatch, value~ : String)
-  /// The highest (or, with `bottom`, lowest) `rank` cells, or that percentage of
-  /// them: `top10`.
+  /// The highest, or with `bottom` the lowest, cells or percentage: `top10`.
   Rank(count~ : Int, bottom~ : Bool, percent~ : Bool)
   /// Cells whose value appears more than once in the range: `duplicateValues`.
   Duplicate
@@ -190,14 +182,15 @@ pub let max_rank_percent : Int = 100
 ///|
 /// A conditional format over a range: what decides it, and how a matching cell
 /// is drawn.
+///
+/// Excel keeps a `style` in its own table (`dxfs`) rather than `cellXfs`, and
+/// overrides only the parts it sets — a rule that sets a fill leaves the cell's
+/// font alone. `stop_if_true` stops Excel evaluating any later rule on a cell
+/// this one matched.
 pub(all) struct ConditionalFormat {
   at : CellRange
   rule : ConditionalRule
-  /// The look applied where the rule matches. Excel keeps these in their own
-  /// table (`dxfs`) rather than `cellXfs`, and only the parts it sets are
-  /// overridden — a rule that sets a fill leaves the cell's font alone.
   style : Style?
-  /// `true` stops Excel evaluating any later rule on a cell this one matched.
   stop_if_true : Bool
 } derive(Eq, Debug)
 
@@ -218,12 +211,12 @@ pub(all) enum LinkTarget {
 /// A note attached to a cell — what Excel now calls a *note* and older versions
 /// called a comment: a box that appears on hover, with the author's name above
 /// the text.
+///
+/// A note always carries an author in the file, so `None` does not omit it — it
+/// leaves the backend to write its generic default.
 pub(all) struct Comment {
   at : @units.CellRef
   text : String
-  /// Shown above the text, as Excel writes the name of whoever typed it. A
-  /// note always carries one in the file, so `None` does not omit it — it
-  /// leaves the backend to write its generic default.
   author : String?
 } derive(Eq, Debug)
 

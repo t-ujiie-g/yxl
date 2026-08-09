@@ -1,7 +1,3 @@
-// Round-trip tests for pivot tables. The backend's reader keeps a pivot's XML
-// rather than parsing it into fields, so these assert on that XML — which is
-// what Excel reads too.
-
 ///|
 /// A workbook whose `Orders` sheet holds four named columns over two rows, and
 /// a `Summary` sheet ready for a pivot over them.
@@ -80,8 +76,6 @@ test "each axis puts its fields where Excel expects them" {
   let xml = only_pivot(wb).table_xml
   assert_true(xml.contains("<pivotField name=\"Region\" axis=\"axisRow\""))
   assert_true(xml.contains("<pivotField name=\"Channel\" axis=\"axisRow\""))
-  // A relabelled field carries the new name, and its index is still its
-  // position in the source's header row.
   assert_true(xml.contains("<pivotField name=\"Period\" axis=\"axisCol\""))
   assert_true(xml.contains("<field x=\"1\"/>"))
 }

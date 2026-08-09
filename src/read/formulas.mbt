@@ -1,14 +1,3 @@
-// Recovering Excel's shared formulas — the inverse of `emit`'s `formulas.mbt`.
-//
-// A shared formula is Excel's own form of the reuse ADR-004 asks for: the file
-// stores the text once against the range it governs, and marks the rest of the
-// range as following it. Recovering that as the `formulas:` range it came from
-// keeps the sharing; recovering it cell by cell would emit N copies of something
-// the file declared once. Where the range cannot be folded, each follower still
-// has to come back as its own translated formula, because a follower stores no
-// text and leaving it out turned a calculated cell into the stale number cached
-// beside it.
-
 ///|
 /// The shared-formula masters whose whole range comes back as one `formulas:`
 /// entry, as the set of cell addresses those ranges cover.

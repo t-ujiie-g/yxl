@@ -1,5 +1,3 @@
-// Schema tests for the top-level `properties:` and `calc:`.
-
 ///|
 /// The document properties a spec loads.
 fn loaded_properties(body : String) -> @model.DocumentProperties raise {
@@ -176,7 +174,6 @@ test "an allowance grants or blocks exactly what it names" {
   assert_true(protection.sort)
   assert_true(protection.format_cells)
   assert_false(protection.select_locked_cells)
-  // Untouched allowances keep their defaults.
   assert_true(protection.select_unlocked_cells)
   assert_false(protection.format_rows)
 }

@@ -1,7 +1,3 @@
-// Round-trip tests for filled formula ranges: each compiles to real `.xlsx`
-// bytes and is read back with the backend's reader, so what is asserted is what
-// Excel would find in the file.
-
 ///|
 /// A sheet with two columns of numbers, ready for a calculation column beside
 /// them.
@@ -41,9 +37,8 @@ test "a filled range stores the formula once, on the master cell" {
 test "a filled range costs one stored formula, whatever it covers" {
   let (wb, sheet) = calculation_sheet()
   sheet.add_formula({ at: range_of("C1", "C3"), formula: "A1*B1" })
-  // `formula_refs` lists the cells that hold formula *text*. Three cells
-  // calculate; one of them stores anything. That is the compression ADR-004
-  // asks for, measured rather than asserted in a comment.
+  // `formula_refs` lists the cells that hold formula *text*: three cells
+  // calculate, one of them stores anything (ADR-004).
   assert_eq(reopen(wb).sheet("S").unwrap().formula_refs(), ["C1"])
 }
 

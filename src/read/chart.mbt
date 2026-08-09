@@ -1,17 +1,3 @@
-// Recovering a chart, which is unlike everything else on a sheet: the backend
-// hands it over as the raw text of its own part — `Chart { reference, xml, … }`
-// — rather than as a typed record. So the anchor and the size come off typed
-// fields and the rest is read out of the part, through the small reader in
-// `xml.mbt`.
-//
-// The discipline is slice 4's, and it matters more here than anywhere: recover
-// only what can be named confidently, report the rest. A chart part Excel wrote
-// is far bulkier than one yxl wrote, and the danger is not a gap — a gap shows
-// up in the loss report — but a *plausible wrong answer*. A stacked column read
-// as a clustered one, a combo chart read as its first half, a title read off a
-// cell reference: each would compile to a workbook that looks right and plots
-// something else. Every one of those is refused by name below.
-
 ///|
 /// The chart part's own namespace, and DrawingML's, which its text runs are in
 /// (ECMA-376 §14.2.1, §20.1).

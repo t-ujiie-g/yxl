@@ -1,8 +1,3 @@
-// Tests for model -> document tree. What is asserted here is *shape*: the keys
-// chosen, the order they come in, and the names invented for the styles. Whether
-// the result compiles back to the same workbook is `cli`'s verify pass, and the
-// corpus test that exercises it.
-
 ///|
 /// A one-sheet workbook, plus the sheet.
 fn fixture() -> (@model.Workbook, @model.Sheet) {
@@ -196,7 +191,6 @@ test "a blank cell renders as its styling alone" {
 ///|
 test "names collide into a numbered suffix rather than overwriting" {
   let (wb, sheet) = fixture()
-  // Two different looks that both describe as `percent`.
   sheet.set(at("A1"), Number(1.0), style=formatted("0%"))
   sheet.set(at("A2"), Number(2.0), style=formatted("0%"))
   sheet.set(at("B1"), Number(3.0), style=formatted("0.00%"))
@@ -215,7 +209,6 @@ test "a look with nothing to say for itself gets a neutral name" {
   }
   sheet.set(at("A1"), Text("a"), style=odd)
   sheet.set(at("A2"), Text("b"), style=odd)
-  // Better a name that admits it knows nothing than one that guesses wrong.
   assert_true(spec(wb).contains("style:\n      align:"))
 }
 

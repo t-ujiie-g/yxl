@@ -4,7 +4,6 @@ test "parse_column maps labels to 1-based indices (inverse of the column half of
   assert_eq(@units.parse_column("Z"), Some(26))
   assert_eq(@units.parse_column("AA"), Some(27))
   assert_eq(@units.parse_column("AAA"), Some(703))
-  // Not a bare label: empty, lowercase, or containing digits.
   assert_eq(@units.parse_column(""), None)
   assert_eq(@units.parse_column("a"), None)
   assert_eq(@units.parse_column("A1"), None)
@@ -36,7 +35,6 @@ test "CellRef::rect orders any two corners into top-left and bottom-right" {
   let a = @units.CellRef::new(col=1, row=1)
   let b = @units.CellRef::new(col=3, row=4)
   let expected = (a, b)
-  // All four corner pairs describe the same rectangle.
   assert_eq(@units.CellRef::rect(a, b), expected)
   assert_eq(@units.CellRef::rect(b, a), expected)
   assert_eq(
@@ -46,7 +44,6 @@ test "CellRef::rect orders any two corners into top-left and bottom-right" {
     ),
     expected,
   )
-  // A degenerate "rectangle" of one cell is its own pair of corners.
   assert_eq(@units.CellRef::rect(a, a), (a, a))
 }
 
@@ -71,7 +68,6 @@ test "CellRef::parse_a1 accepts valid references and inverts to_a1" {
     @units.CellRef::parse_a1("AAA100"),
     Some(@units.CellRef::new(col=703, row=100)),
   )
-  // Round-trips with to_a1.
   let r = @units.CellRef::new(col=52, row=7)
   assert_eq(@units.CellRef::parse_a1(r.to_a1()), Some(r))
 }

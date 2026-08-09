@@ -1,5 +1,3 @@
-// Recovering a sheet's cells: what each holds, and the style it wears.
-
 ///|
 /// Walk the sheet's used range and add every populated cell to the model.
 ///
@@ -32,11 +30,9 @@ fn read_cells(
       match (value, style) {
         (Some(value), _) => sheet.set(at, value, style?)
         // A cell with a style and nothing in it — the shaded box, the ruled
-        // table edge, the blank half of a merged heading. It is written as a
-        // blank cell wearing that style rather than left out: a real workbook
-        // has these by the hundred thousand, and dropping them redrew it.
+        // table edge, the blank half of a merged heading. A real workbook has
+        // these by the hundred thousand, and dropping them redrew it (#48).
         (None, Some(style)) => sheet.set(at, Blank, style~)
-        // A cell with neither is one the file never wrote.
         (None, None) => ()
       }
     }
@@ -57,17 +53,15 @@ fn read_value(
   let reference = at.to_a1()
   if backend.get_cell_formula(sheet_name, reference) is Some(formula) &&
     !formula.is_empty() {
-    // The cached result is deliberately left behind. It is a display cache Excel
-    // recomputes the moment the file opens, the backend hands it back as text
-    // whatever it was, and carrying it would put a stale number in the spec that
-    // reads like an assertion about the formula's answer.
+    // The cached result is left behind: Excel recomputes it on open, so carrying
+    // it would put a stale number in the spec that reads like an assertion about
+    // the formula's answer.
     return Some(Formula(formula~, cached=None))
   }
   // A shared formula's followers store no text of their own: the file says only
   // which master they follow, and the formula is that master's with its relative
-  // references shifted. Leaving them out turned a calculated cell into whatever
-  // stale number was cached beside it (#52) — a spec that looks right and stops
-  // recalculating.
+  // references shifted. Leaving them out turned a calculated cell into the stale
+  // number cached beside it (#52).
   if shared_follower_formula(source, at, notes) is Some(formula) {
     return Some(Formula(formula~, cached=None))
   }

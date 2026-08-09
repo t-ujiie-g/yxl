@@ -1,13 +1,3 @@
-// Recovering a cell's style, and interning it the way the spec would have
-// declared it.
-//
-// The backend hands the *sharing* over for free: `get_cell_style` returns a
-// style id, and equal ids mean equal styles, so the cells that wore one look in
-// the original wear one `defs.styles` entry here. What the file does not carry
-// is the **name** — the author's `header` became id 7 when it compiled — so the
-// naming is `render`'s problem, not this package's. All this does is map id to
-// style, once each.
-
 ///|
 /// The styles met so far, keyed by the backend's own id. A style is translated
 /// on first sight and reused thereafter, which is what makes the recovered spec

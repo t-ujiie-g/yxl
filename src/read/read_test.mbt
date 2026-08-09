@@ -1,7 +1,3 @@
-// Tests for the reader seam. Every one builds a model, compiles it with `emit`,
-// and reads the bytes back — so what is asserted is what survives a real
-// `.xlsx`, not what survives a fixture somebody wrote to match.
-
 ///|
 /// Compile a workbook and read it back.
 fn round_trip(wb : @model.Workbook) -> @read.Recovered raise {
@@ -222,7 +218,6 @@ test "a theme or palette colour resolves to the RGB it stands for" {
   // Resolving a theme index gives an ARGB; the opaque alpha is not part of the
   // colour the spec writes down.
   assert_eq(colors, [Some("4F81BD"), Some("95B3D7"), Some("FF0000")])
-  // Nothing was reported lost: the whole point is that these are recoverable.
   assert_false(recovered.dropped.iter().any(note => note.contains("colour")))
 }
 

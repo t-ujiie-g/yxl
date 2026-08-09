@@ -1,9 +1,3 @@
-// Round-trip tests for the styling a column or row band passes down to the
-// cells inside it. These read the *cell's* style back, which is the point: a
-// band's style on the column record alone governs only the cells nobody wrote
-// (ECMA-376 §18.3.1.13), so a test that asserted the column record would pass
-// while every written cell went unstyled.
-
 ///|
 /// A style setting only a number format.
 fn formatted(code : String) -> @model.Style {
@@ -64,8 +58,6 @@ test "a cell keeps its own style, layered over the bands it sits in" {
   let (wb, sheet) = fixture()
   sheet.set_column_band(first=2, last=2, style=formatted("#,##0"))
   sheet.set(@units.CellRef::new(col=2, row=1), Number(1.0), style=bold())
-  // The band supplies the format, the cell the font: the two merge rather than
-  // one replacing the other.
   assert_eq(cell_format(wb, "B1"), Some("#,##0"))
   assert_true(cell_is_bold(wb, "B1"))
 }

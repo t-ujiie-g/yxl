@@ -1,16 +1,3 @@
-// Naming the styles, and writing them out.
-//
-// This is the one place the recovered spec has to *invent* something. A file
-// keeps every bit of sharing and none of the names (ADR-017): the author's
-// `header` became a style id when it compiled, and all that comes back is the
-// look and the set of cells wearing it.
-//
-// So a name is descriptive **only on strong evidence**, and neutral otherwise. A
-// wrong `header` misleads, where `style_4` merely says nothing — and because a
-// spec references styles by name, correcting one means replacing every
-// reference rather than one definition, so a distinctive placeholder is the
-// kinder thing to leave behind.
-
 ///|
 /// A style used more than once is worth declaring; one used once is inlined at
 /// its cell, where it reads as what it is.
@@ -18,9 +5,9 @@ const SHARED_AT_LEAST : Int = 2
 
 ///|
 /// The names given to the styles a workbook shares, and the counts they were
-/// chosen from.
+/// chosen from. `declared` is in the order the styles will appear under
+/// `defs.styles`.
 priv struct StyleNames {
-  /// The declarations, in the order they will appear under `defs.styles`.
   declared : Array[(String, @model.Style)]
   by_style : Map[@model.Style, String]
 }

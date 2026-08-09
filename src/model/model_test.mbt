@@ -26,7 +26,6 @@ test "add_sheet appends a sheet whose edits are visible in the workbook" {
   let sheet = wb.add_sheet("Sheet1")
   sheet.set(@units.CellRef::new(col=1, row=1), Text("yxl"))
   sheet.set(@units.CellRef::new(col=2, row=1), Number(42.0), format="0.00")
-  // The returned sheet shares the workbook's storage: edits land in the workbook.
   assert_eq(wb.sheets.length(), 1)
   assert_eq(wb.sheets[0].name, "Sheet1")
   assert_eq(wb.sheets[0].cells.length(), 2)
@@ -50,10 +49,8 @@ test "set folds a format shorthand into a style, and merges with an explicit sty
     ..@model.Style::empty(),
     font: Some({ ..Font::empty(), bold: Some(true) }),
   }
-  // A `format` shorthand alone becomes a number-format-only style.
   sheet.set(@units.CellRef::new(col=1, row=1), Number(1.0), format="0%")
   assert_eq(sheet.cells[0].style, Some(@model.Style::number_format("0%")))
-  // A `format` fills in a style that leaves the number format unset.
   sheet.set(
     @units.CellRef::new(col=2, row=1),
     Number(1.0),
@@ -61,7 +58,6 @@ test "set folds a format shorthand into a style, and merges with an explicit sty
     style=bold,
   )
   assert_eq(sheet.cells[1].style, Some({ ..bold, number_format: Some("0%") }))
-  // An empty style with no format is dropped entirely.
   sheet.set(
     @units.CellRef::new(col=3, row=1),
     Number(1.0),
@@ -106,18 +102,14 @@ test "Style::over keeps what the overriding style leaves unset" {
   }
   let merged = over.over(base)
   let font = merged.font.unwrap()
-  // The merge reaches inside the font: `bold` is overridden, the rest shows
-  // through.
   assert_eq(font.bold, Some(true))
   assert_eq(font.size, Some(11.0))
   assert_eq(font.name, Some("Calibri"))
   assert_eq(merged.align.unwrap().horizontal, Some(Center))
   assert_eq(merged.align.unwrap().wrap, Some(true))
-  // Untouched parts of the base survive whole.
   assert_eq(merged.fill, base.fill)
   assert_eq(merged.borders, base.borders)
   assert_eq(merged.number_format, Some("0.00"))
-  // Over the empty style, either side is itself.
   assert_eq(over.over(@model.Style::empty()), over)
   assert_eq(@model.Style::empty().over(base), base)
 }
@@ -156,7 +148,6 @@ test "band setters record an inclusive span and only the properties given" {
 ///|
 test "merge canonicalizes its corners whichever pair is given" {
   let sheet = @model.Sheet::new("S")
-  // Bottom-right first, then top-right — both name the same rectangle.
   sheet.merge(
     @units.CellRef::new(col=3, row=3),
     @units.CellRef::new(col=1, row=1),
@@ -175,7 +166,6 @@ test "merge canonicalizes its corners whichever pair is given" {
 ///|
 test "sheet presentation setters are independent and default to Excel's own" {
   let sheet = @model.Sheet::new("S")
-  // Untouched, every presentation property defers to Excel.
   assert_eq(sheet.visibility, Visible)
   assert_eq(sheet.panes, None)
   assert_eq(sheet.gridlines, None)
@@ -192,7 +182,6 @@ test "sheet presentation setters are independent and default to Excel's own" {
   assert_eq(sheet.gridlines, Some(false))
   assert_eq(sheet.tab_color, Some(red()))
   assert_eq(sheet.page.unwrap().orientation, Some(Landscape))
-  // A hidden sheet is declared at construction, not mutated in.
   assert_eq(
     @model.Sheet::new("H", visibility=VeryHidden).visibility,
     VeryHidden,
@@ -250,7 +239,6 @@ test "CellRange::parse is the inverse of to_a1, in either corner order" {
     let parsed = @model.CellRange::parse(text)
     assert_true(parsed is Some(_))
     guard parsed is Some(range) else { return }
-    // Canonical whichever way round it was written, so both orders agree.
     assert_eq(@model.CellRange::parse(range.to_a1()), Some(range))
   }
   assert_eq(@model.CellRange::parse("A1:B9").unwrap().to_a1(), "A1:B9")

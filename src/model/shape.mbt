@@ -1,33 +1,25 @@
-// Shapes floating over the grid: a box, arrow, or callout, optionally carrying
-// text. Like an image, a shape decorates the sheet — the cells beneath it keep
-// whatever they hold.
-
 ///|
 /// A drawing anchored on a sheet: a preset geometry with an optional size,
 /// fill and line colour, text, and alt text.
+///
+/// `preset` is the DrawingML geometry token (ECMA-376 §20.1.10.56,
+/// `ST_ShapeType`) — one of `shape_presets`' second halves, and the loader
+/// admits no other, because Excel repairs a file whose `prst` it does not know.
+///
+/// `width`/`height` are pixels and unset keeps the backend's 160; `line_width`
+/// is points; an unset colour keeps the theme default. `alt_text` is what a
+/// screen reader announces and Excel shows as "Alt Text", and `positioning`
+/// takes the same three anchors an image does.
 pub(all) struct Shape {
-  /// The cell the shape's top-left corner sits over.
   at : @units.CellRef
-  /// The DrawingML preset geometry token (ECMA-376 §20.1.10.56,
-  /// `ST_ShapeType`) — one of `shape_presets`' second halves. The loader only
-  /// admits names from that table, because Excel repairs a file whose `prst`
-  /// it does not know.
   preset : String
-  /// What the shape says, if anything — one plain string, or a list of lines
-  /// each in its own font.
   text : ShapeText?
-  /// The shape's size in pixels; `None` keeps the backend default (160).
   width : Int?
   height : Int?
-  /// The fill colour; `None` keeps the theme default.
   fill : @units.Color?
-  /// The outline colour and width (points); `None` keeps the theme default.
   line_color : @units.Color?
   line_width : Double?
-  /// The description a screen reader announces, and Excel shows as "Alt Text".
   alt_text : String?
-  /// What happens to the shape when the cells under it move or resize — the
-  /// same three anchors an image takes.
   positioning : ImagePositioning
 } derive(Eq, Debug)
 

@@ -1,6 +1,3 @@
-// Rendering the decoration keys: notes, links, validations, tables, and the
-// auto filter.
-
 ///|
 /// The decorations a sheet carries, appended in the order `docs/spec.md` §10
 /// presents them.

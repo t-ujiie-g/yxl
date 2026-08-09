@@ -1,9 +1,3 @@
-// Loading a sheet's `shapes:` — a preset geometry floating over the grid. The
-// geometry name is checked against the model's preset table, because the
-// backend writes it into the file unchecked and Excel repairs a workbook whose
-// geometry it does not know — and the geometries the backend itself would
-// corrupt are refused by name (ADR-006).
-
 ///|
 /// A sheet's `shapes:` — a sequence of shapes, each anchored at a cell.
 fn load_shapes(

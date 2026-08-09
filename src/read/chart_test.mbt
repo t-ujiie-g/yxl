@@ -1,13 +1,3 @@
-// Tests for recovering a chart.
-//
-// Two kinds, and both are needed. The round trips build a model, compile it and
-// read it back, so they assert what survives a real `.xlsx`. The rest hand the
-// backend a chart part written by hand, because the interesting cases are the
-// ones *yxl cannot produce* — a combination chart, a stacked line, a title read
-// off a cell — and those are exactly what a workbook Excel wrote will hold.
-// Each asserts the same two things: nothing was invented, and the loss was said
-// aloud.
-
 ///|
 /// The range `TopLeft:BottomRight`, both corners given in A1.
 fn range(top_left : String, bottom_right : String) -> @model.CellRange {
@@ -176,9 +166,6 @@ test "a scatter chart's X range is its categories" {
     Some(range("A2", "A3")),
   )
 }
-
-// ---------------------------------------------------------------------------
-// Charts yxl cannot write, handed to the backend as a part.
 
 ///|
 /// A workbook whose one sheet carries a chart with exactly this part.
@@ -364,8 +351,6 @@ test "an axis is matched to its group by id, not by where it sits" {
       "<c:barChart><c:barDir val=\"col\"/><c:grouping val=\"clustered\"/>" +
       part_series() +
       "<c:axId val=\"77\"/><c:axId val=\"88\"/></c:barChart>" +
-      // The secondary pair comes first in the plot area, and belongs to nothing
-      // here.
       "<c:valAx><c:axId val=\"99\"/><c:scaling><c:max val=\"1000\"/></c:scaling></c:valAx>" +
       "<c:catAx><c:axId val=\"77\"/><c:title><c:tx><c:rich><a:p><a:r><a:t>Region</a:t></a:r></a:p></c:rich></c:tx></c:title></c:catAx>" +
       "<c:valAx><c:axId val=\"88\"/><c:scaling><c:min val=\"0\"/></c:scaling></c:valAx>",

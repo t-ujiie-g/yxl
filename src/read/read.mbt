@@ -1,12 +1,3 @@
-// The reader seam: `.xlsx` bytes back into a `model.Workbook`, so `yxl extract`
-// can render one as a spec (ADR-017). The mirror of `emit`, and the only other
-// place the Excel backend is touched.
-//
-// The boundary is the **schema**, not the file: recover what `model` can hold,
-// never guess at what it cannot, and record every drop so the caller can say
-// what was lost. Recovering everything would be a round-trip contract by
-// another route, which this direction deliberately does not offer (ADR-017).
-
 ///|
 /// What one read produced: the workbook, and a note for everything in the file
 /// that the schema has no words for.
@@ -86,12 +77,10 @@ fn recover(bytes : Bytes) -> Recovered raise {
   let styles = StyleTable::new()
   read_workbook_keys(backend, workbook, notes)
   let sheet_names = backend.get_sheet_list()
-  // A chart sheet is a whole tab that is one chart, and `get_sheet_list` names
-  // it alongside the worksheets while every per-sheet accessor answers
-  // `SheetNotFound` for it. Walking it as a grid used to fail the whole read
-  // with the backend's own error and nothing to act on. It is skipped and said
-  // aloud instead: recovering it as an empty sheet would claim a data tab the
-  // workbook does not have.
+  // `get_sheet_list` names a chart sheet alongside the worksheets while every
+  // per-sheet accessor answers `SheetNotFound` for it. It is skipped and said
+  // aloud rather than recovered as an empty sheet, which would claim a data tab
+  // the workbook does not have.
   let worksheets = sheet_names.filter(name => {
     if backend.sheet(name) is Some(_) {
       true

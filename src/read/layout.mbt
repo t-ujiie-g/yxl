@@ -1,6 +1,3 @@
-// Recovering how a sheet is laid out and how it prints: the column and row
-// bands, the frozen panes, the tab, and the page setup.
-
 ///|
 /// Column and row bands, one per column or row that differs from the default.
 ///
@@ -157,16 +154,13 @@ fn read_presentation(
       Freeze(@units.CellRef::new(col=panes.x_split + 1, row=panes.y_split + 1)),
     )
   } else if panes.x_split > 0 || panes.y_split > 0 {
-    // Not `panes.split`: the backend's reader never sets that flag. It derives
-    // `freeze` from the pane's `state="frozen"` and leaves `split` false
-    // whatever the file said, so a split pane would read back as neither and
-    // vanish without a word — which is the one thing `docs/spec.md` §22
-    // promises cannot happen. A pane that exists and is not frozen is a split
-    // one, which is the same conclusion by a route the reader does not block.
+    // Not `panes.split`: the backend's reader derives `freeze` from the pane's
+    // `state="frozen"` and leaves `split` false whatever the file said. A pane
+    // that exists and is not frozen is a split one.
     //
     // A split's position is stored in twips and the schema speaks points; a
-    // freeze's is a count of columns and rows and needs no conversion, which
-    // is why the two branches divide differently.
+    // freeze's is a count of columns and rows, which is why the two branches
+    // divide differently.
     sheet.set_panes(
       Split(
         x=panes.x_split.to_double() / TWIPS_PER_POINT,

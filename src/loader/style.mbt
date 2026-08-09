@@ -1,11 +1,3 @@
-// Style interpretation for the loader: turning a `style:` mapping into a
-// `model.Style` (font, fill, borders, alignment). The number format is carried
-// separately as a `format:` shorthand and folded into the style by the caller.
-// `context` names the owner of the style for diagnostics (e.g. `"cell 'A1'"` or
-// `"column 'B'"`), so the same parser serves cell, column, and row styles.
-// Structural loading lives in `loader.mbt`; the shared
-// `expect_*`/`named`/`schema_error` vocabulary lives in `expect.mbt`.
-
 ///|
 /// Fold a `style:` mapping and a `format:` number-format shorthand into one
 /// model style. The `format:` code sets the style's number format. An entirely

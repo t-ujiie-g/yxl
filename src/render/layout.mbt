@@ -1,5 +1,3 @@
-// Rendering the layout keys: the column and row bands, and the print setup.
-
 ///|
 /// A sheet's bands. `down` picks the vocabulary — a row band's size is a
 /// `height` in points and its span a number, where a column's is a `width` in

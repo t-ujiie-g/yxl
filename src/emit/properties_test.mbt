@@ -1,6 +1,3 @@
-// Round-trip tests for what the workbook says about itself, and for the notes
-// attached to its cells.
-
 ///|
 /// Document properties with everything set, so a round trip has something to
 /// lose on every field.
@@ -159,7 +156,6 @@ test "sheet protection round-trips as allowances, not as locks" {
 test "an unprotected sheet stays unprotected" {
   let (wb, _) = fixture()
   let protection = reopen(wb).get_sheet_protection("S")
-  // Nothing granted and nothing blocked: the sheet carries no protection at all.
   assert_false(protection.sort)
   assert_false(protection.select_locked_cells)
 }
@@ -220,8 +216,6 @@ test "a style asking only for Excel's defaults leaves the seed slot free" {
   // Would raise if the redundant protection had taken the number format's place.
   let reopened = reopen(wb)
   assert_true(reopened.get_cell_style("S", "A1") is Some(_))
-  // The seed slot went to the number format the spec set, which still formats
-  // the value on read-back.
   assert_eq(reopened.get_cell_value("S", "A1", raw=false), Some("8.5%"))
 }
 

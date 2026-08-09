@@ -1,10 +1,3 @@
-// A baseline for large-spec compile time. Run with `moon bench src/cli`.
-//
-// The spec is generated rather than read from `examples/`, so the size is a
-// knob and the benchmark stays I/O-free like the pipeline it measures. Each
-// stage is timed on the same source, so a regression points at parse, load, or
-// emit rather than only at the total.
-
 ///|
 /// Rows in the generated spec. Five columns each, so `rows * 5` cells.
 let bench_rows : Int = 400

@@ -1,5 +1,3 @@
-// Schema tests for a sheet's `sparklines:`.
-
 ///|
 /// The sole sparkline group a spec loads.
 fn loaded_sparkline(body : String) -> @model.SparklineGroup raise {

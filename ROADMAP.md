@@ -1622,6 +1622,39 @@ Phase 11's inline `values:` lands. `$include` splitting is never inferred.
 
 Reverse-chronological. One entry per user-visible or structural change.
 
+- **2026-08-10** — **The default is now no comment, and the source was cut to
+  match.** `AGENTS.md §8.6` used to say "delete comments the code already says"
+  and leave the rest to taste, which in practice meant every file opened with a
+  prose tour of its subject and every test annotated its own assertions. Both
+  are documentation: the tour belongs in `docs/spec.md` or an ADR, and a test's
+  name already says what it asserts. Written in two places, the copy in the
+  source is the one that rots.
+
+  §8.6 is now a rule with an order to it — delete what the code says, delete
+  documentation that wandered into the source, delete narration of the past,
+  keep the constraint the code *cannot* show — and says explicitly that tests
+  get the same treatment. 132 file-header essays and ~180 restating test
+  comments went, about half the non-doc comment lines in `src/` (1 749 → 869).
+
+  **Struct fields lost their `///` too, and that one is not a matter of taste:
+  a field doc never reaches the generated `.mbti`.** Only item-level docs do, so
+  a field doc is commentary wearing documentation's syntax, and the "public APIs
+  keep their `///`" exemption does not cover it. Worse, it was applied to some
+  fields and not others — `Chart` annotated five of eight — which leaves a
+  reader unable to scan the type at all: eight lines of fields read as eighteen.
+  What a field needs said now lives in the **type's own doc**, once
+  (`model/decorations.mbt`'s `SheetRange` was already the pattern), and
+  conventions true of the whole type — "`None` keeps Excel's default", "in
+  declaration order" — are stated there once instead of per field. `Sheet` alone
+  had "…, in declaration order" thirteen times. 164 field-doc lines → 0.
+  `enum` variants keep 19 of 37, the ones naming an OOXML term (`cellIs`,
+  `top10`) or Excel's own dialog wording, which a one-word constructor cannot.
+
+  Nothing that carries a constraint was lost: the backend's quirks, the
+  ECMA-376 citations, the bug numbers behind a non-obvious line, the ordering
+  the emitter depends on. `moon info` reports **no `.mbti` diff at all**, which
+  is the proof that the public API surface is untouched, and all 679 tests pass.
+
 - **2026-08-09** — **The validity gate stops depending on what the cookbook
   happened to need.** `tests/validity/` is a second corpus with a different
   job: eight specs that reach for every variant the schema offers — all

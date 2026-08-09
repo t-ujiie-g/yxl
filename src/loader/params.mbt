@@ -1,12 +1,3 @@
-// Parameterization: a top-level `params:` block declares named values with
-// defaults, `${name}` in any string substitutes one, and the CLI's `--set` can
-// override a default without editing the spec — one spec, many workbooks.
-//
-// Like includes, this is a pre-pass over the document tree that runs before any
-// schema key is interpreted, so every reader below sees a spec with no
-// parameters left in it. It runs *after* include expansion, so an included file
-// may use the parameters too.
-
 ///|
 /// The mapping key that declares parameters.
 const PARAMS_KEY : String = "params"

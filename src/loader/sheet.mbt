@@ -1,7 +1,3 @@
-// One sheet of the spec: creating it, dispatching its keys to the feature
-// loaders, and its presentation — tab visibility, frozen or split panes.
-// Document-level structure lives in `loader.mbt`.
-
 ///|
 fn load_sheets(
   node : @yaml.Node,
