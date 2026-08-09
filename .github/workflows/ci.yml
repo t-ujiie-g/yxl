@@ -127,6 +127,24 @@ jobs:
             "$yxl" build "$spec" -o "_build/examples/$(basename "$spec" .yxl.yaml).xlsx"
           done
 
+      # The corpus that exists only to be validated. `examples/` above is the
+      # cookbook — written to be read, one lesson at a time — so the validator
+      # was only ever judging the handful of variants a lesson happened to
+      # need: one icon set of twenty, four chart types of fourteen. Three icon
+      # sets shipped invalid for two phases in that blind spot. These specs
+      # trade legibility for breadth and nothing else reads them, so they are
+      # built here rather than in `src/examples`, which asserts on cells.
+      # Compiled on every runner, like the examples: the point of building with
+      # the shipped binary is that it is the one users run.
+      - name: Validity corpus compiles with the built binary
+        run: |
+          yxl=_build/native/release/build/cmd/main/main.exe
+          mkdir -p _build/validity
+          for spec in tests/validity/*.yxl.yaml; do
+            echo "--- $spec"
+            "$yxl" build "$spec" -o "_build/validity/$(basename "$spec" .yxl.yaml).xlsx"
+          done
+
       # The automated half of Tier 3 (ROADMAP §5), and the only check here that
       # a second implementation performs: everything above re-opens our bytes
       # with the library that wrote them, which cannot disagree with itself, so
@@ -139,9 +157,11 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
-      - name: Examples open cleanly (Open XML validity)
+      - name: Examples and the validity corpus open cleanly (Open XML validity)
         if: runner.os == 'Linux'
-        run: .github/scripts/validate-xlsx.sh _build/examples/*.xlsx
+        run: |
+          .github/scripts/validate-xlsx.sh \
+            _build/examples/*.xlsx _build/validity/*.xlsx
 
       # The release archive is built by the same script `release.yml` uses, so
       # a packaging step that only works on some platforms fails here rather

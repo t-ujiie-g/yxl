@@ -49,6 +49,21 @@ dotnet "$validator" "$@" 2>"$found" || true
 # its unindented first line; `#` comments and blank lines document the waiver
 # rather than form part of it.
 for file in "$@"; do basename -- "$file"; done >"$names"
+
+# A waiver names a workbook by its basename, and so does every finding the
+# validator prints — so two inputs sharing one are indistinguishable here, and
+# a waiver written for one would silently cover the other. Refuse the run
+# rather than resolve it: the corpora are ours to name, and the collision is
+# always a rename away.
+if duplicates=$(sort "$names" | uniq -d) && [ -n "$duplicates" ]; then
+  {
+    echo "two inputs share a basename, which a waiver cannot tell apart:"
+    echo "$duplicates" | sed 's/^/  /'
+    echo "rename one — see tools/openxml-validator/known-defects.txt."
+  } >&2
+  exit 2
+fi
+
 grep -v -e '^#' -e '^[[:space:]]*$' "$known" |
   awk '
     NR == FNR { validated[$0] = 1; next }

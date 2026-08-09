@@ -1,0 +1,60 @@
+# Part of the validity corpus (ROADMAP §5).
+#
+# print setup both ways (fit and scale), page breaks, header and footer
+# codes, outline groups on rows and columns, a table with all four toggles,
+# and sheet protection with a password
+#
+# This is not the cookbook. `examples/` is written to be read and teaches one
+# thing at a time; this is written to be *validated*, and reaches for every
+# variant the schema offers — because the Open XML validator only ever judges
+# the files something actually produces. Three icon sets shipped invalid for
+# two phases because the cookbook happened to use one of the twenty.
+#
+# Nothing here needs to be legible or realistic. Add a row when the schema
+# grows a variant; never delete one to make a build pass.
+
+sheets:
+  - name: Fit
+    cells:
+      A1: Region
+      B1: Revenue
+      A2: APAC
+      B2: 100
+      A3: EMEA
+      B3: 200
+      A21: below the break
+    columns:
+      - { at: A, width: 18, group: 1 }
+      - { at: B-C, width: 12, group: 2, hidden: true }
+    rows:
+      - { at: 1, height: 28 }
+      - { at: 2-4, group: 1, hidden: true }
+    print:
+      area: A1:D50
+      orientation: landscape
+      margins: { top: 1, bottom: 1, left: 0.7, right: 0.7, header: 0.3, footer: 0.3 }
+      fit: { width: 1, height: 0 }
+      header: "&CQuarterly report"
+      footer: "&LPage &P of &N&R&D"
+      breaks: [A21, C1]
+    tables:
+      - at: A1:B3
+        name: Revenue
+        style: TableStyleDark11
+        banded_rows: false
+        banded_columns: true
+        first_column: true
+        last_column: true
+  - name: Scale
+    cells:
+      A1: x
+    print:
+      orientation: portrait
+      scale: 80
+    protect:
+      password: secret
+      allow:
+        sort: true
+        auto_filter: true
+        format_cells: true
+        insert_rows: true

@@ -1,0 +1,78 @@
+# Part of the validity corpus (ROADMAP §5).
+#
+# every shape a cell can take, and the workbook-level keys no example sets:
+# the 1904 epoch, a default font, a split pane, hidden and very-hidden
+# sheets, error values, rich text, and a style wearing every attribute at
+# once
+#
+# This is not the cookbook. `examples/` is written to be read and teaches one
+# thing at a time; this is written to be *validated*, and reaches for every
+# variant the schema offers — because the Open XML validator only ever judges
+# the files something actually produces. Three icon sets shipped invalid for
+# two phases because the cookbook happened to use one of the twenty.
+#
+# Nothing here needs to be legible or realistic. Add a row when the schema
+# grows a variant; never delete one to make a build pass.
+
+date1904: true
+default_font: Cambria
+active: First
+properties:
+  title: Probe
+  subject: Cell shapes
+  author: yxl
+  status: Final
+  language: en-GB
+  version: "1.0"
+  custom:
+    Project: probe
+  keywords: probe
+  description: every cell kind at once
+  category: test
+  company: Example
+calc:
+  mode: automatic
+  on_load: true
+
+defs:
+  styles:
+    boxed:
+      font: { name: Arial, size: 12, bold: true, italic: true, underline: true, strike: true, color: "FF0000" }
+      fill: "EEEEEE"
+      border: { all: { style: thin, color: "333333" } }
+      align: { horizontal: center, vertical: middle, wrap: true }
+      protection: { locked: false, hidden: true }
+
+sheets:
+  - name: First
+    split: { x: 3000, y: 1200 }
+    gridlines: false
+    tab_color: "1F77B4"
+    cells:
+      A1: plain text
+      A2: 42
+      A3: 3.5
+      A4: true
+      A5: { value: "2026-08-09", type: date }
+      A6: { value: "2026-08-09 13:45:07", type: date }
+      A7: { value: "#N/A", type: error }
+      A8: { value: "#DIV/0!", type: error }
+      A9: { formula: "=SUM(A2:A3)" }
+      A10: { formula: "=SUM(A2:A3)", value: 45.5 }
+      A11: { style: boxed }
+      A12: { value: 12.5, format: "#,##0.00" }
+      A13:
+        rich:
+          - plain run
+          - { text: bold run, font: { bold: true } }
+          - { text: red run, font: { color: "FF0000", size: 16, name: Georgia } }
+      A14: { value: -1234.5, format: "#,##0.00;[Red](#,##0.00);\"-\";@" }
+      A15: { value: 0.256, format: "0.0%" }
+  - name: Second
+    visibility: hidden
+    cells:
+      A1: hidden sheet
+  - name: Third
+    visibility: very_hidden
+    cells:
+      A1: very hidden sheet

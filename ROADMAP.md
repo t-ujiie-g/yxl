@@ -129,9 +129,12 @@ ADR-008). Dependencies point *downward*; lower packages never import higher.
   reaches for one icon set out of twenty and four chart types out of fourteen;
   everything it never reaches for is unvalidated however long it has shipped.
   Three icon sets turned out to write a workbook Excel offers to repair, and
-  they had been in the schema since Phase 9 (§9, §11). The corpus that closes
-  this is a *different* corpus — one entry per schema variant, breadth over
-  legibility, never shown to a reader — and it is a v1.0 gate item (§6).
+  they had been in the schema since Phase 9 (§9, §11). What closes this is a
+  *second* corpus, `tests/validity/` — one spec per feature reaching for every
+  variant of it, breadth over legibility, never shown to a reader. CI builds it
+  with the shipped binary and puts it through the same validator, which is why
+  it lives outside `src/examples`: that package asserts on cells and enforces
+  a coverage check both ways, and neither is what this corpus is for.
 
 ---
 
@@ -914,16 +917,15 @@ the first item changes what a spec looks like.
       checks every part against the ECMA-376 schema and answers with the
       element, the attribute, and the XPath. It found two defects on its first
       run, which is the argument for it — see the §11 entry
-- [ ] **A validity corpus covering every schema variant, not every lesson.**
-      The automated half above judges only the files `examples/` happens to
+- [x] **A validity corpus covering every schema variant, not every lesson.**
+      The automated half above judged only the files `examples/` happens to
       produce, and the cookbook is written for a reader: one icon set of twenty,
       four chart types of fourteen, two control kinds of seven. Three icon sets
       were writing an invalid workbook the whole time and nothing said so (§9).
-      What is wanted is a second corpus — breadth-first, one spec per feature
-      with every variant of it side by side, not meant to be read — run through
-      the same `validate-xlsx.sh`. It is cheap: the seven specs that found the
-      three icon sets, the unquoted link, and the lost split pane took an
-      afternoon
+      Closed by `tests/validity/` — eight specs, breadth-first, built by CI with
+      the shipped binary and put through the same `validate-xlsx.sh`. The script
+      now also refuses a run whose inputs share a basename, since that is what a
+      waiver is keyed by and two corpora make collisions possible
 - [ ] Tier-3 manual: Excel / LibreOffice / Google Sheets open cleanly *and show
       the right thing*. The half above cannot be automated away: a schema-valid
       workbook can still put the pivot in the wrong place
@@ -1619,6 +1621,25 @@ Phase 11's inline `values:` lands. `$include` splitting is never inferred.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-08-09** — **The validity gate stops depending on what the cookbook
+  happened to need.** `tests/validity/` is a second corpus with a different
+  job: eight specs that reach for every variant the schema offers — all
+  fourteen chart types, all twenty-three geometries, all seven control kinds,
+  every validation comparison, the workbook keys no example sets — and are not
+  meant to be read. CI builds them with the shipped binary alongside
+  `examples/` and puts both through the same validator, eighteen workbooks in
+  all. They live outside `src/examples` deliberately: that package asserts on
+  cells and enforces a coverage check both ways, and this corpus wants neither.
+
+  `validate-xlsx.sh` also grew a guard, because two corpora make a collision
+  possible that one could not: a waiver names a workbook by basename, so two
+  inputs sharing one are indistinguishable and a waiver for `examples/shapes`
+  would silently cover `tests/validity/shapes`. The script refuses such a run
+  outright rather than picking a winner, and the two colliding corpus specs
+  were renamed to `chart-types` and `shape-geometries`. Naming the hazard was
+  worth more than the rename: it is the same shape as the defects above — a
+  thing that looks checked and is not.
 
 - **2026-08-09** — **The three bugs the sweep found are fixed, and a fourth
   that was hiding behind one of them.**

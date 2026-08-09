@@ -1,0 +1,102 @@
+# Part of the validity corpus (ROADMAP §5).
+#
+# all ten conditional rule kinds and every comparison each admits,
+# twenty-four rules over three columns
+#
+# This is not the cookbook. `examples/` is written to be read and teaches one
+# thing at a time; this is written to be *validated*, and reaches for every
+# variant the schema offers — because the Open XML validator only ever judges
+# the files something actually produces. Three icon sets shipped invalid for
+# two phases because the cookbook happened to use one of the twenty.
+#
+# Nothing here needs to be legible or realistic. Add a row when the schema
+# grows a variant; never delete one to make a build pass.
+
+defs:
+  styles:
+    strong: { font: { bold: true, color: "9C0006" }, fill: "FFC7CE" }
+    weak: { font: { italic: true } }
+
+sheets:
+  - name: Rules
+    cells:
+      A1: v
+      A2: 5
+      A3: -3
+      A4: 1200000
+      A5: urgent
+      A6: 5
+      B2: 1
+      B3: 2
+      B4: 3
+      C2: 10
+      C3: 20
+      C4: 30
+    conditional:
+      - at: A2:A50
+        cell: { at_least: 1000000 }
+        style: strong
+      - at: A2:A50
+        cell: { less_than: 0 }
+        style: weak
+        stop_if_true: true
+      - at: A2:A50
+        cell: { between: [1, 10] }
+        format: "#,##0"
+      - at: A2:A50
+        cell: { not_between: [1, 10] }
+        style: weak
+      - at: A2:A50
+        cell: { equals: 5 }
+        style: weak
+      - at: A2:A50
+        cell: { not_equals: 5 }
+        style: weak
+      - at: A2:A50
+        cell: { at_most: 100 }
+        style: weak
+      - at: A2:A50
+        cell: { greater_than: 3 }
+        style: weak
+      - at: A2:A50
+        text: { contains: urgent }
+        style: weak
+      - at: A2:A50
+        text: { not_contains: calm }
+        style: weak
+      - at: A2:A50
+        text: { begins_with: ur }
+        style: weak
+      - at: A2:A50
+        text: { ends_with: nt }
+        style: weak
+      - at: B2:B50
+        formula: "AND($B2>0, $C2<0)"
+        style: strong
+      - at: B2:B50
+        top: 10
+        style: strong
+      - at: B2:B50
+        top: { count: 10, percent: true }
+        style: strong
+      - at: B2:B50
+        bottom: 5
+        style: weak
+      - at: B2:B50
+        duplicate: true
+        style: weak
+      - at: B2:B50
+        unique: true
+        style: weak
+      - at: C2:C50
+        color_scale: { low: "F8696B", high: "63BE7B" }
+      - at: C2:C50
+        color_scale: { low: "F8696B", middle: "FFEB84", high: "63BE7B" }
+      - at: C2:C50
+        data_bar: { color: "638EC6" }
+      - at: C2:C50
+        data_bar: { color: "638EC6", bar_only: true }
+      - at: C2:C50
+        icon_set: 3TrafficLights1
+      - at: C2:C50
+        icon_set: { style: 5Rating, reverse: true, icons_only: true }
