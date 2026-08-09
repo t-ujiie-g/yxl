@@ -167,8 +167,15 @@ fn read_conditional_rule(
     "icon_set" => {
       guard !options.icon_style.is_empty() else { return None }
       guard @model.icon_set_styles.contains(options.icon_style) else {
+        // The three Excel 2010 added are named apart: the spec knows them, and
+        // what it cannot do is write one back (`model/decorations.mbt`). Saying
+        // "does not name" of those would send the reader looking for a typo.
         notes.drop(
-          "the '\{options.icon_style}' icon set, which the spec does not name",
+          if @model.unwritable_icon_set_styles.contains(options.icon_style) {
+            "the '\{options.icon_style}' icon set, which the Excel backend cannot write back without making the workbook one Excel offers to repair"
+          } else {
+            "the '\{options.icon_style}' icon set, which the spec does not name"
+          },
         )
         return None
       }

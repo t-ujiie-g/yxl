@@ -63,7 +63,46 @@ test "a link may point inside the workbook" {
   let wb = load_ok(
     "sheets:\n  - name: S\n    links:\n      A1: { to: \"Other!A1\" }\n  - name: Other\n",
   )
-  assert_true(wb.sheets[0].links[0].target is Location("Other!A1"))
+  assert_true(wb.sheets[0].links[0].target is Location("'Other'!A1"))
+}
+
+///|
+/// A sheet name Excel would not accept bare is the case this quoting exists
+/// for: unquoted, `Q1 Sales!B2` is not a reference and the link is dead.
+test "a link into a sheet whose name needs quoting gets it" {
+  let wb = load_ok(
+    "sheets:\n  - name: S\n    links:\n      A1: { to: \"Q1 Sales!B2\" }\n  - name: Q1 Sales\n",
+  )
+  assert_true(wb.sheets[0].links[0].target is Location("'Q1 Sales'!B2"))
+}
+
+///|
+/// An apostrophe in the name doubles inside the quotes, as Excel spells it.
+test "a link quotes an apostrophe in the sheet name by doubling it" {
+  let wb = load_ok(
+    "sheets:\n  - name: S\n    links:\n      A1: { to: \"O'Brien!A1\" }\n  - name: O'Brien\n",
+  )
+  assert_true(wb.sheets[0].links[0].target is Location("'O''Brien'!A1"))
+}
+
+///|
+/// Already-quoted stays quoted rather than picking up a second layer, and the
+/// sheet-existence check still sees through it.
+test "a link that was already quoted is left as one" {
+  let wb = load_ok(
+    "sheets:\n  - name: S\n    links:\n      A1: { to: \"'Q1 Sales'!B2\" }\n  - name: Q1 Sales\n",
+  )
+  assert_true(wb.sheets[0].links[0].target is Location("'Q1 Sales'!B2"))
+}
+
+///|
+/// A target naming no sheet is a defined name, and quoting one would turn it
+/// into a reference to a sheet nothing declares.
+test "a link to a defined name is left exactly as written" {
+  let wb = load_ok(
+    "sheets:\n  - name: S\n    links:\n      A1: { to: Totals }\n",
+  )
+  assert_true(wb.sheets[0].links[0].target is Location("Totals"))
 }
 
 ///|

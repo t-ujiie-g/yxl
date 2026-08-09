@@ -303,6 +303,35 @@ test "an unknown icon set is refused, and the diagnostic lists the real ones" {
 }
 
 ///|
+/// The three Excel 2010 added exist only in the `x14` schema, and the backend
+/// writes the name into the base attribute — so a workbook naming one is
+/// schema-invalid and Excel offers to repair it. Refused by name, with the
+/// reason, rather than left to be discovered on open.
+test "an icon set the backend cannot write is refused by name, with the reason" {
+  for style in @model.unwritable_icon_set_styles {
+    guard schema_message(conditional_spec("icon_set: \{style}"))
+      is Some(message) else {
+      fail("expected a diagnostic for '\{style}'")
+    }
+    assert_true(message.contains("asks for '\{style}'"))
+    assert_true(message.contains("§18.18.42"))
+    assert_true(message.contains("would not open cleanly"))
+  }
+}
+
+///|
+/// The refused three and the accepted seventeen are disjoint and together are
+/// the twenty `docs/spec.md` §10 describes. A name drifting from one list to
+/// the other, or into both, is the mistake this pins.
+test "the icon sets the spec names are the seventeen legal ones plus three refused" {
+  assert_eq(@model.icon_set_styles.length(), 17)
+  assert_eq(@model.unwritable_icon_set_styles.length(), 3)
+  for style in @model.unwritable_icon_set_styles {
+    assert_false(@model.icon_set_styles.contains(style))
+  }
+}
+
+///|
 test "a highlighting rule without a style would change nothing, so it is refused" {
   assert_eq(
     schema_message(conditional_spec("cell: { at_least: 1 }")),

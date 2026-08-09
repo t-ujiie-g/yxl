@@ -1456,8 +1456,12 @@ Phase 11's inline `values:` lands. `$include` splitting is never inferred.
   twenty; the shipped corpus uses exactly one icon set, which is why nothing
   caught it (§5). **Reported as [office.mbt#403](https://github.com/moonbitlang/office.mbt/issues/403)** — the machinery is already
   there, since `write.mbt` writes the same `x14:conditionalFormattings` block
-  for advanced data bars. Worked around here by refusing the three by name with
-  the reason, as the shape presets are.
+  for advanced data bars. **Fixed here** by refusing the three by name with the
+  reason, as the shape presets are: `model/decorations.mbt` keeps them in
+  `unwritable_icon_set_styles`, apart from the seventeen, and a test pins that
+  the two lists stay disjoint and add to twenty. `extract` names them apart
+  too, since "the spec does not name it" would send a reader hunting a typo.
+  They become plain schema additions the day #403 lands.
 
 - **A link into a sheet whose name needs quoting went out unquoted.**
   `links: { A2: { to: "Q1 Sales!B2" } }` reached the file as
@@ -1470,7 +1474,11 @@ Phase 11's inline `values:` lands. `$include` splitting is never inferred.
   `split_sheet_prefix`'s quoting rules), so the fix is to re-render rather than
   echo. **The validator cannot see this class**: `location` is a plain string
   in the schema, so the file is valid and only Excel disagrees. Ours, not the
-  backend's.
+  backend's. **Fixed** in `loader/decorations.mbt`'s `canonical_location`,
+  which quotes unconditionally — the same choice `emit`'s `quoted_sheet` makes
+  for every chart range, since `'Statuses'!A1` is as valid as `Statuses!A1` and
+  one rule beats a second implementation of Excel's "is this a bare word" test.
+  A target naming no sheet is a defined name and is untouched.
 
 - **A split pane was dropped on the way back, and silently.** `docs/spec.md`
   §22 promises frozen *and split* panes are recovered; a split one came back
@@ -1478,10 +1486,21 @@ Phase 11's inline `values:` lands. `$include` splitting is never inferred.
   contract forbids. The cause is upstream: `Worksheet::get_panes`
   (`xlsx/sheet_view_ops.mbt:100`) derives `freeze` from `state == "frozen"` and
   never sets `split`, so a split pane reads back as neither, and
-  `read/layout.mbt`'s `else if panes.split && …` falls through. **Workable
-  around from here** — a `<pane>` that exists and is not frozen is a split
-  one — so the one-line local fix does not wait on the release. Unreported;
-  part of the reader batch above.
+  `read/layout.mbt`'s `else if panes.split && …` falls through. **Fixed here**
+  rather than waited on: a `<pane>` that exists and is not frozen is a split
+  one, which is the same conclusion by a route the backend's reader does not
+  block. Unreported; part of the reader batch above.
+
+  **And behind it, a second defect the first one was hiding.** With the branch
+  reachable at last, `split: { x: 3000 }` came back as `x: 60000`. The
+  schema speaks points and OOXML stores a split position in twips
+  (ECMA-376 §18.3.1.66); `emit` multiplied by twenty and `read` never divided,
+  and no test could see it because the branch it lived in never ran. A freeze
+  is unaffected — there `xSplit` is a count of columns, not a measurement,
+  which is why the two branches convert differently. The lesson is the one §5
+  now carries: a code path no corpus reaches is not tested, it is merely
+  unaccused. Three round-trip tests pin it, including the sheet with no panes
+  at all, since the widened branch must not invent one.
 
 - **Backend defects that only Excel reveals.** Phase 9's pivot tables shipped
   round-trip-green while Excel showed `#SPILL!`, because the backend writes a
@@ -1600,6 +1619,41 @@ Phase 11's inline `values:` lands. `$include` splitting is never inferred.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-08-09** — **The three bugs the sweep found are fixed, and a fourth
+  that was hiding behind one of them.**
+
+  **An icon set the backend cannot write is refused by name.** `3Stars`,
+  `3Triangles` and `5Boxes` are Excel-2010 names living only in an extension
+  schema, and they were going into the base attribute, whose enumeration has
+  seventeen values and none of them — so the workbook did not open cleanly.
+  They now fail as a diagnostic that says which enumeration and why, the way
+  the camel-case shape presets do, and `docs/spec.md` §10 lists the seventeen
+  outright rather than trailing off in a "…". `extract` names the three apart
+  from an unknown one, because "the spec does not name it" would send a reader
+  hunting for a typo that is not there.
+
+  **A link into a sheet whose name needs quoting is quoted.** `to: "Q1 Sales!B2"`
+  reached the file verbatim, and Excel answers a click on that with "Reference
+  isn't valid". Every other cross-sheet reference was already right because
+  every other one travels as a parsed range; a link's target is the one thing
+  that stays text from the spec to the file, since it may equally be a defined
+  name. Quoting is now unconditional, matching what `emit` already does for
+  every chart range — one rule instead of a second implementation of Excel's
+  "is this a bare word" test. A `to:` naming no sheet is left alone.
+
+  **A split pane comes back.** `docs/spec.md` §22 promised frozen *and* split
+  panes were recovered and the split half never was — it vanished with no line
+  in the loss report, which is the one thing §22's contract forbids.
+
+  **And behind that one, the fourth.** With the branch reachable for the first
+  time, `split: { x: 3000 }` came back as `60000`: the schema speaks points,
+  OOXML stores twips, `emit` multiplied by twenty and `read` never divided.
+  Nothing could have caught it, because the code that would have been wrong
+  never ran. That is the sharper form of the lesson §5 now carries — an
+  unreached path is not tested, only unaccused — and it is the second time in
+  two days that fixing a reporting gap immediately exposed a real defect
+  underneath it.
 
 - **2026-08-09** — **A defect sweep, four upstream reports, and three bugs of
   our own.** The release we are waiting on left a gap with nothing to build in

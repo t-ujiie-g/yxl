@@ -550,6 +550,13 @@ A sheet named by `to:` or by a validation's `from:` must be declared, or the
 build fails — Excel reports neither, so a typo would otherwise ship as a
 drop-down that comes up empty or a link that goes nowhere.
 
+**Write the sheet name plainly; the quoting is added for you.** Excel reads a
+link's target as a reference, and a reference to a sheet whose name is not a
+bare word has to quote it — `to: "Q1 Sales!B2"` reaches the file as
+`'Q1 Sales'!B2`. Quoting it yourself is fine too, and an apostrophe in the name
+is doubled either way (`O'Brien` → `'O''Brien'!A1`). A `to:` naming no sheet is
+a defined name and is left exactly as written.
+
 ### Notes
 
 ```yaml
@@ -609,7 +616,7 @@ conditional:
 | `duplicate` / `unique` | `true`. Values appearing more than once, or exactly once, in the range. |
 | `color_scale` | `low` and `high`, optionally `middle` — a two- or three-color gradient. |
 | `data_bar` | `color`, and `bar_only: true` to hide the value behind the bar. |
-| `icon_set` | One of Excel's own names — `3Arrows`, `3TrafficLights1`, `4Rating`, `5Boxes`, … — optionally with `reverse` and `icons_only`. |
+| `icon_set` | One of Excel's own names — `3Arrows`, `3TrafficLights1`, `4Rating`, `5Rating`, … — optionally with `reverse` and `icons_only`. The seventeen are listed below. |
 | `style` / `format` | The look applied where the rule matches. |
 | `stop_if_true` | Stop evaluating later rules on a cell this one matched. |
 
@@ -624,6 +631,29 @@ have nothing to apply it to.
 Excel keeps these looks in a table of its own, separate from the styles cells
 wear, but they are declared the same way and shared the same way: a look used by
 ten rules is stored once.
+
+### The icon sets
+
+`3Arrows`, `3ArrowsGray`, `3Flags`, `3Signs`, `3Symbols`, `3Symbols2`,
+`3TrafficLights1`, `3TrafficLights2`, `4Arrows`, `4ArrowsGray`, `4Rating`,
+`4RedToBlack`, `4TrafficLights`, `5Arrows`, `5ArrowsGray`, `5Quarters`,
+`5Rating`.
+
+**Three more that Excel offers are refused, and named as such.** `3Stars`,
+`3Triangles` and `5Boxes` arrived with Excel 2010 and live only in an extension
+schema; the Excel backend writes the name into the base attribute, whose
+enumeration (ECMA-376 §18.18.42) is the seventeen above. A workbook naming one
+does not open cleanly, so the spec is refused first:
+
+```
+yxl: conditional 'C2:C50' 'icon_set' asks for '5Boxes', which Excel 2010 added
+and the Excel backend writes into the base 'iconSet' attribute, whose ECMA-376
+§18.18.42 enumeration does not have it — the workbook would not open cleanly.
+Pick one of the seventeen the base schema names, or wait for the upstream fix
+```
+
+They become plain schema additions the day the backend routes them through the
+extension, as it already does for advanced data bars.
 
 ## 11. Tables
 
