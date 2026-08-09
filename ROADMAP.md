@@ -124,6 +124,15 @@ ADR-008). Dependencies point *downward*; lower packages never import higher.
   the output in Microsoft Excel, LibreOffice Calc, and Google Sheets and *look*
   at it. A schema-valid workbook can still be a wrong one.
 
+  **The validator only sees what the cookbook happens to use, and that is not
+  the same as what the schema offers.** `examples/` is written to teach, so it
+  reaches for one icon set out of twenty and four chart types out of fourteen;
+  everything it never reaches for is unvalidated however long it has shipped.
+  Three icon sets turned out to write a workbook Excel offers to repair, and
+  they had been in the schema since Phase 9 (§9, §11). The corpus that closes
+  this is a *different* corpus — one entry per schema variant, breadth over
+  legibility, never shown to a reader — and it is a v1.0 gate item (§6).
+
 ---
 
 ## 6. Phase roadmap
@@ -456,7 +465,11 @@ gate, which is why none carries a box:
   `<controls>` element or the per-control `ctrlProps` parts current Excel needs
   to render one. The control is in the file, the linked cell holds its value,
   and Excel shows nothing. No spec can work around it; it is an upstream fix or
-  a part the emitter writes itself. `docs/spec.md` §20 says so meanwhile
+  a part the emitter writes itself. `docs/spec.md` §20 says so meanwhile.
+  **Reported 2026-08-09 as [office.mbt#401](https://github.com/moonbitlang/office.mbt/issues/401)**, with the part Excel writes for
+  the same control and the note that `shapeId` ties it back to the `<v:shape>`
+  the existing VML writer already emits, so most of what the new part needs is
+  in hand
 - **a shape with no explicit colour is invisible**, for a neighbouring reason:
   the backend writes no `fillRef`/`lnRef` theme style reference, so a shape
   given neither `fill:` nor `line:` gets no fill and no outline rather than
@@ -901,6 +914,16 @@ the first item changes what a spec looks like.
       checks every part against the ECMA-376 schema and answers with the
       element, the attribute, and the XPath. It found two defects on its first
       run, which is the argument for it — see the §11 entry
+- [ ] **A validity corpus covering every schema variant, not every lesson.**
+      The automated half above judges only the files `examples/` happens to
+      produce, and the cookbook is written for a reader: one icon set of twenty,
+      four chart types of fourteen, two control kinds of seven. Three icon sets
+      were writing an invalid workbook the whole time and nothing said so (§9).
+      What is wanted is a second corpus — breadth-first, one spec per feature
+      with every variant of it side by side, not meant to be read — run through
+      the same `validate-xlsx.sh`. It is cheap: the seven specs that found the
+      three icon sets, the unquoted link, and the lost split pane took an
+      afternoon
 - [ ] Tier-3 manual: Excel / LibreOffice / Google Sheets open cleanly *and show
       the right thing*. The half above cannot be automated away: a schema-valid
       workbook can still put the pivot in the wrong place
@@ -1356,6 +1379,17 @@ Phase 11's inline `values:` lands. `$include` splitting is never inferred.
   breaking change rather than a correction. Until then §12 says the key is
   required in practice.
 
+  **The 2026-08-09 sweep makes option 3 look better than it did.** The icon-set
+  defect ([office.mbt#403](https://github.com/moonbitlang/office.mbt/issues/403), §9) is the same shape read the other way: there,
+  the schema trusted the set of values the backend *accepts* and three of them
+  turned out to be wrong; here, the schema is narrower than Excel because the
+  backend refuses something Excel allows. Both come of treating the backend's
+  acceptance as the definition of what is legal, when the definition is
+  ECMA-376. That argues for fixing the boundary upstream where the boundary is
+  what is wrong, rather than writing our own — and option 3 is not "the
+  slowest" now that we are filing there routinely and the other four workarounds
+  are already queued behind a release.
+
 ## 9. Risks
 
 - **Windows cannot build, and it is not our code.** `moon build --target native`
@@ -1374,9 +1408,12 @@ Phase 11's inline `values:` lands. `$include` splitting is never inferred.
   `moonbitlang/async`, whose `raw_fd` declares `supported_targets = "-all+native"`.
   **Mitigation: Windows is experimental** — its CI leg runs and reports but does
   not block, a release ships without it, and the README and `install.ps1` say so
-  in as many words. The fix is upstream: that function wants splitting. Revisit
-  the moment it is, and before v1.0 either way, since "experimental" is not a
-  state to freeze a release policy around.
+  in as many words. The fix is upstream: that function wants splitting.
+  **Reported 2026-08-09 as [office.mbt#402](https://github.com/moonbitlang/office.mbt/issues/402)**, with the measurement, both dead
+  ends above, and a suggested split along the families
+  `formula_builtins_financial.mbt` and `formula_builtins_stats.mbt` already use.
+  Revisit the moment it lands, and before v1.0 either way, since "experimental"
+  is not a state to freeze a release policy around.
 
 - **Backend API churn (mbtexcel 0.1.x).** Mitigation: pin the version; the
   ADR-002 seam contains the blast radius.
@@ -1407,6 +1444,45 @@ Phase 11's inline `values:` lands. `$include` splitting is never inferred.
   feature for a violation Excel may well tolerate, so it is **waived by name**
   in `tools/openxml-validator/known-defects.txt` and the waiver fails the day
   it stops happening. Found by the new validity check, first run.
+  **Still unreported** — the next upstream batch after #401–#403.
+- **Three icon sets wrote a workbook Excel offers to repair, and had since
+  Phase 9.** `3Stars`, `3Triangles` and `5Boxes` were added in Excel 2010 and
+  live only in the `x14` extension schema; the base `ST_IconSetType`
+  (ECMA-376 §18.18.42) has seventeen values and none of them. The backend
+  accepts all twenty and writes the name straight into the base
+  `<iconSet iconSet="…">` attribute, and `model/decorations.mbt` had copied its
+  list — so the schema inherited a defect by trusting the wrong definition of
+  legal. Found by building one workbook per accepted name and validating all
+  twenty; the shipped corpus uses exactly one icon set, which is why nothing
+  caught it (§5). **Reported as [office.mbt#403](https://github.com/moonbitlang/office.mbt/issues/403)** — the machinery is already
+  there, since `write.mbt` writes the same `x14:conditionalFormattings` block
+  for advanced data bars. Worked around here by refusing the three by name with
+  the reason, as the shape presets are.
+
+- **A link into a sheet whose name needs quoting went out unquoted.**
+  `links: { A2: { to: "Q1 Sales!B2" } }` reached the file as
+  `location="Q1 Sales!B2"`, and Excel answers a click with "Reference isn't
+  valid". Every other cross-sheet reference is right — charts, validation
+  sources and sparklines all emit `'Q1 Sales'!$A$2:$A$4` — because each travels
+  as a parsed range; a link's target is the one that stays a `String` from the
+  spec to the file, since it may equally be a defined name. The loader already
+  splits and checks the sheet prefix (`location_sheet`, sharing
+  `split_sheet_prefix`'s quoting rules), so the fix is to re-render rather than
+  echo. **The validator cannot see this class**: `location` is a plain string
+  in the schema, so the file is valid and only Excel disagrees. Ours, not the
+  backend's.
+
+- **A split pane was dropped on the way back, and silently.** `docs/spec.md`
+  §22 promises frozen *and split* panes are recovered; a split one came back
+  as nothing at all, with no line in the loss report — the one thing §22's
+  contract forbids. The cause is upstream: `Worksheet::get_panes`
+  (`xlsx/sheet_view_ops.mbt:100`) derives `freeze` from `state == "frozen"` and
+  never sets `split`, so a split pane reads back as neither, and
+  `read/layout.mbt`'s `else if panes.split && …` falls through. **Workable
+  around from here** — a `<pane>` that exists and is not frozen is a split
+  one — so the one-line local fix does not wait on the release. Unreported;
+  part of the reader batch above.
+
 - **Backend defects that only Excel reveals.** Phase 9's pivot tables shipped
   round-trip-green while Excel showed `#SPILL!`, because the backend writes a
   fixed `<location>`; a second defect gives every pivot the same `cacheId`, so a
@@ -1436,10 +1512,41 @@ Phase 11's inline `values:` lands. `$include` splitting is never inferred.
   than trusting the round trip (the backend's own reader accepts what its
   writer produced, so tests stay green). Worked around by accepting only
   presets whose token has no capitals and refusing the rest by name; a test
-  pins the no-capitals invariant. Two smaller reader defects found alongside,
-  affecting only what tests can assert: a text run written with
-  `xml:space="preserve"` is invisible to the reader (it splits on the literal
-  `<a:t>`), and no run's font is read back. All pending an upstream report.
+  pins the no-capitals invariant. The writer half is fixed upstream
+  ([office.mbt#293](https://github.com/moonbitlang/office.mbt/issues/293), merged, awaiting a release); the two reader defects found
+  alongside are not, and are part of the reader batch below.
+
+- **Seven things the backend's reader does not hand back**, each turning a
+  detail of a real workbook into a line in `extract`'s loss report
+  (`docs/spec.md` §22 lists the user-visible ones). A text run written with
+  `xml:space="preserve"` is invisible to the shape reader (it splits on the
+  literal `<a:t>`); no shape run's font (`a:rPr`) is read back; a form
+  control's size is lost because only the near corner of its VML anchor is
+  read; a picture's scale always comes back as `1`; a sparkline's data range
+  loses its sheet qualifier, so a sparkline that plotted another sheet comes
+  back plotting this one; `customWidth="0"` is not read, so a default-width
+  column rebuilds as an explicitly sized one and Excel stops auto-fitting it;
+  and a border's theme colour has no field to arrive in, which is
+  indistinguishable from an Excel-default border and so cannot even be
+  reported. None is a correctness risk in a *written* workbook — they cost
+  `extract` fidelity, and they cost tests the ability to assert on what was
+  written. **All unreported**; one batch, or seven small ones, after
+  #401–#403.
+
+- **A style cannot carry both a number format and cell protection.** The
+  backend builds a `Style` by seeding it from one attribute and layering the
+  rest with `with_*` builders, and it has `with_font`, `with_fill`,
+  `with_border` and `with_alignment` but no `with_protection` and no
+  `with_number_format` — so whichever of the two is not the seed cannot be
+  set. Constructing the record directly is closed off as well: `Style` is a
+  read-only type outside its package (*"Cannot create values of the read-only
+  type"*), which was worth checking, because the shape of the `.mbti` suggests
+  otherwise. The cost is a real combination — the unlocked entry cell that is
+  also formatted as currency, which is what a protected form is made of.
+  `emit/style.mbt` refuses it with a diagnostic that names the number format
+  and says to split it into its own style, and layering (§4 of the spec's
+  styling keys) makes that work in practice. **Unreported**; the fix upstream
+  is two builders.
 - **MSVC cannot compile the backend's formula evaluator.** MoonBit's native
   backend hands each test executable to the platform C compiler as one
   translation unit, and `mbtexcel`'s formula dispatch — a `match` with a
@@ -1458,7 +1565,8 @@ Phase 11's inline `values:` lands. `$include` splitting is never inferred.
   as U+13, `\v` as U+11, `\f` as U+12, `\e` as `'`, and `\ ` as `2`; `\n`,
   `\t`, and the `\xXX`/`\uXXXX` forms are decoded right
   (`moonbit-community/yaml@0.0.6`, `lexer.mbt`'s
-  `resolve_flow_scalar_escape_sequence`; pending an upstream report). Our
+  `resolve_flow_scalar_escape_sequence`; reported 2026-08-09 as
+  [yaml.mbt#14](https://github.com/moonbit-community/yaml.mbt/issues/14), and still present on that repository's `main`). Our
   writer never emits the broken spellings — every control character but `\n`
   and `\t` goes out as `\u00XX` — so extracted specs are unaffected.
   **Three of the five are now repaired at our parse seam** (#45): U+11, U+12
@@ -1492,6 +1600,50 @@ Phase 11's inline `values:` lands. `$include` splitting is never inferred.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-08-09** — **A defect sweep, four upstream reports, and three bugs of
+  our own.** The release we are waiting on left a gap with nothing to build in
+  it, so the gap was spent looking for what is already broken rather than
+  adding to it. The method was the one that worked in the last two slices:
+  write specs that exercise every *variant* the schema offers — seven of them,
+  covering all fourteen chart types, all twenty icon sets, all twenty-three
+  shape geometries, all seven control kinds, all twenty-four conditional rules,
+  every validation comparison, and the keys no example uses (`split`,
+  `date1904`, `default_font`, error cells, `very_hidden`) — compile them, put
+  them through the Open XML validator, and extract them back.
+
+  **Three shipped bugs, all ours to fix** (§9 has each in full). Three icon
+  sets — `3Stars`, `3Triangles`, `5Boxes` — write a workbook Excel offers to
+  repair, because they are Excel-2010 names that exist only in the `x14`
+  schema and were going into the base attribute. A `links:` entry pointing at
+  a sheet whose name needs quoting went out unquoted, so the link is dead;
+  every other cross-sheet reference is right, because every other one travels
+  as a parsed range instead of a `String`. And a split pane was dropped by
+  `extract` **silently**, which `docs/spec.md` §22 explicitly promises never
+  happens.
+
+  **The sweep also says what is sound**, which is worth recording because it
+  is most of it: all fourteen chart types round-trip, all twenty-four
+  conditional rules round-trip, comments carry their VML, sheet-name quoting is
+  correct everywhere except the link above, and four of the seven probes
+  validated clean on the first run.
+
+  **Four upstream reports**, the first this project has filed in a batch:
+  [office.mbt#401](https://github.com/moonbitlang/office.mbt/issues/401) (form controls have no modern half, so Excel draws
+  nothing), [#402](https://github.com/moonbitlang/office.mbt/issues/402) (`eval_function` is 5,055 lines and MSVC will not compile
+  it, which is what keeps Windows experimental), [#403](https://github.com/moonbitlang/office.mbt/issues/403) (the icon sets
+  above), and [yaml.mbt#14](https://github.com/moonbit-community/yaml.mbt/issues/14) (five flow-scalar escapes decode to the wrong
+  character, decimal code points written as hex). Three more batches are
+  named and unfiled in §9: the slicer namespace, the seven reader gaps, and
+  the missing `Style` builders.
+
+  **And a lesson about the validity gate itself** (§5, and a new v1.0 item in
+  §6). It judges `examples/` output, and `examples/` is written to *teach* —
+  one icon set of twenty, four chart types of fourteen. Everything the
+  cookbook never reaches for has been shipping unvalidated, which is exactly
+  where the icon sets were hiding. The corpus that closes that is a different
+  corpus: breadth-first, one spec per feature with every variant side by side,
+  never shown to a reader.
 
 - **2026-08-08** — **`docs/spec.md` stops promising a chart series can omit
   `categories:`.** It cannot: the Excel backend refuses to build a series with
