@@ -895,6 +895,30 @@ the first item changes what a spec looks like.
       `plugin.json` (mirroring moonbitlang/skills' manifests) serve the same
       files to Claude Code's `/plugin` flow, and the README section covers
       both install routes
+- [x] **The skills carry a default architecture, and the cookbook proves it.**
+      The two skills above taught the *mechanisms* — `defs:`, `$include`,
+      `data:`, `formulas:` — and left the shape of a real project to taste, so
+      an agent asked for "a workbook" produced one correct file per request and
+      no two alike. What a maintained workbook needs is a *default*: an entry
+      spec that is a table of contents, one file per sheet, styles named by
+      role in one place, every rectangle of rows as `data:` (a real one
+      declared a `tables:`), per-issue values in `params:` — including the file
+      names data is read from — and, the item users actually ask for, **one
+      master per shared list**: the store names live on one sheet, fed by one
+      CSV, declared a table, and every other sheet reaches them by name
+      (`INDEX(StoreMaster[store_name], …)`, a drop-down sourced `from:` its
+      cells) instead of holding a copy. `yxl-authoring` now opens with that
+      architecture and the rule around it — build it absent instruction, follow
+      the user's shape when there is one, never restructure an existing spec as
+      a side effect — and `extract-to-spec` rewrites *towards* it, with a step
+      that hunts the copied lists a hand-maintained workbook accumulates.
+      **`examples/workbook.yxl.yaml` is the layout entire**, so the advice is
+      compiled by CI rather than asserted in prose, and `--set month=2026-08`
+      is a promise in `src/examples` — the refresh claim, measured. Two
+      `docs/spec.md` clarifications came out of building it: a validation's
+      `from:` takes a plain range (a hand-written `$` is refused), and a `null`
+      field writes no cell, so a column of them reserves the gap for a
+      `formulas:` range.
 - [ ] **A JSON Schema for the spec, generated from `docs/spec.md`'s contents.**
       Publishing one lets an author write
       `# yaml-language-server: $schema=…` and get completion and validation in
@@ -1621,6 +1645,35 @@ Phase 11's inline `values:` lands. `$include` splitting is never inferred.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-08-14** — **A default architecture for a maintained workbook, in the
+  skills and in the cookbook.** The skills knew every mechanism and prescribed
+  no shape, so "build me a workbook" produced a different project each time and
+  none of them survived a second month. `yxl-authoring` now leads with the
+  layout to build absent instruction — entry spec as table of contents, a file
+  per sheet, the look named by role in one file, rows as `data:` and real
+  tables as `tables:`, a derived column as one `formulas:` range, per-issue
+  values (**including the CSV file names**) as `params:` — together with the
+  rule that governs it: the user's own shape wins when they state one, and an
+  existing spec is never reorganized as a side effect of an unrelated edit.
+
+  **The part that answers the recurring question — the same store list pasted
+  into five sheets — is "one master, reached by reference".** The list lives on
+  one sheet, fed by one CSV, declared an Excel table; other sheets look it up
+  by table name and source their drop-downs `from:` its cells, so a rename is
+  one CSV edit and the drop-down cannot offer a value the master lacks. Where a
+  sheet must physically print the rows, the same CSV is named from each `data:`
+  entry — one source in git, and Excel interns the strings anyway.
+
+  `examples/workbook.yxl.yaml` **is** that layout (three sheets across seven
+  files, a hidden master, a month-parameterized CSV path), so CI compiles the
+  advice instead of the README describing it; `src/examples` promises its cells
+  both at `2026-07` and under `--set month=2026-08`, which is the refresh claim
+  measured rather than asserted. Building it turned up two gaps in
+  `docs/spec.md`, both now written: a validation's `from:` must be a plain
+  range — yxl adds the `$` and the quoting, and refuses a hand-written one —
+  and a `null` data field writes no cell, so a column of `null`s inside a block
+  of rows reserves that column for a `formulas:` range.
 
 - **2026-08-10** — **The default is now no comment, and the source was cut to
   match.** `AGENTS.md §8.6` used to say "delete comments the code already says"

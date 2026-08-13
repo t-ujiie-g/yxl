@@ -446,7 +446,9 @@ data:
 Fields keep the types YAML gave them, exactly as a `cells:` value does (§3): a
 bare `007` is the number 7 and a quoted `"007"` is text. That is sharper than
 CSV, where every field arrives as text and has to be guessed at. `null` is a
-blank cell, and a short row simply stops — nothing is padded.
+blank cell, and a short row simply stops — nothing is padded. Neither writes a
+cell at all, so a `formulas:` range (§3) may cover the gap: a column of `null`s
+inside a block of rows reserves it for a derived column.
 
 Use `cells:` for scattered, individually-styled cells, which is what it is good
 at, and `values:` for a block of rows that belong together.
@@ -526,6 +528,10 @@ which refuses the value), `warning`, or `information` (which let it through).
 A `date` bound is written as a date (`YYYY-MM-DD`); every other kind takes a
 number. An inline `list` is stored as one comma-joined string and must fit
 Excel's 255-character limit — over that, source it from cells instead.
+
+Write `from:` as a **plain** range — `Statuses!A1:A3`. Excel stores the source
+as an absolute, sheet-qualified reference and yxl writes it that way for you; a
+`$` written by hand is not a valid A1 reference here and is refused.
 
 ### Links
 

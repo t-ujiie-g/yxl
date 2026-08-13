@@ -1,0 +1,38 @@
+# The page a reader opens. It holds no data of its own: every line is computed
+# from the store master and the month's transactions.
+name: Summary
+freeze: A4
+merges: [A1:D1]
+columns:
+  - { at: A, width: 20 }
+  - { at: B, width: 14, style: money }
+  - { at: C, width: 10, style: percent }
+  - { at: D, width: 14 }
+cells:
+  A1: { value: "Store revenue — ${month}", style: title }
+  A3: { value: Store, style: header }
+  B3: { value: Revenue, style: header }
+  C3: { value: Share, style: header }
+  D3: { value: Against target, style: header }
+  A15: { value: Total, style: total }
+  B15: { formula: "SUM(B4:B13)", style: total }
+  A17: { value: "Target per store", style: note }
+  B17: { $ref: target_revenue }
+formulas:
+  # Ten rows for four stores, on purpose: a range does not grow with its data,
+  # so the ones that may over-reach are written generously and guarded with a
+  # blank test. Adding a store to the master adds a line here by itself.
+  - at: A4:A13
+    formula: 'IFERROR(INDEX(StoreMaster[store_name], ROW()-3), "")'
+  - at: B4:B13
+    formula: >-
+      IF(A4="", "", SUMIF(SalesEntries[store_code],
+      INDEX(StoreMaster[store_code], ROW()-3), SalesEntries[amount]))
+  - at: C4:C13
+    formula: 'IF(B4="", "", B4/$B$15)'
+  - at: D4:D13
+    formula: 'IF(B4="", "", IF(B4>=target_revenue, "on target", "below"))'
+conditional:
+  - at: B4:B13
+    cell: { at_least: 2000000 }
+    style: on_target

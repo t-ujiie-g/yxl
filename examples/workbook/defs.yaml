@@ -1,0 +1,8 @@
+# An `$include` path resolves against the file it is written in, so this one
+# reaches its neighbour. (A `data:` path does not — see sheets/masters.yaml.)
+styles:
+  $include: styles.yaml
+values:
+  # A workbook constant, not a per-run one: it becomes a defined name, so
+  # formulas say `target_revenue` and Excel's Name Manager can edit it.
+  target_revenue: 2000000
