@@ -21,6 +21,13 @@ guess schema keys — unknown keys are hard errors by design. This skill is the
 finished spec are the **yxl-authoring** skill's territory, and once the rewrite
 below is verified, hand over to it.
 
+**The destination is that skill's *default architecture*** — an entry file that
+is a table of contents, one file per sheet, the look named once, shared data
+held in one master every other sheet references, and per-issue values in
+`params:`. Read it before starting, and rewrite *towards* it: a migration that
+lands somewhere else has spent its one chance to restructure. Unless the user
+asks for a different shape, in which case build theirs.
+
 ## The shape of the work
 
 1. Extract, and read the loss report before the YAML.
@@ -98,6 +105,13 @@ For each data sheet, replace its inline `cells:` block with an anchored table:
 - If the sheet needs column widths or a frozen header row, that is `columns:`
   bands and `freeze:` (§4, §2) — three lines, not a reason to keep the sheet
   inline.
+- **Look for the same list in more than one sheet** before writing the CSVs:
+  the store names, the account codes, the region list. A hand-maintained
+  workbook copies them, and drift between the copies is usually one of the bugs
+  the migration is meant to fix. They become **one** master sheet with one CSV,
+  declared an Excel table; the sheets that used a copy get a lookup against its
+  name, or a drop-down sourced `from:` its cells. Confirm the copies really are
+  the same list — where they differ, say which one you kept.
 
 ## 4. Report sheets: put the structure back
 
@@ -148,10 +162,11 @@ Rewrite these by hand, using the extracted YAML as the answer sheet.
 - **Parameters (§7)**: a value that changes per issue of the workbook (the
   reporting month, a title) is a `params:` entry substituted as `${name}`,
   which is what makes next month's file a one-line change or a `--set` flag.
-- **Split the spec when it earns it (§8)**: `{ $include: path }` moves a
-  sheet or a `defs:` block into its own file. Split along what changes
-  together — styles that never change apart from design work, data blocks that
-  change monthly.
+- **Split the spec into the house layout (§8)**: `{ $include: path }` moves a
+  sheet or a `defs:` block into its own file, leaving an entry spec that is a
+  table of contents. A real workbook is past the size where one file is
+  defensible, so this is the last step of every migration, not an optional one —
+  `examples/workbook.yxl.yaml` is the shape to land on.
 
 ## 6. Verify
 

@@ -1,0 +1,32 @@
+# The month's transactions. The rows arrive as a CSV named by the `month`
+# parameter, so a refresh swaps a file and a flag rather than editing the sheet.
+name: Sales
+freeze: A2
+columns:
+  - { at: A, width: 12 }
+  - { at: B, width: 14, style: money }
+  - { at: C, width: 18 }
+cells:
+  A1: { value: store_code, style: header }
+  B1: { value: amount, style: header }
+  C1: { value: store_name, style: header }
+data:
+  - at: A2
+    csv: "workbook/data/sales-${month}.csv"
+formulas:
+  # One shared formula for the whole derived column, not a cell per row. It
+  # reads the master by table name, so it does not care where that sheet is.
+  - at: "C2:C${sales_rows}"
+    formula: >-
+      IFERROR(INDEX(StoreMaster[store_name],
+      MATCH(A2, StoreMaster[store_code], 0)), "")
+tables:
+  - at: "A1:C${sales_rows}"
+    name: SalesEntries
+    style: TableStyleMedium2
+validations:
+  # The drop-down's choices are the master's own cells, so it can never offer a
+  # code the master does not have. Write the range plainly — yxl adds the `$`.
+  - at: "A2:A${sales_rows}"
+    list: { from: "Masters!A2:A${store_rows}" }
+    error: { title: Unknown store, body: "Pick a code from the store master." }

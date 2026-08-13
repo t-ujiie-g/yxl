@@ -1,0 +1,14 @@
+# The whole workbook's look, named by the role a style plays rather than by
+# what it looks like: changing what a total looks like is one edit here.
+base: { font: { name: Calibri, size: 11 } }
+title: { extends: base, font: { size: 16, bold: true } }
+header:
+  extends: base
+  font: { bold: true, color: FFFFFF }
+  fill: "1F3864"
+  align: { horizontal: center }
+money: { extends: base, format: "#,##0" }
+percent: { extends: base, format: "0.0%" }
+total: { extends: money, font: { bold: true }, border: { top: thin } }
+on_target: { extends: base, font: { bold: true, color: "1F7A3D" } }
+note: { extends: base, font: { italic: true, color: "666666" } }

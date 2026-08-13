@@ -1,0 +1,24 @@
+# The store list, held once for the whole workbook. Every other sheet reaches
+# it through the table name below — `StoreMaster[store_name]` — so a store that
+# is renamed here is renamed everywhere, and no sheet carries a second copy.
+name: Masters
+# Plumbing rather than a page to read. `hidden` is undoable from Excel's UI;
+# `very_hidden` would need VBA.
+visibility: hidden
+columns:
+  - { at: A, width: 12 }
+  - { at: B, width: 18 }
+  - { at: C, width: 12 }
+cells:
+  A1: { value: store_code, style: header }
+  B1: { value: store_name, style: header }
+  C1: { value: region, style: header }
+data:
+  # A `data:` path resolves against the spec `yxl build` was given, *not*
+  # against this file — so it reads the same from wherever a sheet is included.
+  - at: A2
+    csv: workbook/masters/stores.csv
+tables:
+  # A table's range must match its rows exactly, so it reads the parameter.
+  - at: "A1:C${store_rows}"
+    name: StoreMaster

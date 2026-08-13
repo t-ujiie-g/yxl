@@ -192,6 +192,7 @@ so the pages cannot drift from the compiler:
 | [`pivots.yxl.yaml`](./examples/pivots.yxl.yaml) | two pivot tables over one source: rows, columns, and two aggregations |
 | [`shapes.yxl.yaml`](./examples/shapes.yxl.yaml) | a cloud stamp, a chevron with two text lines, a pinned star |
 | [`sparklines.yxl.yaml`](./examples/sparklines.yxl.yaml) | a trend line per row with markers, and win/loss cells plotting another sheet |
+| [`workbook.yxl.yaml`](./examples/workbook.yxl.yaml) | the layout to keep a real workbook in: a sheet per file, styles named once, one store master every sheet references, and a month's data swapped with `--set` |
 
 ```bash
 yxl build examples/quickstart.yxl.yaml -o quickstart.xlsx
@@ -204,7 +205,7 @@ agent (Claude Code, Codex, Cursor, OpenCode, …) can follow:
 
 | Skill | Covers |
 |---|---|
-| [`yxl-authoring`](./skills/yxl-authoring/SKILL.md) | the general workflow: writing a spec from scratch, editing an existing one, and operating it month to month (data refresh, params, the verify loop) |
+| [`yxl-authoring`](./skills/yxl-authoring/SKILL.md) | the general workflow: the default architecture to build unless told otherwise (a sheet per file, styles named once, one master per shared list), writing a spec from scratch, editing an existing one, and operating it month to month |
 | [`extract-to-spec`](./skills/extract-to-spec/SKILL.md) | migration: `yxl extract` gives a starting point from an existing workbook, and this is the rewrite that makes it maintainable |
 
 ```bash

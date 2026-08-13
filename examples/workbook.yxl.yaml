@@ -1,0 +1,26 @@
+# The shape a workbook that has to be maintained should take: this file names
+# the parts and holds nothing else. One file per sheet, the look declared in one
+# place, the store list held once and reached by reference from everywhere, and
+# the month's numbers in a CSV the source system writes.
+#
+#   yxl build examples/workbook.yxl.yaml -o july.xlsx
+#   yxl build examples/workbook.yxl.yaml -o august.xlsx --set month=2026-08
+#
+# Next month is that second line: drop `workbook/data/sales-2026-09.csv` beside
+# its siblings and set `month`. Nothing else moves.
+params:
+  month: "2026-07"
+  # The last row of each block. A range that must match its data exactly — a
+  # table, a drop-down's source — reads one of these, so growth is one number
+  # here rather than a hunt through the sheets.
+  sales_rows: 9
+  store_rows: 5
+
+defs:
+  $include: workbook/defs.yaml
+
+# Written order is tab order.
+sheets:
+  - $include: workbook/sheets/summary.yaml
+  - $include: workbook/sheets/sales.yaml
+  - $include: workbook/sheets/masters.yaml

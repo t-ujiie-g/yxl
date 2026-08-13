@@ -63,6 +63,14 @@ fn promises() -> Array[Promise] {
     promise("shapes.yxl.yaml", "Board", "B4", "2400000"),
     promise("sparklines.yxl.yaml", "Dashboard", "E2", "3100"),
     promise("sparklines.yxl.yaml", "Results", "C3", "1"),
+    promise("workbook.yxl.yaml", "Summary", "A1", "Store revenue — 2026-07"),
+    promise("workbook.yxl.yaml", "Masters", "B2", "Shinjuku"),
+    promise("workbook.yxl.yaml", "Sales", "B2", "2400000"),
+    // The month names the CSV the sheet reads, so a refresh is this flag and a
+    // file dropped beside its siblings.
+    promise("workbook.yxl.yaml", "Sales", "B2", "2510000", params={
+      "month": "2026-08",
+    }),
   ]
 }
 
@@ -442,6 +450,42 @@ test "the shapes example floats what its comments describe" {
   assert_eq(shapes[1].paragraph.map(run => run.text), ["Next", "quarter"])
   assert_eq(shapes[2].shape_type, "star5")
   assert_true(shapes[2].format.positioning is Some(Absolute))
+}
+
+///|
+/// The `workbook` example exists for its *structure* — one master reached by
+/// reference from everywhere instead of copied — and none of that is a cell
+/// value the promise table can hold.
+test "the workbook example holds its master once and points at it" {
+  let path = "\{EXAMPLES}/workbook.yxl.yaml"
+  let workbook = @xlsx.read(
+    @cli.compile(
+      @fs.read_file_to_string(path),
+      file=path,
+      resolve=included,
+      read_bytes=included_bytes,
+    )[:],
+  )
+  assert_false(workbook.get_sheet_visible("Masters"))
+  let master_tables = workbook.get_tables("Masters")
+  assert_eq(master_tables.length(), 1)
+  assert_eq(master_tables[0].name, "StoreMaster")
+  assert_eq(master_tables[0].range_ref, "A1:C5")
+  assert_eq(master_tables[0].columns, ["store_code", "store_name", "region"])
+
+  // No sheet holds a second copy of a store name: the two that show one
+  // compute it from the table above.
+  assert_eq(workbook.get_cell("Sales", "C2"), Some(""))
+  assert_eq(workbook.get_cell("Summary", "A4"), Some(""))
+  assert_eq(
+    workbook.get_cell_formula("Summary", "A4"),
+    Some("IFERROR(INDEX(StoreMaster[store_name], ROW()-3), \"\")"),
+  )
+
+  // The drop-down offers exactly the master's codes.
+  let validations = workbook.get_data_validations("Sales")
+  assert_eq(validations.length(), 1)
+  assert_eq(validations[0].formula1, "'Masters'!$A$2:$A$5")
 }
 
 ///|
