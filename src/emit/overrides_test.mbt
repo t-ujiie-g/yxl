@@ -79,9 +79,7 @@ test "an override inside a filled range leaves the rest of it shared" {
   wb.add_override(override_at("C2", value=Formula(formula="B2", cached=None)))
   let reopened = reopen(wb)
   // The master keeps the range's one stored formula and C3 keeps following it;
-  // only the overridden cell drops out of the group and holds its own text. So
-  // the exception costs one formula, not the 499 that splitting a real column
-  // into three ranges around it would.
+  // only the overridden cell drops out of the group and holds its own text.
   assert_eq(reopened.get_cell_formula("S", "C1"), Some("A1*B1"))
   assert_eq(reopened.get_cell_formula("S", "C2"), Some("B2"))
   assert_eq(reopened.get_cell_formula("S", "C3"), None)

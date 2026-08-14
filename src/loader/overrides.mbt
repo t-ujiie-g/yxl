@@ -45,6 +45,9 @@ fn load_override(
   }
   let at = expect_cell_ref(reference, file~, what="override 'at'")
   let mut reason = None
+  // The facets are the cell grammar and are read by it below; `at` and `reason`
+  // are the override's own, and would be unknown keys to it.
+  let facets = []
   for entry in entries {
     let (key, value) = entry
     match key {
@@ -53,39 +56,30 @@ fn load_override(
         reason = Some(
           expect_string(value, file~, context="override '\{text}' reason"),
         )
-      "value" | "formula" | "rich" | "type" | "format" | "style" => ()
+      _ if cell_keys.contains(key) => facets.push(entry)
       _ =>
         raise schema_error(
           file~,
-          "unknown key '\{key}' in override '\{text}' (expected 'at', 'reason', 'value', 'formula', 'rich', 'type', 'format', or 'style')",
+          "unknown key '\{key}' in override '\{text}' (expected \{expected_cell_keys(before=["at", "reason"])})",
         )
     }
   }
-  let writes_value = ["value", "formula", "rich"]
-    .iter()
-    .any(key => find_key(entries, key) is Some(_))
-  let writes_style = find_key(entries, "style") is Some(_) ||
-    find_key(entries, "format") is Some(_)
-  guard writes_value || writes_style else {
+  guard !facets.is_empty() else {
     raise schema_error(
       file~,
       "override '\{text}' changes nothing (expected a 'value', a 'formula', a 'rich', a 'style', or a 'format')",
     )
   }
-  // The facets are the cell grammar; `at` and `reason` are the override's own,
-  // and would be unknown keys to it.
-  let (value, style) = load_expanded_cell(
-    entries.filter(entry => entry.0 != "at" && entry.0 != "reason"),
-    file~,
-    reference=text,
-    defs~,
-  )
+  let (value, style) = load_expanded_cell(facets, file~, reference=text, defs~)
+  // A style-only override leaves the value alone, and the cell grammar's
+  // stand-in for "no value given" is `Blank` — which here means the facet is
+  // absent, not that the cell is to be emptied.
+  let writes_value = ["value", "formula", "rich"]
+    .iter()
+    .any(key => find_key(facets, key) is Some(_))
   {
     sheet,
     at,
-    // A style-only override leaves the value alone, and the cell grammar's
-    // stand-in for "no value given" is `Blank` — which here means the facet is
-    // absent, not that the cell is to be emptied.
     value: if writes_value {
       Some(value)
     } else {

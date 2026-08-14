@@ -167,6 +167,14 @@ test "an 'at' spanning a range is refused" {
 }
 
 ///|
+test "an 'at' whose cell part is not a reference is refused" {
+  assert_eq(
+    schema_message(override_spec("  - at: Sales!ZZ\n    value: by hand\n")),
+    Some("spec.yaml: 'ZZ' is not a valid A1 cell reference in override 'at'"),
+  )
+}
+
+///|
 test "an override needs an 'at', and refuses an unknown key" {
   assert_eq(
     schema_message(override_spec("  - value: by hand\n")),

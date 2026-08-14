@@ -21,6 +21,20 @@ fn load_cell(
 }
 
 ///|
+/// The keys the expanded form of a cell takes. An `overrides:` entry carries the
+/// same grammar, so it reads them from here rather than repeating the list.
+let cell_keys : Array[String] = [
+  "value", "formula", "rich", "type", "format", "style",
+]
+
+///|
+/// Those keys as a diagnostic's expected-list, after any its own construct adds
+/// in front of them.
+fn expected_cell_keys(before? : Array[String] = []) -> String {
+  or_list([..before, ..cell_keys].map(key => "'\{key}'"))
+}
+
+///|
 fn load_expanded_cell(
   entries : Array[(String, @yaml.Node)],
   file~ : String,
@@ -52,7 +66,7 @@ fn load_expanded_cell(
       _ =>
         raise schema_error(
           file~,
-          "unknown key '\{key}' in cell '\{reference}' (expected 'value', 'formula', 'rich', 'type', 'format', or 'style')",
+          "unknown key '\{key}' in cell '\{reference}' (expected \{expected_cell_keys()})",
         )
     }
   }
