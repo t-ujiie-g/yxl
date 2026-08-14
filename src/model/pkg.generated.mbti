@@ -335,6 +335,14 @@ pub(all) enum Orientation {
   Landscape
 } derive(Eq, @debug.Debug)
 
+pub(all) struct Override {
+  sheet : String
+  at : @units.CellRef
+  value : CellValue?
+  style : Style?
+  reason : String?
+} derive(Eq, @debug.Debug)
+
 pub(all) struct PageMargins {
   top : Double?
   bottom : Double?
@@ -644,12 +652,14 @@ pub(all) struct Workbook {
   date_system : @units.DateSystem
   default_font : String?
   defined_names : Array[DefinedName]
+  overrides : Array[Override]
   mut active_sheet : String?
   mut properties : DocumentProperties?
   mut calc : CalcSettings?
   mut protection : WorkbookProtection?
 } derive(Eq, @debug.Debug)
 pub fn Workbook::add_defined_name(Self, String, CellValue) -> Unit
+pub fn Workbook::add_override(Self, Override) -> Unit
 pub fn Workbook::add_sheet(Self, String, visibility? : SheetVisibility) -> Sheet
 pub fn Workbook::new(date_system? : @units.DateSystem, default_font? : String) -> Self
 pub fn Workbook::set_active_sheet(Self, String) -> Unit
@@ -657,6 +667,7 @@ pub fn Workbook::set_calc(Self, CalcSettings) -> Unit
 pub fn Workbook::set_properties(Self, DocumentProperties) -> Unit
 pub fn Workbook::set_protection(Self, WorkbookProtection) -> Unit
 pub fn Workbook::sheet(Self, String) -> Sheet?
+pub fn Workbook::sheet_overrides(Self, String) -> Array[Override]
 
 pub(all) struct WorkbookProtection {
   structure : Bool

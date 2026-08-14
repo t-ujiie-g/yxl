@@ -302,7 +302,7 @@ test "compile surfaces a schema error carrying the file name" {
   assert_eq(
     caught,
     Some(
-      "spec.yaml: unknown top-level key 'title' (expected 'sheets', 'active', 'params', 'date1904', 'default_font', 'defs', 'properties', 'calc', or 'protect')",
+      "spec.yaml: unknown top-level key 'title' (expected 'sheets', 'active', 'params', 'overrides', 'date1904', 'default_font', 'defs', 'properties', 'calc', or 'protect')",
     ),
   )
 }

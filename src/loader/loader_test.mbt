@@ -74,7 +74,7 @@ test "load rejects an unknown top-level key" {
   assert_eq(
     schema_message("sheetz:\n  - name: S\n"),
     Some(
-      "spec.yaml: unknown top-level key 'sheetz' (expected 'sheets', 'active', 'params', 'date1904', 'default_font', 'defs', 'properties', 'calc', or 'protect')",
+      "spec.yaml: unknown top-level key 'sheetz' (expected 'sheets', 'active', 'params', 'overrides', 'date1904', 'default_font', 'defs', 'properties', 'calc', or 'protect')",
     ),
   )
 }
@@ -84,7 +84,7 @@ test "load requires the sheets key" {
   assert_eq(
     schema_message("title: report\n"),
     Some(
-      "spec.yaml: unknown top-level key 'title' (expected 'sheets', 'active', 'params', 'date1904', 'default_font', 'defs', 'properties', 'calc', or 'protect')",
+      "spec.yaml: unknown top-level key 'title' (expected 'sheets', 'active', 'params', 'overrides', 'date1904', 'default_font', 'defs', 'properties', 'calc', or 'protect')",
     ),
   )
   assert_eq(

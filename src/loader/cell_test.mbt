@@ -278,6 +278,7 @@ test "load builds sheets and typed cells from a minimal spec" {
       #|  date_system: Date1900,
       #|  default_font: None,
       #|  defined_names: [],
+      #|  overrides: [],
       #|  active_sheet: None,
       #|  properties: None,
       #|  calc: None,

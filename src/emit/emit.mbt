@@ -72,7 +72,14 @@ fn build_workbook(wb : @model.Workbook) -> Bytes raise {
   let dxf_ids : Map[@model.Style, Int] = Map([])
   for sheet in wb.sheets {
     backend.new_sheet(sheet.name) |> ignore
-    emit_sheet(backend, sheet, style_ids, dxf_ids, wb.date_system)
+    emit_sheet(
+      backend,
+      sheet,
+      wb.sheet_overrides(sheet.name),
+      style_ids,
+      dxf_ids,
+      wb.date_system,
+    )
   }
   // Pivots come after every sheet's cells: the backend reads each field's name
   // out of the source's header row, and a pivot routinely summarizes a sheet
@@ -137,6 +144,7 @@ fn deflate_archive(archive : @zip.Archive) -> Bytes raise {
 fn emit_sheet(
   backend : @xlsx.Workbook,
   sheet : @model.Sheet,
+  overrides : Array[@model.Override],
   style_ids : Map[@model.Style, Int],
   dxf_ids : Map[@model.Style, Int],
   date_system : @units.DateSystem,
@@ -191,6 +199,12 @@ fn emit_sheet(
   // these never contend with the cells written above.
   for range in sheet.formulas {
     apply_formula_range(backend, sheet.name, sheet, range, style_ids)
+  }
+  // Last of everything that writes a cell, so an override wins whatever order
+  // the spec declared them in (ADR-018) — and before everything that *reads*
+  // one, so a table takes its column names from the header the override left.
+  for entry in overrides {
+    apply_override(backend, sheet.name, entry, style_ids, date_system)
   }
   // Merge after the cells are written so the top-left keeps its value.
   for merge in sheet.merges {

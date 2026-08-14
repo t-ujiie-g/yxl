@@ -14,22 +14,42 @@ pub(all) struct DefinedName {
 pub let max_defined_name_length : Int = 255
 
 ///|
+/// One cell held apart from the rules that produced it (ADR-018): a deliberate,
+/// one-off deviation, naming the sheet and cell it lands on, the facets it
+/// replaces, and why.
+///
+/// `value` and `style` are independent: an unset one leaves whatever the rest of
+/// the spec put there, so changing a number keeps the formatting and restyling a
+/// cell keeps its value. At least one is set — an override of nothing is a
+/// mistake the loader refuses, as is a second override of the same cell.
+/// `reason` is free text for a reader; nothing in the compiler reads it.
+pub(all) struct Override {
+  sheet : String
+  at : @units.CellRef
+  value : CellValue?
+  style : Style?
+  reason : String?
+} derive(Eq, Debug)
+
+///|
 /// A workbook: an ordered list of sheets — the order is the order of the tabs —
-/// the date system that governs how dates serialize, and any workbook-level
-/// defined names. This is the entire input to the emitter seam
-/// (`model -> bytes`, ADR-002).
+/// the date system that governs how dates serialize, any workbook-level defined
+/// names, and the overrides laid over the finished cells. This is the entire
+/// input to the emitter seam (`model -> bytes`, ADR-002).
 ///
 /// Only the *name* of `default_font` is a workbook-level default; size, colour
 /// and the rest are per-style. `defined_names` is in declaration order, so
 /// emission is deterministic; a reference cell holds `=name` and Excel resolves
 /// it. `active_sheet` names the tab Excel opens on, which the emitter resolves
-/// to an `activeTab` index. Every optional field unset keeps Excel's or the
-/// backend's default.
+/// to an `activeTab` index. `overrides` are workbook-level because they apply
+/// after every sheet's cells, whichever sheet they land on. Every optional field
+/// unset keeps Excel's or the backend's default.
 pub(all) struct Workbook {
   sheets : Array[Sheet]
   date_system : @units.DateSystem
   default_font : String?
   defined_names : Array[DefinedName]
+  overrides : Array[Override]
   mut active_sheet : String?
   mut properties : DocumentProperties?
   mut calc : CalcSettings?
@@ -55,6 +75,7 @@ pub fn Workbook::new(
     date_system,
     default_font,
     defined_names: [],
+    overrides: [],
     active_sheet: None,
     properties: None,
     calc: None,
@@ -102,6 +123,22 @@ pub fn Workbook::add_defined_name(
   refers_to : CellValue,
 ) -> Unit {
   self.defined_names.push({ name, refers_to })
+}
+
+///|
+/// Lay one deliberate deviation over a cell. Appended in declaration order; the
+/// emitter applies them after every construct that writes a cell.
+pub fn Workbook::add_override(self : Workbook, entry : Override) -> Unit {
+  self.overrides.push(entry)
+}
+
+///|
+/// The overrides landing on one sheet, in declaration order.
+pub fn Workbook::sheet_overrides(
+  self : Workbook,
+  name : String,
+) -> Array[Override] {
+  self.overrides.filter(entry => entry.sheet == name)
 }
 
 ///|

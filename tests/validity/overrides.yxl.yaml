@@ -1,0 +1,81 @@
+# Part of the validity corpus (ROADMAP §5).
+#
+# every facet an `overrides:` entry can replace, over every layer it can
+# replace it on: a `cells:` entry, a `data:` row, and a cell in the middle of
+# a `formulas:` range
+#
+# The range is the one worth validating. A filled range compiles to a shared
+# formula whose master declares the whole region (ECMA-376 §18.3.1.40); an
+# override inside it takes one cell out of the group, so the group's declared
+# region ends up covering a cell that no longer follows it. That shape is
+# invisible to a round trip through the library that wrote it, which is what
+# this corpus exists to catch.
+#
+# Nothing here needs to be legible or realistic. Add a row when the schema
+# grows a variant; never delete one to make a build pass.
+
+defs:
+  styles:
+    flagged:
+      font: { bold: true, color: "9C0006" }
+      fill: "FFC7CE"
+
+sheets:
+  - name: Sales
+    cells:
+      A1: Region
+      B1: Units
+      C1: Price
+      D1: Revenue
+      E1: Note
+      A2: APAC
+      A3: EMEA
+      A4: AMER
+      E2: { value: "", style: flagged }
+    data:
+      - at: B2
+        values:
+          - [12, 250]
+          - [34, 250]
+          - [56, 250]
+    formulas:
+      - at: D2:D4
+        formula: "B2*C2"
+
+overrides:
+  # a value, over a `data:` row
+  - at: Sales!B3
+    value: 40
+    reason: 訂正版が締切に間に合わなかったため当月のみ手入力
+
+  # a formula, inside a filled range and off its anchor
+  - at: Sales!D4
+    formula: "=B4*C4*0.5"
+    reason: この行だけ按分する
+
+  # a plain value where a filled range would have calculated
+  - at: Sales!D3
+    value: 9999
+    reason: 監査で確定した額に固定
+
+  # a style alone, leaving the value the sheet already wrote
+  - at: Sales!A3
+    style: flagged
+    reason: 手修正のある行を目立たせる
+
+  # a number format alone
+  - at: Sales!B2
+    format: "#,##0"
+
+  # both facets at once, with a typed value
+  - at: Sales!E2
+    value: "2026-03-31"
+    type: date
+    format: "yyyy-mm-dd"
+    reason: 確定日を残す
+
+  # rich text, over a `cells:` entry
+  - at: Sales!A1
+    rich:
+      - "Region"
+      - { text: " (修正あり)", font: { italic: true, color: "9C0006" } }
