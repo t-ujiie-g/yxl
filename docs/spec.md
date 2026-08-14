@@ -21,6 +21,7 @@ sheets: [...]          # the workbook's sheets, in tab order
 active: Summary        # the sheet Excel opens on (default: the first)
 params: {...}          # named values substituted as ${name}   → §7
 defs: {...}            # named styles, values, and formulas    → §6
+overrides: [...]       # deliberate one-off deviations         → §23
 properties: {...}      # what the file says about itself       → §15
 calc: {...}            # when Excel recalculates               → §15
 protect: {...}         # refused for now — backend defect      → §16
@@ -34,6 +35,7 @@ default_font: Calibri  # the workbook's default font face
 | `active` | text | Must name a declared, **visible** sheet. |
 | `params` | mapping | §7. |
 | `defs` | mapping | §6. |
+| `overrides` | sequence | One-off deviations, applied after every cell. §23. |
 | `properties` | mapping | Document properties. §15. |
 | `calc` | mapping | Calculation settings. §15. |
 | `protect` | mapping | Workbook protection — **refused for now**, a backend defect. §16. |
@@ -106,7 +108,9 @@ sheets:
 | `protect` | mapping | Sheet protection. §16. |
 
 Sheet keys apply **in the order written**, so where a `data:` table and `cells:`
-overlap, whichever comes last wins.
+overlap, whichever comes last wins. Where that ordering is the *point* — one
+cell held apart from the rule that produced it — write it as an override (§23)
+instead, which applies last whatever the file's key order.
 
 **Sheet names follow Excel's own rules**, checked when the spec loads rather
 than left to fail deep in the writer: 1–31 characters (counted as characters,
@@ -230,6 +234,9 @@ formulas:
   - at: D11:D500          # D10 is written by hand
     formula: "B11*C11"
 ```
+
+Where the exception is a *deliberate one-off* rather than a change of rule,
+`overrides:` (§23) says so in one line and leaves the range whole.
 
 ## 4. Column and row bands
 
@@ -1349,3 +1356,96 @@ Every extraction compiles the spec it produced and compares the cells against
 the ones it read. A mismatch is reported and the exit code says so — the spec is
 still written, because a starting point with a known gap beats none, but it
 tells you rather than leaving it to be found in Excel.
+
+## 23. Overrides
+
+Some edits have no home in the rules that produced the cell. The value comes
+from a `${quarter}` parameter and *this one cell* has to differ; it comes from
+row 12 of a CSV the source system refreshes monthly; it comes from a
+`formulas:` range covering `E2:E500` and row 37 does not follow the rule.
+
+Every answer available without this section damages something: inline the
+parameter, split the range into three, stop reading the column from the file.
+Each turns one deliberate exception into a permanent change of structure —
+which is the compression this format exists for, given up for one cell.
+
+`overrides:` is that exception, said out loud.
+
+```yaml
+overrides:
+  - at: Sales!A1
+    value: "2026年3月期 実績（確定）"
+    reason: "監査対応で当期のみ手修正"
+  - at: Sales!E37
+    formula: "=D37"
+    reason: "この行だけ按分しない"
+```
+
+| Key | Notes |
+|---|---|
+| `at` | **Required.** One **sheet-qualified** cell — `Sales!E37`, or `'Q3 data'!A1` where Excel would quote the name. Never a range. |
+| `reason` | Free text, for whoever reads the spec in six months. Nothing in the compiler reads it. |
+| `value` `formula` `rich` `type` `format` `style` | Exactly as in a `cells:` entry (§3). |
+
+**They are applied last, by construction.** Sheet keys apply in the order
+written (§2), so a `cells:` entry placed after a `data:` block already wins —
+but only for as long as nobody reorders the keys and no tool sorts them. An
+override does not depend on where it sits in the file, or on where the thing it
+overrides sits.
+
+**The facets are independent.** An override that gives a `value` leaves the
+cell's styling alone; one that gives only a `style` or a `format` leaves its
+value alone. A cell's value and its formatting come from different places in a
+spec, and overriding one should not quietly discard the other.
+
+**An override must have something to override.** If no `cells:`, `data:`, or
+`formulas:` entry writes that cell, the spec is refused and says so: an
+exception to nothing is a `cells:` entry with a misleading name. `overrides:` is
+not a second way to write cells.
+
+**One cell, one override.** A second entry for the same cell is refused rather
+than resolved by order — the thing this section exists to avoid.
+
+### Inside a filled range
+
+This is the case that has no other answer. An override may land on any cell of a
+`formulas:` range **except its top-left**, and it takes that one cell out of the
+range:
+
+```yaml
+sheets:
+  - name: Sales
+    formulas:
+      - at: E2:E500
+        formula: "C2*D2"
+
+overrides:
+  - at: Sales!E37
+    formula: "=D37"
+    reason: "この行だけ按分しない"
+```
+
+The range stays one range and one stored formula; row 37 holds its own. Written
+as a split (§3) the same exception costs three ranges and re-anchors two of
+them, and nothing in the file says why.
+
+The top-left is refused because that is where the shared formula is *stored*
+(ECMA-376 §18.3.1.40) — overriding it would take the formula away from every
+other row of the range. Start the range below the exception instead.
+
+### Why they are worth writing as overrides
+
+A `cells:` entry placed after a `data:` block does the same job to the bytes.
+What it cannot do is say that it is an exception:
+
+- **They can be counted.** "This spec has 23 hand-patched cells" is the most
+  useful single thing anyone can tell you about a spec's health, and after the
+  fact nobody can work it out.
+- **They carry a reason.** `監査対応で当期のみ手修正` is the part a reader six
+  months later actually needs, and a YAML comment is not something a tool can
+  summarize.
+- **They can be folded back.** Five overrides sharing a shape are a rule waiting
+  to be written; finding them means knowing which five they are.
+
+If the list is growing, that is the format telling you something: twenty
+overrides is a spec whose rules no longer match its workbook.

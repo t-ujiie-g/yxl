@@ -919,6 +919,27 @@ the first item changes what a spec looks like.
       `from:` takes a plain range (a hand-written `$` is refused), and a `null`
       field writes no cell, so a column of them reserves the gap for a
       `formulas:` range.
+- [x] **A layer for the cells that are exceptions (`overrides:`).** Raised from
+      downstream (#66) and taken now because it adds a top-level key, which
+      after the freeze is a breaking change to the "no unknown keys" contract
+      (ADR-006) rather than an addition. The schema could already express the
+      three cases — a `${quarter}` value one cell must deviate from, a refreshed
+      CSV, a row of a `formulas:` range — by putting a `cells:` entry after the
+      block it overrides, and that is the complaint: the entry is then
+      indistinguishable from a cell the author meant, so nobody can count the
+      hand-patched cells, say *why* one was patched, or find the five that share
+      a shape and should have been a rule. It also made correctness depend on
+      YAML key order, which any formatter may change.
+      **Shipped** as a top-level `overrides:` (`docs/spec.md` §23, ADR-018):
+      `at:` one sheet-qualified cell, the `cells:` grammar, and a `reason:`,
+      applied after everything that writes a cell and before everything that
+      reads one. Per-facet, so a new value keeps the cell's formatting; refused
+      when it overrides nothing, when it names a range, when a cell has two, and
+      when it lands on a formula range's anchor — where the shared formula is
+      stored. Inside a range anywhere else it takes one cell out of the group
+      and leaves the other 499 sharing one stored formula, which is the case
+      that had no answer before. `tests/validity/overrides.yxl.yaml` puts every
+      facet through the Open XML validator.
 - [ ] **A JSON Schema for the spec, generated from `docs/spec.md`'s contents.**
       Publishing one lets an author write
       `# yaml-language-server: $schema=…` and get completion and validation in
@@ -1289,6 +1310,61 @@ output is 499 near-identical lines. Choosing CSV extraction is also choosing
 multi-file output, because `data:` reads a path and has no inline form — until
 Phase 11's inline `values:` lands. `$include` splitting is never inferred.
 
+### ADR-018 — A deliberate one-off deviation is an `overrides:` entry, applied last
+
+**Status:** accepted 2026-08-15.
+
+**Context:** Some cells are exceptions to the rule that produced them: the value
+comes from a `${quarter}` parameter and one cell must differ, or from a CSV the
+source system refreshes monthly, or from a `formulas:` range where one row does
+not follow. The schema could already *express* all three — sheet keys apply in
+the order written, so a `cells:` entry after a `data:` block wins — and that is
+exactly the problem. Once written it is indistinguishable from a cell the author
+meant, so the exceptions cannot be counted, carry no reason, and cannot be
+folded back into a rule when five of them turn out to share a shape. It is also
+load-bearing on YAML key order, which a formatter is free to change. The
+alternative, a tool recording its own edits in metadata beside the spec, gives
+up the thing the format is for: ordinary reviewable YAML (#66).
+
+**Decision:** a top-level `overrides:` sequence, each entry `at:` one
+sheet-qualified cell, carrying the `cells:` grammar (§3 of `docs/spec.md`) plus
+a free-text `reason:`. Four rules make it a layer rather than a second `cells:`:
+
+- **Applied last, by construction** — after everything that writes a cell,
+  before everything that reads one (a table takes its column names from the
+  header an override replaced). Not by position, so reformatting cannot break
+  it.
+- **Per facet.** `value` and `style` are independent: a new value keeps the
+  cell's formatting, a new style keeps its value. A cell's two halves come from
+  different places in a spec, and overriding one must not discard the other.
+- **A single cell, never a range** — a range would make this a second styling
+  mechanism, and an override that covers 500 cells is not an exception.
+- **It must have something to override.** No `cells:`, `data:`, or `formulas:`
+  entry writing that cell is a diagnostic, not a new cell.
+
+**Workbook-level, not per-sheet**, because the layer is the workbook's: one
+countable block answers "how hand-patched is this spec?", which is the question
+that motivated it, and a sheet in its own `$include`d file keeps its rules free
+of its exceptions.
+
+**Trade-offs / consequences:** the case with no other answer is a `formulas:`
+range. An override inside one takes that cell out of the shared-formula group
+and leaves the range whole — one stored formula, one exception — where splitting
+the range costs three ranges and says nothing about why. The group's declared
+`ref` then covers a cell that no longer follows it (ECMA-376 §18.3.1.40); that
+package is schema-valid to the Open XML SDK validator and round-trips through
+the backend's reader, but Excel itself is the Tier-3 manual judge and has not
+ruled. The range's **top-left is refused**, since that is where the shared
+formula is stored and replacing it would take the formula from every other row.
+
+`extract` never writes overrides — a workbook cannot say which of its cells were
+exceptions, and inventing the distinction would be a guess (ADR-017).
+
+Deliberately not taken here: **`yxl build` reporting the count** it now has in
+hand ("wrote out.xlsx — 23 overrides"). That is a change to the `@cli` seam's
+return type rather than to the schema, and the schema is what the freeze is
+about.
+
 ## 8. Open questions
 
 - **Q1 — YAML parser.** ✅ **Decided (ADR-009), refined (ADR-010):** depend on
@@ -1372,6 +1448,17 @@ Phase 11's inline `values:` lands. `$include` splitting is never inferred.
 
 - **Q6 — Distribution.** Native binary only, or also a wasm CLI? A wasm target
   would favor a lighter backend (`moon-xlsx`) via the ADR-002 seam.
+
+- **Q12 — Can a spec say "this one cell is an exception"?** ✅ **Decided
+  (ADR-018): yes, as a top-level `overrides:` layer.** Raised from downstream by
+  [yxl-vscode](https://github.com/t-ujiie-g/yxl-vscode) (#66), whose governing
+  rule is that a spec it writes must build with a stock `yxl build` — so
+  anything a grid editor needs and the schema cannot say has to be settled here,
+  before the freeze. A grid edit on a cell fed by a parameter, a refreshed CSV,
+  or a `formulas:` range maps to no change that keeps the spec's structure, and
+  the three available answers (inline the parameter, split the range, stop
+  reading the column from the file) each spend the compression the format exists
+  for on one cell.
 
 - **Q11 — A chart series with no `categories:`, which §12 promises and the
   backend refuses.** Found while writing the chart-extraction tests
@@ -1645,6 +1732,38 @@ Phase 11's inline `values:` lands. `$include` splitting is never inferred.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-08-15** — **`overrides:`, a layer for the cells that are exceptions.**
+  A spec could always *express* a one-off deviation — sheet keys apply in the
+  order written, so a `cells:` entry after a `data:` block wins — and that was
+  the problem: once written it looked exactly like a cell somebody meant. So the
+  hand-patched cells could not be counted, could not say why they were patched,
+  and could not be folded back into a rule when several turned out to share a
+  shape; and the spec's correctness rested on YAML key order, which any
+  formatter is free to change.
+
+  A top-level `overrides:` says it instead (`docs/spec.md` §23): `at:` one
+  sheet-qualified cell, the same grammar a `cells:` entry uses, and a `reason:`
+  for whoever reads the spec six months later. It is applied after everything
+  that writes a cell and before everything that reads one, so an override is
+  never at the mercy of where it sits in the file, and a table still takes its
+  column names from the header the override replaced. The facets are
+  independent: a new value keeps the cell's formatting, a new style keeps its
+  value.
+
+  The case that had no answer before is a `formulas:` range. An override inside
+  one takes that single cell out of the shared-formula group and leaves the
+  range whole — 500 rows, one stored formula, one exception — where the previous
+  advice, splitting the range around it, cost three ranges, re-anchored two of
+  them, and recorded nothing about why. The range's top-left is refused, since
+  that is where the shared formula lives (ECMA-376 §18.3.1.40).
+
+  It is also refused when it overrides nothing, when its `at:` names a range,
+  and when one cell is given two — the rules that keep the block a countable
+  list of exceptions rather than a second `cells:`. Raised from downstream by
+  yxl-vscode (#66) and taken now because a top-level key added after the freeze
+  is a breaking change; `tests/validity/overrides.yxl.yaml` puts every facet
+  through the Open XML SDK validator.
 
 - **2026-08-14** — **A default architecture for a maintained workbook, in the
   skills and in the cookbook.** The skills knew every mechanism and prescribed

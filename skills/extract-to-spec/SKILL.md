@@ -162,6 +162,13 @@ Rewrite these by hand, using the extracted YAML as the answer sheet.
 - **Parameters (§7)**: a value that changes per issue of the workbook (the
   reporting month, a title) is a `params:` entry substituted as `${name}`,
   which is what makes next month's file a one-line change or a `--set` flag.
+- **The cells that resist becoming a rule are `overrides:` (§23)**, not the
+  reason to abandon the rule. Every migration turns up a few: the row somebody
+  hard-coded over a formula column, the one cell that ignores the parameter.
+  Write the range or the parameter as the rule really is, then lift each holdout
+  into a top-level `{ at: Sheet!E37, …, reason: … }` — with the reason you found
+  in the original workbook, or a note that you could not find one. That block is
+  the migration's own decision list, and it stays legible after you have gone.
 - **Split the spec into the house layout (§8)**: `{ $include: path }` moves a
   sheet or a `defs:` block into its own file, leaving an entry spec that is a
   table of contents. A real workbook is past the size where one file is

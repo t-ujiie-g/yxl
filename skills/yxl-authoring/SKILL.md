@@ -220,6 +220,13 @@ The month, the region, the title (§7) — and two less obvious ones:
   overlap a cell that `cells:` or `data:` writes. Put derived columns beside the
   data block, or leave `null` in the data rows where the formula column runs —
   `null` writes no cell, so the range is free to fill it.
+- **A cell that must defy its own rule is an `overrides:` entry** (§23), not a
+  restructuring. One cell of a `${month}` value, a refreshed CSV, or a
+  `formulas:` range differing this once is a top-level
+  `{ at: Sales!E37, formula: "=D37", reason: … }` — the range stays whole and
+  the reason stays with it. Do not inline the parameter, split the range, or
+  stop reading the column from its file to accommodate one cell. Always write
+  the `reason:`; a growing list is the signal that the rule itself is wrong.
 
 ## Writing a spec from scratch
 

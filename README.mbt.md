@@ -29,7 +29,8 @@ is declarative authoring for people who'd rather edit YAML than write code.
 
 > ⚠️ **Status: pre-release, schema not yet frozen.** `yxl build` works today —
 > values, formulas, dates, durations, rich text, styles, layout, print setup,
-> multi-file specs, external CSV/JSON data, parameters, validations, conditional
+> multi-file specs, external CSV/JSON data, parameters, one-off overrides,
+> validations, conditional
 > formatting, hyperlinks, notes, protection, Excel tables, charts, images,
 > shapes, sheet backgrounds, sparklines, form controls, table slicers, and
 > pivot tables all compile, and the CLI has `--check`, `--set`, and stable

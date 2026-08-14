@@ -216,6 +216,27 @@ test "defined names and the active sheet are workbook-wide, in declaration order
 }
 
 ///|
+test "overrides are workbook-wide, in declaration order, and read back per sheet" {
+  let wb = @model.Workbook::new()
+  let at = @units.CellRef::new(col=1, row=1)
+  for name in ["First", "Second"] {
+    wb.add_sheet(name) |> ignore
+    wb.add_override({
+      sheet: name,
+      at,
+      value: Some(Text(name)),
+      style: None,
+      reason: Some("by hand"),
+    })
+  }
+  assert_eq(wb.overrides.map(entry => entry.sheet), ["First", "Second"])
+  assert_eq(wb.sheet_overrides("Second").map(entry => entry.value), [
+    Some(Text("Second")),
+  ])
+  assert_eq(wb.sheet_overrides("Third"), [])
+}
+
+///|
 /// A color for the tests that need one; `parse` is exercised in `units`.
 fn red() -> @units.Color {
   @units.Color::parse("FF0000").unwrap()

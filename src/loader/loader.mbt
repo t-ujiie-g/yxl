@@ -94,10 +94,11 @@ pub fn load(
           "top-level 'protect' is refused for now: the Excel backend writes the workbook protection out of schema order and Excel reports the file as corrupt — protect each sheet instead, until the upstream fix",
         )
       PARAMS_KEY => () // consumed by the substitution pass
+      OVERRIDES_KEY => load_overrides(value, workbook, file~, defs~)
       _ =>
         raise schema_error(
           file~,
-          "unknown top-level key '\{key}' (expected 'sheets', 'active', 'params', 'date1904', 'default_font', 'defs', 'properties', 'calc', or 'protect')",
+          "unknown top-level key '\{key}' (expected 'sheets', 'active', 'params', 'overrides', 'date1904', 'default_font', 'defs', 'properties', 'calc', or 'protect')",
         )
     }
   }
@@ -108,6 +109,7 @@ pub fn load(
   check_cross_sheet_references(workbook, file~)
   check_tables(workbook, file~)
   check_formula_ranges(workbook, file~)
+  check_overrides(workbook, file~)
   check_slicers(workbook, file~)
   check_pivots(workbook, file~)
   // Two different mistakes, and one message for both would name neither: an
