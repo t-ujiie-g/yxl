@@ -245,8 +245,8 @@ keystroke.
 4. **Richer features each have a section and an example**: validations, links,
    notes, conditional formatting (§10), tables (§11), charts (§12), images
    (§13), pivots (§14), protection (§16), shapes (§18), sparklines (§19), form
-   controls (§20), slicers (§21). Copy the shape from `examples/*.yxl.yaml`
-   rather than improvising.
+   controls (§20), slicers (§21), one-off exceptions (§23). Copy the shape from
+   `examples/*.yxl.yaml` rather than improvising.
 
 ## Editing an existing spec
 

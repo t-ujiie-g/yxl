@@ -193,6 +193,7 @@ so the pages cannot drift from the compiler:
 | [`pivots.yxl.yaml`](./examples/pivots.yxl.yaml) | two pivot tables over one source: rows, columns, and two aggregations |
 | [`shapes.yxl.yaml`](./examples/shapes.yxl.yaml) | a cloud stamp, a chevron with two text lines, a pinned star |
 | [`sparklines.yxl.yaml`](./examples/sparklines.yxl.yaml) | a trend line per row with markers, and win/loss cells plotting another sheet |
+| [`overrides.yxl.yaml`](./examples/overrides.yxl.yaml) | one-off exceptions written down as exceptions: a row of a filled formula range that does not follow it, a corrected value, a style alone — each with its reason |
 | [`workbook.yxl.yaml`](./examples/workbook.yxl.yaml) | the layout to keep a real workbook in: a sheet per file, styles named once, one store master every sheet references, and a month's data swapped with `--set` |
 
 ```bash

@@ -938,7 +938,7 @@ the first item changes what a spec looks like.
       when it lands on a formula range's anchor — where the shared formula is
       stored. Inside a range anywhere else it takes one cell out of the group
       and leaves the other 499 sharing one stored formula, which is the case
-      that had no answer before. `tests/validity/overrides.yxl.yaml` puts every
+      that had no answer before. `tests/validity/override-facets.yxl.yaml` puts every
       facet through the Open XML validator.
 - [ ] **A JSON Schema for the spec, generated from `docs/spec.md`'s contents.**
       Publishing one lets an author write
@@ -1733,6 +1733,19 @@ about.
 
 Reverse-chronological. One entry per user-visible or structural change.
 
+- **2026-08-15** — **The cookbook covers `overrides:` too.** §23 shipped as the
+  only section of `docs/spec.md` with no worked example behind it (#68), which
+  left a reader who wanted to write down a one-off exception with a reference
+  and nothing to copy. `examples/overrides.yxl.yaml` is a sheet that is
+  otherwise entirely rules — six rows from one `data:` block, one revenue
+  formula filled down the column — with three cells that are not: a row of the
+  filled range billed at half rate, a value the source export got wrong, and a
+  style alone marking the patched row. What the file is really demonstrating is
+  the `reason:` on each, since that is the half no other spelling of the same
+  bytes can carry. It joins the promise table and both writer round-trips, so
+  the example is asserted on cells and survives being written back out and
+  re-extracted like the rest of the corpus.
+
 - **2026-08-15** — **`overrides:`, a layer for the cells that are exceptions.**
   A spec could always *express* a one-off deviation — sheet keys apply in the
   order written, so a `cells:` entry after a `data:` block wins — and that was
@@ -1762,7 +1775,7 @@ Reverse-chronological. One entry per user-visible or structural change.
   and when one cell is given two — the rules that keep the block a countable
   list of exceptions rather than a second `cells:`. Raised from downstream by
   yxl-vscode (#66) and taken now because a top-level key added after the freeze
-  is a breaking change; `tests/validity/overrides.yxl.yaml` puts every facet
+  is a breaking change; `tests/validity/override-facets.yxl.yaml` puts every facet
   through the Open XML SDK validator.
 
 - **2026-08-14** — **A default architecture for a maintained workbook, in the

@@ -12,7 +12,9 @@
 # this corpus exists to catch.
 #
 # Nothing here needs to be legible or realistic. Add a row when the schema
-# grows a variant; never delete one to make a build pass.
+# grows a variant; never delete one to make a build pass. Named for the facets
+# rather than the key, because `examples/overrides.yxl.yaml` is the readable
+# one and the validator tells two workbooks apart only by their basename.
 
 defs:
   styles:

@@ -1,0 +1,81 @@
+# Saying "this one cell is an exception" out loud. Build it with:
+#
+#   yxl build examples/overrides.yxl.yaml -o overrides.xlsx
+#
+# The sheet below is entirely rules: six rows from one `data:` block, one
+# revenue formula filled down the column. Three cells do not follow those rules,
+# and `overrides:` is where they say so — after the rules, never inside them.
+
+params:
+  quarter: Q3
+
+defs:
+  styles:
+    header:
+      font: { bold: true, color: "FFFFFF" }
+      fill: "1F3864"
+    # An override may change a cell's *look* and leave its value alone, which is
+    # what this is for: mark the row somebody touched by hand.
+    patched:
+      font: { italic: true, color: "9C0006" }
+
+sheets:
+  - name: Sales
+    freeze: A2
+    columns:
+      - { at: A-B, width: 14 }
+      - { at: D-E, width: 14, format: "#,##0" }
+    rows:
+      - { at: 1, style: header }
+
+    # The rule for the rows: one block, refreshed from the source system.
+    # `null` writes no cell, so the revenue column stays free for the formula
+    # range below to fill.
+    data:
+      - at: A1
+        values:
+          - [Region, Rep, Units, Price, Revenue]
+          - [APAC, Sato, 120, 2500, null]
+          - [EMEA, Muller, 95, 2500, null]
+          - [AMER, Silva, 140, 2500, null]
+          - [Japan, Suzuki, 210, 2500, null]
+          - [ANZ, Nguyen, 60, 2500, null]
+
+    # The rule for the column: one formula, translated down the six rows. The
+    # file stores it once.
+    formulas:
+      - at: E2:E6
+        formula: "C2*D2"
+
+    cells:
+      A8: { value: "${quarter} figures, provisional", style: patched }
+
+# Applied last, whatever order this file happens to be in — that is the whole
+# point. A `cells:` entry placed after the `data:` block above would compile to
+# the same bytes, and would be indistinguishable from a cell somebody meant.
+overrides:
+  # A row of a filled range that does not follow it. This is the case with no
+  # other spelling: written as a split, the exception costs three ranges — E2:E3,
+  # E4 by hand, E5:E6 — and none of them records why. Here the range stays one
+  # range and one stored formula. (Its top-left is the one cell you may not
+  # override: that is where Excel keeps the shared formula.)
+  - at: Sales!E4
+    formula: "=C4*D4*0.5"
+    reason: "AMER is a pilot contract, billed at half rate — ${quarter} only"
+
+  # A value the source file got wrong, corrected here rather than by editing
+  # the file next month's refresh will overwrite.
+  - at: Sales!C4
+    value: 150
+    reason: "The corrected export missed the cut-off; next month's refresh restores it"
+
+  # A style and nothing else: the value stays whatever the rules produced. The
+  # facets are independent, so this does not have to restate the region name to
+  # change how it is drawn.
+  - at: Sales!A4
+    style: patched
+    reason: "Mark the row that carries a hand correction"
+
+# Three is a healthy number. Twenty is the format telling you the rules no
+# longer match the workbook — at which point the fix is the rule, not another
+# entry here.
