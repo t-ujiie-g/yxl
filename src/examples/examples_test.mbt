@@ -63,6 +63,11 @@ fn promises() -> Array[Promise] {
     promise("shapes.yxl.yaml", "Board", "B4", "2400000"),
     promise("sparklines.yxl.yaml", "Dashboard", "E2", "3100"),
     promise("sparklines.yxl.yaml", "Results", "C3", "1"),
+    // An override wins over the `data:` row under it, and a style-only one
+    // leaves the value the rules produced exactly where it was.
+    promise("overrides.yxl.yaml", "Sales", "C4", "150"),
+    promise("overrides.yxl.yaml", "Sales", "A4", "AMER"),
+    promise("overrides.yxl.yaml", "Sales", "C3", "95"),
     promise("workbook.yxl.yaml", "Summary", "A1", "Store revenue — 2026-07"),
     promise("workbook.yxl.yaml", "Masters", "B2", "Shinjuku"),
     promise("workbook.yxl.yaml", "Sales", "B2", "2400000"),

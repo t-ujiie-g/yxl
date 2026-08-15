@@ -4,7 +4,7 @@ fn corpus() -> Array[String] {
   [
     "quickstart.yxl.yaml", "styling.yxl.yaml", "layout.yxl.yaml", "modular.yxl.yaml",
     "parameters.yxl.yaml", "charts.yxl.yaml", "pivots.yxl.yaml", "shapes.yxl.yaml",
-    "sparklines.yxl.yaml", "interactive.yxl.yaml",
+    "sparklines.yxl.yaml", "interactive.yxl.yaml", "overrides.yxl.yaml",
   ]
 }
 
@@ -28,7 +28,7 @@ test "a rewritten example still compiles to the same workbook" {
   for
     name in [
       "quickstart.yxl.yaml", "styling.yxl.yaml", "charts.yxl.yaml", "pivots.yxl.yaml",
-      "shapes.yxl.yaml", "sparklines.yxl.yaml", "interactive.yxl.yaml",
+      "shapes.yxl.yaml", "sparklines.yxl.yaml", "interactive.yxl.yaml", "overrides.yxl.yaml",
     ] {
     let path = "\{EXAMPLES}/\{name}"
     let source = @fs.read_file_to_string(path)
@@ -59,6 +59,7 @@ test "every example extracts back into a spec that checks out" {
     name in [
       "quickstart.yxl.yaml", "styling.yxl.yaml", "layout.yxl.yaml", "charts.yxl.yaml",
       "pivots.yxl.yaml", "shapes.yxl.yaml", "sparklines.yxl.yaml", "interactive.yxl.yaml",
+      "overrides.yxl.yaml",
     ] {
     let path = "\{EXAMPLES}/\{name}"
     let bytes = @cli.compile(
