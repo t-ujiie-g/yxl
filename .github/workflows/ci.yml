@@ -74,6 +74,28 @@ jobs:
           echo "moon.mod: $declared, cli: $reported"
           test "$declared" = "$reported"
 
+      # `docs/yxl.schema.json` is generated from `docs/spec.md`, so the pair
+      # cannot drift silently: the generator refuses to run when the reference
+      # documents a key it cannot shape (or shapes one the reference has
+      # dropped), `--check` fails when the committed file is not what the
+      # reference now says, and `--selftest` proves the schema still refuses the
+      # mistakes it exists to catch — a schema that decayed into `{}` would pass
+      # every corpus otherwise. Linux alone: the bytes do not differ by runner.
+      - name: Install Python (for the schema generator)
+        if: runner.os == 'Linux'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Schema drift (docs/spec.md vs. docs/yxl.schema.json)
+        if: runner.os == 'Linux'
+        run: |
+          python -m pip install --quiet pyyaml jsonschema
+          python tools/spec-schema/generate.py --check
+          python tools/spec-schema/generate.py --selftest
+          python tools/spec-schema/generate.py --validate \
+            examples/*.yxl.yaml tests/validity/*.yxl.yaml
+
       # The product target is native (ADR-003): the CLI reads/writes files on
       # disk. Build it before testing it — a compiler that cannot build the
       # binary is a worse fact than a failing test, and finding it second means

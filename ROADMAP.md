@@ -940,12 +940,23 @@ the first item changes what a spec looks like.
       and leaves the other 499 sharing one stored formula, which is the case
       that had no answer before. `tests/validity/override-facets.yxl.yaml` puts every
       facet through the Open XML validator.
-- [ ] **A JSON Schema for the spec, generated from `docs/spec.md`'s contents.**
+- [x] **A JSON Schema for the spec, generated from `docs/spec.md`'s contents.**
       Publishing one lets an author write
       `# yaml-language-server: $schema=…` and get completion and validation in
       VS Code — a large ergonomic return for a small artifact. Generating it
       *from* the reference (or checking the two agree in CI) is what stops the
       pair drifting, which is the same trick `examples/` plays for the cookbook.
+      **Shipped** as `docs/yxl.schema.json`, built by
+      `tools/spec-schema/generate.py` (ADR-019, `docs/spec.md` §24). The
+      reference supplies the *vocabulary* — every key, every enumeration, and
+      the sentence an editor shows on hover, read out of its own tables, example
+      blocks, and lists — and the generator supplies the *shapes* prose cannot
+      state. Neither half can move alone: a key documented but unshaped, or
+      shaped but undocumented, fails the generator by name, and CI fails when
+      the committed JSON is not what the reference now says. A schema that
+      decayed to `{}` would still pass every corpus, so `--selftest` pins
+      thirteen mistakes it must refuse alongside the twenty-one specs of
+      `examples/` and `tests/validity/` it must accept.
 
 ### v1.0 — Stability gate
 - [ ] Schema freeze (breaking budget spent here). The **spec reference** it
@@ -1365,6 +1376,57 @@ hand ("wrote out.xlsx — 23 overrides"). That is a change to the `@cli` seam's
 return type rather than to the schema, and the schema is what the freeze is
 about.
 
+### ADR-019 — The JSON Schema is generated from `docs/spec.md`, by a build tool
+
+**Status:** accepted 2026-08-16.
+
+**Context:** An author writing a spec wants what an editor gives every other
+config format: completion, hover text, and an underline beneath a key that does
+not exist. A JSON Schema buys all three for anything speaking
+`yaml-language-server`. The danger is the one every published schema has — it
+becomes a fourth description of the format, beside the loader, the reference,
+and the cookbook, and it is the one nobody notices going stale.
+
+**Decision:** `docs/yxl.schema.json` is **generated**, and the reference is what
+it is generated from. `tools/spec-schema/generate.py` reads `docs/spec.md` for
+the *vocabulary* — every key, taken from the key tables, the YAML examples of
+the sections documented by showing them, and the matrix of §4; every
+enumeration, taken from the lists the page already writes out (the icon sets,
+the chart types, the geometries, the numbered table styles); and the sentence
+each key carries, which becomes the `description` an editor shows. The generator
+supplies the *shapes* — types, nesting, required keys, the `$include`
+alternative — which prose states in English and cannot state precisely.
+
+**Neither half may move alone.** Every mapping is built against its documented
+key list, and a key documented but unshaped (or shaped but undocumented) fails
+the generator by name; a renamed heading or a table that stops being a key table
+fails it too. CI runs `--check` (the committed JSON is what the reference now
+says), `--selftest` (the schema still refuses the mistakes it exists to catch —
+a schema decayed to `{}` passes every corpus otherwise), and `--validate` over
+`examples/` and `tests/validity/`.
+
+**Why a build tool and not MoonBit.** It is not product code: it ships in no
+binary, links to no package, and runs when `docs/spec.md` changes. Reading
+markdown, emitting JSON, and validating a corpus against a JSON Schema are one
+afternoon in Python and a long one in MoonBit, and the compiler core stays
+I/O-free (ADR-003) precisely by not growing a documentation reader. It joins
+`tools/openxml-validator` (C#) and `.github/scripts/` as CI-side tooling; no
+module dependency is added.
+
+**Trade-offs / consequences:** the schema is a *shape* check, and the compiler
+stays the authority on meaning — that a `$ref` names something declared, that
+ranges do not overlap, that a `data:` entry gave exactly one source. Those need
+more than one key to decide and each deserves a sentence rather than a squiggle
+(ADR-006); expressing them as `oneOf` would trade good diagnostics for bad ones.
+So a spec the editor accepts can still be refused, with a better message. Two
+further limits, both stated in `docs/spec.md` §24: an `$include`d fragment is
+not a document and is not described, and a `${parameter}` is accepted wherever a
+value goes, since a placeholder is text until substitution (§7).
+
+The generated file is committed rather than released as an asset, so
+`$schema=…/main/docs/yxl.schema.json` resolves for anyone, and pointing at a
+local checkout works while writing against an unreleased `yxl`.
+
 ## 8. Open questions
 
 - **Q1 — YAML parser.** ✅ **Decided (ADR-009), refined (ADR-010):** depend on
@@ -1732,6 +1794,32 @@ about.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-08-16** — **A JSON Schema, generated from the reference.**
+  `docs/yxl.schema.json` ships beside `docs/spec.md`, and a spec that names it —
+  `# yaml-language-server: $schema=…`, or `yaml.schemas` for a whole project —
+  gets completion on every key, the reference's own sentence on hover, and an
+  underline beneath a key that does not exist. VS Code, Neovim, and Helix all
+  read the modeline; §24 of the reference is the setup.
+
+  It is **generated from the page it documents** (ADR-019), which is the half
+  that matters six months from now. `tools/spec-schema/generate.py` reads
+  `docs/spec.md` for the vocabulary — the keys out of its tables, examples, and
+  §4's matrix; the enumerations out of the lists it already writes (seventeen
+  icon sets, fourteen chart types, twenty-three geometries, sixty numbered table
+  styles); the hover text out of its Notes columns — and supplies only the
+  shapes prose cannot state. Neither half can drift: a key documented but
+  unshaped, or shaped but undocumented, fails the generator by name, and CI
+  fails when the committed JSON is not what the reference now says.
+
+  A schema that quietly decayed into `{}` would pass every corpus in the repo,
+  so acceptance is not the only test: `--selftest` pins thirteen mistakes it
+  must refuse — a misspelt sheet key, `5Boxes`, `TableStyleMedium99`, text where
+  a width goes, an override naming no sheet — beside the twenty-one specs of
+  `examples/` and `tests/validity/` it must accept. What it does *not* judge is
+  stated rather than left to be discovered: cross-key rules and dangling
+  references stay with the compiler, where a diagnostic can be a sentence
+  (ADR-006), so a spec the editor likes can still be refused.
 
 - **2026-08-15** — **The cookbook covers `overrides:` too.** §23 shipped as the
   only section of `docs/spec.md` with no worked example behind it (#68), which
