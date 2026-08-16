@@ -39,7 +39,9 @@ into `ROADMAP.md`.
 for it: `README.md` (what yxl is, install, a taste), `docs/spec.md` (the spec
 format reference), and `examples/` (the worked cookbook, compiled by CI — §6).
 Keep them in step with the code in the same change; a doc that lies is worse
-than a missing one.
+than a missing one. `docs/yxl.schema.json` is not a fourth home: it is
+*generated* from `docs/spec.md` (ADR-019) — edit the reference and regenerate,
+never the JSON.
 
 ## 2. MoonBit skills
 
@@ -120,6 +122,15 @@ moon build --target native   # the CLI must build native (ADR-003)
 A `.mbti` diff means the public API surface changed — review it and reflect it
 in `ROADMAP.md` if it affects a roadmap item.
 
+A change to `docs/spec.md` adds one step, since the JSON Schema is generated
+from it (ADR-019) and CI fails when the two disagree:
+```bash
+python3 tools/spec-schema/generate.py            # rewrite docs/yxl.schema.json
+python3 tools/spec-schema/generate.py --selftest # it still refuses what it must
+```
+The generator refuses to run when the reference documents a key it cannot shape;
+teach it the shape in `tools/spec-schema/generate.py` and commit both files.
+
 ## 5. Commands reference
 
 | Purpose | Command |
@@ -135,6 +146,7 @@ in `ROADMAP.md` if it affects a roadmap item.
 | Benchmark the pipeline | `moon bench src/cli` |
 | Coverage | `moon test --enable-coverage && moon coverage report` |
 | Add dependency | `moon add <user>/<module>` |
+| Regenerate the JSON Schema | `python3 tools/spec-schema/generate.py` |
 
 ## 6. Testing conventions
 

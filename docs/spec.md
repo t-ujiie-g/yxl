@@ -1449,3 +1449,58 @@ What it cannot do is say that it is an exception:
 
 If the list is growing, that is the format telling you something: twenty
 overrides is a spec whose rules no longer match its workbook.
+
+## 24. Editor support
+
+[`yxl.schema.json`](./yxl.schema.json) is a JSON Schema for this page,
+**generated from it**. Point an editor at it and a spec gets completion on every
+key, the sentence this reference gives it on hover, and a red underline beneath
+a key that does not exist — before the build says so.
+
+One spec at a time, with a modeline as the first line of the file:
+
+```yaml
+# yaml-language-server: $schema=https://raw.githubusercontent.com/t-ujiie-g/yxl/main/docs/yxl.schema.json
+sheets:
+  - name: Sales
+    cells:
+      A1: Region
+```
+
+Or once for a whole project, in `.vscode/settings.json` — the naming convention
+is the reason `*.yxl.yaml` is worth keeping to, since an `$include`d fragment
+must not match:
+
+```json
+{
+  "yaml.schemas": {
+    "https://raw.githubusercontent.com/t-ujiie-g/yxl/main/docs/yxl.schema.json": "*.yxl.yaml"
+  }
+}
+```
+
+VS Code needs the YAML extension for either route
+(`code --install-extension redhat.vscode-yaml`); nothing else is configured. The
+modeline is `yaml-language-server`'s own, so it works the same in Neovim, Helix,
+and anything else that speaks it. A **local** schema works too — an absolute
+path, or one relative to the file for a modeline and to the project root for
+`yaml.schemas` — which is what to do while writing a spec against an unreleased
+`yxl`.
+
+**The schema checks shapes; the compiler checks meaning.** It knows every key,
+every enumeration — the icon sets, the chart types, the table styles, the
+geometries — and what kind of thing each key takes, which is what catches the
+mistakes an editor should catch: a misspelt key, a value from the wrong list, a
+number where text belongs. It deliberately does not decide the rest: whether a
+`$ref` names something declared, whether two ranges overlap, whether a `data:`
+entry gave exactly one source, whether the sheet a link names exists. Those need
+more than one key to answer, and each is worth a sentence rather than a
+squiggle, which is what `yxl build` gives them (§17). **A spec the editor is
+happy with can still be refused**, and the refusal will say more.
+
+Two things it does not describe. **An included fragment is not a document**: a
+sheet in a file of its own, or a `defs.styles` map, is a *part* of one, so the
+schema is written for `*.yxl.yaml` and the pieces beside it are left alone. And
+`${parameter}` placeholders are accepted wherever a value goes, since a
+placeholder is text until it is substituted (§7) — so a parameter is never
+flagged for standing where a number belongs.

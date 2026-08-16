@@ -1,0 +1,3749 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/t-ujiie-g/yxl/main/docs/yxl.schema.json",
+  "title": "yxl spec",
+  "description": "A yxl workbook spec (*.yxl.yaml). Generated from docs/spec.md by tools/spec-schema/generate.py — edit the reference, not this file.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "sheets": {
+      "anyOf": [
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/sheet"
+          }
+        },
+        {
+          "$ref": "#/definitions/include"
+        }
+      ],
+      "description": "**Required.** Order here is tab order.",
+      "markdownDescription": "**Required.** Order here is tab order."
+    },
+    "active": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/text"
+        }
+      ],
+      "description": "Must name a declared, **visible** sheet.",
+      "markdownDescription": "Must name a declared, **visible** sheet."
+    },
+    "params": {
+      "anyOf": [
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/scalar"
+          }
+        },
+        {
+          "$ref": "#/definitions/include"
+        }
+      ],
+      "description": "§7.",
+      "markdownDescription": "§7."
+    },
+    "defs": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/defs"
+        }
+      ],
+      "description": "§6.",
+      "markdownDescription": "§6."
+    },
+    "overrides": {
+      "anyOf": [
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/override"
+          }
+        },
+        {
+          "$ref": "#/definitions/include"
+        }
+      ],
+      "description": "One-off deviations, applied after every cell. §23.",
+      "markdownDescription": "One-off deviations, applied after every cell. §23."
+    },
+    "properties": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/properties"
+        }
+      ],
+      "description": "Document properties. §15.",
+      "markdownDescription": "Document properties. §15."
+    },
+    "calc": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/calc"
+        }
+      ],
+      "description": "Calculation settings. §15.",
+      "markdownDescription": "Calculation settings. §15."
+    },
+    "protect": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/protect"
+        },
+        {
+          "$ref": "#/definitions/include"
+        }
+      ],
+      "description": "Workbook protection — **refused for now**, a backend defect. §16.",
+      "markdownDescription": "Workbook protection — **refused for now**, a backend defect. §16."
+    },
+    "date1904": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/boolean"
+        }
+      ],
+      "description": "`true` selects the 1904 epoch. Affects how dates serialize.",
+      "markdownDescription": "`true` selects the 1904 epoch. Affects how dates serialize."
+    },
+    "default_font": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/text"
+        }
+      ],
+      "description": "Face name only; size and colour are per-style.",
+      "markdownDescription": "Face name only; size and colour are per-style."
+    },
+    "$include": {
+      "type": "string",
+      "description": "Another document, pasted in place of this node (§8)."
+    }
+  },
+  "anyOf": [
+    {
+      "required": [
+        "sheets"
+      ]
+    },
+    {
+      "required": [
+        "$include"
+      ]
+    }
+  ],
+  "definitions": {
+    "align": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "horizontal": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "left",
+                "center",
+                "right",
+                "fill",
+                "justify",
+                "distributed"
+              ]
+            },
+            {
+              "$ref": "#/definitions/parameterized"
+            }
+          ]
+        },
+        "vertical": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "top",
+                "middle",
+                "bottom",
+                "justify",
+                "distributed"
+              ]
+            },
+            {
+              "$ref": "#/definitions/parameterized"
+            }
+          ]
+        },
+        "wrap": {
+          "$ref": "#/definitions/boolean"
+        },
+        "$include": {
+          "type": "string",
+          "description": "Another document, pasted in place of this node (§8)."
+        }
+      }
+    },
+    "axis": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "An axis title and its manual bounds (§12).",
+      "properties": {
+        "title": {
+          "$ref": "#/definitions/text"
+        },
+        "min": {
+          "$ref": "#/definitions/number"
+        },
+        "max": {
+          "$ref": "#/definitions/number"
+        },
+        "$include": {
+          "type": "string",
+          "description": "Another document, pasted in place of this node (§8)."
+        }
+      }
+    },
+    "boolean": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "$ref": "#/definitions/parameterized"
+        }
+      ]
+    },
+    "border": {
+      "anyOf": [
+        {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "thin",
+                "medium",
+                "thick",
+                "dashed",
+                "dotted",
+                "double",
+                "hair"
+              ]
+            },
+            {
+              "$ref": "#/definitions/parameterized"
+            }
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "all": {
+              "$ref": "#/definitions/border_edge"
+            },
+            "left": {
+              "$ref": "#/definitions/border_edge"
+            },
+            "right": {
+              "$ref": "#/definitions/border_edge"
+            },
+            "top": {
+              "$ref": "#/definitions/border_edge"
+            },
+            "bottom": {
+              "$ref": "#/definitions/border_edge"
+            },
+            "$include": {
+              "type": "string",
+              "description": "Another document, pasted in place of this node (§8)."
+            }
+          }
+        }
+      ]
+    },
+    "border_edge": {
+      "anyOf": [
+        {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "thin",
+                "medium",
+                "thick",
+                "dashed",
+                "dotted",
+                "double",
+                "hair"
+              ]
+            },
+            {
+              "$ref": "#/definitions/parameterized"
+            }
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "style": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "thin",
+                    "medium",
+                    "thick",
+                    "dashed",
+                    "dotted",
+                    "double",
+                    "hair"
+                  ]
+                },
+                {
+                  "$ref": "#/definitions/parameterized"
+                }
+              ]
+            },
+            "color": {
+              "$ref": "#/definitions/color"
+            },
+            "$include": {
+              "type": "string",
+              "description": "Another document, pasted in place of this node (§8)."
+            }
+          }
+        }
+      ]
+    },
+    "calc": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "When Excel recalculates (§15).",
+      "properties": {
+        "mode": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "automatic",
+                "automatic_no_tables",
+                "manual"
+              ]
+            },
+            {
+              "$ref": "#/definitions/parameterized"
+            }
+          ]
+        },
+        "on_load": {
+          "$ref": "#/definitions/boolean"
+        },
+        "$include": {
+          "type": "string",
+          "description": "Another document, pasted in place of this node (§8)."
+        }
+      }
+    },
+    "cell": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[A-Za-z]{1,3}[0-9]+$"
+        },
+        {
+          "$ref": "#/definitions/parameterized"
+        }
+      ],
+      "description": "An A1 cell reference."
+    },
+    "cell_body": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "value": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/scalar"
+            },
+            {
+              "$ref": "#/definitions/value_ref"
+            }
+          ],
+          "description": "A scalar, or `{ $ref: name }` naming a `defs.values` entry.",
+          "markdownDescription": "A scalar, or `{ $ref: name }` naming a `defs.values` entry."
+        },
+        "formula": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/text"
+            },
+            {
+              "$ref": "#/definitions/value_ref"
+            }
+          ],
+          "description": "A formula body; a leading `=` is accepted and stripped. Or `{ $ref: name }` naming a `defs.formulas` entry. With `value:`, that value is the **cached result** Excel shows until it recomputes.",
+          "markdownDescription": "A formula body; a leading `=` is accepted and stripped. Or `{ $ref: name }` naming a `defs.formulas` entry. With `value:`, that value is the **cached result** Excel shows until it recomputes."
+        },
+        "rich": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/rich_run"
+              }
+            },
+            {
+              "$ref": "#/definitions/include"
+            }
+          ],
+          "description": "A sequence of runs: a plain string, or `{ text:, font: }`. Mixes fonts inside one cell.",
+          "markdownDescription": "A sequence of runs: a plain string, or `{ text:, font: }`. Mixes fonts inside one cell."
+        },
+        "type": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "text",
+                "number",
+                "bool",
+                "date",
+                "duration",
+                "error"
+              ]
+            },
+            {
+              "$ref": "#/definitions/parameterized"
+            }
+          ],
+          "description": "`text` | `number` | `bool` | `date` | `duration` | `error` — coerces the value. Cannot be combined with `formula`.",
+          "markdownDescription": "`text` | `number` | `bool` | `date` | `duration` | `error` — coerces the value. Cannot be combined with `formula`."
+        },
+        "format": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/text"
+            }
+          ],
+          "description": "An Excel number-format code, e.g. `\"#,##0.00\"`, `\"0.0%\"`.",
+          "markdownDescription": "An Excel number-format code, e.g. `\"#,##0.00\"`, `\"0.0%\"`."
+        },
+        "style": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/style"
+            }
+          ],
+          "description": "A style name (bareword) or an inline style mapping. §6. On its own — with no `value` or `formula` — it makes a blank cell that carries the styling.",
+          "markdownDescription": "A style name (bareword) or an inline style mapping. §6. On its own — with no `value` or `formula` — it makes a blank cell that carries the styling."
+        },
+        "$include": {
+          "type": "string",
+          "description": "Another document, pasted in place of this node (§8)."
+        }
+      }
+    },
+    "cell_value": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/scalar"
+        },
+        {
+          "$ref": "#/definitions/value_ref"
+        },
+        {
+          "$ref": "#/definitions/cell_body"
+        }
+      ],
+      "description": "A scalar, a { $ref: name }, or the expanded form (§3)."
+    },
+    "cells": {
+      "anyOf": [
+        {
+          "type": "object",
+          "description": "Cells by A1 address (§3).",
+          "propertyNames": {
+            "$ref": "#/definitions/cell"
+          },
+          "additionalProperties": {
+            "$ref": "#/definitions/cell_value"
+          }
+        },
+        {
+          "$ref": "#/definitions/include"
+        }
+      ]
+    },
+    "chart": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "A picture of cells that already exist (§12).",
+      "properties": {
+        "at": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/cell"
+            }
+          ],
+          "description": "**Required.** A chart floats above the grid; the cells beneath it keep whatever they hold.",
+          "markdownDescription": "**Required.** A chart floats above the grid; the cells beneath it keep whatever they hold."
+        },
+        "type": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "column",
+                "column_stacked",
+                "column_percent_stacked",
+                "bar",
+                "bar_stacked",
+                "bar_percent_stacked",
+                "line",
+                "area",
+                "area_stacked",
+                "area_percent_stacked",
+                "pie",
+                "doughnut",
+                "scatter",
+                "radar"
+              ]
+            },
+            {
+              "$ref": "#/definitions/parameterized"
+            }
+          ],
+          "description": "**Required.** See below.",
+          "markdownDescription": "**Required.** See below."
+        },
+        "series": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/series"
+              }
+            },
+            {
+              "$ref": "#/definitions/include"
+            }
+          ],
+          "description": "**Required**, and not empty.",
+          "markdownDescription": "**Required**, and not empty."
+        },
+        "title": {
+          "$ref": "#/definitions/text"
+        },
+        "legend": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "bottom",
+                "top",
+                "left",
+                "right",
+                "top_right",
+                "none"
+              ]
+            },
+            {
+              "$ref": "#/definitions/parameterized"
+            }
+          ],
+          "description": "`none` leaves the chart without one.",
+          "markdownDescription": "`none` leaves the chart without one."
+        },
+        "size": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/size"
+            }
+          ],
+          "description": "**Both required**, in whole pixels.",
+          "markdownDescription": "**Both required**, in whole pixels."
+        },
+        "x_axis": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/axis"
+            }
+          ],
+          "description": "At least one of the three. An unset end leaves Excel scaling the axis to the data.",
+          "markdownDescription": "At least one of the three. An unset end leaves Excel scaling the axis to the data."
+        },
+        "y_axis": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/axis"
+            }
+          ],
+          "description": "At least one of the three. An unset end leaves Excel scaling the axis to the data.",
+          "markdownDescription": "At least one of the three. An unset end leaves Excel scaling the axis to the data."
+        },
+        "$include": {
+          "type": "string",
+          "description": "Another document, pasted in place of this node (§8)."
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "at",
+            "type",
+            "series"
+          ]
+        },
+        {
+          "required": [
+            "$include"
+          ]
+        }
+      ]
+    },
+    "color": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{6}$"
+        },
+        {
+          "$ref": "#/definitions/parameterized"
+        }
+      ],
+      "description": "A hex colour, RRGGBB."
+    },
+    "column_band": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "A span of columns and what it looks like (§4).",
+      "properties": {
+        "at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^([A-Za-z]{1,3}(-[A-Za-z]{1,3})?|[0-9]+(-[0-9]+)?)$"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "$ref": "#/definitions/parameterized"
+            }
+          ]
+        },
+        "style": {
+          "$ref": "#/definitions/style"
+        },
+        "format": {
+          "$ref": "#/definitions/text"
+        },
+        "hidden": {
+          "$ref": "#/definitions/boolean"
+        },
+        "group": {
+          "$ref": "#/definitions/integer"
+        },
+        "width": {
+          "$ref": "#/definitions/number"
+        },
+        "$include": {
+          "type": "string",
+          "description": "Another document, pasted in place of this node (§8)."
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "at"
+          ]
+        },
+        {
+          "required": [
+            "$include"
+          ]
+        }
+      ]
+    },
+    "comment": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/text"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "text": {
+              "allOf": [
+                {
+                  "$ref": "#/definitions/text"
+                }
+              ],
+              "description": "**Required** in the expanded form; a bare value is the text.",
+              "markdownDescription": "**Required** in the expanded form; a bare value is the text."
+            },
+            "author": {
+              "allOf": [
+                {
+                  "$ref": "#/definitions/text"
+                }
+              ],
+              "description": "Shown above the text. A note always carries one in the file, so leaving it out does not omit it — Excel writes a generic name instead.",
+              "markdownDescription": "Shown above the text. A note always carries one in the file, so leaving it out does not omit it — Excel writes a generic name instead."
+            },
+            "$include": {
+              "type": "string",
+              "description": "Another document, pasted in place of this node (§8)."
+            }
+          },
+          "anyOf": [
+            {
+              "required": [
+                "text"
+              ]
+            },
+            {
+              "required": [
+                "$include"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "comparison": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "A bound, or a pair of them (§10).",
+      "properties": {
+        "between": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/scalar"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "not_between": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/scalar"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "equals": {
+          "$ref": "#/definitions/scalar"
+        },
+        "not_equals": {
+          "$ref": "#/definitions/scalar"
+        },
+        "at_least": {
+          "$ref": "#/definitions/scalar"
+        },
+        "at_most": {
+          "$ref": "#/definitions/scalar"
+        },
+        "greater_than": {
+          "$ref": "#/definitions/scalar"
+        },
+        "less_than": {
+          "$ref": "#/definitions/scalar"
+        },
+        "$include": {
+          "type": "string",
+          "description": "Another document, pasted in place of this node (§8)."
+        }
+      }
+    },
+    "conditional": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Formatting decided by the value (§10).",
+      "properties": {
+        "at": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/range"
+            }
+          ],
+          "description": "**Required.** The range the rule covers.",
+          "markdownDescription": "**Required.** The range the rule covers."
+        },
+        "cell": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/comparison"
+            }
+          ],
+          "description": "A comparison, spelled exactly as in a validation (§ above). The bound is read as it is written: a number, a date if it parses as one, otherwise text.",
+          "markdownDescription": "A comparison, spelled exactly as in a validation (§ above). The bound is read as it is written: a number, a date if it parses as one, otherwise text."
+        },
+        "formula": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/text"
+            }
+          ],
+          "description": "An expression, true where the rule should apply. Written relative to the range's **top-left** cell, as Excel's own dialog does — `$B2` holds the column and lets the row move.",
+          "markdownDescription": "An expression, true where the rule should apply. Written relative to the range's **top-left** cell, as Excel's own dialog does — `$B2` holds the column and lets the row move."
+        },
+        "text": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "contains": {
+              "$ref": "#/definitions/scalar"
+            },
+            "not_contains": {
+              "$ref": "#/definitions/scalar"
+            },
+            "begins_with": {
+              "$ref": "#/definitions/scalar"
+            },
+            "ends_with": {
+              "$ref": "#/definitions/scalar"
+            },
+            "$include": {
+              "type": "string",
+              "description": "Another document, pasted in place of this node (§8)."
+            }
+          },
+          "description": "Exactly one of `contains`, `not_contains`, `begins_with`, `ends_with`.",
+          "markdownDescription": "Exactly one of `contains`, `not_contains`, `begins_with`, `ends_with`."
+        },
+        "top": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/integer"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "count": {
+                  "$ref": "#/definitions/integer"
+                },
+                "percent": {
+                  "$ref": "#/definitions/boolean"
+                },
+                "$include": {
+                  "type": "string",
+                  "description": "Another document, pasted in place of this node (§8)."
+                }
+              }
+            }
+          ],
+          "description": "A count (1–1000), or `{ count, percent: true }` for a percentage (1–100).",
+          "markdownDescription": "A count (1–1000), or `{ count, percent: true }` for a percentage (1–100)."
+        },
+        "bottom": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/integer"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "count": {
+                  "$ref": "#/definitions/integer"
+                },
+                "percent": {
+                  "$ref": "#/definitions/boolean"
+                },
+                "$include": {
+                  "type": "string",
+                  "description": "Another document, pasted in place of this node (§8)."
+                }
+              }
+            }
+          ],
+          "description": "A count (1–1000), or `{ count, percent: true }` for a percentage (1–100).",
+          "markdownDescription": "A count (1–1000), or `{ count, percent: true }` for a percentage (1–100)."
+        },
+        "duplicate": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/boolean"
+            }
+          ],
+          "description": "`true`. Values appearing more than once, or exactly once, in the range.",
+          "markdownDescription": "`true`. Values appearing more than once, or exactly once, in the range."
+        },
+        "unique": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/boolean"
+            }
+          ],
+          "description": "`true`. Values appearing more than once, or exactly once, in the range.",
+          "markdownDescription": "`true`. Values appearing more than once, or exactly once, in the range."
+        },
+        "color_scale": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "low": {
+              "$ref": "#/definitions/color"
+            },
+            "high": {
+              "$ref": "#/definitions/color"
+            },
+            "middle": {
+              "$ref": "#/definitions/color"
+            },
+            "$include": {
+              "type": "string",
+              "description": "Another document, pasted in place of this node (§8)."
+            }
+          },
+          "anyOf": [
+            {
+              "required": [
+                "low",
+                "high"
+              ]
+            },
+            {
+              "required": [
+                "$include"
+              ]
+            }
+          ],
+          "description": "`low` and `high`, optionally `middle` — a two- or three-color gradient.",
+          "markdownDescription": "`low` and `high`, optionally `middle` — a two- or three-color gradient."
+        },
+        "data_bar": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "color": {
+              "$ref": "#/definitions/color"
+            },
+            "bar_only": {
+              "$ref": "#/definitions/boolean"
+            },
+            "$include": {
+              "type": "string",
+              "description": "Another document, pasted in place of this node (§8)."
+            }
+          },
+          "description": "`color`, and `bar_only: true` to hide the value behind the bar.",
+          "markdownDescription": "`color`, and `bar_only: true` to hide the value behind the bar."
+        },
+        "icon_set": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "3Arrows",
+                    "3ArrowsGray",
+                    "3Flags",
+                    "3Signs",
+                    "3Symbols",
+                    "3Symbols2",
+                    "3TrafficLights1",
+                    "3TrafficLights2",
+                    "4Arrows",
+                    "4ArrowsGray",
+                    "4Rating",
+                    "4RedToBlack",
+                    "4TrafficLights",
+                    "5Arrows",
+                    "5ArrowsGray",
+                    "5Quarters",
+                    "5Rating"
+                  ]
+                },
+                {
+                  "$ref": "#/definitions/parameterized"
+                }
+              ]
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "style": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "3Arrows",
+                        "3ArrowsGray",
+                        "3Flags",
+                        "3Signs",
+                        "3Symbols",
+                        "3Symbols2",
+                        "3TrafficLights1",
+                        "3TrafficLights2",
+                        "4Arrows",
+                        "4ArrowsGray",
+                        "4Rating",
+                        "4RedToBlack",
+                        "4TrafficLights",
+                        "5Arrows",
+                        "5ArrowsGray",
+                        "5Quarters",
+                        "5Rating"
+                      ]
+                    },
+                    {
+                      "$ref": "#/definitions/parameterized"
+                    }
+                  ]
+                },
+                "reverse": {
+                  "$ref": "#/definitions/boolean"
+                },
+                "icons_only": {
+                  "$ref": "#/definitions/boolean"
+                },
+                "$include": {
+                  "type": "string",
+                  "description": "Another document, pasted in place of this node (§8)."
+                }
+              }
+            }
+          ],
+          "description": "One of Excel's own names — `3Arrows`, `3TrafficLights1`, `4Rating`, `5Rating`, … — optionally with `reverse` and `icons_only`. The seventeen are listed below.",
+          "markdownDescription": "One of Excel's own names — `3Arrows`, `3TrafficLights1`, `4Rating`, `5Rating`, … — optionally with `reverse` and `icons_only`. The seventeen are listed below."
+        },
+        "style": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/style"
+            }
+          ],
+          "description": "The look applied where the rule matches.",
+          "markdownDescription": "The look applied where the rule matches."
+        },
+        "format": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/text"
+            }
+          ],
+          "description": "The look applied where the rule matches.",
+          "markdownDescription": "The look applied where the rule matches."
+        },
+        "stop_if_true": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/boolean"
+            }
+          ],
+          "description": "Stop evaluating later rules on a cell this one matched.",
+          "markdownDescription": "Stop evaluating later rules on a cell this one matched."
+        },
+        "$include": {
+          "type": "string",
+          "description": "Another document, pasted in place of this node (§8)."
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "at"
+          ]
+        },
+        {
+          "required": [
+            "$include"
+          ]
+        }
+      ]
+    },
+    "control": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "A control writing into its linked cell (§20).",
+      "properties": {
+        "at": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/cell"
+            }
+          ],
+          "description": "**Required.**",
+          "markdownDescription": "**Required.**"
+        },
+        "kind": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "button",
+                "check_box",
+                "option_button",
+                "scroll_bar",
+                "spin_button",
+                "group_box",
+                "label"
+              ]
+            },
+            {
+              "$ref": "#/definitions/parameterized"
+            }
+          ],
+          "description": "**Required.**",
+          "markdownDescription": "**Required.**"
+        },
+        "size": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/size"
+            }
+          ],
+          "description": "`{ width, height }`, both in whole pixels.",
+          "markdownDescription": "`{ width, height }`, both in whole pixels."
+        },
+        "text": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/text"
+            }
+          ],
+          "description": "The caption. Only on: `button`, `check_box`, `option_button`, `group_box`, `label`.",
+          "markdownDescription": "The caption. Only on: `button`, `check_box`, `option_button`, `group_box`, `label`."
+        },
+        "checked": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/boolean"
+            }
+          ],
+          "description": "Starts ticked. Only on: `check_box`, `option_button`.",
+          "markdownDescription": "Starts ticked. Only on: `check_box`, `option_button`."
+        },
+        "link": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/cell"
+            }
+          ],
+          "description": "A **same-sheet** cell; the backend refuses a qualified reference. Only on: `check_box`, `option_button`, `scroll_bar`, `spin_button`.",
+          "markdownDescription": "A **same-sheet** cell; the backend refuses a qualified reference. Only on: `check_box`, `option_button`, `scroll_bar`, `spin_button`."
+        },
+        "min": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/integer"
+            }
+          ],
+          "description": "Whole numbers `0`–`30000`, Excel's own dialog limit; `min` may not exceed `max`. Only on: `scroll_bar`, `spin_button`.",
+          "markdownDescription": "Whole numbers `0`–`30000`, Excel's own dialog limit; `min` may not exceed `max`. Only on: `scroll_bar`, `spin_button`."
+        },
+        "max": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/integer"
+            }
+          ],
+          "description": "Whole numbers `0`–`30000`, Excel's own dialog limit; `min` may not exceed `max`. Only on: `scroll_bar`, `spin_button`.",
+          "markdownDescription": "Whole numbers `0`–`30000`, Excel's own dialog limit; `min` may not exceed `max`. Only on: `scroll_bar`, `spin_button`."
+        },
+        "step": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/integer"
+            }
+          ],
+          "description": "Whole numbers `0`–`30000`, Excel's own dialog limit; `min` may not exceed `max`. Only on: `scroll_bar`, `spin_button`.",
+          "markdownDescription": "Whole numbers `0`–`30000`, Excel's own dialog limit; `min` may not exceed `max`. Only on: `scroll_bar`, `spin_button`."
+        },
+        "value": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/integer"
+            }
+          ],
+          "description": "Whole numbers `0`–`30000`, Excel's own dialog limit; `min` may not exceed `max`. Only on: `scroll_bar`, `spin_button`.",
+          "markdownDescription": "Whole numbers `0`–`30000`, Excel's own dialog limit; `min` may not exceed `max`. Only on: `scroll_bar`, `spin_button`."
+        },
+        "page": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/integer"
+            }
+          ],
+          "description": "A click in the trough; a spin button has none. Only on: `scroll_bar`.",
+          "markdownDescription": "A click in the trough; a spin button has none. Only on: `scroll_bar`."
+        },
+        "horizontal": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/boolean"
+            }
+          ],
+          "description": "Lay it sideways. Only on: `scroll_bar`, `spin_button`.",
+          "markdownDescription": "Lay it sideways. Only on: `scroll_bar`, `spin_button`."
+        },
+        "$include": {
+          "type": "string",
+          "description": "Another document, pasted in place of this node (§8)."
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "at",
+            "kind"
+          ]
+        },
+        {
+          "required": [
+            "$include"
+          ]
+        }
+      ]
+    },
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "A table of rows, anchored at a cell (§9).",
+      "properties": {
+        "at": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/cell"
+            }
+          ],
+          "description": "**Required.** The top-left field lands here.",
+          "markdownDescription": "**Required.** The top-left field lands here."
+        },
+        "values": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/definitions/scalar"
+                    }
+                  },
+                  {
+                    "$ref": "#/definitions/include"
+                  }
+                ]
+              }
+            },
+            {
+              "$ref": "#/definitions/include"
+            }
+          ],
+          "description": "Where the rows come from. **Exactly one.**",
+          "markdownDescription": "Where the rows come from. **Exactly one.**"
+        },
+        "csv": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/path"
+            }
+          ],
+          "description": "Where the rows come from. **Exactly one.**",
+          "markdownDescription": "Where the rows come from. **Exactly one.**"
+        },
+        "json": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/path"
+            }
+          ],
+          "description": "Where the rows come from. **Exactly one.**",
+          "markdownDescription": "Where the rows come from. **Exactly one.**"
+        },
+        "columns": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/text"
+              }
+            },
+            {
+              "$ref": "#/definitions/include"
+            }
+          ],
+          "description": "**Only for JSON objects**: the fields to take, in order.",
+          "markdownDescription": "**Only for JSON objects**: the fields to take, in order."
+        },
+        "$include": {
+          "type": "string",
+          "description": "Another document, pasted in place of this node (§8)."
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "at"
+          ]
+        },
+        {
+          "required": [
+            "$include"
+          ]
+        }
+      ]
+    },
+    "defs": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Declared once, referenced by name (§6).",
+      "properties": {
+        "styles": {
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/definitions/style"
+              }
+            },
+            {
+              "$ref": "#/definitions/include"
+            }
+          ]
+        },
+        "values": {
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/definitions/scalar"
+              }
+            },
+            {
+              "$ref": "#/definitions/include"
+            }
+          ]
+        },
+        "formulas": {
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/definitions/text"
+              }
+            },
+            {
+              "$ref": "#/definitions/include"
+            }
+          ]
+        },
+        "$include": {
+          "type": "string",
+          "description": "Another document, pasted in place of this node (§8)."
+        }
+      }
+    },
+    "fit": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Pages across and down; 0 leaves that axis unconstrained.",
+      "properties": {
+        "width": {
+          "$ref": "#/definitions/integer"
+        },
+        "height": {
+          "$ref": "#/definitions/integer"
+        },
+        "$include": {
+          "type": "string",
+          "description": "Another document, pasted in place of this node (§8)."
+        }
+      }
+    },
+    "font": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "bold": {
+          "$ref": "#/definitions/boolean"
+        },
+        "italic": {
+          "$ref": "#/definitions/boolean"
+        },
+        "underline": {
+          "$ref": "#/definitions/boolean"
+        },
+        "strike": {
+          "$ref": "#/definitions/boolean"
+        },
+        "size": {
+          "$ref": "#/definitions/number"
+        },
+        "name": {
+          "$ref": "#/definitions/text"
+        },
+        "color": {
+          "$ref": "#/definitions/color"
+        },
+        "$include": {
+          "type": "string",
+          "description": "Another document, pasted in place of this node (§8)."
+        }
+      }
+    },
+    "formula_range": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "at": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/range"
+            }
+          ],
+          "description": "**Required.** A `TopLeft:BottomRight` range.",
+          "markdownDescription": "**Required.** A `TopLeft:BottomRight` range."
+        },
+        "formula": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/text"
+            }
+          ],
+          "description": "**Required.** The formula body; a leading `=` is accepted and stripped.",
+          "markdownDescription": "**Required.** The formula body; a leading `=` is accepted and stripped."
+        },
+        "$include": {
+          "type": "string",
+          "description": "Another document, pasted in place of this node (§8)."
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "at",
+            "formula"
+          ]
+        },
+        {
+          "required": [
+            "$include"
+          ]
+        }
+      ]
+    },
+    "image": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "A picture floating above the grid (§13).",
+      "properties": {
+        "at": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/cell"
+            }
+          ],
+          "description": "**Required.**",
+          "markdownDescription": "**Required.**"
+        },
+        "file": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/path"
+            }
+          ],
+          "description": "**Required.** Resolved like a `data:` path — see §9.",
+          "markdownDescription": "**Required.** Resolved like a `data:` path — see §9."
+        },
+        "alt": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/text"
+            }
+          ],
+          "description": "What a screen reader announces; Excel's \"Alt Text\".",
+          "markdownDescription": "What a screen reader announces; Excel's \"Alt Text\"."
+        },
+        "scale": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/number"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "x": {
+                  "$ref": "#/definitions/number"
+                },
+                "y": {
+                  "$ref": "#/definitions/number"
+                },
+                "$include": {
+                  "type": "string",
+                  "description": "Another document, pasted in place of this node (§8)."
+                }
+              }
+            }
+          ],
+          "description": "A factor over the image's natural size, above `0` and at most `100`. One number scales both directions.",
+          "markdownDescription": "A factor over the image's natural size, above `0` and at most `100`. One number scales both directions."
+        },
+        "offset": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/offset"
+            }
+          ],
+          "description": "**Both required**, in whole pixels, and never negative — OOXML's anchor measures in from the cell's corner (ECMA-376 §20.5.2.3).",
+          "markdownDescription": "**Both required**, in whole pixels, and never negative — OOXML's anchor measures in from the cell's corner (ECMA-376 §20.5.2.3)."
+        },
+        "positioning": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "move",
+                "move_and_size",
+                "fixed"
+              ]
+            },
+            {
+              "$ref": "#/definitions/parameterized"
+            }
+          ],
+          "description": "What happens when the cells beneath change.",
+          "markdownDescription": "What happens when the cells beneath change."
+        },
+        "$include": {
+          "type": "string",
+          "description": "Another document, pasted in place of this node (§8)."
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "at",
+            "file"
+          ]
+        },
+        {
+          "required": [
+            "$include"
+          ]
+        }
+      ]
+    },
+    "include": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "A node replaced entirely by another document (§8).",
+      "properties": {
+        "$include": {
+          "type": "string",
+          "description": "Another document, pasted in place of this node (§8)."
+        }
+      },
+      "required": [
+        "$include"
+      ]
+    },
+    "integer": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "$ref": "#/definitions/parameterized"
+        }
+      ]
+    },
+    "link": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/text"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "url": {
+              "allOf": [
+                {
+                  "$ref": "#/definitions/text"
+                }
+              ],
+              "description": "A target outside the workbook. Exactly one of `url` / `to`.",
+              "markdownDescription": "A target outside the workbook. Exactly one of `url` / `to`."
+            },
+            "to": {
+              "allOf": [
+                {
+                  "$ref": "#/definitions/text"
+                }
+              ],
+              "description": "A target inside it.",
+              "markdownDescription": "A target inside it."
+            },
+            "tip": {
+              "allOf": [
+                {
+                  "$ref": "#/definitions/text"
+                }
+              ],
+              "description": "The hover tooltip.",
+              "markdownDescription": "The hover tooltip."
+            },
+            "$include": {
+              "type": "string",
+              "description": "Another document, pasted in place of this node (§8)."
+            }
+          }
+        }
+      ]
+    },
+    "margins": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Page margins, in inches (§5).",
+      "properties": {
+        "top": {
+          "$ref": "#/definitions/number"
+        },
+        "bottom": {
+          "$ref": "#/definitions/number"
+        },
+        "left": {
+          "$ref": "#/definitions/number"
+        },
+        "right": {
+          "$ref": "#/definitions/number"
+        },
+        "header": {
+          "$ref": "#/definitions/number"
+        },
+        "footer": {
+          "$ref": "#/definitions/number"
+        },
+        "$include": {
+          "type": "string",
+          "description": "Another document, pasted in place of this node (§8)."
+        }
+      }
+    },
+    "number": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "$ref": "#/definitions/parameterized"
+        }
+      ]
+    },
+    "offset": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Pixels in from the cell's corner.",
+      "properties": {
+        "x": {
+          "$ref": "#/definitions/integer"
+        },
+        "y": {
+          "$ref": "#/definitions/integer"
+        },
+        "$include": {
+          "type": "string",
+          "description": "Another document, pasted in place of this node (§8)."
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "x",
+            "y"
+          ]
+        },
+        {
+          "required": [
+            "$include"
+          ]
+        }
+      ]
+    },
+    "override": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "A deliberate one-off deviation, applied last (§23).",
+      "properties": {
+        "at": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/qualified_cell"
+            }
+          ],
+          "description": "**Required.** One **sheet-qualified** cell — `Sales!E37`, or `'Q3 data'!A1` where Excel would quote the name. Never a range.",
+          "markdownDescription": "**Required.** One **sheet-qualified** cell — `Sales!E37`, or `'Q3 data'!A1` where Excel would quote the name. Never a range."
+        },
+        "reason": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/text"
+            }
+          ],
+          "description": "Free text, for whoever reads the spec in six months. Nothing in the compiler reads it.",
+          "markdownDescription": "Free text, for whoever reads the spec in six months. Nothing in the compiler reads it."
+        },
+        "value": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/scalar"
+            },
+            {
+              "$ref": "#/definitions/value_ref"
+            }
+          ],
+          "description": "Exactly as in a `cells:` entry (§3).",
+          "markdownDescription": "Exactly as in a `cells:` entry (§3)."
+        },
+        "formula": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/text"
+            },
+            {
+              "$ref": "#/definitions/value_ref"
+            }
+          ],
+          "description": "Exactly as in a `cells:` entry (§3).",
+          "markdownDescription": "Exactly as in a `cells:` entry (§3)."
+        },
+        "rich": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/rich_run"
+              }
+            },
+            {
+              "$ref": "#/definitions/include"
+            }
+          ],
+          "description": "Exactly as in a `cells:` entry (§3).",
+          "markdownDescription": "Exactly as in a `cells:` entry (§3)."
+        },
+        "type": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "text",
+                "number",
+                "bool",
+                "date",
+                "duration",
+                "error"
+              ]
+            },
+            {
+              "$ref": "#/definitions/parameterized"
+            }
+          ],
+          "description": "Exactly as in a `cells:` entry (§3).",
+          "markdownDescription": "Exactly as in a `cells:` entry (§3)."
+        },
+        "format": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/text"
+            }
+          ],
+          "description": "Exactly as in a `cells:` entry (§3).",
+          "markdownDescription": "Exactly as in a `cells:` entry (§3)."
+        },
+        "style": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/style"
+            }
+          ],
+          "description": "Exactly as in a `cells:` entry (§3).",
+          "markdownDescription": "Exactly as in a `cells:` entry (§3)."
+        },
+        "$include": {
+          "type": "string",
+          "description": "Another document, pasted in place of this node (§8)."
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "at"
+          ]
+        },
+        {
+          "required": [
+            "$include"
+          ]
+        }
+      ]
+    },
+    "parameterized": {
+      "type": "string",
+      "pattern": "\\$\\{",
+      "description": "A string holding a ${parameter} (§7)."
+    },
+    "path": {
+      "type": "string",
+      "description": "A path, / or \\ separated."
+    },
+    "pivot": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "A pivot table Excel recomputes on open (§14).",
+      "properties": {
+        "at": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/range"
+            }
+          ],
+          "description": "**Required.** The corner the pivot starts from; Excel grows it past this as it needs to.",
+          "markdownDescription": "**Required.** The corner the pivot starts from; Excel grows it past this as it needs to."
+        },
+        "source": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/qualified_range"
+            }
+          ],
+          "description": "**Required.** `Sheet!A1:D7` names another sheet, which must be declared. Its **top row names the fields**, and there must be at least one row beneath and more than one column.",
+          "markdownDescription": "**Required.** `Sheet!A1:D7` names another sheet, which must be declared. Its **top row names the fields**, and there must be at least one row beneath and more than one column."
+        },
+        "rows": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/pivot_field"
+              }
+            },
+            {
+              "$ref": "#/definitions/include"
+            }
+          ],
+          "description": "Field names, or `{ field, name }` to relabel one.",
+          "markdownDescription": "Field names, or `{ field, name }` to relabel one."
+        },
+        "columns": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/pivot_field"
+              }
+            },
+            {
+              "$ref": "#/definitions/include"
+            }
+          ],
+          "description": "Field names, or `{ field, name }` to relabel one.",
+          "markdownDescription": "Field names, or `{ field, name }` to relabel one."
+        },
+        "values": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/pivot_value"
+              }
+            },
+            {
+              "$ref": "#/definitions/include"
+            }
+          ],
+          "description": "Field names (summed), or `{ field, function, name }`.",
+          "markdownDescription": "Field names (summed), or `{ field, function, name }`."
+        },
+        "name": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/text"
+            }
+          ],
+          "description": "Default: `PivotTable1`, `PivotTable2`, …",
+          "markdownDescription": "Default: `PivotTable1`, `PivotTable2`, …"
+        },
+        "style": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "PivotStyleLight1",
+                "PivotStyleLight2",
+                "PivotStyleLight3",
+                "PivotStyleLight4",
+                "PivotStyleLight5",
+                "PivotStyleLight6",
+                "PivotStyleLight7",
+                "PivotStyleLight8",
+                "PivotStyleLight9",
+                "PivotStyleLight10",
+                "PivotStyleLight11",
+                "PivotStyleLight12",
+                "PivotStyleLight13",
+                "PivotStyleLight14",
+                "PivotStyleLight15",
+                "PivotStyleLight16",
+                "PivotStyleLight17",
+                "PivotStyleLight18",
+                "PivotStyleLight19",
+                "PivotStyleLight20",
+                "PivotStyleLight21",
+                "PivotStyleLight22",
+                "PivotStyleLight23",
+                "PivotStyleLight24",
+                "PivotStyleLight25",
+                "PivotStyleLight26",
+                "PivotStyleLight27",
+                "PivotStyleLight28",
+                "PivotStyleMedium1",
+                "PivotStyleMedium2",
+                "PivotStyleMedium3",
+                "PivotStyleMedium4",
+                "PivotStyleMedium5",
+                "PivotStyleMedium6",
+                "PivotStyleMedium7",
+                "PivotStyleMedium8",
+                "PivotStyleMedium9",
+                "PivotStyleMedium10",
+                "PivotStyleMedium11",
+                "PivotStyleMedium12",
+                "PivotStyleMedium13",
+                "PivotStyleMedium14",
+                "PivotStyleMedium15",
+                "PivotStyleMedium16",
+                "PivotStyleMedium17",
+                "PivotStyleMedium18",
+                "PivotStyleMedium19",
+                "PivotStyleMedium20",
+                "PivotStyleMedium21",
+                "PivotStyleMedium22",
+                "PivotStyleMedium23",
+                "PivotStyleMedium24",
+                "PivotStyleMedium25",
+                "PivotStyleMedium26",
+                "PivotStyleMedium27",
+                "PivotStyleMedium28",
+                "PivotStyleDark1",
+                "PivotStyleDark2",
+                "PivotStyleDark3",
+                "PivotStyleDark4",
+                "PivotStyleDark5",
+                "PivotStyleDark6",
+                "PivotStyleDark7",
+                "PivotStyleDark8",
+                "PivotStyleDark9",
+                "PivotStyleDark10",
+                "PivotStyleDark11",
+                "PivotStyleDark12",
+                "PivotStyleDark13",
+                "PivotStyleDark14",
+                "PivotStyleDark15",
+                "PivotStyleDark16",
+                "PivotStyleDark17",
+                "PivotStyleDark18",
+                "PivotStyleDark19",
+                "PivotStyleDark20",
+                "PivotStyleDark21",
+                "PivotStyleDark22",
+                "PivotStyleDark23",
+                "PivotStyleDark24",
+                "PivotStyleDark25",
+                "PivotStyleDark26",
+                "PivotStyleDark27",
+                "PivotStyleDark28"
+              ]
+            },
+            {
+              "$ref": "#/definitions/parameterized"
+            }
+          ],
+          "description": "`PivotStyleLight1`–`28`, `PivotStyleMedium1`–`28`, `PivotStyleDark1`–`28`.",
+          "markdownDescription": "`PivotStyleLight1`–`28`, `PivotStyleMedium1`–`28`, `PivotStyleDark1`–`28`."
+        },
+        "row_grand_totals": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/boolean"
+            }
+          ],
+          "description": "Both default to `true`, as Excel does.",
+          "markdownDescription": "Both default to `true`, as Excel does."
+        },
+        "column_grand_totals": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/boolean"
+            }
+          ],
+          "description": "Both default to `true`, as Excel does.",
+          "markdownDescription": "Both default to `true`, as Excel does."
+        },
+        "$include": {
+          "type": "string",
+          "description": "Another document, pasted in place of this node (§8)."
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "at",
+            "source"
+          ]
+        },
+        {
+          "required": [
+            "$include"
+          ]
+        }
+      ]
+    },
+    "pivot_field": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/text"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "field": {
+              "$ref": "#/definitions/text"
+            },
+            "name": {
+              "$ref": "#/definitions/text"
+            },
+            "$include": {
+              "type": "string",
+              "description": "Another document, pasted in place of this node (§8)."
+            }
+          },
+          "anyOf": [
+            {
+              "required": [
+                "field"
+              ]
+            },
+            {
+              "required": [
+                "$include"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "pivot_value": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/text"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "field": {
+              "$ref": "#/definitions/text"
+            },
+            "function": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "sum",
+                    "count",
+                    "count_numbers",
+                    "average",
+                    "max",
+                    "min",
+                    "product",
+                    "std_dev",
+                    "std_dev_p",
+                    "var",
+                    "var_p"
+                  ]
+                },
+                {
+                  "$ref": "#/definitions/parameterized"
+                }
+              ]
+            },
+            "name": {
+              "$ref": "#/definitions/text"
+            },
+            "$include": {
+              "type": "string",
+              "description": "Another document, pasted in place of this node (§8)."
+            }
+          },
+          "anyOf": [
+            {
+              "required": [
+                "field"
+              ]
+            },
+            {
+              "required": [
+                "$include"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "print": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "What Excel prints, and how (§5).",
+      "properties": {
+        "area": {
+          "$ref": "#/definitions/range"
+        },
+        "orientation": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "portrait",
+                "landscape"
+              ]
+            },
+            {
+              "$ref": "#/definitions/parameterized"
+            }
+          ]
+        },
+        "margins": {
+          "$ref": "#/definitions/margins"
+        },
+        "scale": {
+          "$ref": "#/definitions/integer"
+        },
+        "fit": {
+          "$ref": "#/definitions/fit"
+        },
+        "header": {
+          "$ref": "#/definitions/text"
+        },
+        "footer": {
+          "$ref": "#/definitions/text"
+        },
+        "breaks": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/cell"
+              }
+            },
+            {
+              "$ref": "#/definitions/include"
+            }
+          ]
+        },
+        "$include": {
+          "type": "string",
+          "description": "Another document, pasted in place of this node (§8)."
+        }
+      }
+    },
+    "properties": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "What the file says about itself (§15).",
+      "properties": {
+        "title": {
+          "$ref": "#/definitions/text"
+        },
+        "subject": {
+          "$ref": "#/definitions/text"
+        },
+        "author": {
+          "$ref": "#/definitions/text"
+        },
+        "keywords": {
+          "$ref": "#/definitions/text"
+        },
+        "description": {
+          "$ref": "#/definitions/text"
+        },
+        "category": {
+          "$ref": "#/definitions/text"
+        },
+        "status": {
+          "$ref": "#/definitions/text"
+        },
+        "language": {
+          "$ref": "#/definitions/text"
+        },
+        "version": {
+          "$ref": "#/definitions/text"
+        },
+        "company": {
+          "$ref": "#/definitions/text"
+        },
+        "custom": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/scalar"
+          },
+          "description": "Properties of your own naming."
+        },
+        "$include": {
+          "type": "string",
+          "description": "Another document, pasted in place of this node (§8)."
+        }
+      }
+    },
+    "protect": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Protection: locked cells stay locked (§16).",
+      "properties": {
+        "password": {
+          "$ref": "#/definitions/text"
+        },
+        "allow": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "What a reader may still do (§16).",
+          "properties": {
+            "select_locked_cells": {
+              "$ref": "#/definitions/boolean"
+            },
+            "select_unlocked_cells": {
+              "$ref": "#/definitions/boolean"
+            },
+            "format_cells": {
+              "$ref": "#/definitions/boolean"
+            },
+            "format_columns": {
+              "$ref": "#/definitions/boolean"
+            },
+            "format_rows": {
+              "$ref": "#/definitions/boolean"
+            },
+            "insert_columns": {
+              "$ref": "#/definitions/boolean"
+            },
+            "insert_rows": {
+              "$ref": "#/definitions/boolean"
+            },
+            "insert_hyperlinks": {
+              "$ref": "#/definitions/boolean"
+            },
+            "delete_columns": {
+              "$ref": "#/definitions/boolean"
+            },
+            "delete_rows": {
+              "$ref": "#/definitions/boolean"
+            },
+            "sort": {
+              "$ref": "#/definitions/boolean"
+            },
+            "auto_filter": {
+              "$ref": "#/definitions/boolean"
+            },
+            "pivot_tables": {
+              "$ref": "#/definitions/boolean"
+            },
+            "edit_objects": {
+              "$ref": "#/definitions/boolean"
+            },
+            "edit_scenarios": {
+              "$ref": "#/definitions/boolean"
+            },
+            "$include": {
+              "type": "string",
+              "description": "Another document, pasted in place of this node (§8)."
+            }
+          }
+        },
+        "$include": {
+          "type": "string",
+          "description": "Another document, pasted in place of this node (§8)."
+        }
+      }
+    },
+    "protection": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "locked": {
+          "$ref": "#/definitions/boolean"
+        },
+        "hidden": {
+          "$ref": "#/definitions/boolean"
+        },
+        "$include": {
+          "type": "string",
+          "description": "Another document, pasted in place of this node (§8)."
+        }
+      }
+    },
+    "qualified_cell": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^('[^']*'|[^'!]+)![A-Za-z]{1,3}[0-9]+$"
+        },
+        {
+          "$ref": "#/definitions/parameterized"
+        }
+      ],
+      "description": "A sheet-qualified cell, Sales!E37."
+    },
+    "qualified_range": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^(('[^']*'|[^'!]+)!)?[A-Za-z]{1,3}[0-9]+:[A-Za-z]{1,3}[0-9]+$"
+        },
+        {
+          "$ref": "#/definitions/parameterized"
+        }
+      ],
+      "description": "A range, optionally naming a declared sheet."
+    },
+    "range": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[A-Za-z]{1,3}[0-9]+:[A-Za-z]{1,3}[0-9]+$"
+        },
+        {
+          "$ref": "#/definitions/parameterized"
+        }
+      ],
+      "description": "A TopLeft:BottomRight range."
+    },
+    "rich_run": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "text": {
+              "$ref": "#/definitions/text"
+            },
+            "font": {
+              "$ref": "#/definitions/font"
+            },
+            "$include": {
+              "type": "string",
+              "description": "Another document, pasted in place of this node (§8)."
+            }
+          }
+        }
+      ]
+    },
+    "row_band": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "A span of rows and what it looks like (§4).",
+      "properties": {
+        "at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^([A-Za-z]{1,3}(-[A-Za-z]{1,3})?|[0-9]+(-[0-9]+)?)$"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "$ref": "#/definitions/parameterized"
+            }
+          ]
+        },
+        "style": {
+          "$ref": "#/definitions/style"
+        },
+        "format": {
+          "$ref": "#/definitions/text"
+        },
+        "hidden": {
+          "$ref": "#/definitions/boolean"
+        },
+        "group": {
+          "$ref": "#/definitions/integer"
+        },
+        "height": {
+          "$ref": "#/definitions/number"
+        },
+        "$include": {
+          "type": "string",
+          "description": "Another document, pasted in place of this node (§8)."
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "at"
+          ]
+        },
+        {
+          "required": [
+            "$include"
+          ]
+        }
+      ]
+    },
+    "scalar": {
+      "type": [
+        "string",
+        "number",
+        "boolean",
+        "null"
+      ]
+    },
+    "series": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "One plotted series (§12).",
+      "properties": {
+        "values": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/qualified_range"
+            }
+          ],
+          "description": "**Required.** The cells plotted. `Sheet!A1:A9` names another sheet, which must be declared.",
+          "markdownDescription": "**Required.** The cells plotted. `Sheet!A1:A9` names another sheet, which must be declared."
+        },
+        "categories": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/qualified_range"
+            }
+          ],
+          "description": "**Required in practice** — see below. The labels down the category axis; for a `scatter` chart, the X values.",
+          "markdownDescription": "**Required in practice** — see below. The labels down the category axis; for a `scatter` chart, the X values."
+        },
+        "name": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/text"
+            }
+          ],
+          "description": "What the legend calls the series, written out.",
+          "markdownDescription": "What the legend calls the series, written out."
+        },
+        "name_from": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/cell"
+            },
+            {
+              "$ref": "#/definitions/qualified_cell"
+            }
+          ],
+          "description": "A cell to read that name from — usually the column header, so renaming the header renames the series. Mutually exclusive with `name`.",
+          "markdownDescription": "A cell to read that name from — usually the column header, so renaming the header renames the series. Mutually exclusive with `name`."
+        },
+        "$include": {
+          "type": "string",
+          "description": "Another document, pasted in place of this node (§8)."
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "values"
+          ]
+        },
+        {
+          "required": [
+            "$include"
+          ]
+        }
+      ]
+    },
+    "shape": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "A box or other geometry over the grid (§18).",
+      "properties": {
+        "at": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/cell"
+            }
+          ],
+          "description": "**Required.**",
+          "markdownDescription": "**Required.**"
+        },
+        "kind": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "rectangle",
+                "ellipse",
+                "triangle",
+                "diamond",
+                "parallelogram",
+                "trapezoid",
+                "pentagon",
+                "hexagon",
+                "octagon",
+                "decagon",
+                "star_5",
+                "plus",
+                "chevron",
+                "cube",
+                "can",
+                "donut",
+                "frame",
+                "heart",
+                "moon",
+                "sun",
+                "cloud",
+                "pie",
+                "line"
+              ]
+            },
+            {
+              "$ref": "#/definitions/parameterized"
+            }
+          ],
+          "description": "**Required.** One of the geometries below.",
+          "markdownDescription": "**Required.** One of the geometries below."
+        },
+        "text": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/text"
+            },
+            {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/rich_run"
+                  }
+                },
+                {
+                  "$ref": "#/definitions/include"
+                }
+              ]
+            }
+          ],
+          "description": "A plain string, or a sequence of lines — each a string or `{ text, font }`, the font written as a style's `font:` (§4 of the styling keys). Each entry is its own *line*: one font covers one line.",
+          "markdownDescription": "A plain string, or a sequence of lines — each a string or `{ text, font }`, the font written as a style's `font:` (§4 of the styling keys). Each entry is its own *line*: one font covers one line."
+        },
+        "size": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/size"
+            }
+          ],
+          "description": "**Both required**, in whole pixels. Unset, the shape is 160 × 160.",
+          "markdownDescription": "**Both required**, in whole pixels. Unset, the shape is 160 × 160."
+        },
+        "fill": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/color"
+            }
+          ],
+          "description": "The fill. Unset means **no fill at all**, not a theme colour — see the backend limits below.",
+          "markdownDescription": "The fill. Unset means **no fill at all**, not a theme colour — see the backend limits below."
+        },
+        "line": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/color"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "color": {
+                  "$ref": "#/definitions/color"
+                },
+                "width": {
+                  "$ref": "#/definitions/number"
+                },
+                "$include": {
+                  "type": "string",
+                  "description": "Another document, pasted in place of this node (§8)."
+                }
+              }
+            }
+          ],
+          "description": "The outline. `width` is in points and must be above `0`; a bare hex is just the color.",
+          "markdownDescription": "The outline. `width` is in points and must be above `0`; a bare hex is just the color."
+        },
+        "alt": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/text"
+            }
+          ],
+          "description": "What a screen reader announces; Excel's \"Alt Text\".",
+          "markdownDescription": "What a screen reader announces; Excel's \"Alt Text\"."
+        },
+        "positioning": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "move",
+                "move_and_size",
+                "fixed"
+              ]
+            },
+            {
+              "$ref": "#/definitions/parameterized"
+            }
+          ],
+          "description": "The same three anchors an image takes (§13).",
+          "markdownDescription": "The same three anchors an image takes (§13)."
+        },
+        "$include": {
+          "type": "string",
+          "description": "Another document, pasted in place of this node (§8)."
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "at",
+            "kind"
+          ]
+        },
+        {
+          "required": [
+            "$include"
+          ]
+        }
+      ]
+    },
+    "sheet": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "One sheet of the workbook (§2).",
+      "properties": {
+        "name": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/text"
+            }
+          ],
+          "description": "**Required.** Must be unique in the workbook, and follow Excel's rules — see below.",
+          "markdownDescription": "**Required.** Must be unique in the workbook, and follow Excel's rules — see below."
+        },
+        "cells": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/cells"
+            }
+          ],
+          "description": "A1 reference → value. §3.",
+          "markdownDescription": "A1 reference → value. §3."
+        },
+        "formulas": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/formula_range"
+              }
+            },
+            {
+              "$ref": "#/definitions/include"
+            }
+          ],
+          "description": "One formula filled across a region. §3.",
+          "markdownDescription": "One formula filled across a region. §3."
+        },
+        "data": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/data"
+              }
+            },
+            {
+              "$ref": "#/definitions/include"
+            }
+          ],
+          "description": "Anchored tables — rows written inline, or read from CSV/JSON. §9.",
+          "markdownDescription": "Anchored tables — rows written inline, or read from CSV/JSON. §9."
+        },
+        "columns": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/column_band"
+              }
+            },
+            {
+              "$ref": "#/definitions/include"
+            }
+          ],
+          "description": "Bands. §4.",
+          "markdownDescription": "Bands. §4."
+        },
+        "rows": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/row_band"
+              }
+            },
+            {
+              "$ref": "#/definitions/include"
+            }
+          ],
+          "description": "Bands. §4.",
+          "markdownDescription": "Bands. §4."
+        },
+        "merges": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/range"
+              }
+            },
+            {
+              "$ref": "#/definitions/include"
+            }
+          ],
+          "description": "Corners in any order; the merge shows the top-left value.",
+          "markdownDescription": "Corners in any order; the merge shows the top-left value."
+        },
+        "visibility": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "visible",
+                "hidden",
+                "very_hidden"
+              ]
+            },
+            {
+              "$ref": "#/definitions/parameterized"
+            }
+          ],
+          "description": "`hidden` can be undone in Excel's UI; `very_hidden` only via VBA. **At least one sheet must stay visible.**",
+          "markdownDescription": "`hidden` can be undone in Excel's UI; `very_hidden` only via VBA. **At least one sheet must stay visible.**"
+        },
+        "freeze": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/cell"
+            }
+          ],
+          "description": "Rows above and columns left of it stay put. `A1` freezes nothing and is an error.",
+          "markdownDescription": "Rows above and columns left of it stay put. `A1` freezes nothing and is an error."
+        },
+        "split": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "x": {
+              "$ref": "#/definitions/number"
+            },
+            "y": {
+              "$ref": "#/definitions/number"
+            },
+            "$include": {
+              "type": "string",
+              "description": "Another document, pasted in place of this node (§8)."
+            }
+          },
+          "description": "A draggable splitter, in **points** from the top-left; `0` leaves that axis unsplit. Mutually exclusive with `freeze`.",
+          "markdownDescription": "A draggable splitter, in **points** from the top-left; `0` leaves that axis unsplit. Mutually exclusive with `freeze`."
+        },
+        "gridlines": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/boolean"
+            }
+          ],
+          "description": "The on-screen grid, *not* cell borders.",
+          "markdownDescription": "The on-screen grid, *not* cell borders."
+        },
+        "tab_color": {
+          "$ref": "#/definitions/color"
+        },
+        "print": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/print"
+            }
+          ],
+          "description": "§5.",
+          "markdownDescription": "§5."
+        },
+        "filter": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/range"
+            }
+          ],
+          "description": "Excel's auto filter. §10.",
+          "markdownDescription": "Excel's auto filter. §10."
+        },
+        "validations": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/validation"
+              }
+            },
+            {
+              "$ref": "#/definitions/include"
+            }
+          ],
+          "description": "What cells will accept. §10.",
+          "markdownDescription": "What cells will accept. §10."
+        },
+        "links": {
+          "anyOf": [
+            {
+              "type": "object",
+              "propertyNames": {
+                "$ref": "#/definitions/cell"
+              },
+              "additionalProperties": {
+                "$ref": "#/definitions/link"
+              }
+            },
+            {
+              "$ref": "#/definitions/include"
+            }
+          ],
+          "description": "Hyperlinks, by cell. §10.",
+          "markdownDescription": "Hyperlinks, by cell. §10."
+        },
+        "conditional": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/conditional"
+              }
+            },
+            {
+              "$ref": "#/definitions/include"
+            }
+          ],
+          "description": "Formatting decided by the value. §10.",
+          "markdownDescription": "Formatting decided by the value. §10."
+        },
+        "comments": {
+          "anyOf": [
+            {
+              "type": "object",
+              "propertyNames": {
+                "$ref": "#/definitions/cell"
+              },
+              "additionalProperties": {
+                "$ref": "#/definitions/comment"
+              }
+            },
+            {
+              "$ref": "#/definitions/include"
+            }
+          ],
+          "description": "Notes, by cell. §10.",
+          "markdownDescription": "Notes, by cell. §10."
+        },
+        "tables": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/table"
+              }
+            },
+            {
+              "$ref": "#/definitions/include"
+            }
+          ],
+          "description": "Excel tables over the sheet's regions. §11.",
+          "markdownDescription": "Excel tables over the sheet's regions. §11."
+        },
+        "charts": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/chart"
+              }
+            },
+            {
+              "$ref": "#/definitions/include"
+            }
+          ],
+          "description": "Charts anchored on the sheet. §12.",
+          "markdownDescription": "Charts anchored on the sheet. §12."
+        },
+        "images": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/image"
+              }
+            },
+            {
+              "$ref": "#/definitions/include"
+            }
+          ],
+          "description": "Pictures anchored on the sheet. §13.",
+          "markdownDescription": "Pictures anchored on the sheet. §13."
+        },
+        "shapes": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/shape"
+              }
+            },
+            {
+              "$ref": "#/definitions/include"
+            }
+          ],
+          "description": "Boxes and other geometries floating over the sheet. §18.",
+          "markdownDescription": "Boxes and other geometries floating over the sheet. §18."
+        },
+        "background": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/path"
+            }
+          ],
+          "description": "An image tiled behind the cells. §13.",
+          "markdownDescription": "An image tiled behind the cells. §13."
+        },
+        "sparklines": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/sparkline_group"
+              }
+            },
+            {
+              "$ref": "#/definitions/include"
+            }
+          ],
+          "description": "Charts inside single cells, in groups. §19.",
+          "markdownDescription": "Charts inside single cells, in groups. §19."
+        },
+        "controls": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/control"
+              }
+            },
+            {
+              "$ref": "#/definitions/include"
+            }
+          ],
+          "description": "Buttons, check boxes, and sliders over the grid. §20.",
+          "markdownDescription": "Buttons, check boxes, and sliders over the grid. §20."
+        },
+        "slicers": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/slicer"
+              }
+            },
+            {
+              "$ref": "#/definitions/include"
+            }
+          ],
+          "description": "Button panels filtering declared tables. §21.",
+          "markdownDescription": "Button panels filtering declared tables. §21."
+        },
+        "pivots": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/pivot"
+              }
+            },
+            {
+              "$ref": "#/definitions/include"
+            }
+          ],
+          "description": "Pivot tables placed on the sheet. §14.",
+          "markdownDescription": "Pivot tables placed on the sheet. §14."
+        },
+        "protect": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/protect"
+            }
+          ],
+          "description": "Sheet protection. §16.",
+          "markdownDescription": "Sheet protection. §16."
+        },
+        "$include": {
+          "type": "string",
+          "description": "Another document, pasted in place of this node (§8)."
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "name"
+          ]
+        },
+        {
+          "required": [
+            "$include"
+          ]
+        }
+      ]
+    },
+    "size": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "A size in whole pixels.",
+      "properties": {
+        "width": {
+          "$ref": "#/definitions/integer"
+        },
+        "height": {
+          "$ref": "#/definitions/integer"
+        },
+        "$include": {
+          "type": "string",
+          "description": "Another document, pasted in place of this node (§8)."
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "width",
+            "height"
+          ]
+        },
+        {
+          "required": [
+            "$include"
+          ]
+        }
+      ]
+    },
+    "slicer": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "A table's filter as a panel of buttons (§21).",
+      "properties": {
+        "at": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/cell"
+            }
+          ],
+          "description": "**Required.** Where the panel's top-left corner sits.",
+          "markdownDescription": "**Required.** Where the panel's top-left corner sits."
+        },
+        "table": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/text"
+            }
+          ],
+          "description": "**Required.** The `name:` of a declared table, compared without case (Excel's own rule). A table the spec left unnamed cannot be sliced.",
+          "markdownDescription": "**Required.** The `name:` of a declared table, compared without case (Excel's own rule). A table the spec left unnamed cannot be sliced."
+        },
+        "column": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/text"
+            }
+          ],
+          "description": "**Required.** One of the table's header cells; anything else is a diagnostic naming what the table has.",
+          "markdownDescription": "**Required.** One of the table's header cells; anything else is a diagnostic naming what the table has."
+        },
+        "caption": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/text"
+            }
+          ],
+          "description": "The panel's title; unset, Excel shows the column name.",
+          "markdownDescription": "The panel's title; unset, Excel shows the column name."
+        },
+        "size": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/size"
+            }
+          ],
+          "description": "Both in whole pixels; unset, 200 × 200.",
+          "markdownDescription": "Both in whole pixels; unset, 200 × 200."
+        },
+        "header": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/boolean"
+            }
+          ],
+          "description": "Whether the panel shows its title bar.",
+          "markdownDescription": "Whether the panel shows its title bar."
+        },
+        "$include": {
+          "type": "string",
+          "description": "Another document, pasted in place of this node (§8)."
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "at",
+            "table",
+            "column"
+          ]
+        },
+        {
+          "required": [
+            "$include"
+          ]
+        }
+      ]
+    },
+    "sparkline_cell": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "at": {
+          "$ref": "#/definitions/cell"
+        },
+        "data": {
+          "$ref": "#/definitions/qualified_range"
+        },
+        "$include": {
+          "type": "string",
+          "description": "Another document, pasted in place of this node (§8)."
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "at",
+            "data"
+          ]
+        },
+        {
+          "required": [
+            "$include"
+          ]
+        }
+      ]
+    },
+    "sparkline_group": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "A group of one-cell charts, scaled as one (§19).",
+      "properties": {
+        "at": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/cell"
+            }
+          ],
+          "description": "One sparkline: the cell it sits in, the cells it plots. `data` may name another (declared) sheet.",
+          "markdownDescription": "One sparkline: the cell it sits in, the cells it plots. `data` may name another (declared) sheet."
+        },
+        "data": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/qualified_range"
+            }
+          ],
+          "description": "One sparkline: the cell it sits in, the cells it plots. `data` may name another (declared) sheet.",
+          "markdownDescription": "One sparkline: the cell it sits in, the cells it plots. `data` may name another (declared) sheet."
+        },
+        "cells": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/sparkline_cell"
+              }
+            },
+            {
+              "$ref": "#/definitions/include"
+            }
+          ],
+          "description": "Several sparklines in one group. A group is placed one way: `at`/`data` **or** `cells`.",
+          "markdownDescription": "Several sparklines in one group. A group is placed one way: `at`/`data` **or** `cells`."
+        },
+        "type": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "line",
+                "column",
+                "win_loss"
+              ]
+            },
+            {
+              "$ref": "#/definitions/parameterized"
+            }
+          ],
+          "description": "`line` (default), `column`, or `win_loss` — win/loss plots only each point's sign.",
+          "markdownDescription": "`line` (default), `column`, or `win_loss` — win/loss plots only each point's sign."
+        },
+        "markers": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/boolean"
+            }
+          ],
+          "description": "Dot every point. Line only — the other kinds already draw one mark per point.",
+          "markdownDescription": "Dot every point. Line only — the other kinds already draw one mark per point."
+        },
+        "high": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/boolean"
+            }
+          ],
+          "description": "Emphasize the highest / lowest point.",
+          "markdownDescription": "Emphasize the highest / lowest point."
+        },
+        "low": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/boolean"
+            }
+          ],
+          "description": "Emphasize the highest / lowest point.",
+          "markdownDescription": "Emphasize the highest / lowest point."
+        },
+        "min": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/integer"
+            }
+          ],
+          "description": "Manual vertical bounds; unset, Excel scales each end to the data. Whole numbers — the backend accepts nothing finer.",
+          "markdownDescription": "Manual vertical bounds; unset, Excel scales each end to the data. Whole numbers — the backend accepts nothing finer."
+        },
+        "max": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/integer"
+            }
+          ],
+          "description": "Manual vertical bounds; unset, Excel scales each end to the data. Whole numbers — the backend accepts nothing finer.",
+          "markdownDescription": "Manual vertical bounds; unset, Excel scales each end to the data. Whole numbers — the backend accepts nothing finer."
+        },
+        "weight": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/number"
+            }
+          ],
+          "description": "The line weight in points, above `0`. Line only.",
+          "markdownDescription": "The line weight in points, above `0`. Line only."
+        },
+        "color": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/color"
+            }
+          ],
+          "description": "The series colour.",
+          "markdownDescription": "The series colour."
+        },
+        "colors": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "markers": {
+              "$ref": "#/definitions/color"
+            },
+            "high": {
+              "$ref": "#/definitions/color"
+            },
+            "low": {
+              "$ref": "#/definitions/color"
+            },
+            "$include": {
+              "type": "string",
+              "description": "Another document, pasted in place of this node (§8)."
+            }
+          },
+          "description": "Colours for the marks that can show.",
+          "markdownDescription": "Colours for the marks that can show."
+        },
+        "axis": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/boolean"
+            }
+          ],
+          "description": "Draw the horizontal axis at zero.",
+          "markdownDescription": "Draw the horizontal axis at zero."
+        },
+        "$include": {
+          "type": "string",
+          "description": "Another document, pasted in place of this node (§8)."
+        }
+      }
+    },
+    "style": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "$ref": "#/definitions/style_body"
+        }
+      ],
+      "description": "A declared style's name, or an inline style (§6)."
+    },
+    "style_body": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "extends": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/text"
+            }
+          ],
+          "description": "Another declared style's name. Merges *inside* font, alignment, and each border edge, so a child setting `bold` keeps the base's face and size. A fill or number format has no parts to blend, so setting it replaces it. Works in inline styles too. Forward references are fine; cycles are an error.",
+          "markdownDescription": "Another declared style's name. Merges *inside* font, alignment, and each border edge, so a child setting `bold` keeps the base's face and size. A fill or number format has no parts to blend, so setting it replaces it. Works in inline styles too. Forward references are fine; cycles are an error."
+        },
+        "font": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/font"
+            }
+          ],
+          "description": "`{ bold, italic, underline, strike, size, name, color }` — all optional.",
+          "markdownDescription": "`{ bold, italic, underline, strike, size, name, color }` — all optional."
+        },
+        "fill": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/color"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "color": {
+                  "$ref": "#/definitions/color"
+                },
+                "$include": {
+                  "type": "string",
+                  "description": "Another document, pasted in place of this node (§8)."
+                }
+              }
+            }
+          ],
+          "description": "A hex `RRGGBB`, or `{ color: RRGGBB }`. Solid fills only.",
+          "markdownDescription": "A hex `RRGGBB`, or `{ color: RRGGBB }`. Solid fills only."
+        },
+        "border": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/border"
+            }
+          ],
+          "description": "A style name for all four edges (`border: thin`), or a mapping of `all` / `left` / `right` / `top` / `bottom`, each a style name or `{ style, color }`. Styles: `thin`, `medium`, `thick`, `dashed`, `dotted`, `double`, `hair`.",
+          "markdownDescription": "A style name for all four edges (`border: thin`), or a mapping of `all` / `left` / `right` / `top` / `bottom`, each a style name or `{ style, color }`. Styles: `thin`, `medium`, `thick`, `dashed`, `dotted`, `double`, `hair`."
+        },
+        "protection": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/protection"
+            }
+          ],
+          "description": "`{ locked, hidden }` — what sheet protection does to a cell wearing this style. §16.",
+          "markdownDescription": "`{ locked, hidden }` — what sheet protection does to a cell wearing this style. §16."
+        },
+        "format": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/text"
+            }
+          ],
+          "description": "An Excel number-format code, as on a cell. A `format:` written beside the reference layers over this one.",
+          "markdownDescription": "An Excel number-format code, as on a cell. A `format:` written beside the reference layers over this one."
+        },
+        "align": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/align"
+            }
+          ],
+          "description": "`{ horizontal, vertical, wrap }`. Horizontal: `left`, `center`, `right`, `fill`, `justify`, `distributed`. Vertical: `top`, `middle`, `bottom`, `justify`, `distributed`.",
+          "markdownDescription": "`{ horizontal, vertical, wrap }`. Horizontal: `left`, `center`, `right`, `fill`, `justify`, `distributed`. Vertical: `top`, `middle`, `bottom`, `justify`, `distributed`."
+        },
+        "$include": {
+          "type": "string",
+          "description": "Another document, pasted in place of this node (§8)."
+        }
+      }
+    },
+    "table": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "A region declared to be an Excel table (§11).",
+      "properties": {
+        "at": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/range"
+            }
+          ],
+          "description": "**Required.** Includes the header row, so it spans at least two rows.",
+          "markdownDescription": "**Required.** Includes the header row, so it spans at least two rows."
+        },
+        "name": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/text"
+            }
+          ],
+          "description": "Excel's defined-name rules: starts with a letter or `_`, then letters, digits, `.` and `_` — **no spaces** — and never looks like a cell reference. Unique across the workbook, ignoring case.",
+          "markdownDescription": "Excel's defined-name rules: starts with a letter or `_`, then letters, digits, `.` and `_` — **no spaces** — and never looks like a cell reference. Unique across the workbook, ignoring case."
+        },
+        "style": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "TableStyleLight1",
+                "TableStyleLight2",
+                "TableStyleLight3",
+                "TableStyleLight4",
+                "TableStyleLight5",
+                "TableStyleLight6",
+                "TableStyleLight7",
+                "TableStyleLight8",
+                "TableStyleLight9",
+                "TableStyleLight10",
+                "TableStyleLight11",
+                "TableStyleLight12",
+                "TableStyleLight13",
+                "TableStyleLight14",
+                "TableStyleLight15",
+                "TableStyleLight16",
+                "TableStyleLight17",
+                "TableStyleLight18",
+                "TableStyleLight19",
+                "TableStyleLight20",
+                "TableStyleLight21",
+                "TableStyleMedium1",
+                "TableStyleMedium2",
+                "TableStyleMedium3",
+                "TableStyleMedium4",
+                "TableStyleMedium5",
+                "TableStyleMedium6",
+                "TableStyleMedium7",
+                "TableStyleMedium8",
+                "TableStyleMedium9",
+                "TableStyleMedium10",
+                "TableStyleMedium11",
+                "TableStyleMedium12",
+                "TableStyleMedium13",
+                "TableStyleMedium14",
+                "TableStyleMedium15",
+                "TableStyleMedium16",
+                "TableStyleMedium17",
+                "TableStyleMedium18",
+                "TableStyleMedium19",
+                "TableStyleMedium20",
+                "TableStyleMedium21",
+                "TableStyleMedium22",
+                "TableStyleMedium23",
+                "TableStyleMedium24",
+                "TableStyleMedium25",
+                "TableStyleMedium26",
+                "TableStyleMedium27",
+                "TableStyleMedium28",
+                "TableStyleDark1",
+                "TableStyleDark2",
+                "TableStyleDark3",
+                "TableStyleDark4",
+                "TableStyleDark5",
+                "TableStyleDark6",
+                "TableStyleDark7",
+                "TableStyleDark8",
+                "TableStyleDark9",
+                "TableStyleDark10",
+                "TableStyleDark11"
+              ]
+            },
+            {
+              "$ref": "#/definitions/parameterized"
+            }
+          ],
+          "description": "One of Excel's built-ins: `TableStyleLight1`–`TableStyleLight21`, `TableStyleMedium1`–`TableStyleMedium28`, `TableStyleDark1`–`TableStyleDark11`.",
+          "markdownDescription": "One of Excel's built-ins: `TableStyleLight1`–`TableStyleLight21`, `TableStyleMedium1`–`TableStyleMedium28`, `TableStyleDark1`–`TableStyleDark11`."
+        },
+        "banded_rows": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/boolean"
+            }
+          ],
+          "description": "The four toggles of Excel's \"Table Design\" ribbon. What each does depends on the style, which supplies the colours.",
+          "markdownDescription": "The four toggles of Excel's \"Table Design\" ribbon. What each does depends on the style, which supplies the colours."
+        },
+        "banded_columns": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/boolean"
+            }
+          ],
+          "description": "The four toggles of Excel's \"Table Design\" ribbon. What each does depends on the style, which supplies the colours.",
+          "markdownDescription": "The four toggles of Excel's \"Table Design\" ribbon. What each does depends on the style, which supplies the colours."
+        },
+        "first_column": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/boolean"
+            }
+          ],
+          "description": "The four toggles of Excel's \"Table Design\" ribbon. What each does depends on the style, which supplies the colours.",
+          "markdownDescription": "The four toggles of Excel's \"Table Design\" ribbon. What each does depends on the style, which supplies the colours."
+        },
+        "last_column": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/boolean"
+            }
+          ],
+          "description": "The four toggles of Excel's \"Table Design\" ribbon. What each does depends on the style, which supplies the colours.",
+          "markdownDescription": "The four toggles of Excel's \"Table Design\" ribbon. What each does depends on the style, which supplies the colours."
+        },
+        "$include": {
+          "type": "string",
+          "description": "Another document, pasted in place of this node (§8)."
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "at"
+          ]
+        },
+        {
+          "required": [
+            "$include"
+          ]
+        }
+      ]
+    },
+    "text": {
+      "type": "string"
+    },
+    "validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "What cells will accept (§10).",
+      "properties": {
+        "at": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/range"
+            }
+          ],
+          "description": "**Required.** The range the rule covers.",
+          "markdownDescription": "**Required.** The range the rule covers."
+        },
+        "list": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/scalar"
+                  }
+                },
+                {
+                  "$ref": "#/definitions/include"
+                }
+              ]
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "from": {
+                  "$ref": "#/definitions/qualified_range"
+                },
+                "$include": {
+                  "type": "string",
+                  "description": "Another document, pasted in place of this node (§8)."
+                }
+              }
+            }
+          ],
+          "description": "A sequence of choices, or `{ from: range }` naming the cells holding them.",
+          "markdownDescription": "A sequence of choices, or `{ from: range }` naming the cells holding them."
+        },
+        "whole": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/comparison"
+            }
+          ],
+          "description": "A comparison (below). `text_length` measures the text; `whole` refuses a fractional bound.",
+          "markdownDescription": "A comparison (below). `text_length` measures the text; `whole` refuses a fractional bound."
+        },
+        "decimal": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/comparison"
+            }
+          ],
+          "description": "A comparison (below). `text_length` measures the text; `whole` refuses a fractional bound.",
+          "markdownDescription": "A comparison (below). `text_length` measures the text; `whole` refuses a fractional bound."
+        },
+        "text_length": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/comparison"
+            }
+          ],
+          "description": "A comparison (below). `text_length` measures the text; `whole` refuses a fractional bound.",
+          "markdownDescription": "A comparison (below). `text_length` measures the text; `whole` refuses a fractional bound."
+        },
+        "date": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/comparison"
+            }
+          ],
+          "description": "A comparison (below). `text_length` measures the text; `whole` refuses a fractional bound.",
+          "markdownDescription": "A comparison (below). `text_length` measures the text; `whole` refuses a fractional bound."
+        },
+        "allow_blank": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/boolean"
+            }
+          ],
+          "description": "Excel's \"Ignore blank\", **default `true`**.",
+          "markdownDescription": "Excel's \"Ignore blank\", **default `true`**."
+        },
+        "prompt": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "title": {
+              "$ref": "#/definitions/text"
+            },
+            "body": {
+              "$ref": "#/definitions/text"
+            },
+            "$include": {
+              "type": "string",
+              "description": "Another document, pasted in place of this node (§8)."
+            }
+          },
+          "description": "`{ title, body }` — shown when the cell is selected.",
+          "markdownDescription": "`{ title, body }` — shown when the cell is selected."
+        },
+        "error": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "title": {
+              "$ref": "#/definitions/text"
+            },
+            "body": {
+              "$ref": "#/definitions/text"
+            },
+            "style": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "stop",
+                    "warning",
+                    "information"
+                  ]
+                },
+                {
+                  "$ref": "#/definitions/parameterized"
+                }
+              ]
+            },
+            "$include": {
+              "type": "string",
+              "description": "Another document, pasted in place of this node (§8)."
+            }
+          },
+          "description": "`{ title, body, style }` — shown when a value is refused.",
+          "markdownDescription": "`{ title, body, style }` — shown when a value is refused."
+        },
+        "$include": {
+          "type": "string",
+          "description": "Another document, pasted in place of this node (§8)."
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "at"
+          ]
+        },
+        {
+          "required": [
+            "$include"
+          ]
+        }
+      ]
+    },
+    "value_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "A name declared under defs (§6).",
+      "properties": {
+        "$ref": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "$ref"
+      ]
+    }
+  }
+}

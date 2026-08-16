@@ -168,6 +168,39 @@ yxl help                                     # full usage
 The full schema is in [`docs/spec.md`](./docs/spec.md); `extract` — a one-way
 migration aid, not a round trip — is its §22.
 
+**In an editor**, a JSON Schema generated from that page gives completion on
+every key, the reference's own sentence on hover, and a squiggle under a key
+that does not exist. In VS Code, install the YAML extension once:
+
+```bash
+code --install-extension redhat.vscode-yaml
+```
+
+Then name the schema in a spec, as its first line —
+
+```yaml
+# yaml-language-server: $schema=https://raw.githubusercontent.com/t-ujiie-g/yxl/main/docs/yxl.schema.json
+```
+
+— or once for every spec in a project, in `.vscode/settings.json` (create the
+file if the project has none; the same block works in your user settings, and
+JetBrains IDEs take the equivalent under *Languages & Frameworks → Schemas*):
+
+```json
+{
+  "yaml.schemas": {
+    "https://raw.githubusercontent.com/t-ujiie-g/yxl/main/docs/yxl.schema.json": "*.yxl.yaml"
+  }
+}
+```
+
+That glob is why the `*.yxl.yaml` naming is worth keeping to: a file pulled in
+by `$include` is a *part* of a spec rather than one, so it must not match — it
+would be reported as a document missing its `sheets`. Nothing else needs
+configuring; the modeline is `yaml-language-server`'s own, so Neovim and Helix
+read it as VS Code does. [§24](./docs/spec.md#24-editor-support) covers pointing
+at a local checkout, and what the schema deliberately leaves to `yxl build`.
+
 Exit codes are stable across releases:
 
 | Code | Meaning |
