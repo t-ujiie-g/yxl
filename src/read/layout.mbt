@@ -70,17 +70,13 @@ fn read_bands(
 ///|
 /// Give every written cell the `null`s its own formatting implies.
 ///
-/// A `<c>` element with a style takes the whole of its look from that style, and
-/// one without is on the default: `<col style>` and `<row s>` reach only the
-/// cells a sheet never allocated (ECMA-376 §18.3.1.13). A spec says the
-/// opposite — a band reaches every cell in its span (`docs/spec.md` §4) — so a
-/// cell the file leaves *without* something its band sets has to say so
-/// explicitly, or rebuilding the spec would hand it the band's version: the
-/// unfilled cell in a filled column comes back filled.
+/// `<col style>` and `<row s>` reach only the cells a sheet never allocated
+/// (ECMA-376 §18.3.1.13), where a band in a spec reaches every cell in its span
+/// (`docs/spec.md` §4). So a cell the file leaves without something its band
+/// sets has to say so, or it comes back wearing the band's version (#71).
 ///
-/// Only what the band would actually have passed down is cleared, so a text
-/// cell under a numeric column band stays quiet — Excel does not apply that
-/// format to it either.
+/// Only what the band would have passed down is cleared — a text cell under a
+/// numeric column band never had that format to lose.
 fn record_band_deviations(sheet : @model.Sheet) -> Unit {
   for index, cell in sheet.cells {
     guard sheet.band_style_at(cell.pos) is Some(band) else { continue }
@@ -90,10 +86,7 @@ fn record_band_deviations(sheet : @model.Sheet) -> Unit {
       .assigned()
       .except(own.assigned())
     guard !cleared.is_empty() else { continue }
-    sheet.cells[index] = {
-      ..cell,
-      style: Some({ ..own, cleared: own.cleared.union(cleared) }),
-    }
+    sheet.cells[index] = { ..cell, style: Some(own.clearing(cleared)) }
   }
 }
 

@@ -546,12 +546,15 @@ test "a very hidden sheet is told from a merely hidden one" {
 }
 
 ///|
+/// A style that only takes attributes away.
+fn clears(attrs : Array[@model.StyleAttr]) -> @model.Style {
+  @model.Style::empty().clearing(@model.StyleAttrs::of(attrs))
+}
+
+///|
 test "a cell the file leaves out of its band's fill comes back saying so" {
-  // Excel's own arrangement, and the one openpyxl writes: `<col style>` reaches
-  // only the cells a sheet never allocated (ECMA-376 §18.3.1.13), so a written
-  // cell carrying no fill of its own is unfilled however the column is styled.
-  // A spec says the opposite (§4), so the cell has to spell the difference out
-  // or rebuilding would fill it (#71).
+  // `<col style>` reaches only the cells a sheet never allocated (ECMA-376
+  // §18.3.1.13), so C2 is unfilled however the column is styled (#71).
   let backend = @xlsx.Workbook::new()
   let _ = backend.new_sheet("S")
   let filled = backend.new_style(
@@ -588,8 +591,6 @@ test "a cell that agrees with its band says nothing extra" {
 
 ///|
 test "a text cell under a numeric band is not made to clear its format" {
-  // Excel would not have applied that format to text anyway, so there is
-  // nothing for the cell to take away.
   let backend = @xlsx.Workbook::new()
   let _ = backend.new_sheet("S")
   let numeric = backend.new_style(@xlsx.Style::number_format("#,##0"))
@@ -610,7 +611,7 @@ test "a cleared attribute survives the round trip through the file" {
     fill: Some({ color: @units.Color::parse("FFF2CC").unwrap() }),
   })
   sheet.set(at("C1"), Number(1.0))
-  sheet.set(at("C2"), Number(2.0), style=@model.Style::empty().without(Fill))
+  sheet.set(at("C2"), Number(2.0), style=clears([Fill]))
   let recovered = only_sheet(wb)
   let styles = Map::from_array(
     recovered.cells.map(cell => (cell.pos.to_a1(), cell.style)),

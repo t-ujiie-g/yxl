@@ -585,13 +585,13 @@ pub(all) struct Style {
   cleared : StyleAttrs
 } derive(Eq, Hash, @debug.Debug)
 pub fn Style::assigned(Self) -> StyleAttrs
+pub fn Style::clearing(Self, StyleAttrs) -> Self
 pub fn Style::empty() -> Self
 pub fn Style::inherited_by(Self, CellValue) -> Self
 pub fn Style::is_empty(Self) -> Bool
 pub fn Style::number_format(String) -> Self
 pub fn Style::over(Self, Self) -> Self
 pub fn Style::settled(Self) -> Self
-pub fn Style::without(Self, StyleAttr) -> Self
 
 pub(all) enum StyleAttr {
   Fill

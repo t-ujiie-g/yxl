@@ -357,9 +357,8 @@ test "the styling example's conditional formats share their declared looks" {
 }
 
 ///|
-/// The `styling` example claims `null` takes an attribute away — the band's
-/// number format from one cell, the header's fill from another. Both are about
-/// what the cell does *not* wear, which no promise about its value can show.
+/// The `styling` example claims `null` takes an attribute away, which is about
+/// what a cell does *not* wear — so no promise about its value can show it.
 test "the styling example's nulls clear what would otherwise be inherited" {
   let path = "\{EXAMPLES}/styling.yxl.yaml"
   let workbook = @xlsx.read(
@@ -377,11 +376,9 @@ test "the styling example's nulls clear what would otherwise be inherited" {
     }
   }
 
-  // The band gives B2 the thousands format and B10 nothing.
   assert_true(style_of("B2").unwrap().number_format is Some(_))
   let counted = style_of("B10")
   assert_true(counted is None || counted.unwrap().number_format is None)
-  // A12 wears the header's font without its fill.
   let notes = style_of("A12").unwrap()
   assert_true(notes.font.unwrap().bold is Some(true))
   assert_true(notes.fill is None)

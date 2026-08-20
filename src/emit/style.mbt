@@ -1,8 +1,8 @@
 ///|
 /// The style a cell is actually drawn in: its column band's, then its row
 /// band's, then its own, each layering over the last so a column can set the
-/// number format while the cell sets the font — and each able to take away what
-/// the last one set (`docs/spec.md` §6's `null`).
+/// number format while the cell sets the font, and each able to take away what
+/// the last one set.
 ///
 /// This has to be resolved here rather than left to Excel, because
 /// `<col style>` and `<row s>` govern only the cells a sheet has **not**
@@ -25,10 +25,8 @@ fn effective_style(sheet : @model.Sheet, cell : @model.Cell) -> @model.Style? {
 }
 
 ///|
-/// A layered style as the backend takes it: with the record of what it cleared
-/// dropped, and gone entirely where nothing is left to write. A cell whose only
-/// styling was to take the band's fill away wears Excel's default style, which
-/// is exactly what the spec asked for.
+/// A layered style as the backend takes it: the record of what it cleared
+/// dropped, and gone entirely where nothing is left to write.
 fn settle(style : @model.Style?) -> @model.Style? {
   guard style is Some(style) else { return None }
   let settled = style.settled()

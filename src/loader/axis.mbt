@@ -142,8 +142,6 @@ fn load_axis_spec(
       "at" => () // the selector, consumed by `split_band`
       "style" => style_node = Some(node)
       "format" =>
-        // A row band can take away what the column band under it set, so `null`
-        // means the same here as it does on a cell (`docs/spec.md` §6).
         match node {
           @yaml.Null =>
             format_cleared = @model.StyleAttrs::none().adding(NumberFormat)

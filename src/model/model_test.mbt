@@ -116,6 +116,34 @@ test "Style::over keeps what the overriding style leaves unset" {
 }
 
 ///|
+/// A style that only takes attributes away.
+fn clears(attrs : Array[@model.StyleAttr]) -> @model.Style {
+  @model.Style::empty().clearing(@model.StyleAttrs::of(attrs))
+}
+
+///|
+test "StyleAttrs is a set: membership, union, and difference" {
+  let some = @model.StyleAttrs::of([Fill, FontBold])
+  assert_true(some.has(Fill))
+  assert_true(!some.has(FontItalic))
+  assert_true(@model.StyleAttrs::none().is_empty())
+  assert_true(!some.is_empty())
+  assert_eq(
+    some.adding(FontItalic),
+    @model.StyleAttrs::of([Fill, FontBold, FontItalic]),
+  )
+  assert_eq(some.adding(Fill), some)
+  assert_eq(
+    some.union(@model.StyleAttrs::of([BorderTop])),
+    @model.StyleAttrs::of([Fill, FontBold, BorderTop]),
+  )
+  assert_eq(
+    some.except(@model.StyleAttrs::of([FontBold, BorderTop])),
+    @model.StyleAttrs::of([Fill]),
+  )
+}
+
+///|
 test "an overriding style takes away the attribute it clears" {
   let base : @model.Style = {
     ..@model.Style::empty(),
@@ -123,7 +151,7 @@ test "an overriding style takes away the attribute it clears" {
     number_format: Some("0.00"),
     font: Some({ ..Font::empty(), bold: Some(true), size: Some(11.0) }),
   }
-  let over = @model.Style::empty().without(Fill).without(FontSize)
+  let over = clears([Fill, FontSize])
   let merged = over.over(base)
   assert_eq(merged.fill, None)
   assert_eq(merged.number_format, Some("0.00"))
@@ -137,13 +165,11 @@ test "a cleared attribute stays cleared until something sets it" {
     ..@model.Style::empty(),
     fill: Some({ color: red() }),
   }
-  let row = @model.Style::empty().without(Fill)
+  let row = clears([Fill])
   let cell : @model.Style = {
     ..@model.Style::empty(),
     font: Some({ ..Font::empty(), bold: Some(true) }),
   }
-  // The row band takes the column's fill away and the cell says nothing about
-  // it, so the cell is unfilled — and still says so to whatever it lands on.
   let layered = cell.over(row.over(column))
   assert_eq(layered.fill, None)
   assert_true(layered.cleared.has(Fill))
@@ -156,28 +182,21 @@ test "a cleared attribute stays cleared until something sets it" {
 }
 
 ///|
-test "clearing an attribute this style sets drops the value, not both" {
+test "an attribute this style sets cannot also be cleared" {
   let style = (
-      {
-        ..@model.Style::empty(),
-        fill: Some({ color: red() }),
-        font: Some({ ..Font::empty(), bold: Some(true), name: Some("Arial") }),
-      } : @model.Style)
-    .without(Fill)
-    .without(FontName)
-  assert_eq(style.fill, None)
-  assert_eq(style.font.unwrap().name, None)
-  assert_eq(style.font.unwrap().bold, Some(true))
-  assert_eq(style.assigned(), @model.StyleAttrs::of([FontBold]))
-  assert_eq(style.cleared, @model.StyleAttrs::of([Fill, FontName]))
+    {
+      ..@model.Style::empty(),
+      fill: Some({ color: red() }),
+      font: Some({ ..Font::empty(), bold: Some(true) }),
+    } : @model.Style).clearing(@model.StyleAttrs::of([Fill, FontSize]))
+  assert_eq(style.fill, Some({ color: red() }))
+  assert_eq(style.assigned(), @model.StyleAttrs::of([Fill, FontBold]))
+  assert_eq(style.cleared, @model.StyleAttrs::of([FontSize]))
 }
 
 ///|
-test "a style that clears everything it had is not the empty style" {
-  let style = (
-    { ..@model.Style::empty(), fill: Some({ color: red() }) } : @model.Style).without(
-    Fill,
-  )
+test "a style that only clears is not the empty style" {
+  let style = clears([Fill])
   assert_true(!style.is_empty())
   assert_true(style.settled().is_empty())
 }
@@ -192,7 +211,7 @@ test "settling drops the record so one look interns once" {
     {
       ..@model.Style::empty(),
       font: Some({ ..Font::empty(), bold: Some(true) }),
-    } : @model.Style).without(Fill)
+    } : @model.Style).clearing(@model.StyleAttrs::of([Fill]))
   assert_true(plain != arrived_by_clearing)
   assert_eq(plain, arrived_by_clearing.settled())
 }
@@ -204,7 +223,7 @@ test "a band style reaches a position from the column with the row over it" {
     ..@model.Style::empty(),
     fill: Some({ color: red() }),
   })
-  sheet.set_row_band(first=2, last=2, style=@model.Style::empty().without(Fill))
+  sheet.set_row_band(first=2, last=2, style=clears([Fill]))
   let filled = sheet.band_style_at(@units.CellRef::new(col=3, row=1)).unwrap()
   assert_eq(filled.fill, Some({ color: red() }))
   let cleared = sheet.band_style_at(@units.CellRef::new(col=3, row=2)).unwrap()
@@ -217,7 +236,7 @@ test "a band's number format is not inherited by a text cell" {
   let banded = @model.Style::number_format("#,##0")
   assert_eq(banded.inherited_by(Number(1.0)).number_format, Some("#,##0"))
   assert_eq(banded.inherited_by(Text("Revenue")).number_format, None)
-  // Four sections and the fourth governs text, so this one does reach it.
+  // Four sections, and the fourth governs text, so this one does reach it.
   let with_text = @model.Style::number_format("#,##0;-#,##0;0;@")
   assert_eq(
     with_text.inherited_by(Text("Revenue")).number_format,

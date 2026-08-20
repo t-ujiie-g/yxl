@@ -143,6 +143,12 @@ test "a band reaches only the columns and rows it spans" {
 }
 
 ///|
+/// A style that only takes attributes away.
+fn clears(attrs : Array[@model.StyleAttr]) -> @model.Style {
+  @model.Style::empty().clearing(@model.StyleAttrs::of(attrs))
+}
+
+///|
 /// A style setting only a fill.
 fn filled(hex : String) -> @model.Style {
   {
@@ -174,7 +180,7 @@ test "a cell that clears the band's fill is drawn unfilled" {
   sheet.set(
     @units.CellRef::new(col=3, row=2),
     Number(2.0),
-    style=@model.Style::empty().without(Fill),
+    style=clears([Fill]),
   )
   assert_eq(cell_fill(wb, "C1"), Some("FFF2CC"))
   assert_eq(cell_fill(wb, "C2"), None)
@@ -190,7 +196,7 @@ test "clearing one attribute leaves the band's others in place" {
   sheet.set(
     @units.CellRef::new(col=2, row=1),
     Number(1.0),
-    style=@model.Style::empty().without(NumberFormat),
+    style=clears([NumberFormat]),
   )
   assert_eq(cell_format(wb, "B1"), None)
   assert_true(cell_is_bold(wb, "B1"))
@@ -200,11 +206,7 @@ test "clearing one attribute leaves the band's others in place" {
 test "a row band clears what the column band under it set" {
   let (wb, sheet) = fixture()
   sheet.set_column_band(first=2, last=2, style=formatted("#,##0"))
-  sheet.set_row_band(
-    first=1,
-    last=1,
-    style=@model.Style::empty().without(NumberFormat),
-  )
+  sheet.set_row_band(first=1, last=1, style=clears([NumberFormat]))
   sheet.set(@units.CellRef::new(col=2, row=1), Number(1.0))
   sheet.set(@units.CellRef::new(col=2, row=2), Number(2.0))
   assert_eq(cell_format(wb, "B1"), None)
@@ -218,10 +220,8 @@ test "a cell that clears everything the band gave it wears the default style" {
   sheet.set(
     @units.CellRef::new(col=3, row=1),
     Number(1.0),
-    style=@model.Style::empty().without(Fill),
+    style=clears([Fill]),
   )
-  // Style 0 is the default one every unstyled cell carries: the cell asked for
-  // no look of its own, and a band reaches only the cells a sheet never
-  // allocated (ECMA-376 §18.3.1.13).
+  // Style 0 is the default every unstyled cell carries.
   assert_true(reopen(wb).get_cell_style("S", "C1") is (None | Some(0)))
 }

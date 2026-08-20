@@ -187,9 +187,7 @@ fn style(value : @model.Style) -> @yaml.Node {
 ///|
 /// The mapping form of a style, used both under `defs.styles` and inline.
 ///
-/// An attribute the style *clears* is written `null`, which is how a cell keeps
-/// the look it had in the workbook it was read from when a band underneath it
-/// says otherwise (`docs/spec.md` §6).
+/// An attribute the style clears is written `null` (`docs/spec.md` §6).
 fn style_node(style : @model.Style) -> @yaml.Node {
   let cleared = style.cleared
   let entries = []
@@ -219,9 +217,8 @@ fn style_node(style : @model.Style) -> @yaml.Node {
 }
 
 ///|
-/// A group of style attributes as a mapping, or `None` where the style neither
-/// sets nor clears any of them. `set` writes what the group holds; `cleared`
-/// names the attributes to write `null` beside them, in the group's own order.
+/// A group of style attributes as a mapping — what it sets, then a `null` for
+/// each attribute it clears — or `None` where it does neither.
 fn group_node(
   set : Array[(String, @yaml.Node)],
   cleared : @model.StyleAttrs,

@@ -57,8 +57,6 @@ fn load_expanded_cell(
           expect_string(node, file~, context="cell '\{reference}' type"),
         )
       "format" =>
-        // `null` is the format explicitly not set, which a band above the cell
-        // then cannot supply (`docs/spec.md` §6).
         match node {
           @yaml.Null =>
             format_cleared = @model.StyleAttrs::none().adding(NumberFormat)
@@ -262,8 +260,6 @@ fn load_rich_run(
               file~,
               context="\{owner} rich text run",
             )
-            // A run's font is the whole of what the run wears: nothing layers
-            // under it, so there is nothing for `null` to take away.
             guard cleared.is_empty() else {
               raise schema_error(
                 file~,

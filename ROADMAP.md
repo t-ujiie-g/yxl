@@ -1489,8 +1489,11 @@ meaning.
 
 The model carries the third state as a **set of attributes the style clears**
 (`Style::cleared`, a bitmask newtype) rather than by making every leaf a nested
-option: one field, one merge rule, and every construction site untouched.
-`Style::over` gained the rule that completes it — a cleared attribute wins over
+option: one field, one merge rule, and every construction site untouched. One
+constructor holds the exclusivity — `Style::clearing` never clears an attribute
+the same style gives a value to, which is §6's "a value beside it wins" — so
+the loader, the reader, and layering cannot drift on it. `Style::over` gained
+the rule that completes it — a cleared attribute wins over
 the base's value and stays cleared until something sets one — and the set is
 dropped at the emitter (`Style::settled`), because once layering is over "not
 set" and "explicitly not set" are the same cell and must intern as one

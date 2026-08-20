@@ -355,9 +355,7 @@ test "extracting twice gives the same spec" {
 
 ///|
 test "a cell that is not in its band's fill survives the round trip" {
-  // The whole of #71: a filled column with one cell deliberately left out of
-  // it. Before `null` there was nothing the spec could write here, and the
-  // extraction rebuilt the cell filled without saying so.
+  // A filled column with one cell deliberately left out of it (#71).
   let source =
     #|defs:
     #|  styles:
@@ -375,8 +373,6 @@ test "a cell that is not in its band's fill survives the round trip" {
   let result = extracted(source)
   assert_eq(result.warnings, [])
   assert_true(result.spec.contains("fill: null"))
-  // The spec it wrote compiles to the same workbook, cell for cell and fill for
-  // fill — which is the claim `extract` makes on the way out.
   let again = @cli.extract(
     @cli.compile(result.spec, file="out.yaml"),
     file="out.xlsx",
