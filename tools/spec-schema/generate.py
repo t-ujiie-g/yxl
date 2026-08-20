@@ -358,6 +358,17 @@ def seq(items: dict, description: str = "") -> dict:
     return node(schema)
 
 
+def clearable(schema: dict) -> dict:
+    """An attribute a spec may also write `null` to say it is not set (§6).
+
+    Absence means "inherit" — from an extended style, from a column or row band
+    — so the third state needs a spelling of its own, and `null` is it. Only the
+    leaves of a style take one: a `style:` or a `cells:` entry written `null`
+    says nothing at all and stays an error.
+    """
+    return {"anyOf": [schema, {"type": "null"}]}
+
+
 def enum(values: list[str]) -> dict:
     return {"anyOf": [{"type": "string", "enum": values}, ref("parameterized")]}
 
@@ -452,15 +463,18 @@ def build(doc: Reference) -> dict:
     attributes = doc.keys("Style attributes")
     align = attributes["align"]
     border = attributes["border"]
+    # The reference has to keep saying that an attribute may be cleared, since
+    # that is the whole justification for the `null` this shapes in.
+    doc.section("Saying an attribute is *not* set")
     define["font"] = obj(
         {
-            "bold": ref("boolean"),
-            "italic": ref("boolean"),
-            "underline": ref("boolean"),
-            "strike": ref("boolean"),
-            "size": ref("number"),
-            "name": ref("text"),
-            "color": ref("color"),
+            "bold": clearable(ref("boolean")),
+            "italic": clearable(ref("boolean")),
+            "underline": clearable(ref("boolean")),
+            "strike": clearable(ref("boolean")),
+            "size": clearable(ref("number")),
+            "name": clearable(ref("text")),
+            "color": clearable(ref("color")),
         },
         documented=braced(attributes["font"]),
         where="a font",
@@ -468,9 +482,9 @@ def build(doc: Reference) -> dict:
     horizontal, vertical = align.split("Horizontal:")[1].split("Vertical:")
     define["align"] = obj(
         {
-            "horizontal": enum(names(horizontal)),
-            "vertical": enum(names(vertical)),
-            "wrap": ref("boolean"),
+            "horizontal": clearable(enum(names(horizontal))),
+            "vertical": clearable(enum(names(vertical))),
+            "wrap": clearable(ref("boolean")),
         },
         documented=braced(align),
         where="an alignment",
@@ -490,26 +504,34 @@ def build(doc: Reference) -> dict:
         "anyOf": [
             enum(names(line_styles)),
             obj(
-                {edge: ref("border_edge") for edge in names(edges)},
+                {
+                    edge: clearable(ref("border_edge"))
+                    for edge in names(edges)
+                },
                 documented=names(edges),
                 where="a border",
             ),
         ]
     }
     define["protection"] = obj(
-        {"locked": ref("boolean"), "hidden": ref("boolean")},
+        {
+            "locked": clearable(ref("boolean")),
+            "hidden": clearable(ref("boolean")),
+        },
         documented=braced(attributes["protection"]),
         where="a style's protection",
     )
     define["style_body"] = obj(
         {
             "extends": ref("text"),
-            "font": ref("font"),
-            "fill": {"anyOf": [ref("color"), obj({"color": ref("color")})]},
-            "border": ref("border"),
-            "protection": ref("protection"),
-            "format": ref("text"),
-            "align": ref("align"),
+            "font": clearable(ref("font")),
+            "fill": clearable(
+                {"anyOf": [ref("color"), obj({"color": ref("color")})]}
+            ),
+            "border": clearable(ref("border")),
+            "protection": clearable(ref("protection")),
+            "format": clearable(ref("text")),
+            "align": clearable(ref("align")),
         },
         documented=attributes,
         where="a style",
@@ -537,7 +559,7 @@ def build(doc: Reference) -> dict:
         "formula": {"anyOf": [ref("text"), ref("value_ref")]},
         "rich": seq(ref("rich_run")),
         "type": enum(names(expanded["type"], stop="—")),
-        "format": ref("text"),
+        "format": clearable(ref("text")),
         "style": ref("style"),
     }
     define["cell_body"] = obj(
@@ -578,7 +600,7 @@ def build(doc: Reference) -> dict:
             ]
         },
         "style": ref("style"),
-        "format": ref("text"),
+        "format": clearable(ref("text")),
         "hidden": ref("boolean"),
         "group": ref("integer"),
         "width": ref("number"),
@@ -1243,6 +1265,16 @@ ACCEPTED = {
     "an included sheet": "sheets: [{$include: sheets/summary.yaml}]",
     "an included cells block": "sheets: [{name: S, cells: {$include: data/q3.yaml}}]",
     "an included document": "$include: real.yxl.yaml",
+    "an attribute cleared with null": (
+        "sheets: [{name: S, columns: [{at: C, style: {fill: FFF2CC}}],"
+        " cells: {C2: {value: 2, style: {fill: null, font: {size: null}}}}}]"
+    ),
+    "a whole style group cleared with null": (
+        "sheets: [{name: S, cells: {A1: {value: 1, style: {font: null}}}}]"
+    ),
+    "the format shorthand cleared with null": (
+        "sheets: [{name: S, cells: {A1: {value: 1, format: null}}}]"
+    ),
 }
 
 REFUSED = {
@@ -1266,6 +1298,9 @@ REFUSED = {
     ),
     "text where a width goes": "sheets: [{name: S, columns: [{at: B, width: wide}]}]",
     "a data block with no anchor": "sheets: [{name: S, data: [{csv: sales.csv}]}]",
+    "a whole style written null, which says nothing at all": (
+        "sheets: [{name: S, cells: {A1: {value: 1, style: null}}}]"
+    ),
     "an override that names no sheet": (
         "sheets: [{name: S, cells: {E37: 1}}]\noverrides: [{at: E37, value: 2}]"
     ),

@@ -391,3 +391,55 @@ test "a table renders only the toggles that differ from Excel's defaults" {
     ),
   )
 }
+
+///|
+/// A style that only takes attributes away.
+fn clears(attrs : Array[@model.StyleAttr]) -> @model.Style {
+  @model.Style::empty().clearing(@model.StyleAttrs::of(attrs))
+}
+
+///|
+test "a cleared attribute is written as null, beside the ones that are set" {
+  let (wb, sheet) = fixture()
+  sheet.set_column_band(first=1, last=1, style=header_style())
+  sheet.set(
+    at("A1"),
+    Text("APAC"),
+    style=(
+        {
+          ..@model.Style::empty(),
+          font: Some({ ..@model.Font::empty(), italic: Some(true) }),
+        } : @model.Style)
+      .clearing(@model.StyleAttrs::of([Fill]))
+      .clearing(@model.StyleAttrs::of([FontBold])),
+  )
+  inspect(
+    spec(wb),
+    content=(
+      #|sheets:
+      #|  - name: S
+      #|    cells:
+      #|      A1:
+      #|        value: APAC
+      #|        style:
+      #|          font:
+      #|            italic: true
+      #|            bold: null
+      #|          fill: null
+      #|    columns:
+      #|      - at: A
+      #|        style:
+      #|          font:
+      #|            bold: true
+      #|          fill: "1F3864"
+      #|
+    ),
+  )
+}
+
+///|
+test "a style that only clears a format is a style, not the format shorthand" {
+  let (wb, sheet) = fixture()
+  sheet.set(at("A1"), Number(1.0), style=clears([NumberFormat]))
+  assert_true(spec(wb).contains("style:\n          format: null"))
+}

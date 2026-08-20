@@ -955,8 +955,32 @@ the first item changes what a spec looks like.
       shaped but undocumented, fails the generator by name, and CI fails when
       the committed JSON is not what the reference now says. A schema that
       decayed to `{}` would still pass every corpus, so `--selftest` pins
-      thirteen mistakes it must refuse alongside the twenty-one specs of
+      fourteen mistakes it must refuse alongside the twenty-one specs of
       `examples/` and `tests/validity/` it must accept.
+- [x] **A third state for a style attribute (`null`), and the `extract` loss it
+      was hiding.** Raised from downstream (#71) and taken before the freeze for
+      the same reason as `overrides:`: afterwards, teaching an error case to mean
+      something is a behaviour change on specs that fail to build today rather
+      than an addition. A spec could say an attribute *is* something and could
+      leave it out, but leaving it out is inheritance — from `extends:`, from a
+      column band, from a row band — so the cell Excel draws unfilled inside a
+      filled column could not be written. Booleans escaped it (`bold: false` is a
+      value); a fill, a colour, a format, an alignment, and a border edge did
+      not.
+      **Shipped** as `null` at every style attribute, at a whole group, and at
+      the `format:` shorthand (`docs/spec.md` §6, ADR-020). The model carries the
+      third state as the set of attributes a style clears, layering takes it away
+      from what it is laid over, and the emitter drops the set once layering is
+      done so one look still interns as one `cellXfs` id.
+      The reader half is what closes #71: a `<c>` takes its whole look from its
+      own style (ECMA-376 §18.3.1.13), so a written cell missing something its
+      band sets now comes back with the `null` that says so — the round trip that
+      silently refilled a deliberately unfilled cell, and could not report it
+      because the loss happened in the reader, before the self-check's baseline.
+      `tests/validity/cells.yxl.yaml` puts every spelling through the Open XML
+      validator, and `examples/styling.yxl.yaml` shows the two an author reaches
+      for.
+
 
 ### v1.0 — Stability gate
 - [ ] Schema freeze (breaking budget spent here). The **spec reference** it
@@ -1427,6 +1451,76 @@ The generated file is committed rather than released as an asset, so
 `$schema=…/main/docs/yxl.schema.json` resolves for anyone, and pointing at a
 local checkout works while writing against an unreleased `yxl`.
 
+### ADR-020 — An attribute has three states, and `null` is the third
+
+**Status:** accepted 2026-08-20.
+
+**Context:** A style attribute could say two things: *this value*, or nothing.
+Nothing means **inherit** — from the style an inline one extends, from the
+column band, from the row band over it — so there was no way to say an attribute
+is *not* set where something underneath sets it. A boolean escapes this because
+`false` is a value (`font: { bold: false }`); a fill, a colour, a number format,
+an alignment, and a border edge have no such spelling, and the cell that Excel
+draws unfilled inside a filled column could not be written down at all.
+
+It reached further than authoring. `extract` hits the same wall from the other
+side, and it hit it *silently* (#71): a `<c>` in a file takes its whole look
+from its own style — `<col style>` reaches only the cells a sheet never
+allocated (ECMA-376 §18.3.1.13) — so a written cell that carries no fill is
+unfilled however the column is styled. The reader turned such a cell into "no
+style", the renderer wrote it as a bare value, and rebuilding filled it. The
+self-check could not see it: it compares the model it recovered against the
+model the rebuilt spec produces, and the difference had already been dropped
+before the comparison began, in the reader.
+
+**Decision:** an attribute is in one of **three** states — set, not mentioned,
+or **explicitly not set** — and the third is written `null`:
+
+```yaml
+C2: { value: 2, style: { fill: null } }
+A1: { value: 1, style: { extends: header, fill: null } }
+```
+
+`null` reads the same at every leaf (`font: { color: null }`, `format: null`,
+`align: { horizontal: null }`, `border: { left: null }`), at a whole group
+(`font: null`), and at the `format:` shorthand beside a style. Both spellings an
+author would reach for were hard errors before, so nothing that compiled changes
+meaning.
+
+The model carries the third state as a **set of attributes the style clears**
+(`Style::cleared`, a bitmask newtype) rather than by making every leaf a nested
+option: one field, one merge rule, and every construction site untouched. One
+constructor holds the exclusivity — `Style::clearing` never clears an attribute
+the same style gives a value to, which is §6's "a value beside it wins" — so
+the loader, the reader, and layering cannot drift on it. `Style::over` gained
+the rule that completes it — a cleared attribute wins over
+the base's value and stays cleared until something sets one — and the set is
+dropped at the emitter (`Style::settled`), because once layering is over "not
+set" and "explicitly not set" are the same cell and must intern as one
+`cellXfs` id (ADR-004).
+
+**The reader writes it.** After the bands are read, a written cell whose own
+formatting is missing something its band sets is given the `null` that says so —
+only what the band would actually have passed down, so a text cell under a
+numeric column band stays quiet (a format with fewer than four sections never
+reaches text; ECMA-376 §18.8.31).
+
+**Alternatives rejected.** `none` as a keyword reads better for a fill, but
+`none` is also a real border style in `ST_BorderStyle`, and it would need
+defining per key type rather than once. An `unset: [fill, format]` list is
+harder to write by accident — the one real argument against `null`, since a key
+whose value an author simply forgot parses as `null` too — but it is a second
+grammar for what the first grammar nearly says, and it does not compose inside a
+group the way a leaf does.
+
+**Trade-offs / consequences:** `fill:` written with nothing after it now means
+"explicitly not set" rather than failing, which is the price of the YAML
+spelling; the reference says so where it introduces `null` (§6). A `rich:` run's
+font refuses `null` outright — a run inherits nothing, so there would be nothing
+to take away — and that is a compiler diagnostic rather than a schema rule. In a
+conditional format's style, where nothing is inherited either, `null` is
+accepted and means what leaving the key out means.
+
 ## 8. Open questions
 
 - **Q1 — YAML parser.** ✅ **Decided (ADR-009), refined (ADR-010):** depend on
@@ -1589,6 +1683,17 @@ local checkout works while writing against an unreleased `yxl`.
   `formula_builtins_financial.mbt` and `formula_builtins_stats.mbt` already use.
   Revisit the moment it lands, and before v1.0 either way, since "experimental"
   is not a state to freeze a release policy around.
+
+- **`extract`'s self-check compares cells, not their looks.** It recompiles the
+  spec it wrote and asserts the *values* match, so a styling inference that goes
+  wrong is reported only if it changed a value — and a loss that happens inside
+  the reader is invisible to it either way, since the recovered model is the
+  baseline it compares against (that is how #71 stayed silent). Widening it to
+  compare the effective style of every cell needs a corpus first: the reader
+  normalizes (theme colours to RGB, formats to their written codes), so an
+  innocent difference would start failing extractions of real workbooks. Until
+  then the honest statement is the one `docs/spec.md` §22 makes — what the
+  schema cannot carry is listed, and the check is on cells.
 
 - **Backend API churn (mbtexcel 0.1.x).** Mitigation: pin the version; the
   ADR-002 seam contains the blast radius.
@@ -1795,6 +1900,28 @@ local checkout works while writing against an unreleased `yxl`.
 
 Reverse-chronological. One entry per user-visible or structural change.
 
+- **2026-08-20** — **A style attribute can now say it is *not* set.** Leaving a
+  key out has always meant "inherit" — from the style an inline one extends,
+  from the column band, from the row band over it — which left no way to write
+  the cell Excel draws unfilled inside a filled column. `null` is that third
+  state, at every attribute (`fill: null`, `font: { color: null }`,
+  `format: null`, `align: { horizontal: null }`, `border: { left: null }`), at a
+  whole group (`font: null`), and at the `format:` shorthand beside a style. A
+  boolean never needed it: `bold: false` is a value. Both spellings an author
+  would have reached for were errors before, so no spec that compiled changes
+  meaning (`docs/spec.md` §6, ADR-020).
+
+  The half that was actually losing data is `extract` (#71). A `<c>` element
+  takes its whole look from its own style — `<col style>` reaches only the cells
+  a sheet never allocated (ECMA-376 §18.3.1.13) — so a written cell carrying no
+  fill is unfilled however the column is styled. That cell came back as "no
+  style", was written as a bare value, and rebuilt **filled**, under a line
+  saying everything else rebuilt as read. The self-check could not have caught
+  it: it compares the recovered model against the rebuilt one, and the
+  difference was gone before the comparison, in the reader. The reader now gives
+  such a cell the `null` that says so — only for what the band would actually
+  have passed down, so a text cell under a numeric column band stays quiet.
+
 - **2026-08-20** — **Toolchain catch-up: `moonbitlang/x@0.4.50`, and two
   implicit trait promotions made explicit.** The August toolchain refuses
   `lexscan` on a `StringView`, which `moonbitlang/x@0.4.48`'s `time` package
@@ -1824,7 +1951,7 @@ Reverse-chronological. One entry per user-visible or structural change.
   fails when the committed JSON is not what the reference now says.
 
   A schema that quietly decayed into `{}` would pass every corpus in the repo,
-  so acceptance is not the only test: `--selftest` pins thirteen mistakes it
+  so acceptance is not the only test: `--selftest` pins fourteen mistakes it
   must refuse — a misspelt sheet key, `5Boxes`, `TableStyleMedium99`, text where
   a width goes, an override naming no sheet — beside the twenty-one specs of
   `examples/` and `tests/validity/` it must accept. What it does *not* judge is

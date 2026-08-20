@@ -31,12 +31,8 @@ fn only_format(wb : @model.Workbook) -> @xlsx.ConditionalFormatOptions raise {
 /// A style that is only a fill, for rules that need one.
 fn highlight() -> @model.Style {
   {
-    font: None,
+    ..@model.Style::empty(),
     fill: Some({ color: @units.Color::parse("C6EFCE").unwrap() }),
-    borders: None,
-    align: None,
-    number_format: None,
-    protection: None,
   }
 }
 

@@ -141,3 +141,87 @@ test "a band reaches only the columns and rows it spans" {
   assert_eq(cell_format(wb, "C1"), Some("#,##0"))
   assert_eq(cell_format(wb, "D1"), None)
 }
+
+///|
+/// A style that only takes attributes away.
+fn clears(attrs : Array[@model.StyleAttr]) -> @model.Style {
+  @model.Style::empty().clearing(@model.StyleAttrs::of(attrs))
+}
+
+///|
+/// A style setting only a fill.
+fn filled(hex : String) -> @model.Style {
+  {
+    ..@model.Style::empty(),
+    fill: Some({ color: @units.Color::parse(hex).unwrap() }),
+  }
+}
+
+///|
+/// The fill a cell is actually drawn with, as the reader reports it.
+fn cell_fill(wb : @model.Workbook, reference : String) -> String? raise {
+  let reopened = reopen(wb)
+  guard reopened.get_cell_style("S", reference) is Some(id) else { return None }
+  match reopened.get_style(id).fill {
+    Some(fill) =>
+      match fill.colors {
+        Some(colors) if !colors.is_empty() => Some(colors[0])
+        _ => None
+      }
+    None => None
+  }
+}
+
+///|
+test "a cell that clears the band's fill is drawn unfilled" {
+  let (wb, sheet) = fixture()
+  sheet.set_column_band(first=3, last=3, style=filled("FFF2CC"))
+  sheet.set(@units.CellRef::new(col=3, row=1), Number(1.0))
+  sheet.set(
+    @units.CellRef::new(col=3, row=2),
+    Number(2.0),
+    style=clears([Fill]),
+  )
+  assert_eq(cell_fill(wb, "C1"), Some("FFF2CC"))
+  assert_eq(cell_fill(wb, "C2"), None)
+}
+
+///|
+test "clearing one attribute leaves the band's others in place" {
+  let (wb, sheet) = fixture()
+  sheet.set_column_band(first=2, last=2, style={
+    ..formatted("#,##0"),
+    font: bold().font,
+  })
+  sheet.set(
+    @units.CellRef::new(col=2, row=1),
+    Number(1.0),
+    style=clears([NumberFormat]),
+  )
+  assert_eq(cell_format(wb, "B1"), None)
+  assert_true(cell_is_bold(wb, "B1"))
+}
+
+///|
+test "a row band clears what the column band under it set" {
+  let (wb, sheet) = fixture()
+  sheet.set_column_band(first=2, last=2, style=formatted("#,##0"))
+  sheet.set_row_band(first=1, last=1, style=clears([NumberFormat]))
+  sheet.set(@units.CellRef::new(col=2, row=1), Number(1.0))
+  sheet.set(@units.CellRef::new(col=2, row=2), Number(2.0))
+  assert_eq(cell_format(wb, "B1"), None)
+  assert_eq(cell_format(wb, "B2"), Some("#,##0"))
+}
+
+///|
+test "a cell that clears everything the band gave it wears the default style" {
+  let (wb, sheet) = fixture()
+  sheet.set_column_band(first=3, last=3, style=filled("FFF2CC"))
+  sheet.set(
+    @units.CellRef::new(col=3, row=1),
+    Number(1.0),
+    style=clears([Fill]),
+  )
+  // Style 0 is the default every unstyled cell carries.
+  assert_true(reopen(wb).get_cell_style("S", "C1") is (None | Some(0)))
+}

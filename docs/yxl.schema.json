@@ -142,40 +142,61 @@
         "horizontal": {
           "anyOf": [
             {
-              "type": "string",
-              "enum": [
-                "left",
-                "center",
-                "right",
-                "fill",
-                "justify",
-                "distributed"
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "left",
+                    "center",
+                    "right",
+                    "fill",
+                    "justify",
+                    "distributed"
+                  ]
+                },
+                {
+                  "$ref": "#/definitions/parameterized"
+                }
               ]
             },
             {
-              "$ref": "#/definitions/parameterized"
+              "type": "null"
             }
           ]
         },
         "vertical": {
           "anyOf": [
             {
-              "type": "string",
-              "enum": [
-                "top",
-                "middle",
-                "bottom",
-                "justify",
-                "distributed"
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "top",
+                    "middle",
+                    "bottom",
+                    "justify",
+                    "distributed"
+                  ]
+                },
+                {
+                  "$ref": "#/definitions/parameterized"
+                }
               ]
             },
             {
-              "$ref": "#/definitions/parameterized"
+              "type": "null"
             }
           ]
         },
         "wrap": {
-          "$ref": "#/definitions/boolean"
+          "anyOf": [
+            {
+              "$ref": "#/definitions/boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "$include": {
           "type": "string",
@@ -239,19 +260,54 @@
           "additionalProperties": false,
           "properties": {
             "all": {
-              "$ref": "#/definitions/border_edge"
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/border_edge"
+                },
+                {
+                  "type": "null"
+                }
+              ]
             },
             "left": {
-              "$ref": "#/definitions/border_edge"
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/border_edge"
+                },
+                {
+                  "type": "null"
+                }
+              ]
             },
             "right": {
-              "$ref": "#/definitions/border_edge"
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/border_edge"
+                },
+                {
+                  "type": "null"
+                }
+              ]
             },
             "top": {
-              "$ref": "#/definitions/border_edge"
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/border_edge"
+                },
+                {
+                  "type": "null"
+                }
+              ]
             },
             "bottom": {
-              "$ref": "#/definitions/border_edge"
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/border_edge"
+                },
+                {
+                  "type": "null"
+                }
+              ]
             },
             "$include": {
               "type": "string",
@@ -421,9 +477,12 @@
           "markdownDescription": "`text` | `number` | `bool` | `date` | `duration` | `error` — coerces the value. Cannot be combined with `formula`."
         },
         "format": {
-          "allOf": [
+          "anyOf": [
             {
               "$ref": "#/definitions/text"
+            },
+            {
+              "type": "null"
             }
           ],
           "description": "An Excel number-format code, e.g. `\"#,##0.00\"`, `\"0.0%\"`.",
@@ -637,7 +696,14 @@
           "$ref": "#/definitions/style"
         },
         "format": {
-          "$ref": "#/definitions/text"
+          "anyOf": [
+            {
+              "$ref": "#/definitions/text"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "hidden": {
           "$ref": "#/definitions/boolean"
@@ -1365,25 +1431,74 @@
       "additionalProperties": false,
       "properties": {
         "bold": {
-          "$ref": "#/definitions/boolean"
+          "anyOf": [
+            {
+              "$ref": "#/definitions/boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "italic": {
-          "$ref": "#/definitions/boolean"
+          "anyOf": [
+            {
+              "$ref": "#/definitions/boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "underline": {
-          "$ref": "#/definitions/boolean"
+          "anyOf": [
+            {
+              "$ref": "#/definitions/boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "strike": {
-          "$ref": "#/definitions/boolean"
+          "anyOf": [
+            {
+              "$ref": "#/definitions/boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "size": {
-          "$ref": "#/definitions/number"
+          "anyOf": [
+            {
+              "$ref": "#/definitions/number"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "name": {
-          "$ref": "#/definitions/text"
+          "anyOf": [
+            {
+              "$ref": "#/definitions/text"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "color": {
-          "$ref": "#/definitions/color"
+          "anyOf": [
+            {
+              "$ref": "#/definitions/color"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "$include": {
           "type": "string",
@@ -1754,9 +1869,12 @@
           "markdownDescription": "Exactly as in a `cells:` entry (§3)."
         },
         "format": {
-          "allOf": [
+          "anyOf": [
             {
               "$ref": "#/definitions/text"
+            },
+            {
+              "type": "null"
             }
           ],
           "description": "Exactly as in a `cells:` entry (§3).",
@@ -2282,10 +2400,24 @@
       "additionalProperties": false,
       "properties": {
         "locked": {
-          "$ref": "#/definitions/boolean"
+          "anyOf": [
+            {
+              "$ref": "#/definitions/boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "hidden": {
-          "$ref": "#/definitions/boolean"
+          "anyOf": [
+            {
+              "$ref": "#/definitions/boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "$include": {
           "type": "string",
@@ -2375,7 +2507,14 @@
           "$ref": "#/definitions/style"
         },
         "format": {
-          "$ref": "#/definitions/text"
+          "anyOf": [
+            {
+              "$ref": "#/definitions/text"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "hidden": {
           "$ref": "#/definitions/boolean"
@@ -3346,9 +3485,12 @@
           "markdownDescription": "Another declared style's name. Merges *inside* font, alignment, and each border edge, so a child setting `bold` keeps the base's face and size. A fill or number format has no parts to blend, so setting it replaces it. Works in inline styles too. Forward references are fine; cycles are an error."
         },
         "font": {
-          "allOf": [
+          "anyOf": [
             {
               "$ref": "#/definitions/font"
+            },
+            {
+              "type": "null"
             }
           ],
           "description": "`{ bold, italic, underline, strike, size, name, color }` — all optional.",
@@ -3357,56 +3499,75 @@
         "fill": {
           "anyOf": [
             {
-              "$ref": "#/definitions/color"
-            },
-            {
-              "type": "object",
-              "additionalProperties": false,
-              "properties": {
-                "color": {
+              "anyOf": [
+                {
                   "$ref": "#/definitions/color"
                 },
-                "$include": {
-                  "type": "string",
-                  "description": "Another document, pasted in place of this node (§8)."
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "color": {
+                      "$ref": "#/definitions/color"
+                    },
+                    "$include": {
+                      "type": "string",
+                      "description": "Another document, pasted in place of this node (§8)."
+                    }
+                  }
                 }
-              }
+              ]
+            },
+            {
+              "type": "null"
             }
           ],
           "description": "A hex `RRGGBB`, or `{ color: RRGGBB }`. Solid fills only.",
           "markdownDescription": "A hex `RRGGBB`, or `{ color: RRGGBB }`. Solid fills only."
         },
         "border": {
-          "allOf": [
+          "anyOf": [
             {
               "$ref": "#/definitions/border"
+            },
+            {
+              "type": "null"
             }
           ],
           "description": "A style name for all four edges (`border: thin`), or a mapping of `all` / `left` / `right` / `top` / `bottom`, each a style name or `{ style, color }`. Styles: `thin`, `medium`, `thick`, `dashed`, `dotted`, `double`, `hair`.",
           "markdownDescription": "A style name for all four edges (`border: thin`), or a mapping of `all` / `left` / `right` / `top` / `bottom`, each a style name or `{ style, color }`. Styles: `thin`, `medium`, `thick`, `dashed`, `dotted`, `double`, `hair`."
         },
         "protection": {
-          "allOf": [
+          "anyOf": [
             {
               "$ref": "#/definitions/protection"
+            },
+            {
+              "type": "null"
             }
           ],
           "description": "`{ locked, hidden }` — what sheet protection does to a cell wearing this style. §16.",
           "markdownDescription": "`{ locked, hidden }` — what sheet protection does to a cell wearing this style. §16."
         },
         "format": {
-          "allOf": [
+          "anyOf": [
             {
               "$ref": "#/definitions/text"
+            },
+            {
+              "type": "null"
             }
           ],
           "description": "An Excel number-format code, as on a cell. A `format:` written beside the reference layers over this one.",
           "markdownDescription": "An Excel number-format code, as on a cell. A `format:` written beside the reference layers over this one."
         },
         "align": {
-          "allOf": [
+          "anyOf": [
             {
               "$ref": "#/definitions/align"
+            },
+            {
+              "type": "null"
             }
           ],
           "description": "`{ horizontal, vertical, wrap }`. Horizontal: `left`, `center`, `right`, `fill`, `justify`, `distributed`. Vertical: `top`, `middle`, `bottom`, `justify`, `distributed`.",

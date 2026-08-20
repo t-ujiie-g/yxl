@@ -21,6 +21,7 @@ test "load parses a full style: font, fill, border, alignment, and number format
   assert_eq(
     workbook.sheets[0].cells[0].style,
     Some(@model.Style::{
+      ..@model.Style::empty(),
       number_format: Some("0.00%"),
       font: Some({
         ..@model.Font::empty(),
@@ -379,4 +380,166 @@ test "load rejects references to undefined names" {
     ),
     Some("spec.yaml: column 'A' references undefined style 'gone'"),
   )
+}
+
+///|
+test "null on a style attribute clears it rather than setting it" {
+  let workbook = load_ok(
+    (
+      #|sheets:
+      #|  - name: S
+      #|    cells:
+      #|      A1:
+      #|        value: 1
+      #|        style:
+      #|          fill: null
+      #|          format: null
+      #|          font: { bold: true, size: null }
+      #|          align: { horizontal: null }
+      #|          border: { left: null }
+      #|          protection: { locked: null }
+      #|
+    ),
+  )
+  let style = workbook.sheets[0].cells[0].style.unwrap()
+  assert_eq(
+    style.cleared,
+    @model.StyleAttrs::of([
+      Fill,
+      NumberFormat,
+      FontSize,
+      AlignHorizontal,
+      BorderLeft,
+      ProtectionLocked,
+    ]),
+  )
+  assert_eq(style.font.unwrap().bold, Some(true))
+  assert_eq(style.fill, None)
+}
+
+///|
+test "a whole group written null clears every attribute in it" {
+  let workbook = load_ok(
+    (
+      #|sheets:
+      #|  - name: S
+      #|    cells:
+      #|      A1:
+      #|        value: 1
+      #|        style:
+      #|          font: null
+      #|          border: { all: null }
+      #|
+    ),
+  )
+  let style = workbook.sheets[0].cells[0].style.unwrap()
+  assert_eq(
+    style.cleared,
+    @model.StyleAttrs::of([
+      FontBold,
+      FontItalic,
+      FontUnderline,
+      FontStrike,
+      FontSize,
+      FontName,
+      FontColor,
+      BorderLeft,
+      BorderRight,
+      BorderTop,
+      BorderBottom,
+    ]),
+  )
+}
+
+///|
+test "a cell clears what a band would otherwise give it" {
+  let workbook = load_ok(
+    (
+      #|defs:
+      #|  styles:
+      #|    banded: { fill: "FFF2CC", format: "#,##0" }
+      #|sheets:
+      #|  - name: S
+      #|    columns:
+      #|      - at: A
+      #|        style: banded
+      #|    cells:
+      #|      A1: { value: 1 }
+      #|      A2: { value: 2, style: { fill: null } }
+      #|      A3: { value: 3, format: null }
+      #|
+    ),
+  )
+  let cells = workbook.sheets[0].cells
+  assert_true(cells[0].style is None)
+  assert_eq(cells[1].style.unwrap().cleared, @model.StyleAttrs::of([Fill]))
+  assert_eq(
+    cells[2].style.unwrap().cleared,
+    @model.StyleAttrs::of([NumberFormat]),
+  )
+}
+
+///|
+test "null takes an attribute away from the style being extended" {
+  let workbook = load_ok(
+    (
+      #|defs:
+      #|  styles:
+      #|    header: { font: { bold: true, color: "FFFFFF" }, fill: "1F3864" }
+      #|sheets:
+      #|  - name: S
+      #|    cells:
+      #|      A1: { value: 1, style: { extends: header, fill: null } }
+      #|
+    ),
+  )
+  let style = workbook.sheets[0].cells[0].style.unwrap()
+  assert_eq(style.fill, None)
+  assert_true(style.cleared.has(Fill))
+  assert_eq(style.font.unwrap().bold, Some(true))
+}
+
+///|
+test "an attribute set beside the null that would clear it keeps its value" {
+  let workbook = load_ok(
+    (
+      #|sheets:
+      #|  - name: S
+      #|    cells:
+      #|      A1: { value: 1, format: "0.00", style: { format: null } }
+      #|
+    ),
+  )
+  let style = workbook.sheets[0].cells[0].style.unwrap()
+  assert_eq(style.number_format, Some("0.00"))
+  assert_true(!style.cleared.has(NumberFormat))
+}
+
+///|
+test "a rich text run's font cannot clear an attribute" {
+  assert_eq(
+    schema_message(
+      "sheets:\n  - name: S\n    cells:\n      A1: { rich: [{ text: hi, font: { bold: null } }] }\n",
+    ),
+    Some(
+      "spec.yaml: cell 'A1' rich text run font cannot clear an attribute with null — a run inherits nothing",
+    ),
+  )
+}
+
+///|
+test "a style that only clears is still a style, and an empty one is not" {
+  let workbook = load_ok(
+    (
+      #|sheets:
+      #|  - name: S
+      #|    cells:
+      #|      A1: { value: 1, style: { fill: null } }
+      #|      A2: { value: 2, style: { } }
+      #|
+    ),
+  )
+  let cells = workbook.sheets[0].cells
+  assert_eq(cells[0].style.unwrap().cleared, @model.StyleAttrs::of([Fill]))
+  assert_true(cells[1].style is None)
 }

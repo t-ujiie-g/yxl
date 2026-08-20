@@ -59,6 +59,16 @@ sheets:
           - { text: unaudited, font: { italic: true, color: "C00000" } }
           - " as of Q3."
 
+      # `null` is how a cell says an attribute is *not* set, where leaving the
+      # key out would inherit one. Column B is money and counts in thousands;
+      # this row is a count of regions, so it takes the band's format away.
+      A10: Regions reporting
+      B10: { value: 2, format: null }
+
+      # The same at a style: a header that is not filled, without declaring a
+      # second style that repeats the font.
+      A12: { value: Notes, style: { extends: header, fill: null } }
+
     # Formatting decided by the value rather than the address. Rules are tried in
     # the order written, so the first match wins where two overlap.
     conditional:

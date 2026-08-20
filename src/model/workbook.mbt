@@ -358,6 +358,37 @@ pub fn Sheet::add_link(
 }
 
 ///|
+/// What the bands alone say about one position — the column band's style with
+/// the row band's laid over it, or `None` where neither covers it.
+///
+/// This is what a cell inherits before its own style is laid on top
+/// (`docs/spec.md` §4). The emitter resolves it into every written cell, and the
+/// reader needs the same answer to tell a cell that agrees with its band from
+/// one that deliberately does not.
+pub fn Sheet::band_style_at(self : Sheet, at : @units.CellRef) -> Style? {
+  match
+    (band_covering(self.columns, at.col), band_covering(self.rows, at.row)) {
+    (Some(column), Some(row)) => Some(row.over(column))
+    (None, row) => row
+    (column, None) => column
+  }
+}
+
+///|
+/// The last band covering `index`, or `None`. Later bands win, matching the
+/// "whichever comes last wins" rule the sheet keys already follow when two
+/// declarations overlap.
+fn band_covering(bands : Array[AxisBand], index : Int) -> Style? {
+  let mut found = None
+  for band in bands {
+    if index >= band.first && index <= band.last && band.style is Some(style) {
+      found = Some(style)
+    }
+  }
+  found
+}
+
+///|
 /// Lay a band over an inclusive span of columns (1-based): a default style, a
 /// width in character units, a hidden flag, and an outline level. Omitted
 /// properties leave Excel's default.

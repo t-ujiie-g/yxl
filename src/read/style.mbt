@@ -62,6 +62,7 @@ fn read_style(
     align: read_alignment(style.alignment, notes),
     number_format: read_number_format(style, notes),
     protection: read_protection(style.protection),
+    cleared: @model.StyleAttrs::none(),
   }
 }
 

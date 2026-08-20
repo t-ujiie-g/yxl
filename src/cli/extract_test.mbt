@@ -352,3 +352,31 @@ test "extracting twice gives the same spec" {
   )
   assert_eq(twice.spec, once.spec)
 }
+
+///|
+test "a cell that is not in its band's fill survives the round trip" {
+  // A filled column with one cell deliberately left out of it (#71).
+  let source =
+    #|defs:
+    #|  styles:
+    #|    fill: { fill: "FFF2CC" }
+    #|sheets:
+    #|  - name: Sales
+    #|    columns:
+    #|      - at: C
+    #|        style: fill
+    #|    cells:
+    #|      C1: { value: 1 }
+    #|      C2: { value: 2, style: { fill: null } }
+    #|      C3: { value: 3 }
+    #|
+  let result = extracted(source)
+  assert_eq(result.warnings, [])
+  assert_true(result.spec.contains("fill: null"))
+  let again = @cli.extract(
+    @cli.compile(result.spec, file="out.yaml"),
+    file="out.xlsx",
+  )
+  assert_eq(again.warnings, [])
+  assert_eq(again.spec, result.spec)
+}

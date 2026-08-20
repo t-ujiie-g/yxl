@@ -44,6 +44,7 @@ fn load_expanded_cell(
   let mut value_node = None
   let mut type_ = None
   let mut format = None
+  let mut format_cleared = @model.StyleAttrs::none()
   let mut formula = None
   let mut style_node = None
   let mut rich_node = None
@@ -56,9 +57,14 @@ fn load_expanded_cell(
           expect_string(node, file~, context="cell '\{reference}' type"),
         )
       "format" =>
-        format = Some(
-          expect_string(node, file~, context="cell '\{reference}' format"),
-        )
+        match node {
+          @yaml.Null =>
+            format_cleared = @model.StyleAttrs::none().adding(NumberFormat)
+          _ =>
+            format = Some(
+              expect_string(node, file~, context="cell '\{reference}' format"),
+            )
+        }
       "formula" =>
         formula = Some(resolve_formula(node, file~, reference~, defs~))
       "style" => style_node = Some(node)
@@ -112,7 +118,9 @@ fn load_expanded_cell(
           // of a table, the blank half of a merged heading. It stays blank to
           // `ISBLANK` and to `COUNTA` — the styling is all that is being asked
           // for, and `value: ""` would be a different cell.
-          guard style_node is Some(_) || format is Some(_) else {
+          guard style_node is Some(_) ||
+            format is Some(_) ||
+            !format_cleared.is_empty() else {
             raise schema_error(
               file~,
               "cell '\{reference}' needs a 'value', a 'formula', or a 'style'",
@@ -132,6 +140,7 @@ fn load_expanded_cell(
               file~,
               defs~,
               context="cell '\{reference}'",
+              cleared=format_cleared,
             ),
           )
         }
@@ -185,6 +194,7 @@ fn load_expanded_cell(
       file~,
       defs~,
       context="cell '\{reference}'",
+      cleared=format_cleared,
     ),
   )
 }
@@ -244,10 +254,20 @@ fn load_rich_run(
                 context="\{owner} rich text run 'text'",
               ),
             )
-          "font" =>
-            font = Some(
-              load_font(node, file~, context="\{owner} rich text run"),
+          "font" => {
+            let (loaded, cleared) = load_font(
+              node,
+              file~,
+              context="\{owner} rich text run",
             )
+            guard cleared.is_empty() else {
+              raise schema_error(
+                file~,
+                "\{owner} rich text run font cannot clear an attribute with null — a run inherits nothing",
+              )
+            }
+            font = Some(loaded)
+          }
           _ =>
             raise schema_error(
               file~,

@@ -11,6 +11,11 @@
 /// `protection` is what sheet protection does to a cell wearing this style.
 /// Both live in the style rather than on the cell — Excel's own arrangement —
 /// so both intern with the rest of the look.
+///
+/// An attribute is in one of **three** states, not two: set, not mentioned, or
+/// explicitly not set (`docs/spec.md` §6, ADR-020). `cleared` holds the third —
+/// the attributes this style takes *away* from whatever it is laid over. The two
+/// halves never overlap: an attribute with a value is never in `cleared`.
 pub(all) struct Style {
   font : Font?
   fill : Fill?
@@ -18,6 +23,7 @@ pub(all) struct Style {
   align : Alignment?
   number_format : String?
   protection : CellProtection?
+  cleared : StyleAttrs
 } derive(Eq, Hash, Debug)
 
 ///|
@@ -36,18 +42,6 @@ pub(all) struct CellProtection {
 } derive(Eq, Hash, Debug)
 
 ///|
-/// Lay `self` over `base`, field by field.
-fn CellProtection::over(
-  self : CellProtection,
-  base : CellProtection,
-) -> CellProtection {
-  {
-    locked: or_else(base.locked, self.locked),
-    hidden: or_else(base.hidden, self.hidden),
-  }
-}
-
-///|
 /// The empty style — every attribute defaulted. Equal to a `Style` with all
 /// `None` fields, so it interns with any other empty style.
 pub fn Style::empty() -> Style {
@@ -58,6 +52,7 @@ pub fn Style::empty() -> Style {
     align: None,
     number_format: None,
     protection: None,
+    cleared: StyleAttrs::none(),
   }
 }
 
@@ -68,91 +63,204 @@ pub fn Style::number_format(code : String) -> Style {
 }
 
 ///|
-/// Whether the style sets nothing (equal to `empty`). Such a style needs no
-/// `cellXfs` entry; the emitter leaves the cell on the default style.
+/// Whether the style sets nothing and clears nothing (equal to `empty`). Such a
+/// style needs no `cellXfs` entry; the emitter leaves the cell on the default
+/// style.
 pub fn Style::is_empty(self : Style) -> Bool {
   self == Style::empty()
 }
 
 ///|
-/// Lay `self` over `base`: every attribute `self` sets wins, and everything it
-/// leaves unset shows through from `base`. This is what one style inheriting
-/// another means — a `header` that extends a `base` adds bold without restating
-/// the face and size.
+/// Lay `self` over `base`: every attribute `self` sets wins, every attribute it
+/// clears is taken away, and everything it does not mention shows through from
+/// `base`. This is what one style inheriting another means — a `header` that
+/// extends a `base` adds bold without restating the face and size — and it is
+/// also how a column or row band reaches a cell (`docs/spec.md` §4).
 ///
 /// The merge reaches *inside* a font, an alignment, and the four border edges,
 /// so setting `font: { bold: true }` over a base font keeps the base's size.
 /// A fill and a number format are single values with no parts to merge, so
 /// setting either replaces it outright.
 pub fn Style::over(self : Style, base : Style) -> Style {
-  {
-    font: merge_option(base.font, self.font, Font::over),
-    align: merge_option(base.align, self.align, Alignment::over),
-    borders: merge_option(base.borders, self.borders, Borders::over),
-    fill: or_else(base.fill, self.fill),
-    number_format: or_else(base.number_format, self.number_format),
-    protection: merge_option(
-      base.protection,
-      self.protection,
-      CellProtection::over,
-    ),
-  }
+  (
+    {
+      font: merge_font(base.font, self.font, self.cleared),
+      align: merge_align(base.align, self.align, self.cleared),
+      borders: merge_borders(base.borders, self.borders, self.cleared),
+      fill: pick(base.fill, self.fill, self.cleared.has(Fill)),
+      number_format: pick(
+        base.number_format,
+        self.number_format,
+        self.cleared.has(NumberFormat),
+      ),
+      protection: merge_protection(
+        base.protection,
+        self.protection,
+        self.cleared,
+      ),
+      cleared: StyleAttrs::none(),
+    } : Style).clearing(self.cleared.union(base.cleared))
 }
 
 ///|
-/// `over` if both sides are set, otherwise whichever one is.
-fn[T] merge_option(base : T?, over : T?, merge : (T, T) -> T) -> T? {
-  match (base, over) {
-    (Some(base), Some(over)) => Some(merge(over, base))
-    (None, over) => over
-    (base, None) => base
+/// What a band actually passes down to a cell holding `value`.
+///
+/// Everything a band sets reaches every cell — except a **number format landing
+/// on text**, which Excel ignores unless the format carries a fourth, text
+/// section (ECMA-376 §18.8.31: a format is `positive;negative;zero;text`). So
+/// dropping it here is not a house rule, it is Excel's; inheriting it anyway
+/// would cost a style id to change nothing.
+///
+/// It would also do harm. The Excel backend renders such a cell by applying the
+/// *numeric* section to the text, so a `Revenue` header under a `#,##0` column
+/// reads back as the literal `#,##0` — and a pivot, which finds its fields by
+/// reading that header, then cannot find them.
+///
+/// A `format:` written on the cell itself is untouched: that is a request, not
+/// an inheritance.
+pub fn Style::inherited_by(self : Style, value : CellValue) -> Style {
+  guard value is (Text(_) | RichText(_)) else { return self }
+  guard self.number_format is Some(code) && !has_text_section(code) else {
+    return self
   }
+  { ..self, number_format: None }
 }
 
 ///|
-/// The overriding value if set, else the base's.
-fn[T] or_else(base : T?, over : T?) -> T? {
+/// Whether a number-format code has the fourth section that governs text. The
+/// separators counted are the top-level `;` only — one inside a quoted literal
+/// (`"a;b"`) or escaped (`\;`) is part of a section, not a break between two.
+fn has_text_section(code : String) -> Bool {
+  let mut sections = 1
+  let mut quoted = false
+  let mut escaped = false
+  for ch in code {
+    if escaped {
+      escaped = false
+      continue
+    }
+    match ch {
+      '\\' => escaped = true
+      '"' => quoted = !quoted
+      ';' => if !quoted { sections += 1 }
+      _ => ()
+    }
+  }
+  sections >= 4
+}
+
+///|
+/// One attribute's three-way choice: the overriding value if it has one,
+/// nothing if the overriding style cleared it, else the base's.
+fn[T] pick(base : T?, over : T?, cleared : Bool) -> T? {
   match over {
     Some(_) => over
-    None => base
+    None => if cleared { None } else { base }
   }
 }
 
 ///|
-/// A font laid over another, attribute by attribute. Part of `Style::over`;
-/// callers merge whole styles, not their pieces.
-fn Font::over(self : Font, base : Font) -> Font {
-  {
-    bold: or_else(base.bold, self.bold),
-    italic: or_else(base.italic, self.italic),
-    underline: or_else(base.underline, self.underline),
-    strike: or_else(base.strike, self.strike),
-    size: or_else(base.size, self.size),
-    name: or_else(base.name, self.name),
-    color: or_else(base.color, self.color),
+/// A font laid over another, attribute by attribute, with the overriding style's
+/// cleared attributes taken away — as for the alignment, borders, and protection
+/// below.
+fn merge_font(base : Font?, over : Font?, cleared : StyleAttrs) -> Font? {
+  let base = base.unwrap_or(Font::empty())
+  let over = over.unwrap_or(Font::empty())
+  normalize_font({
+    bold: pick(base.bold, over.bold, cleared.has(FontBold)),
+    italic: pick(base.italic, over.italic, cleared.has(FontItalic)),
+    underline: pick(base.underline, over.underline, cleared.has(FontUnderline)),
+    strike: pick(base.strike, over.strike, cleared.has(FontStrike)),
+    size: pick(base.size, over.size, cleared.has(FontSize)),
+    name: pick(base.name, over.name, cleared.has(FontName)),
+    color: pick(base.color, over.color, cleared.has(FontColor)),
+  })
+}
+
+///|
+fn merge_align(
+  base : Alignment?,
+  over : Alignment?,
+  cleared : StyleAttrs,
+) -> Alignment? {
+  let base = base.unwrap_or(Alignment::empty())
+  let over = over.unwrap_or(Alignment::empty())
+  normalize_align({
+    horizontal: pick(
+      base.horizontal,
+      over.horizontal,
+      cleared.has(AlignHorizontal),
+    ),
+    vertical: pick(base.vertical, over.vertical, cleared.has(AlignVertical)),
+    wrap: pick(base.wrap, over.wrap, cleared.has(AlignWrap)),
+  })
+}
+
+///|
+fn merge_borders(
+  base : Borders?,
+  over : Borders?,
+  cleared : StyleAttrs,
+) -> Borders? {
+  let base = base.unwrap_or(Borders::empty())
+  let over = over.unwrap_or(Borders::empty())
+  normalize_borders({
+    left: pick(base.left, over.left, cleared.has(BorderLeft)),
+    right: pick(base.right, over.right, cleared.has(BorderRight)),
+    top: pick(base.top, over.top, cleared.has(BorderTop)),
+    bottom: pick(base.bottom, over.bottom, cleared.has(BorderBottom)),
+  })
+}
+
+///|
+fn merge_protection(
+  base : CellProtection?,
+  over : CellProtection?,
+  cleared : StyleAttrs,
+) -> CellProtection? {
+  let base = base.unwrap_or(CellProtection::empty())
+  let over = over.unwrap_or(CellProtection::empty())
+  normalize_protection({
+    locked: pick(base.locked, over.locked, cleared.has(ProtectionLocked)),
+    hidden: pick(base.hidden, over.hidden, cleared.has(ProtectionHidden)),
+  })
+}
+
+///|
+/// A group that ended up setting nothing is `None`, not an empty group: the two
+/// draw the same cell, and only one of them interns as the default style.
+fn normalize_font(font : Font) -> Font? {
+  if font.is_empty() {
+    None
+  } else {
+    Some(font)
   }
 }
 
 ///|
-/// An alignment laid over another, attribute by attribute.
-fn Alignment::over(self : Alignment, base : Alignment) -> Alignment {
-  {
-    horizontal: or_else(base.horizontal, self.horizontal),
-    vertical: or_else(base.vertical, self.vertical),
-    wrap: or_else(base.wrap, self.wrap),
+fn normalize_align(align : Alignment) -> Alignment? {
+  if align == Alignment::empty() {
+    None
+  } else {
+    Some(align)
   }
 }
 
 ///|
-/// Borders laid over others, edge by edge; an edge the overriding style sets
-/// replaces that edge whole (a `Border` is a style plus a color, not parts to
-/// blend).
-fn Borders::over(self : Borders, base : Borders) -> Borders {
-  {
-    left: or_else(base.left, self.left),
-    right: or_else(base.right, self.right),
-    top: or_else(base.top, self.top),
-    bottom: or_else(base.bottom, self.bottom),
+fn normalize_borders(borders : Borders) -> Borders? {
+  if borders == Borders::empty() {
+    None
+  } else {
+    Some(borders)
+  }
+}
+
+///|
+fn normalize_protection(protection : CellProtection) -> CellProtection? {
+  if protection == CellProtection::empty() {
+    None
+  } else {
+    Some(protection)
   }
 }
 
@@ -206,6 +314,12 @@ pub(all) struct Alignment {
 } derive(Eq, Hash, Debug)
 
 ///|
+/// The empty alignment — Excel's own placement.
+pub fn Alignment::empty() -> Alignment {
+  { horizontal: None, vertical: None, wrap: None }
+}
+
+///|
 /// Horizontal text alignment within a cell.
 pub(all) enum HAlign {
   Left
@@ -235,6 +349,18 @@ pub(all) struct Borders {
   top : Border?
   bottom : Border?
 } derive(Eq, Hash, Debug)
+
+///|
+/// No border on any side.
+pub fn Borders::empty() -> Borders {
+  { left: None, right: None, top: None, bottom: None }
+}
+
+///|
+/// The protection that changes nothing: Excel's own defaults.
+pub fn CellProtection::empty() -> CellProtection {
+  { locked: None, hidden: None }
+}
 
 ///|
 /// One border edge: a line style and an optional color (black by default).

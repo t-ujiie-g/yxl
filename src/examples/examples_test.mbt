@@ -42,6 +42,7 @@ fn promises() -> Array[Promise] {
     promise(
       "styling.yxl.yaml", "Report", "A8", "Figures are unaudited as of Q3.",
     ),
+    promise("styling.yxl.yaml", "Report", "A10", "Regions reporting"),
     promise("layout.yxl.yaml", "Summary", "A1", "Regional summary"),
     promise("layout.yxl.yaml", "Detail", "A1", "Everything above, in full."),
     promise("modular.yxl.yaml", "Sales", "A2", "APAC"),
@@ -353,6 +354,34 @@ test "the styling example's conditional formats share their declared looks" {
   assert_eq(over_revenue[2].format, None)
   assert_eq(formats.get("C2:C3").unwrap()[0].format_type, "3_color_scale")
   assert_eq(formats.get("D2:D3").unwrap()[0].icon_style, "3TrafficLights1")
+}
+
+///|
+/// The `styling` example claims `null` takes an attribute away, which is about
+/// what a cell does *not* wear — so no promise about its value can show it.
+test "the styling example's nulls clear what would otherwise be inherited" {
+  let path = "\{EXAMPLES}/styling.yxl.yaml"
+  let workbook = @xlsx.read(
+    @cli.compile(
+      @fs.read_file_to_string(path),
+      file=path,
+      resolve=included,
+      read_bytes=included_bytes,
+    )[:],
+  )
+  fn style_of(reference : String) -> @xlsx.Style? raise {
+    match workbook.get_cell_style("Report", reference) {
+      Some(id) => Some(workbook.get_style(id))
+      None => None
+    }
+  }
+
+  assert_true(style_of("B2").unwrap().number_format is Some(_))
+  let counted = style_of("B10")
+  assert_true(counted is None || counted.unwrap().number_format is None)
+  let notes = style_of("A12").unwrap()
+  assert_true(notes.font.unwrap().bold is Some(true))
+  assert_true(notes.fill is None)
 }
 
 ///|

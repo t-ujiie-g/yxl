@@ -68,6 +68,29 @@ fn read_bands(
 }
 
 ///|
+/// Give every written cell the `null`s its own formatting implies.
+///
+/// `<col style>` and `<row s>` reach only the cells a sheet never allocated
+/// (ECMA-376 §18.3.1.13), where a band in a spec reaches every cell in its span
+/// (`docs/spec.md` §4). So a cell the file leaves without something its band
+/// sets has to say so, or it comes back wearing the band's version (#71).
+///
+/// Only what the band would have passed down is cleared — a text cell under a
+/// numeric column band never had that format to lose.
+fn record_band_deviations(sheet : @model.Sheet) -> Unit {
+  for index, cell in sheet.cells {
+    guard sheet.band_style_at(cell.pos) is Some(band) else { continue }
+    let own = cell.style.unwrap_or(@model.Style::empty())
+    let cleared = band
+      .inherited_by(cell.value)
+      .assigned()
+      .except(own.assigned())
+    guard !cleared.is_empty() else { continue }
+    sheet.cells[index] = { ..cell, style: Some(own.clearing(cleared)) }
+  }
+}
+
+///|
 /// The style a column or row record carries, if any.
 fn read_band_style(
   backend : @xlsx.Workbook,

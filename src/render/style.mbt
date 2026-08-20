@@ -186,69 +186,129 @@ fn style(value : @model.Style) -> @yaml.Node {
 
 ///|
 /// The mapping form of a style, used both under `defs.styles` and inline.
+///
+/// An attribute the style clears is written `null` (`docs/spec.md` §6).
 fn style_node(style : @model.Style) -> @yaml.Node {
+  let cleared = style.cleared
   let entries = []
-  if style.font is Some(font) {
-    entries.push(("font", font_node(font)))
+  if font_node(style.font, cleared) is Some(node) {
+    entries.push(("font", node))
   }
   if style.fill is Some(fill) {
     entries.push(("fill", @yaml.Str(fill.color.hex())))
+  } else if cleared.has(Fill) {
+    entries.push(("fill", @yaml.Null))
   }
-  if style.borders is Some(borders) {
-    entries.push(("border", borders_node(borders)))
+  if borders_node(style.borders, cleared) is Some(node) {
+    entries.push(("border", node))
   }
-  if style.align is Some(align) {
-    entries.push(("align", align_node(align)))
+  if align_node(style.align, cleared) is Some(node) {
+    entries.push(("align", node))
   }
-  if style.protection is Some(protection) {
-    let inner = []
-    if protection.locked is Some(locked) {
-      inner.push(("locked", @yaml.Bool(locked)))
-    }
-    if protection.hidden is Some(hidden) {
-      inner.push(("hidden", @yaml.Bool(hidden)))
-    }
-    entries.push(("protection", @yaml.Map(inner)))
+  if protection_node(style.protection, cleared) is Some(node) {
+    entries.push(("protection", node))
   }
   if style.number_format is Some(code) {
     entries.push(("format", @yaml.Str(code)))
+  } else if cleared.has(NumberFormat) {
+    entries.push(("format", @yaml.Null))
   }
   @yaml.Map(entries)
 }
 
 ///|
-/// A font, with only the attributes it actually sets.
-fn font_node(font : @model.Font) -> @yaml.Node {
+/// A group of style attributes as a mapping — what it sets, then a `null` for
+/// each attribute it clears — or `None` where it does neither.
+fn group_node(
+  set : Array[(String, @yaml.Node)],
+  cleared : @model.StyleAttrs,
+  keys : Array[(String, @model.StyleAttr)],
+) -> @yaml.Node? {
   let entries = []
-  if font.bold is Some(value) {
-    entries.push(("bold", @yaml.Bool(value)))
+  let written : @set.Set[String] = Set([])
+  for entry in set {
+    written.add(entry.0)
+    entries.push(entry)
   }
-  if font.italic is Some(value) {
-    entries.push(("italic", @yaml.Bool(value)))
+  for key in keys {
+    let (name, attr) = key
+    if cleared.has(attr) && !written.contains(name) {
+      entries.push((name, @yaml.Null))
+    }
   }
-  if font.underline is Some(value) {
-    entries.push(("underline", @yaml.Bool(value)))
+  if entries.is_empty() {
+    None
+  } else {
+    Some(@yaml.Map(entries))
   }
-  if font.strike is Some(value) {
-    entries.push(("strike", @yaml.Bool(value)))
+}
+
+///|
+/// A font, with the attributes it sets and the ones it takes away.
+fn font_node(font : @model.Font?, cleared : @model.StyleAttrs) -> @yaml.Node? {
+  let entries = []
+  if font is Some(font) {
+    if font.bold is Some(value) {
+      entries.push(("bold", @yaml.Bool(value)))
+    }
+    if font.italic is Some(value) {
+      entries.push(("italic", @yaml.Bool(value)))
+    }
+    if font.underline is Some(value) {
+      entries.push(("underline", @yaml.Bool(value)))
+    }
+    if font.strike is Some(value) {
+      entries.push(("strike", @yaml.Bool(value)))
+    }
+    if font.size is Some(value) {
+      entries.push(("size", number(value)))
+    }
+    if font.name is Some(value) {
+      entries.push(("name", @yaml.Str(value)))
+    }
+    if font.color is Some(color) {
+      entries.push(("color", @yaml.Str(color.hex())))
+    }
   }
-  if font.size is Some(value) {
-    entries.push(("size", number(value)))
+  group_node(entries, cleared, [
+    ("bold", FontBold),
+    ("italic", FontItalic),
+    ("underline", FontUnderline),
+    ("strike", FontStrike),
+    ("size", FontSize),
+    ("name", FontName),
+    ("color", FontColor),
+  ])
+}
+
+///|
+fn protection_node(
+  protection : @model.CellProtection?,
+  cleared : @model.StyleAttrs,
+) -> @yaml.Node? {
+  let entries = []
+  if protection is Some(protection) {
+    if protection.locked is Some(locked) {
+      entries.push(("locked", @yaml.Bool(locked)))
+    }
+    if protection.hidden is Some(hidden) {
+      entries.push(("hidden", @yaml.Bool(hidden)))
+    }
   }
-  if font.name is Some(value) {
-    entries.push(("name", @yaml.Str(value)))
-  }
-  if font.color is Some(color) {
-    entries.push(("color", @yaml.Str(color.hex())))
-  }
-  @yaml.Map(entries)
+  group_node(entries, cleared, [
+    ("locked", ProtectionLocked),
+    ("hidden", ProtectionHidden),
+  ])
 }
 
 ///|
 /// The borders, as the per-side mapping. The `border: thin` shorthand is left
 /// for a person to apply — collapsing four equal edges into it would be right
 /// more often than not, but "more often than not" is a guess.
-fn borders_node(borders : @model.Borders) -> @yaml.Node {
+fn borders_node(
+  borders : @model.Borders?,
+  cleared : @model.StyleAttrs,
+) -> @yaml.Node? {
   let entries = []
   fn side(name : String, edge : @model.Border?) -> Unit {
     if edge is Some(edge) {
@@ -260,11 +320,18 @@ fn borders_node(borders : @model.Borders) -> @yaml.Node {
     }
   }
 
-  side("left", borders.left)
-  side("right", borders.right)
-  side("top", borders.top)
-  side("bottom", borders.bottom)
-  @yaml.Map(entries)
+  if borders is Some(borders) {
+    side("left", borders.left)
+    side("right", borders.right)
+    side("top", borders.top)
+    side("bottom", borders.bottom)
+  }
+  group_node(entries, cleared, [
+    ("left", BorderLeft),
+    ("right", BorderRight),
+    ("top", BorderTop),
+    ("bottom", BorderBottom),
+  ])
 }
 
 ///|
@@ -281,8 +348,18 @@ fn border_style_name(style : @model.BorderStyle) -> String {
 }
 
 ///|
-fn align_node(align : @model.Alignment) -> @yaml.Node {
+fn align_node(
+  align : @model.Alignment?,
+  cleared : @model.StyleAttrs,
+) -> @yaml.Node? {
   let entries = []
+  guard align is Some(align) else {
+    return group_node(entries, cleared, [
+      ("horizontal", AlignHorizontal),
+      ("vertical", AlignVertical),
+      ("wrap", AlignWrap),
+    ])
+  }
   if align.horizontal is Some(horizontal) {
     entries.push(
       (
@@ -319,5 +396,9 @@ fn align_node(align : @model.Alignment) -> @yaml.Node {
   if align.wrap is Some(wrap) {
     entries.push(("wrap", @yaml.Bool(wrap)))
   }
-  @yaml.Map(entries)
+  group_node(entries, cleared, [
+    ("horizontal", AlignHorizontal),
+    ("vertical", AlignVertical),
+    ("wrap", AlignWrap),
+  ])
 }

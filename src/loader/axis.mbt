@@ -132,6 +132,7 @@ fn load_axis_spec(
 ) -> AxisSpec raise @diag.SchemaError {
   let mut style_node = None
   let mut format = None
+  let mut format_cleared = @model.StyleAttrs::none()
   let mut size = None
   let mut hidden = None
   let mut outline_level = None
@@ -141,7 +142,14 @@ fn load_axis_spec(
       "at" => () // the selector, consumed by `split_band`
       "style" => style_node = Some(node)
       "format" =>
-        format = Some(expect_string(node, file~, context="\{context} format"))
+        match node {
+          @yaml.Null =>
+            format_cleared = @model.StyleAttrs::none().adding(NumberFormat)
+          _ =>
+            format = Some(
+              expect_string(node, file~, context="\{context} format"),
+            )
+        }
       "hidden" =>
         hidden = Some(expect_bool(node, file~, context="\{context} hidden"))
       "group" =>
@@ -158,7 +166,14 @@ fn load_axis_spec(
     }
   }
   {
-    style: combine_style(style_node, format, file~, defs~, context~),
+    style: combine_style(
+      style_node,
+      format,
+      file~,
+      defs~,
+      context~,
+      cleared=format_cleared,
+    ),
     size,
     hidden,
     outline_level,
