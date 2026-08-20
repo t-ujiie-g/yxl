@@ -55,7 +55,7 @@ fn backend_reason(err : Error) -> String {
 /// Read `.xlsx` bytes into a model using the default backend — the convenient
 /// entry point when a caller does not care which backend is used.
 pub fn from_bytes(bytes : Bytes) -> Recovered raise @diag.ReadError {
-  MbtexcelReader::new().read(bytes)
+  Reader::read(MbtexcelReader::new(), bytes)
 }
 
 ///|

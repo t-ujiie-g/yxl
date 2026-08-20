@@ -37,7 +37,7 @@ pub impl Emitter for MbtexcelEmitter with fn emit(_self, wb) {
 /// Emit a workbook to `.xlsx` bytes using the default backend — the convenient
 /// entry point when a caller does not care which backend is used.
 pub fn to_bytes(wb : @model.Workbook) -> Bytes raise @diag.EmitError {
-  MbtexcelEmitter::new().emit(wb)
+  Emitter::emit(MbtexcelEmitter::new(), wb)
 }
 
 ///|
