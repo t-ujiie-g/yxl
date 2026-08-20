@@ -263,10 +263,9 @@ fn cached_scalar(value : @model.CellValue) -> @yaml.Node? {
 ///|
 /// One rich-text run: the bare string where it wears no font of its own.
 fn rich_run(run : @model.RichRun) -> @yaml.Node {
-  match run.font {
+  match font_node(run.font, @model.StyleAttrs::none()) {
     None => @yaml.Str(run.text)
-    Some(font) =>
-      @yaml.Map([("text", @yaml.Str(run.text)), ("font", font_node(font))])
+    Some(font) => @yaml.Map([("text", @yaml.Str(run.text)), ("font", font)])
   }
 }
 

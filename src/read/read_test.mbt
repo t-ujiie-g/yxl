@@ -544,3 +544,77 @@ test "a very hidden sheet is told from a merely hidden one" {
   assert_true(recovered.sheets[1].visibility is Hidden)
   assert_true(recovered.sheets[2].visibility is VeryHidden)
 }
+
+///|
+test "a cell the file leaves out of its band's fill comes back saying so" {
+  // Excel's own arrangement, and the one openpyxl writes: `<col style>` reaches
+  // only the cells a sheet never allocated (ECMA-376 §18.3.1.13), so a written
+  // cell carrying no fill of its own is unfilled however the column is styled.
+  // A spec says the opposite (§4), so the cell has to spell the difference out
+  // or rebuilding would fill it (#71).
+  let backend = @xlsx.Workbook::new()
+  let _ = backend.new_sheet("S")
+  let filled = backend.new_style(
+    @xlsx.Style::fill(@xlsx.Fill::solid("FFFFF2CC")),
+  )
+  backend.set_col_style("S", 3, filled)
+  backend.set_cell_int("S", "C1", 1)
+  backend.set_cell_style("S", "C1", filled)
+  backend.set_cell_int("S", "C2", 2)
+  backend.set_cell_style("S", "C2", backend.new_style(@xlsx.Style::new()))
+  let sheet = @read.from_bytes(backend.write_to_buffer()).workbook.sheets[0]
+  let styles = Map::from_array(
+    sheet.cells.map(cell => (cell.pos.to_a1(), cell.style)),
+  )
+  assert_true(styles["C1"].unwrap().fill is Some(_))
+  let deviating = styles["C2"].unwrap()
+  assert_eq(deviating.fill, None)
+  assert_eq(deviating.cleared, @model.StyleAttrs::of([Fill]))
+}
+
+///|
+test "a cell that agrees with its band says nothing extra" {
+  let backend = @xlsx.Workbook::new()
+  let _ = backend.new_sheet("S")
+  let filled = backend.new_style(
+    @xlsx.Style::fill(@xlsx.Fill::solid("FFFFF2CC")),
+  )
+  backend.set_col_style("S", 3, filled)
+  backend.set_cell_int("S", "C1", 1)
+  backend.set_cell_style("S", "C1", filled)
+  let sheet = @read.from_bytes(backend.write_to_buffer()).workbook.sheets[0]
+  assert_eq(sheet.cells[0].style.unwrap().cleared, @model.StyleAttrs::none())
+}
+
+///|
+test "a text cell under a numeric band is not made to clear its format" {
+  // Excel would not have applied that format to text anyway, so there is
+  // nothing for the cell to take away.
+  let backend = @xlsx.Workbook::new()
+  let _ = backend.new_sheet("S")
+  let numeric = backend.new_style(@xlsx.Style::number_format("#,##0"))
+  backend.set_col_style("S", 2, numeric)
+  backend.set_cell_str("S", "B1", "Revenue")
+  let sheet = @read.from_bytes(backend.write_to_buffer()).workbook.sheets[0]
+  assert_true(
+    sheet.cells[0].style is None ||
+    sheet.cells[0].style.unwrap().cleared.is_empty(),
+  )
+}
+
+///|
+test "a cleared attribute survives the round trip through the file" {
+  let (wb, sheet) = fixture()
+  sheet.set_column_band(first=3, last=3, style={
+    ..@model.Style::empty(),
+    fill: Some({ color: @units.Color::parse("FFF2CC").unwrap() }),
+  })
+  sheet.set(at("C1"), Number(1.0))
+  sheet.set(at("C2"), Number(2.0), style=@model.Style::empty().without(Fill))
+  let recovered = only_sheet(wb)
+  let styles = Map::from_array(
+    recovered.cells.map(cell => (cell.pos.to_a1(), cell.style)),
+  )
+  assert_true(styles["C1"].unwrap().fill is Some(_))
+  assert_eq(styles["C2"].unwrap().cleared, @model.StyleAttrs::of([Fill]))
+}

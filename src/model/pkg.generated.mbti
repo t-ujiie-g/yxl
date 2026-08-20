@@ -51,6 +51,7 @@ pub(all) struct Alignment {
   vertical : VAlign?
   wrap : Bool?
 } derive(Eq, Hash, @debug.Debug)
+pub fn Alignment::empty() -> Self
 
 pub(all) struct AxisBand {
   first : Int
@@ -82,6 +83,7 @@ pub(all) struct Borders {
   top : Border?
   bottom : Border?
 } derive(Eq, Hash, @debug.Debug)
+pub fn Borders::empty() -> Self
 
 pub(all) enum Bound {
   Number(Double)
@@ -110,6 +112,7 @@ pub(all) struct CellProtection {
   locked : Bool?
   hidden : Bool?
 } derive(Eq, Hash, @debug.Debug)
+pub fn CellProtection::empty() -> Self
 
 pub(all) struct CellRange {
   top_left : @units.CellRef
@@ -485,6 +488,7 @@ pub fn Sheet::add_slicer(Self, Slicer) -> Unit
 pub fn Sheet::add_sparkline_group(Self, SparklineGroup) -> Unit
 pub fn Sheet::add_table(Self, Table) -> Unit
 pub fn Sheet::add_validation(Self, Validation) -> Unit
+pub fn Sheet::band_style_at(Self, @units.CellRef) -> Style?
 pub fn Sheet::merge(Self, @units.CellRef, @units.CellRef) -> Unit
 pub fn Sheet::new(String, visibility? : SheetVisibility) -> Self
 pub fn Sheet::set(Self, @units.CellRef, CellValue, format? : String, style? : Style) -> Unit
@@ -578,11 +582,46 @@ pub(all) struct Style {
   align : Alignment?
   number_format : String?
   protection : CellProtection?
+  cleared : StyleAttrs
 } derive(Eq, Hash, @debug.Debug)
+pub fn Style::assigned(Self) -> StyleAttrs
 pub fn Style::empty() -> Self
+pub fn Style::inherited_by(Self, CellValue) -> Self
 pub fn Style::is_empty(Self) -> Bool
 pub fn Style::number_format(String) -> Self
 pub fn Style::over(Self, Self) -> Self
+pub fn Style::settled(Self) -> Self
+pub fn Style::without(Self, StyleAttr) -> Self
+
+pub(all) enum StyleAttr {
+  Fill
+  NumberFormat
+  FontBold
+  FontItalic
+  FontUnderline
+  FontStrike
+  FontSize
+  FontName
+  FontColor
+  AlignHorizontal
+  AlignVertical
+  AlignWrap
+  BorderLeft
+  BorderRight
+  BorderTop
+  BorderBottom
+  ProtectionLocked
+  ProtectionHidden
+} derive(Eq, Hash, @debug.Debug)
+
+pub struct StyleAttrs(UInt) derive(Eq, Hash, @debug.Debug)
+pub fn StyleAttrs::adding(Self, StyleAttr) -> Self
+pub fn StyleAttrs::except(Self, Self) -> Self
+pub fn StyleAttrs::has(Self, StyleAttr) -> Bool
+pub fn StyleAttrs::is_empty(Self) -> Bool
+pub fn StyleAttrs::none() -> Self
+pub fn StyleAttrs::of(Array[StyleAttr]) -> Self
+pub fn StyleAttrs::union(Self, Self) -> Self
 
 pub(all) struct Table {
   at : CellRange

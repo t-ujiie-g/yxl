@@ -152,8 +152,8 @@ test "a full style round-trips its attributes and identical styles share one id"
   let wb = @model.Workbook::new()
   let sheet = wb.add_sheet("S")
   let style : @model.Style = {
+    ..@model.Style::empty(),
     number_format: Some("0.00"),
-    protection: None,
     font: Some({
       ..@model.Font::empty(),
       bold: Some(true),

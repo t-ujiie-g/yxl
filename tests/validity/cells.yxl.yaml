@@ -68,6 +68,20 @@ sheets:
           - { text: red run, font: { color: "FF0000", size: 16, name: Georgia } }
       A14: { value: -1234.5, format: "#,##0.00;[Red](#,##0.00);\"-\";@" }
       A15: { value: 0.256, format: "0.0%" }
+  - name: Cleared
+    columns:
+      - { at: A, style: { fill: "EEEEEE", font: { size: 14, bold: true }, border: { all: thin }, align: { horizontal: center } } }
+      - { at: B, format: "#,##0.00" }
+    rows:
+      - { at: 3, style: { fill: "FFF2CC" } }
+    cells:
+      A1: { value: 1 }
+      A2: { value: 2, style: { fill: null, border: { left: null }, font: { size: null } } }
+      A3: { value: 3, style: { font: null, align: null } }
+      A4: { value: 4, style: { extends: boxed, fill: null, border: null, protection: null } }
+      B1: { value: 1.5 }
+      B2: { value: 2.5, format: null }
+      B3: { value: 3.5, style: { format: null } }
   - name: Second
     visibility: hidden
     cells:

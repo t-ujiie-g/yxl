@@ -287,6 +287,9 @@ cells:
   B2: 2400000              # bold and 2,400,000
 ```
 
+A cell can also refuse an attribute outright rather than override it —
+`style: { fill: null }` under a filled column — which §6 spells out.
+
 One exception, and it is Excel's rather than `yxl`'s: **an inherited number
 format does not apply to a text cell.** An Excel number format is
 `positive;negative;zero;text`, so a code with fewer than four sections says
@@ -347,6 +350,48 @@ defs:
 | `align` | `{ horizontal, vertical, wrap }`. Horizontal: `left`, `center`, `right`, `fill`, `justify`, `distributed`. Vertical: `top`, `middle`, `bottom`, `justify`, `distributed`. |
 
 A cell's own `format` layers on top of a referenced style.
+
+### Saying an attribute is *not* set
+
+Leaving a key out means "inherit": whatever the extended style, the column band,
+or the row band says comes through. **`null` is the other thing** — the
+attribute is explicitly not set, and nothing underneath supplies one.
+
+```yaml
+columns:
+  - at: C
+    style: { fill: "FFF2CC" }      # the whole column is filled…
+cells:
+  C1: 1
+  C2: { value: 2, style: { fill: null } }   # …except this cell
+```
+
+It reads the same wherever a style does, and at every attribute:
+
+```yaml
+A1: { value: 1, style: { extends: header, fill: null } }  # a header, unfilled
+B2: { value: 2, style: { font: { color: null }, format: null } }
+B3: { value: 3, style: { align: { horizontal: null }, border: { left: null } } }
+D4: { value: 4, style: { font: null } }        # a whole group at once
+E5: { value: 5, format: null }                  # the `format:` shorthand too
+```
+
+A boolean needs none of this — `font: { bold: false }` is already a value, and
+says the same thing. `null` is for the attributes that have no "off": a fill, a
+colour, a number format, an alignment, a border edge.
+
+Three rules, and they follow from what layering already is (§4):
+
+- **It clears one attribute, not a look.** `{ extends: header, fill: null }`
+  keeps the header's font and drops its fill.
+- **It stays cleared until something sets it.** A row band that clears the
+  column band's format hands its cells no format, and a cell may still ask for
+  one of its own.
+- **A value beside it wins.** `{ format: "0.00" }` written next to a style whose
+  `format` is `null` is a format, not an absence — the two states are exclusive.
+
+One place refuses it: a `rich:` run's font, which inherits nothing, so there is
+nothing there for `null` to take away.
 
 ## 7. Parameters
 
@@ -1240,7 +1285,10 @@ entry, because the file kept the sharing even though it lost the name — with
 **theme and palette colours resolved to RGB**, tint included, against the theme
 the workbook carries. Merged ranges. Column and row bands —
 widths, heights, hidden, outline levels — with adjacent equal ones collapsed
-back into a single entry. Frozen and split panes, gridlines, tab colours, sheet
+back into a single entry, and a cell whose own formatting is *missing*
+something its band sets written with the `null` that says so (§6): a `<c>` in a
+file takes its whole look from its own style, so the unfilled cell in a filled
+column is a cell, not a band. Frozen and split panes, gridlines, tab colours, sheet
 order, hidden sheets, the active tab, and the 1904 date system.
 
 Pictures, including the one tiled behind a sheet: the bytes come out unchanged,
@@ -1352,8 +1400,9 @@ calculation settings, the default font, and each sheet's protection.
 
 ### It checks its own work
 
-Every extraction compiles the spec it produced and compares the cells against
-the ones it read. A mismatch is reported and the exit code says so — the spec is
+Every extraction compiles the spec it produced and compares what the cells hold
+against what it read — their values, which is where an inference about
+compression or naming goes wrong. A mismatch is reported and the exit code says so — the spec is
 still written, because a starting point with a known gap beats none, but it
 tells you rather than leaving it to be found in Excel.
 

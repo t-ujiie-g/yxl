@@ -1,7 +1,8 @@
 ///|
 /// The style a cell is actually drawn in: its column band's, then its row
 /// band's, then its own, each layering over the last so a column can set the
-/// number format while the cell sets the font.
+/// number format while the cell sets the font — and each able to take away what
+/// the last one set (`docs/spec.md` §6's `null`).
 ///
 /// This has to be resolved here rather than left to Excel, because
 /// `<col style>` and `<row s>` govern only the cells a sheet has **not**
@@ -16,16 +17,34 @@
 /// empty cells around the written ones look the same.
 fn effective_style(sheet : @model.Sheet, cell : @model.Cell) -> @model.Style? {
   // Innermost wins: the cell over its row, the row over its column.
-  layer(inherited_onto(band_style_at(sheet, cell.pos), cell.value), cell.style)
+  let inherited = match sheet.band_style_at(cell.pos) {
+    Some(style) => Some(style.inherited_by(cell.value))
+    None => None
+  }
+  settle(layer(inherited, cell.style))
 }
 
 ///|
-/// What the bands alone say about one position — the column's, with the row's
-/// laid over it. Split out for the cells a *formula range* fills, which the
-/// backend creates and which are therefore in no `cells` array to be styled
-/// with the rest.
+/// A layered style as the backend takes it: with the record of what it cleared
+/// dropped, and gone entirely where nothing is left to write. A cell whose only
+/// styling was to take the band's fill away wears Excel's default style, which
+/// is exactly what the spec asked for.
+fn settle(style : @model.Style?) -> @model.Style? {
+  guard style is Some(style) else { return None }
+  let settled = style.settled()
+  if settled.is_empty() {
+    None
+  } else {
+    Some(settled)
+  }
+}
+
+///|
+/// What the bands alone say about one position. Split out for the cells a
+/// *formula range* fills, which the backend creates and which are therefore in
+/// no `cells` array to be styled with the rest.
 fn band_style_at(sheet : @model.Sheet, at : @units.CellRef) -> @model.Style? {
-  layer(band_covering(sheet.columns, at.col), band_covering(sheet.rows, at.row))
+  settle(sheet.band_style_at(at))
 }
 
 ///|
@@ -36,71 +55,6 @@ fn layer(under : @model.Style?, over : @model.Style?) -> @model.Style? {
     (None, over) => over
     (under, None) => under
   }
-}
-
-///|
-/// What a band actually passes down to a cell holding `value`.
-///
-/// Everything a band sets reaches every cell — except a **number format landing
-/// on text**, which Excel ignores unless the format carries a fourth, text
-/// section (ECMA-376 §18.8.31: a format is `positive;negative;zero;text`). So
-/// dropping it here is not a house rule, it is Excel's; inheriting it anyway
-/// would cost a style id to change nothing.
-///
-/// It would also do harm. The Excel backend renders such a cell by applying the
-/// *numeric* section to the text, so a `Revenue` header under a `#,##0` column
-/// reads back as the literal `#,##0` — and a pivot, which finds its fields by
-/// reading that header, then cannot find them.
-///
-/// A `format:` written on the cell itself is untouched: that is a request, not
-/// an inheritance.
-fn inherited_onto(
-  inherited : @model.Style?,
-  value : @model.CellValue,
-) -> @model.Style? {
-  guard inherited is Some(style) else { return None }
-  guard value is (Text(_) | RichText(_)) else { return inherited }
-  guard style.number_format is Some(code) && !has_text_section(code) else {
-    return inherited
-  }
-  Some({ ..style, number_format: None })
-}
-
-///|
-/// Whether a number-format code has the fourth section that governs text. The
-/// separators counted are the top-level `;` only — one inside a quoted literal
-/// (`"a;b"`) or escaped (`\;`) is part of a section, not a break between two.
-fn has_text_section(code : String) -> Bool {
-  let mut sections = 1
-  let mut quoted = false
-  let mut escaped = false
-  for ch in code {
-    if escaped {
-      escaped = false
-      continue
-    }
-    match ch {
-      '\\' => escaped = true
-      '"' => quoted = !quoted
-      ';' => if !quoted { sections += 1 }
-      _ => ()
-    }
-  }
-  sections >= 4
-}
-
-///|
-/// The last band covering `index`, or `None`. Later bands win, matching the
-/// "whichever comes last wins" rule the sheet keys already follow when two
-/// declarations overlap.
-fn band_covering(bands : Array[@model.AxisBand], index : Int) -> @model.Style? {
-  let mut found = None
-  for band in bands {
-    if index >= band.first && index <= band.last && band.style is Some(style) {
-      found = Some(style)
-    }
-  }
-  found
 }
 
 ///|
@@ -127,6 +81,7 @@ fn intern_style(
   cache : Map[@model.Style, Int],
   style : @model.Style,
 ) -> Int raise {
+  let style = style.settled()
   match cache.get(style) {
     Some(id) => id
     None => {
@@ -147,6 +102,7 @@ fn intern_conditional_style(
   cache : Map[@model.Style, Int],
   style : @model.Style,
 ) -> Int raise {
+  let style = style.settled()
   match cache.get(style) {
     Some(id) => id
     None => {
