@@ -1795,6 +1795,17 @@ local checkout works while writing against an unreleased `yxl`.
 
 Reverse-chronological. One entry per user-visible or structural change.
 
+- **2026-08-20** — **Toolchain catch-up: `moonbitlang/x@0.4.50`, and two
+  implicit trait promotions made explicit.** The August toolchain refuses
+  `lexscan` on a `StringView`, which `moonbitlang/x@0.4.48`'s `time` package
+  still writes, so `moon check` failed on a dependency nothing in `yxl` imports
+  — `x/fs` and `x/sys` are all we use, but the module is built whole. `0.4.50`
+  fixes it upstream. The same compiler now deprecates calling a trait method
+  through the implementing type (`MbtexcelReader::new().read(…)`), so
+  `from_bytes` and `to_bytes` name the trait — `Reader::read`, `Emitter::emit`
+  — which is what the seam meant anyway (ADR-002, ADR-017). No behaviour
+  change; without it CI cannot go green (§8.8).
+
 - **2026-08-16** — **A JSON Schema, generated from the reference.**
   `docs/yxl.schema.json` ships beside `docs/spec.md`, and a spec that names it —
   `# yaml-language-server: $schema=…`, or `yaml.schemas` for a whole project —

@@ -99,7 +99,7 @@ test "MbtexcelEmitter emits every sheet in order" {
   let wb = @model.Workbook::new()
   wb.add_sheet("First").set(@units.CellRef::new(col=1, row=1), Text("a"))
   wb.add_sheet("Second").set(@units.CellRef::new(col=1, row=1), Text("b"))
-  let bytes = @emit.MbtexcelEmitter::new().emit(wb)
+  let bytes = @emit.Emitter::emit(@emit.MbtexcelEmitter::new(), wb)
   let reopened = @xlsx.read(bytes[:])
   assert_eq(reopened.get_cell("First", "A1"), Some("a"))
   assert_eq(reopened.get_cell("Second", "A1"), Some("b"))
