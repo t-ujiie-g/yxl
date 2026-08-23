@@ -443,9 +443,19 @@ visible rather than buried in the prose above. Each is a small addition to a
 feature that already works, and any can be pulled forward on request — none is a
 gate, which is why none carries a box:
 
-- per-column auto-filter criteria — needs a structured schema that compiles
-  *to* the backend's little expression language, rather than passing a typo
-  through as an `EmitError` (ADR-006)
+- **per-column auto-filter criteria** — asked for by
+  [#75](https://github.com/t-ujiie-g/yxl/issues/75), and **blocked on the
+  backend** rather than on the schema: its only way in is an expression string
+  whose grammar caps a checkbox list at two values and whose quoting corrupts
+  any value containing a space, so `values: [North America, EMEA, APAC]` — the
+  ordinary case — cannot be written at all. Measured and reported; see §9. The
+  schema shape is settled meanwhile: `filter:` grows `at:` and `columns:`, each
+  column naming `values:` or reusing the eight comparisons `validations:` and
+  `conditional:`'s `cell:` already spell, with dynamic, colour, and icon filters
+  refused *by name*. **Hidden rows stay separate** — Excel does not re-apply a
+  filter on open, so the rows it hid are a `rows:` fact, which the schema says
+  and `extract` already recovers; deriving them from the criteria would mean
+  evaluating the data (§2) and could not work for a formula cell anyway
 - table totals rows, per-column formulas, and header-row-off tables — the
   backend drops the range's first row for the last of these
 - chart 3-D variants, stock and bubble charts, combo charts, per-series colours
@@ -1683,6 +1693,30 @@ accepted and means what leaving the key out means.
   `formula_builtins_financial.mbt` and `formula_builtins_stats.mbt` already use.
   Revisit the moment it lands, and before v1.0 either way, since "experimental"
   is not a state to freeze a release policy around.
+
+- **The backend's auto filter has a front door too narrow for Excel's own
+  files.** Criteria reach `set_auto_filter` only as an expression string, and
+  two defects in that one seam put the common case out of reach. The grammar is
+  exactly three tokens, or seven with a conjunction, so a checkbox list of three
+  values (`x == EMEA or x == APAC or x == AMER`) is refused with
+  `InvalidAutoFilter` — while the writer emits one `<filter>` per value and the
+  reader parses as many as it finds, so a five-value list reads back correctly
+  and cannot be written. And the tokenizer keeps a quoted token's quote
+  *characters*, so `x == "North America"` reaches the file as
+  `<filter val="&quot;North America&quot;"/>` and matches nothing in Excel.
+  Together they mean the schema `extract` would need in order to write back what
+  it can already read is unbuildable, which is #71's asymmetry again.
+  **Reported 2026-08-24 as
+  [office.mbt#477](https://github.com/moonbitlang/office.mbt/issues/477)** (the
+  quoting, with the emitted XML) **and
+  [office.mbt#478](https://github.com/moonbitlang/office.mbt/issues/478)** (the
+  two-value ceiling, asking for the structured `AutoFilterColumn` rather than a
+  wider grammar, since a compiler holds the typed criterion and only formats a
+  string for a parser to take apart again). Nothing is worked around here: the
+  schema stays as it is until one of them lands, and `docs/spec.md` §10 says
+  criteria are not expressible. Shipping the backend's subset was considered and
+  rejected — a schema that refuses a value with a space in it is worse than one
+  that has no criteria at all.
 
 - **`extract`'s self-check compares cells, not their looks.** It recompiles the
   spec it wrote and asserts the *values* match, so a styling inference that goes
