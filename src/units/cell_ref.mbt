@@ -13,7 +13,7 @@ pub struct CellRef {
 /// Build a reference from a 1-based column and row. Both are expected to be
 /// `>= 1`; a reference derived from user input is validated where it is parsed
 /// (a bad ref becomes a `SchemaError` in the loader), not here.
-pub fn CellRef::new(col~ : Int, row~ : Int) -> CellRef {
+pub fn CellRef::CellRef(col~ : Int, row~ : Int) -> CellRef {
   { col, row, }
 }
 
@@ -89,7 +89,7 @@ fn column_letters(col : Int) -> String {
     letters.push(('A'.to_int() + rem).to_char().unwrap())
     n = (n - 1) / 26
   }
-  let sb = StringBuilder::new()
+  let sb = StringBuilder()
   letters.rev_each(letter => sb.write_char(letter))
   sb.to_string()
 }

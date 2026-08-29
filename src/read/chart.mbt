@@ -364,7 +364,7 @@ fn attribute_of(element : XmlElement, name : String) -> String? {
 fn text_of(title : XmlElement) -> String? {
   let runs = title.descendants(DRAWING_NS, "t")
   guard !runs.is_empty() else { return None }
-  let text = StringBuilder::new()
+  let text = StringBuilder()
   for run in runs {
     text.write_string(run.text)
   }

@@ -37,7 +37,7 @@ pub struct Diagnostic {
   message : String
   span : Span?
 } derive(Eq, @debug.Debug)
-pub fn Diagnostic::new(String, span? : Span) -> Self
+pub fn Diagnostic::Diagnostic(String, span? : Span) -> Self
 pub fn Diagnostic::render(Self) -> String
 pub fn Diagnostic::render_in(Self, String) -> String
 
@@ -45,14 +45,14 @@ pub struct Pos {
   line : Int
   col : Int
 } derive(Eq, @debug.Debug)
-pub fn Pos::new(Int, Int) -> Self
+pub fn Pos::Pos(Int, Int) -> Self
 
 pub struct Span {
   file : String
   start : Pos
   end : Pos
 } derive(Eq, @debug.Debug)
-pub fn Span::new(String, Pos, Pos) -> Self
+pub fn Span::Span(String, Pos, Pos) -> Self
 pub fn Span::point(String, Pos) -> Self
 pub fn Span::render(Self) -> String
 

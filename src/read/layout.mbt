@@ -174,7 +174,7 @@ fn read_presentation(
     // A freeze is stored as the count of locked columns and rows; the schema
     // names the first cell that scrolls, which is one past each.
     sheet.set_panes(
-      Freeze(@units.CellRef::new(col=panes.x_split + 1, row=panes.y_split + 1)),
+      Freeze(@units.CellRef(col=panes.x_split + 1, row=panes.y_split + 1)),
     )
   } else if panes.x_split > 0 || panes.y_split > 0 {
     // Not `panes.split`: the backend's reader derives `freeze` from the pane's

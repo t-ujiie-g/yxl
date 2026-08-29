@@ -9,12 +9,12 @@ test "a CSV table lands at its anchor, typed field by field" {
   )
   let cells = workbook.sheets[0].cells
   assert_eq(cells.length(), 6)
-  assert_eq(cells[0].pos, @units.CellRef::new(col=2, row=2))
+  assert_eq(cells[0].pos, @units.CellRef(col=2, row=2))
   assert_eq(cells[0].value, @model.Text("APAC"))
-  assert_eq(cells[1].pos, @units.CellRef::new(col=3, row=2))
+  assert_eq(cells[1].pos, @units.CellRef(col=3, row=2))
   assert_eq(cells[1].value, @model.Number(2400000.0))
   assert_eq(cells[2].value, @model.Bool(true))
-  assert_eq(cells[3].pos, @units.CellRef::new(col=2, row=3))
+  assert_eq(cells[3].pos, @units.CellRef(col=2, row=3))
   assert_eq(cells[4].value, @model.Number(1.5))
   assert_eq(cells[5].value, @model.Text("007"))
 }
@@ -34,7 +34,7 @@ test "CSV quoting, blanks, ragged rows, and CRLF" {
   assert_eq(cells[1].value, @model.Text("line\nbreak"))
   assert_eq(cells[2].value, @model.Text("say \"hi\""))
   assert_eq(cells.length(), 4)
-  assert_eq(cells[3].pos, @units.CellRef::new(col=2, row=2))
+  assert_eq(cells[3].pos, @units.CellRef(col=2, row=2))
   assert_eq(cells[3].value, @model.Text("x"))
 }
 
@@ -51,8 +51,8 @@ test "a JSON table of arrays, and of objects with named columns" {
   assert_eq(cells[0].value, @model.Text("APAC"))
   assert_eq(cells[1].value, @model.Number(2400000.0))
   assert_eq(cells[2].value, @model.Bool(true))
-  assert_eq(cells[3].pos, @units.CellRef::new(col=1, row=2))
-  assert_eq(cells[4].pos, @units.CellRef::new(col=3, row=2))
+  assert_eq(cells[3].pos, @units.CellRef(col=1, row=2))
+  assert_eq(cells[4].pos, @units.CellRef(col=3, row=2))
   let objects = load_ok(
     "sheets:\n  - name: S\n    data:\n      - at: A1\n        json: rows.json\n        columns: [revenue, region]\n",
     files={
@@ -87,7 +87,7 @@ test "a data table composes with band formatting and with plain cells" {
   let sheet = workbook.sheets[0]
   assert_eq(sheet.columns[0].style.unwrap().number_format, Some("#,##0"))
   assert_eq(sheet.cells.length(), 4)
-  assert_eq(sheet.cells[2].pos, @units.CellRef::new(col=1, row=2))
+  assert_eq(sheet.cells[2].pos, @units.CellRef(col=1, row=2))
   assert_eq(sheet.cells[2].style, None)
 }
 
@@ -213,11 +213,11 @@ test "rows written in the spec land like a file's, typed by YAML" {
   )
   let cells = workbook.sheets[0].cells
   assert_eq(cells.length(), 6)
-  assert_eq(cells[0].pos, @units.CellRef::new(col=2, row=2))
+  assert_eq(cells[0].pos, @units.CellRef(col=2, row=2))
   assert_eq(cells[0].value, @model.Text("APAC"))
   assert_eq(cells[1].value, @model.Number(2400000.0))
   assert_eq(cells[2].value, @model.Bool(true))
-  assert_eq(cells[3].pos, @units.CellRef::new(col=2, row=3))
+  assert_eq(cells[3].pos, @units.CellRef(col=2, row=3))
   assert_eq(cells[4].value, @model.Number(1.5))
   assert_eq(cells[5].value, @model.Text("007"))
 }

@@ -4,8 +4,8 @@
 fn calculation_sheet() -> (@model.Workbook, @model.Sheet) {
   let (wb, sheet) = fixture()
   for row in 1..<=3 {
-    sheet.set(@units.CellRef::new(col=1, row~), Number(row.to_double()))
-    sheet.set(@units.CellRef::new(col=2, row~), Number(10.0))
+    sheet.set(@units.CellRef(col=1, row~), Number(row.to_double()))
+    sheet.set(@units.CellRef(col=2, row~), Number(10.0))
   }
   (wb, sheet)
 }

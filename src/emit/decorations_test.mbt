@@ -1,7 +1,7 @@
 ///|
 /// A one-sheet workbook, plus the sheet, ready to decorate.
 fn fixture() -> (@model.Workbook, @model.Sheet) {
-  let wb = @model.Workbook::new()
+  let wb = @model.Workbook()
   let sheet = wb.add_sheet("S")
   (wb, sheet)
 }
@@ -49,7 +49,7 @@ fn only_validation(wb : @model.Workbook) -> @xlsx.DataValidation raise {
 ///|
 test "an auto filter round-trips as a range over the sheet" {
   let (wb, sheet) = fixture()
-  sheet.set(@units.CellRef::new(col=1, row=1), Text("Region"))
+  sheet.set(@units.CellRef(col=1, row=1), Text("Region"))
   sheet.set_filter(range("A1", "C50"))
   let reopened = reopen(wb)
   guard reopened.get_auto_filter("S") is Some(filter) else {
@@ -165,7 +165,7 @@ test "each validation kind round-trips as its OOXML type" {
 test "a date bound round-trips as the serial its epoch gives it" {
   for entry in [(@units.DateSystem::Date1900, "46023"), (Date1904, "44561")] {
     let (date_system, serial) = entry
-    let wb = @model.Workbook::new(date_system~)
+    let wb = @model.Workbook(date_system~)
     let sheet = wb.add_sheet("S")
     sheet.add_validation({
       at: range("D2", "D9"),
@@ -267,9 +267,9 @@ test "validations are emitted in declaration order" {
 ///|
 test "an external link round-trips with its tooltip" {
   let (wb, sheet) = fixture()
-  sheet.set(@units.CellRef::new(col=1, row=1), Text("The report"))
+  sheet.set(@units.CellRef(col=1, row=1), Text("The report"))
   sheet.add_link(
-    @units.CellRef::new(col=1, row=1),
+    @units.CellRef(col=1, row=1),
     Url("https://example.com/q3"),
     tip="The Q3 report",
   )
@@ -287,7 +287,7 @@ test "an external link round-trips with its tooltip" {
 test "an in-workbook link round-trips as a location" {
   let (wb, sheet) = fixture()
   wb.add_sheet("Summary") |> ignore
-  sheet.add_link(@units.CellRef::new(col=2, row=3), Location("Summary!A1"))
+  sheet.add_link(@units.CellRef(col=2, row=3), Location("Summary!A1"))
   let reopened = reopen(wb)
   guard reopened.get_cell_hyperlink("S", "B3") is Some(link) else {
     fail("expected a hyperlink")

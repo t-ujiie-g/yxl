@@ -168,7 +168,7 @@ fn interpolate(
   lookup~ : (String) -> @yaml.Node raise @diag.SchemaError,
 ) -> @yaml.Node raise @diag.SchemaError {
   let chars = text.iter().to_array()
-  let built = StringBuilder::new()
+  let built = StringBuilder()
   // The value of a lone placeholder, kept typed until something else appears.
   let mut only = None
   let mut index = 0
@@ -228,7 +228,7 @@ fn find_close(chars : Array[Char], start : Int) -> Int? {
 ///|
 /// The characters in `[start, end)` as a string.
 fn collect_chars(chars : Array[Char], start : Int, end : Int) -> String {
-  let built = StringBuilder::new()
+  let built = StringBuilder()
   for index in start..<end {
     built.write_char(chars[index])
   }

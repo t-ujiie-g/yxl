@@ -18,7 +18,7 @@ test "parameters substitute into values, keys, and sheet names" {
   let sheet = workbook.sheets[0]
   assert_eq(sheet.name, "APAC sales")
   assert_eq(sheet.cells[0].value, @model.Text("Report for APAC"))
-  assert_eq(sheet.cells[1].pos, @units.CellRef::new(col=1, row=3))
+  assert_eq(sheet.cells[1].pos, @units.CellRef(col=1, row=3))
   // A string that is *exactly* one placeholder keeps the parameter's type, so
   // this is a number cell rather than the text "0.08".
   assert_eq(sheet.cells[2].value, @model.Number(0.08))

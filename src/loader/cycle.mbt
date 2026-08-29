@@ -16,7 +16,7 @@ fn cycle_error(
 /// the loop.
 fn render_cycle(chain : Array[String], repeated : String) -> String {
   let names = [..chain, repeated]
-  let joined = StringBuilder::new()
+  let joined = StringBuilder()
   for index, name in names {
     if index > 0 {
       joined.write_string(" -> ")

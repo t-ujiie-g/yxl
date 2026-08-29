@@ -66,7 +66,7 @@ pub fn Workbook::sheet(self : Workbook, name : String) -> Sheet? {
 ///|
 /// A new, empty workbook. Defaults to the 1900 date system, the backend's
 /// default font, and the first sheet active.
-pub fn Workbook::new(
+pub fn Workbook::Workbook(
   date_system? : @units.DateSystem = Date1900,
   default_font? : String,
 ) -> Workbook {
@@ -150,7 +150,7 @@ pub fn Workbook::add_sheet(
   name : String,
   visibility? : SheetVisibility = Visible,
 ) -> Sheet {
-  let sheet = Sheet::new(name, visibility~)
+  let sheet = Sheet(name, visibility~)
   self.sheets.push(sheet)
   sheet
 }
@@ -207,7 +207,7 @@ pub(all) struct Sheet {
 
 ///|
 /// A new, empty sheet with the given name, visible unless told otherwise.
-pub fn Sheet::new(
+pub fn Sheet::Sheet(
   name : String,
   visibility? : SheetVisibility = Visible,
 ) -> Sheet {

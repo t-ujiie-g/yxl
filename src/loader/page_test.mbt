@@ -19,8 +19,8 @@ test "load parses a print block: area, orientation, margins, fit, header/footer,
   assert_eq(
     page.area,
     Some({
-      top_left: @units.CellRef::new(col=1, row=1),
-      bottom_right: @units.CellRef::new(col=4, row=50),
+      top_left: @units.CellRef(col=1, row=1),
+      bottom_right: @units.CellRef(col=4, row=50),
     }),
   )
   assert_eq(page.orientation, Some(Landscape))
@@ -39,8 +39,8 @@ test "load parses a print block: area, orientation, margins, fit, header/footer,
   assert_eq(page.header, Some("&CQuarterly report"))
   assert_eq(page.footer, Some("&LPage &P of &N"))
   assert_eq(page.breaks, [
-    @units.CellRef::new(col=1, row=21),
-    @units.CellRef::new(col=3, row=1),
+    @units.CellRef(col=1, row=21),
+    @units.CellRef(col=3, row=1),
   ])
   let scaled = load_ok("sheets:\n  - name: S\n    print: { scale: 80 }\n")
   assert_eq(scaled.sheets[0].page.unwrap().scale, Some(Percent(80)))

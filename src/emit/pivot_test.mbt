@@ -2,17 +2,17 @@
 /// A workbook whose `Orders` sheet holds four named columns over two rows, and
 /// a `Summary` sheet ready for a pivot over them.
 fn source_workbook() -> (@model.Workbook, @model.Sheet) {
-  let wb = @model.Workbook::new()
+  let wb = @model.Workbook()
   let summary = wb.add_sheet("S")
   let orders = wb.add_sheet("Orders")
   for column, header in ["Region", "Quarter", "Channel", "Revenue"] {
-    orders.set(@units.CellRef::new(col=column + 1, row=1), Text(header))
+    orders.set(@units.CellRef(col=column + 1, row=1), Text(header))
   }
   for row in 2..<=3 {
-    orders.set(@units.CellRef::new(col=1, row~), Text("R\{row}"))
-    orders.set(@units.CellRef::new(col=2, row~), Text("Q3"))
-    orders.set(@units.CellRef::new(col=3, row~), Text("Direct"))
-    orders.set(@units.CellRef::new(col=4, row~), Number(row.to_double()))
+    orders.set(@units.CellRef(col=1, row~), Text("R\{row}"))
+    orders.set(@units.CellRef(col=2, row~), Text("Q3"))
+    orders.set(@units.CellRef(col=3, row~), Text("Direct"))
+    orders.set(@units.CellRef(col=4, row~), Number(row.to_double()))
   }
   (wb, summary)
 }
@@ -145,10 +145,10 @@ test "grand totals are on unless the spec turns them off" {
 test "a pivot may summarize the sheet it sits on" {
   let (wb, sheet) = source_workbook()
   for column, header in ["Region", "Revenue"] {
-    sheet.set(@units.CellRef::new(col=column + 1, row=1), Text(header))
+    sheet.set(@units.CellRef(col=column + 1, row=1), Text(header))
   }
-  sheet.set(@units.CellRef::new(col=1, row=2), Text("APAC"))
-  sheet.set(@units.CellRef::new(col=2, row=2), Number(1.0))
+  sheet.set(@units.CellRef(col=1, row=2), Text("APAC"))
+  sheet.set(@units.CellRef(col=2, row=2), Number(1.0))
   sheet.add_pivot({
     ..plain_pivot(),
     at: range("D1", "F20"),

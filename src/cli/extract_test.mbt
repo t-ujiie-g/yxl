@@ -150,7 +150,7 @@ test "extract refuses a command line that could not do anything useful" {
 ///|
 /// A spec whose sheet is a block of plain values large enough to earn a file.
 fn tabular_spec() -> String {
-  let out = StringBuilder::new()
+  let out = StringBuilder()
   out.write_string("sheets:\n  - name: Sales\n    cells:\n")
   for row in 1..<=12 {
     out.write_string("      A\{row}: r\{row}\n")

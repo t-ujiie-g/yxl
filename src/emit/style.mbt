@@ -121,7 +121,7 @@ fn build_style(style : @model.Style) -> @xlsx.Style raise @diag.EmitError {
     // protection can only be the seed. A style needing both cannot be built.
     (Some(code), Some(_)) =>
       raise @diag.EmitError(
-        @diag.Diagnostic::new(
+        @diag.Diagnostic(
           "the Excel backend cannot put a number format and cell protection in one style; " +
           "split the number format ('\{code}') into a separate style, or drop it from this one",
         ),

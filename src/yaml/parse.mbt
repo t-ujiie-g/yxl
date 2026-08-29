@@ -45,7 +45,7 @@ fn convert(value : @yamllib.Yaml, file : String) -> Node raise @diag.YamlError {
     }
     @yamllib.BadValue =>
       raise @diag.YamlError(
-        @diag.Diagnostic::new("\{file}: unrecognized or malformed YAML value"),
+        @diag.Diagnostic("\{file}: unrecognized or malformed YAML value"),
       )
   }
 }
@@ -74,7 +74,7 @@ fn repair_escapes(text : String) -> String {
     }
   }
   guard needs_repair else { return text }
-  let repaired = StringBuilder::new()
+  let repaired = StringBuilder()
   for ch in text {
     repaired.write_char(
       match ch {
@@ -98,9 +98,9 @@ fn from_library_error(
 ) -> @diag.YamlError {
   let @yamllib.YamlError(mark~, info~) = err
   @diag.YamlError(
-    @diag.Diagnostic::new(
+    @diag.Diagnostic(
       "invalid YAML: \{info}",
-      span=@diag.Span::point(file, @diag.Pos::new(mark.line, mark.col + 1)),
+      span=@diag.Span::point(file, @diag.Pos(mark.line, mark.col + 1)),
     ),
   )
 }

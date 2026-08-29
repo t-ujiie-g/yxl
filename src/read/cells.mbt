@@ -17,7 +17,7 @@ fn read_cells(
   )
   for row in range.top_left.row..<=range.bottom_right.row {
     for col in range.top_left.col..<=range.bottom_right.col {
-      let at = @units.CellRef::new(col~, row~)
+      let at = @units.CellRef(col~, row~)
       let reference = at.to_a1()
       // A cell a `formulas:` range already covers must not be written again:
       // the loader refuses a range that overlaps a `cells:` entry, so writing

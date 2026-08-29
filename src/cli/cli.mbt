@@ -247,5 +247,5 @@ pub fn error_message(err : Error, source? : String) -> String {
 
 ///|
 fn usage_error(message : String) -> @diag.CliError {
-  @diag.CliError(@diag.Diagnostic::new(message))
+  @diag.CliError(@diag.Diagnostic(message))
 }

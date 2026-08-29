@@ -2,15 +2,15 @@
 /// A sheet with a named three-column table for a slicer to filter.
 fn table_fixture(sheet : @model.Sheet, name : String) -> Unit {
   for col, header in ["Region", "Type", "Sales"] {
-    sheet.set(@units.CellRef::new(col=col + 1, row=1), Text(header))
+    sheet.set(@units.CellRef(col=col + 1, row=1), Text(header))
   }
-  sheet.set(@units.CellRef::new(col=1, row=2), Text("APAC"))
-  sheet.set(@units.CellRef::new(col=2, row=2), Text("Direct"))
-  sheet.set(@units.CellRef::new(col=3, row=2), Number(2400.0))
+  sheet.set(@units.CellRef(col=1, row=2), Text("APAC"))
+  sheet.set(@units.CellRef(col=2, row=2), Text("Direct"))
+  sheet.set(@units.CellRef(col=3, row=2), Number(2400.0))
   sheet.add_table({
     at: {
-      top_left: @units.CellRef::new(col=1, row=1),
-      bottom_right: @units.CellRef::new(col=3, row=4),
+      top_left: @units.CellRef(col=1, row=1),
+      bottom_right: @units.CellRef(col=3, row=4),
     },
     name: Some(name),
     style: None,

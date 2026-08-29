@@ -8,7 +8,7 @@ let bench_rows : Int = 400
 /// shared-string table (the region names repeat) as well as the number path.
 fn bench_spec(rows : Int) -> String {
   let regions = ["APAC", "EMEA", "AMER", "LATAM"]
-  let out = StringBuilder::new()
+  let out = StringBuilder()
   out.write_string("sheets:\n  - name: Sales\n    cells:\n")
   for row in 1..<=rows {
     let region = regions[row % regions.length()]

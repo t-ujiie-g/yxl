@@ -1,11 +1,11 @@
 ///|
 /// A sheet of `rows` × `columns` plain values, filled from `A1`.
 fn literal_sheet(rows : Int, columns : Int) -> @model.Workbook {
-  let wb = @model.Workbook::new()
+  let wb = @model.Workbook()
   let sheet = wb.add_sheet("Sales")
   for row in 1..<=rows {
     for col in 1..<=columns {
-      sheet.set(@units.CellRef::new(col~, row~), Text("r\{row}c\{col}"))
+      sheet.set(@units.CellRef(col~, row~), Text("r\{row}c\{col}"))
     }
   }
   wb
@@ -41,7 +41,7 @@ test "a styled cell anywhere in the region keeps the whole region inline" {
   let wb = literal_sheet(@render.min_csv_rows, @render.min_csv_columns)
   // `data:` carries no formatting (`docs/spec.md` §9), so moving a styled cell
   // into one would drop the style without saying so.
-  wb.sheets[0].set(@units.CellRef::new(col=1, row=1), Text("Title"), style={
+  wb.sheets[0].set(@units.CellRef(col=1, row=1), Text("Title"), style={
     ..@model.Style::empty(),
     font: Some({ ..@model.Font::empty(), bold: Some(true), }),
   })
@@ -52,7 +52,7 @@ test "a styled cell anywhere in the region keeps the whole region inline" {
 test "a formula anywhere in the region keeps it inline" {
   let wb = literal_sheet(@render.min_csv_rows, @render.min_csv_columns)
   wb.sheets[0].set(
-    @units.CellRef::new(col=1, row=1),
+    @units.CellRef(col=1, row=1),
     Formula(formula="1+1", cached=None),
   )
   assert_eq(@render.data_tables(wb).length(), 0)
@@ -64,7 +64,7 @@ test "a ragged region stays inline: a CSV cannot say which field was missing" {
   // One more cell out to the right makes the rectangle bigger than what is
   // filled, so the rows would no longer all be the same length.
   wb.sheets[0].set(
-    @units.CellRef::new(col=@render.min_csv_columns + 3, row=1),
+    @units.CellRef(col=@render.min_csv_columns + 3, row=1),
     Text("stray"),
   )
   assert_eq(@render.data_tables(wb).length(), 0)
@@ -72,12 +72,12 @@ test "a ragged region stays inline: a CSV cannot say which field was missing" {
 
 ///|
 test "two sheets get two files, and their names do not collide" {
-  let wb = @model.Workbook::new()
+  let wb = @model.Workbook()
   for name in ["Sales", "sales"] {
     let sheet = wb.add_sheet(name)
     for row in 1..<=@render.min_csv_rows {
       for col in 1..<=@render.min_csv_columns {
-        sheet.set(@units.CellRef::new(col~, row~), Number(row.to_double()))
+        sheet.set(@units.CellRef(col~, row~), Number(row.to_double()))
       }
     }
   }
@@ -91,11 +91,11 @@ test "two sheets get two files, and their names do not collide" {
 
 ///|
 test "a sheet name that is not a file name becomes one" {
-  let wb = @model.Workbook::new()
+  let wb = @model.Workbook()
   let sheet = wb.add_sheet("Q3 Sales (final)")
   for row in 1..<=@render.min_csv_rows {
     for col in 1..<=@render.min_csv_columns {
-      sheet.set(@units.CellRef::new(col~, row~), Number(1.0))
+      sheet.set(@units.CellRef(col~, row~), Number(1.0))
     }
   }
   assert_eq(@render.data_tables(wb)[0].path, "data/q3_sales__final_.csv")
@@ -106,12 +106,12 @@ test "a sheet named in another script keeps its name" {
   // Flattening is for spaces and punctuation, not scripts — a real workbook's
   // Japanese-named sheets once landed as `_____.csv` and `_______.csv`,
   // telling them apart by underscore count alone.
-  let wb = @model.Workbook::new()
+  let wb = @model.Workbook()
   for name in ["売上", "売上前年", "DB店舗一覧", "月次　実績"] {
     let sheet = wb.add_sheet(name)
     for row in 1..<=@render.min_csv_rows {
       for col in 1..<=@render.min_csv_columns {
-        sheet.set(@units.CellRef::new(col~, row~), Number(1.0))
+        sheet.set(@units.CellRef(col~, row~), Number(1.0))
       }
     }
   }
@@ -124,18 +124,18 @@ test "a sheet named in another script keeps its name" {
 
 ///|
 test "text that would read back as another type is quoted" {
-  let wb = @model.Workbook::new()
+  let wb = @model.Workbook()
   let sheet = wb.add_sheet("S")
   // The loader reads a *bare* CSV field as the scalar it looks like, so each of
   // these has to be quoted to come back as the text it is.
   let tricky = ["007", "true", "false", "1,200", "he said \"hi\"", "-5", ".5"]
   for row, text in tricky {
-    sheet.set(@units.CellRef::new(col=1, row=row + 1), Text(text))
-    sheet.set(@units.CellRef::new(col=2, row=row + 1), Number(1.0))
+    sheet.set(@units.CellRef(col=1, row=row + 1), Text(text))
+    sheet.set(@units.CellRef(col=2, row=row + 1), Number(1.0))
   }
   for row in tricky.length()..<@render.min_csv_rows {
-    sheet.set(@units.CellRef::new(col=1, row=row + 1), Text("plain"))
-    sheet.set(@units.CellRef::new(col=2, row=row + 1), Number(1.0))
+    sheet.set(@units.CellRef(col=1, row=row + 1), Text("plain"))
+    sheet.set(@units.CellRef(col=2, row=row + 1), Number(1.0))
   }
   let csv = @render.data_tables(wb)[0].csv
   inspect(
@@ -156,11 +156,11 @@ test "text that would read back as another type is quoted" {
 
 ///|
 test "a number goes out as a number and a boolean as a boolean" {
-  let wb = @model.Workbook::new()
+  let wb = @model.Workbook()
   let sheet = wb.add_sheet("S")
   for row in 1..<=@render.min_csv_rows {
-    sheet.set(@units.CellRef::new(col=1, row~), Number(row.to_double()))
-    sheet.set(@units.CellRef::new(col=2, row~), Bool(row % 2 == 0))
+    sheet.set(@units.CellRef(col=1, row~), Number(row.to_double()))
+    sheet.set(@units.CellRef(col=2, row~), Bool(row % 2 == 0))
   }
   let lines = @render.data_tables(wb)[0].csv.split("\n").collect()
   assert_eq(lines[0].to_owned(), "1,false")
@@ -169,7 +169,7 @@ test "a number goes out as a number and a boolean as a boolean" {
 
 ///|
 test "an empty sheet contributes no table" {
-  let wb = @model.Workbook::new()
+  let wb = @model.Workbook()
   wb.add_sheet("Empty") |> ignore
   assert_eq(@render.data_tables(wb).length(), 0)
 }
@@ -178,12 +178,12 @@ test "an empty sheet contributes no table" {
 /// A workbook whose sheets each hold one picture, so the naming can be seen
 /// without a table getting in the way.
 fn with_pictures(names : Array[String]) -> @model.Workbook {
-  let wb = @model.Workbook::new()
+  let wb = @model.Workbook()
   let png : Bytes = b"\x89PNG\r\n\x1a\n"
   for name in names {
     let sheet = wb.add_sheet(name)
     sheet.add_image({
-      at: @units.CellRef::new(col=5, row=1),
+      at: @units.CellRef(col=5, row=1),
       data: png,
       format: "png",
       alt_text: None,
@@ -231,11 +231,11 @@ test "a sheet with no name at all still gets a file" {
 ///|
 /// A sheet named `name` holding a block big enough to earn a file.
 fn literal_named(name : String) -> @model.Workbook {
-  let wb = @model.Workbook::new()
+  let wb = @model.Workbook()
   let sheet = wb.add_sheet(name)
   for row in 1..<=@render.min_csv_rows {
     for col in 1..<=@render.min_csv_columns {
-      sheet.set(@units.CellRef::new(col~, row~), Number(row.to_double()))
+      sheet.set(@units.CellRef(col~, row~), Number(row.to_double()))
     }
   }
   wb

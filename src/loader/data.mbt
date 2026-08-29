@@ -192,7 +192,7 @@ fn write_rows(
     for field_index, value in row {
       if value is Some(value) {
         sheet.set(
-          @units.CellRef::new(
+          @units.CellRef(
             col=anchor.col + field_index,
             row=anchor.row + row_index,
           ),
@@ -212,7 +212,7 @@ fn parse_csv(source : String, file~ : String) -> Rows raise @diag.SchemaError {
   let chars = source.iter().to_array()
   let rows : Rows = []
   let mut row : Array[@model.CellValue?] = []
-  let field = StringBuilder::new()
+  let field = StringBuilder()
   let mut in_quotes = false
   // Whether this field was quoted — a quoted field stays text, so a CSV can
   // carry "007" or "true" verbatim, mirroring YAML's quoting rule.

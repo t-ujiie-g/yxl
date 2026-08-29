@@ -106,7 +106,7 @@ test "a series is named either outright or from a cell" {
 
 ///|
 test "a series may plot another sheet" {
-  let wb = @model.Workbook::new()
+  let wb = @model.Workbook()
   let sheet = wb.add_sheet("S")
   wb.add_sheet("Data") |> ignore
   let chart = one_series(Column)

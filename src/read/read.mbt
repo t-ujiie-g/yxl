@@ -23,7 +23,7 @@ pub struct MbtexcelReader {}
 
 ///|
 /// The default reader.
-pub fn MbtexcelReader::new() -> MbtexcelReader {
+pub fn MbtexcelReader::MbtexcelReader() -> MbtexcelReader {
   MbtexcelReader::{ }
 }
 
@@ -33,7 +33,7 @@ pub impl Reader for MbtexcelReader with fn read(_self, bytes) {
     @diag.ReadError(_) as ours => raise ours
     err =>
       raise @diag.ReadError(
-        @diag.Diagnostic::new("Excel backend: " + backend_reason(err)),
+        @diag.Diagnostic("Excel backend: " + backend_reason(err)),
       )
   }
 }
@@ -55,7 +55,7 @@ fn backend_reason(err : Error) -> String {
 /// Read `.xlsx` bytes into a model using the default backend — the convenient
 /// entry point when a caller does not care which backend is used.
 pub fn from_bytes(bytes : Bytes) -> Recovered raise @diag.ReadError {
-  Reader::read(MbtexcelReader::new(), bytes)
+  Reader::read(MbtexcelReader(), bytes)
 }
 
 ///|
@@ -63,18 +63,18 @@ pub fn from_bytes(bytes : Bytes) -> Recovered raise @diag.ReadError {
 /// the seam boundary wraps.
 fn recover(bytes : Bytes) -> Recovered raise {
   let backend = @xlsx.read(bytes[:])
-  let notes = Notes::new()
+  let notes = Notes()
   let dates : @units.DateSystem = if backend.get_workbook_props().date_1904
     is Some(true) {
     Date1904
   } else {
     Date1900
   }
-  let workbook = @model.Workbook::new(
+  let workbook = @model.Workbook(
     date_system=dates,
     default_font?=read_default_font(backend),
   )
-  let styles = StyleTable::new()
+  let styles = StyleTable()
   read_workbook_keys(backend, workbook, notes)
   let sheet_names = backend.get_sheet_list()
   // `get_sheet_list` names a chart sheet alongside the worksheets while every
@@ -188,7 +188,7 @@ priv struct Notes {
 }
 
 ///|
-fn Notes::new() -> Notes {
+fn Notes::Notes() -> Notes {
   { seen: Set([]), order: [], }
 }
 

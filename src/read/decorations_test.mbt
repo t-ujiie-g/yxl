@@ -93,7 +93,7 @@ test "a date validation's bounds come back as dates, not as serials" {
 test "a table comes back with its name, style, and toggles" {
   let (wb, sheet) = fixture()
   for column, header in ["Region", "Amount"] {
-    sheet.set(@units.CellRef::new(col=column + 1, row=1), Text(header))
+    sheet.set(@units.CellRef(col=column + 1, row=1), Text(header))
   }
   sheet.set(at("A2"), Text("APAC"))
   sheet.set(at("B2"), Number(1.0))

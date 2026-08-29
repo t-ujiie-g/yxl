@@ -7,7 +7,7 @@ priv struct StyleTable {
 }
 
 ///|
-fn StyleTable::new() -> StyleTable {
+fn StyleTable::StyleTable() -> StyleTable {
   { by_id: Map([]), }
 }
 

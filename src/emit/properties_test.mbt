@@ -94,9 +94,9 @@ test "a recalculation on open round-trips on its own" {
 ///|
 test "a note round-trips against its cell, which keeps its own value" {
   let (wb, sheet) = fixture()
-  sheet.set(@units.CellRef::new(col=2, row=2), Number(2400000.0))
+  sheet.set(@units.CellRef(col=2, row=2), Number(2400000.0))
   sheet.add_comment(
-    @units.CellRef::new(col=2, row=2),
+    @units.CellRef(col=2, row=2),
     "Restated after the Q3 review.",
     author="Finance",
   )
@@ -115,7 +115,7 @@ test "a note round-trips against its cell, which keeps its own value" {
 /// documents.
 test "a note with no author still names one" {
   let (wb, sheet) = fixture()
-  sheet.add_comment(@units.CellRef::new(col=1, row=1), "No author here.")
+  sheet.add_comment(@units.CellRef(col=1, row=1), "No author here.")
   let comments = reopen(wb).get_comments("S")
   assert_eq(comments[0].text, "No author here.")
   assert_eq(comments[0].author, "Author")
@@ -124,8 +124,8 @@ test "a note with no author still names one" {
 ///|
 test "notes are emitted in declaration order" {
   let (wb, sheet) = fixture()
-  sheet.add_comment(@units.CellRef::new(col=3, row=3), "third")
-  sheet.add_comment(@units.CellRef::new(col=1, row=1), "first")
+  sheet.add_comment(@units.CellRef(col=3, row=3), "third")
+  sheet.add_comment(@units.CellRef(col=1, row=1), "first")
   let comments = reopen(wb).get_comments("S")
   assert_eq(comments[0].cell, "C3")
   assert_eq(comments[1].cell, "A1")
@@ -135,7 +135,7 @@ test "notes are emitted in declaration order" {
 test "sheet protection round-trips as allowances, not as locks" {
   let (wb, sheet) = fixture()
   sheet.set_protection({
-    ..@model.SheetProtection::new(),
+    ..@model.SheetProtection(),
     sort: true,
     format_cells: true,
     select_locked_cells: false,
@@ -170,7 +170,7 @@ test "an unprotected sheet stays unprotected" {
 test "a sheet password leaves the allowances alone" {
   let (wb, sheet) = fixture()
   sheet.set_protection({
-    ..@model.SheetProtection::new(),
+    ..@model.SheetProtection(),
     sort: true,
     password: Some("s3cret"),
   })
@@ -187,7 +187,7 @@ test "cell protection round-trips through the style" {
     ..@model.Style::empty(),
     protection: Some({ locked: Some(false), hidden: None, }),
   }
-  sheet.set(@units.CellRef::new(col=1, row=1), Number(1.0), style=unlocked)
+  sheet.set(@units.CellRef(col=1, row=1), Number(1.0), style=unlocked)
   let reopened = reopen(wb)
   guard reopened.get_cell_style("S", "A1") is Some(id) else {
     fail("expected a style on A1")
@@ -209,7 +209,7 @@ test "a style asking only for Excel's defaults leaves the seed slot free" {
     protection: Some({ locked: Some(true), hidden: Some(false), }),
   }
   sheet.set(
-    @units.CellRef::new(col=1, row=1),
+    @units.CellRef(col=1, row=1),
     Number(0.085),
     style=default_protection,
   )
@@ -230,7 +230,7 @@ test "a style cannot carry both a number format and real cell protection" {
     ..@model.Style::number_format("0.0%"),
     protection: Some({ locked: Some(false), hidden: None, }),
   }
-  sheet.set(@units.CellRef::new(col=1, row=1), Number(0.085), style=clash)
+  sheet.set(@units.CellRef(col=1, row=1), Number(0.085), style=clash)
   let message = try {
     @emit.to_bytes(wb) |> ignore
     None

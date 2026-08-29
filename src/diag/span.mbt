@@ -9,7 +9,7 @@ pub struct Pos {
 
 ///|
 /// Build a position from a 1-based line and column.
-pub fn Pos::new(line : Int, col : Int) -> Pos {
+pub fn Pos::Pos(line : Int, col : Int) -> Pos {
   { line, col, }
 }
 
@@ -25,7 +25,7 @@ pub struct Span {
 
 ///|
 /// Build a span covering `start`..`end` within `file`.
-pub fn Span::new(file : String, start : Pos, end : Pos) -> Span {
+pub fn Span::Span(file : String, start : Pos, end : Pos) -> Span {
   { file, start, end, }
 }
 

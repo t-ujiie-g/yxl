@@ -2,7 +2,7 @@
 /// A diagnostic naming the source file, the pipeline's one way to report a bad
 /// spec.
 fn schema_error(file~ : String, message : String) -> @diag.SchemaError {
-  @diag.SchemaError(@diag.Diagnostic::new("\{file}: \{message}"))
+  @diag.SchemaError(@diag.Diagnostic("\{file}: \{message}"))
 }
 
 ///|

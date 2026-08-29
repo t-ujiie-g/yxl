@@ -208,7 +208,7 @@ fn read_error(
   reason : String,
 ) -> @diag.SchemaError {
   @diag.SchemaError(
-    @diag.Diagnostic::new("\{from}: cannot read '\{name}': \{reason}"),
+    @diag.Diagnostic("\{from}: cannot read '\{name}': \{reason}"),
   )
 }
 

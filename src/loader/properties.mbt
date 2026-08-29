@@ -140,7 +140,7 @@ fn load_sheet_protection(
   node : @yaml.Node,
   file~ : String,
 ) -> @model.SheetProtection raise @diag.SchemaError {
-  let protection = @model.SheetProtection::new()
+  let protection = @model.SheetProtection()
   let mut password = None
   let mut allow : Array[(String, Bool)] = []
   for entry in expect_map(node, file~, context="sheet 'protect'") {

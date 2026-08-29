@@ -12,7 +12,7 @@
 /// every `Node` that `parse` can produce, which the round-trip tests assert
 /// directly.
 pub fn write(node : Node) -> String {
-  let out = StringBuilder::new()
+  let out = StringBuilder()
   match node {
     Map(entries) if !entries.is_empty() =>
       write_map(out, entries, indent=0, inline_first=false)
@@ -219,7 +219,7 @@ fn is_plain_start(ch : Char) -> Bool {
 /// as a different character. Only `\n` and `\t` are decoded right, and only
 /// they are written.
 fn quote(text : String) -> String {
-  let out = StringBuilder::new()
+  let out = StringBuilder()
   out.write_char('"')
   for ch in text {
     match ch {
@@ -243,7 +243,7 @@ fn quote(text : String) -> String {
 /// A code point as exactly four lowercase hex digits.
 fn hex4(code : Int) -> String {
   let digits = "0123456789abcdef".to_array()
-  let out = StringBuilder::new()
+  let out = StringBuilder()
   for shift in [12, 8, 4, 0] {
     out.write_char(
       digits[(code.reinterpret_as_uint() >> shift).reinterpret_as_int() & 0xF],

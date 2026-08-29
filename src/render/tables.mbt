@@ -34,7 +34,7 @@ pub(all) struct DataTable {
 /// range, would be guessing at a layout the file does not describe — and a wrong
 /// guess costs a reader more than a missed one.
 pub fn data_tables(wb : @model.Workbook) -> Array[DataTable] {
-  companion_tables(wb, Names::new())
+  companion_tables(wb, Names())
 }
 
 ///|
@@ -75,7 +75,7 @@ fn literal_region(sheet : @model.Sheet) -> @model.CellRange? {
   // from empty text.
   for row in bounds.top_left.row..<=bounds.bottom_right.row {
     for col in bounds.top_left.col..<=bounds.bottom_right.col {
-      guard filled.contains(@units.CellRef::new(col~, row~).to_a1()) else {
+      guard filled.contains(@units.CellRef(col~, row~).to_a1()) else {
         return None
       }
     }
@@ -114,8 +114,8 @@ fn bounds(sheet : @model.Sheet) -> @model.CellRange? {
     }
   }
   Some({
-    top_left: @units.CellRef::new(col=left, row=top),
-    bottom_right: @units.CellRef::new(col=right, row=bottom),
+    top_left: @units.CellRef(col=left, row=top),
+    bottom_right: @units.CellRef(col=right, row=bottom),
   })
 }
 
@@ -132,13 +132,13 @@ fn region_table(
     values[cell.pos.to_a1()] = cell.value
     covered.add(cell.pos.to_a1())
   }
-  let out = StringBuilder::new()
+  let out = StringBuilder()
   for row in region.top_left.row..<=region.bottom_right.row {
     for col in region.top_left.col..<=region.bottom_right.col {
       if col > region.top_left.col {
         out.write_char(',')
       }
-      if values.get(@units.CellRef::new(col~, row~).to_a1()) is Some(value) {
+      if values.get(@units.CellRef(col~, row~).to_a1()) is Some(value) {
         out.write_string(csv_field(value))
       }
     }

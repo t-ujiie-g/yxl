@@ -1,7 +1,7 @@
 ///|
 /// A one-sheet workbook, plus the sheet.
 fn fixture() -> (@model.Workbook, @model.Sheet) {
-  let wb = @model.Workbook::new()
+  let wb = @model.Workbook()
   (wb, wb.add_sheet("S"))
 }
 
@@ -270,7 +270,7 @@ test "the layout keys render, and a band's span reads as Excel writes it" {
 
 ///|
 test "a hidden sheet and the active tab render" {
-  let wb = @model.Workbook::new()
+  let wb = @model.Workbook()
   wb.add_sheet("Summary").set(at("A1"), Text("x"))
   wb.add_sheet("Scratch", visibility=Hidden) |> ignore
   wb.set_active_sheet("Summary")

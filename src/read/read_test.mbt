@@ -26,7 +26,7 @@ fn cell_at(sheet : @model.Sheet, reference : String) -> @model.CellValue? {
 ///|
 /// A one-sheet workbook, plus the sheet.
 fn fixture() -> (@model.Workbook, @model.Sheet) {
-  let wb = @model.Workbook::new()
+  let wb = @model.Workbook()
   (wb, wb.add_sheet("S"))
 }
 
@@ -42,7 +42,7 @@ test "the reader seam works through the trait, not only the shorthand" {
   // the trait, so exercising only that would leave the seam itself unproven.
   let (wb, sheet) = fixture()
   sheet.set(at("A1"), Text("Region"))
-  let reader = @read.MbtexcelReader::new()
+  let reader = @read.MbtexcelReader()
   let recovered = reader.read(@emit.to_bytes(wb))
   assert_eq(recovered.workbook.sheets.length(), 1)
   assert_eq(cell_at(recovered.workbook.sheets[0], "A1"), Some(Text("Region")))
@@ -406,7 +406,7 @@ test "a sheet with no panes comes back with none" {
 
 ///|
 test "sheet names, order, hiding, and the active tab come back" {
-  let wb = @model.Workbook::new()
+  let wb = @model.Workbook()
   let first = wb.add_sheet("Summary")
   first.set(at("A1"), Text("x"))
   wb.add_sheet("Hidden", visibility=Hidden).set(at("A1"), Text("y"))
@@ -422,14 +422,14 @@ test "sheet names, order, hiding, and the active tab come back" {
 
 ///|
 test "the 1904 date system comes back" {
-  let wb = @model.Workbook::new(date_system=Date1904)
+  let wb = @model.Workbook(date_system=Date1904)
   wb.add_sheet("S").set(at("A1"), Number(1.0))
   assert_true(round_trip(wb).workbook.date_system is Date1904)
 }
 
 ///|
 test "an empty workbook reads as an empty workbook" {
-  let wb = @model.Workbook::new()
+  let wb = @model.Workbook()
   wb.add_sheet("S") |> ignore
   let recovered = round_trip(wb)
   assert_eq(recovered.workbook.sheets.length(), 1)
@@ -450,7 +450,7 @@ test "bytes that are not a workbook are a diagnostic, not a crash" {
 
 ///|
 test "the workbook's own keys come back" {
-  let wb = @model.Workbook::new(default_font="Georgia")
+  let wb = @model.Workbook(default_font="Georgia")
   wb.add_sheet("S").set(at("A1"), Text("x"))
   wb.add_defined_name("tax_rate", Number(0.085))
   wb.add_defined_name("company", Text("Acme Corp"))
@@ -488,7 +488,7 @@ test "the workbook's own keys come back" {
 
 ///|
 test "a defined name comes back as the kind of thing it refers to" {
-  let wb = @model.Workbook::new()
+  let wb = @model.Workbook()
   wb.add_sheet("S").set(at("A1"), Text("x"))
   wb.add_defined_name("number", Number(0.085))
   wb.add_defined_name("text", Text("Acme Corp"))
@@ -512,7 +512,7 @@ test "sheet protection comes back, without the password it cannot know" {
   let (wb, sheet) = fixture()
   sheet.set(at("A1"), Text("x"))
   sheet.set_protection({
-    ..@model.SheetProtection::new(),
+    ..@model.SheetProtection(),
     password: Some("secret"),
     sort: true,
     auto_filter: true,
@@ -536,7 +536,7 @@ test "an unprotected sheet comes back unprotected" {
 
 ///|
 test "a very hidden sheet is told from a merely hidden one" {
-  let wb = @model.Workbook::new()
+  let wb = @model.Workbook()
   wb.add_sheet("Visible").set(at("A1"), Text("x"))
   wb.add_sheet("Hidden", visibility=Hidden) |> ignore
   wb.add_sheet("Locked", visibility=VeryHidden) |> ignore

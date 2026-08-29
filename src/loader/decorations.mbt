@@ -321,7 +321,7 @@ fn split_sheet_prefix(
       None => (None, text)
     }
   }
-  let name = StringBuilder::new()
+  let name = StringBuilder()
   let mut index = 1
   while index < chars.length() {
     if chars[index] == '\'' {
@@ -344,7 +344,7 @@ fn split_sheet_prefix(
       "\{what} '\{text}' has an unterminated quoted sheet name (expected \"'Sheet name'!A1:B9\")",
     )
   }
-  let rest = StringBuilder::new()
+  let rest = StringBuilder()
   for taken in (index + 2)..<chars.length() {
     rest.write_char(chars[taken])
   }
