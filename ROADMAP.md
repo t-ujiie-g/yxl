@@ -1948,6 +1948,22 @@ accepted and means what leaving the key out means.
 
 Reverse-chronological. One entry per user-visible or structural change.
 
+- **2026-08-29** — **A sheet named `It's data` survives `extract` again.** The
+  reader parsed a sheet-qualified range by stripping every `'` and `$` and
+  splitting on the first `!`, so `'It''s data'!A1:A3` came back sourcing a sheet
+  named `Its data` — one no workbook declared. The loader's half had implemented
+  Excel's quoting properly all along (a `''` inside the quotes is one
+  apostrophe), so the two directions of the round trip disagreed, and only the
+  direction that reads a real workbook was wrong. Found reviewing the two for
+  duplication (AGENTS.md §8.2); the self-check caught the result at run time and
+  said "please report this", which is how it was meant to behave, but the spec
+  it wrote still had to be fixed by hand.
+
+  The rule now lives once, in `@model.split_sheet_prefix`, with the loader
+  wrapping it to raise its diagnostic and the reader to fall back to `None`.
+  `$` is still dropped, but only from the range — a sheet may legally be named
+  with one. Affected validation list sources and chart series.
+
 - **2026-08-29** — **`yxl init`: there is now a way to get a *first* spec.**
   `build` and `extract` both take a spec that already exists, so the way in was
   to know the format well enough to type it — the one thing a person starting

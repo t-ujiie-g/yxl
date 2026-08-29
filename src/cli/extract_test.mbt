@@ -380,3 +380,24 @@ test "a cell that is not in its band's fill survives the round trip" {
   assert_eq(again.warnings, [])
   assert_eq(again.spec, result.spec)
 }
+
+///|
+test "a sheet named with an apostrophe survives the round trip" {
+  // The reader used to strip every quote, so `'It''s data'!A1:A3` came back
+  // sourcing a sheet named `Its data`, which no workbook declared.
+  let result = extracted(
+    (
+      #|sheets:
+      #|  - name: S
+      #|    validations:
+      #|      - at: B2:B9
+      #|        list: { from: "'It''s data'!A1:A3" }
+      #|  - name: "It's data"
+      #|    cells:
+      #|      A1: alpha
+      #|
+    ),
+  )
+  assert_eq(result.warnings, [])
+  assert_true(result.spec.contains("It's data!A1:A3"))
+}

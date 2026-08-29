@@ -31,17 +31,9 @@ pub(all) enum Command {
 } derive(Eq, Debug)
 
 ///|
-/// The spec `yxl init` writes: one empty sheet, and nothing else.
-///
-/// Deliberately not a worked example. A starter carrying a heading row, sample
-/// rows and a `SUM` reads as helpful and is not — the first thing an author
-/// does is delete it (#77). What they want is Excel's first minute: one sheet,
-/// and a grid to type into.
-///
-/// The build line names `output` — the path `init` was actually given — rather
-/// than a stand-in, so the one instruction the file carries is a command that
-/// works as it stands. Everything below it is the format, and a test compiles
-/// it to keep it honest.
+/// The spec `yxl init` writes: one empty sheet, not a worked example the reader
+/// would have to delete first (#77). The build line names `output` itself, so
+/// it is a command that works as it stands.
 pub fn starter_spec(output~ : String) -> String {
   let workbook = workbook_name(output)
   (

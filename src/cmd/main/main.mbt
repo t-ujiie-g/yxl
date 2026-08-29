@@ -89,14 +89,9 @@ fn compile(
 }
 
 ///|
-/// Write the starter spec to `output` (#77).
-///
-/// Refuses a file that is already there unless `--force` says otherwise: the
-/// worst thing this command could do is overwrite a spec someone has worked on,
-/// and it has no way to tell that file from one of its own.
-///
-/// Not named `init` for the command it serves: `fn init` is MoonBit's package
-/// initializer, which takes no arguments and returns nothing.
+/// Write the starter spec to `output` (#77), refusing an existing file unless
+/// `--force` says otherwise. Not named `init`: that is MoonBit's package
+/// initializer, which takes no arguments.
 fn init_spec(output : String, force : Bool) -> Int {
   if !force && @fs.path_exists(output) {
     report("\{output} already exists (use --force to overwrite)")

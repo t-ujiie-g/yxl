@@ -239,6 +239,12 @@ thing it describes, so each one has to earn its keep. Comments must also make
 sense to someone who never read `ROADMAP.md` and wasn't there when the code
 landed.
 
+**Keep them short: four lines is already too long.** One or two lines is the
+norm, three the outside. A comment that needs a fourth line is nearly always
+restating the code or holding documentation that belongs in `docs/spec.md`,
+`README.md`, or an ADR — say it once there and cite it. This binds `///` API
+docs too, not only `//` comments.
+
 Apply these in order — the first three delete, the last one keeps:
 
 - **Delete what the code already says.** If the comment is a paraphrase of the

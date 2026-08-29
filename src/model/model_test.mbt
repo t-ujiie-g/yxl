@@ -413,3 +413,34 @@ test "Font::empty sets nothing, and says so" {
   // with a style holding none.
   assert_eq(@model.Font::empty(), @model.Font::empty())
 }
+
+///|
+test "split_sheet_prefix follows Excel's quoting" {
+  assert_eq(@model.split_sheet_prefix("A1:B9"), Some((None, "A1:B9")))
+  assert_eq(
+    @model.split_sheet_prefix("Lists!A1:A9"),
+    Some((Some("Lists"), "A1:A9")),
+  )
+  assert_eq(
+    @model.split_sheet_prefix("'Q3 data'!A1:A9"),
+    Some((Some("Q3 data"), "A1:A9")),
+  )
+  // `''` is one apostrophe: the case a plain quote-strip would rename.
+  assert_eq(
+    @model.split_sheet_prefix("'It''s data'!A1:A3"),
+    Some((Some("It's data"), "A1:A3")),
+  )
+  assert_eq(
+    @model.split_sheet_prefix("'O''Brien'!A1"),
+    Some((Some("O'Brien"), "A1")),
+  )
+  // An unquoted name splits at the first `!`, as Excel requires quotes around
+  // any name that could be read as something else.
+  assert_eq(
+    @model.split_sheet_prefix("Sheet1!$A$1"),
+    Some((Some("Sheet1"), "$A$1")),
+  )
+  assert_eq(@model.split_sheet_prefix("'Lists!A1:A3"), None)
+  assert_eq(@model.split_sheet_prefix("'Lists'A1:A3"), None)
+  assert_eq(@model.split_sheet_prefix("'Lists'"), None)
+}

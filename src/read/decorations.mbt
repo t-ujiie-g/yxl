@@ -296,19 +296,16 @@ fn read_filter(
 }
 
 ///|
-/// A `Sheet!A1:B2` reference as the schema's sheet-qualified range.
+/// A `Sheet!$A$1:$B$2` reference as the schema's sheet-qualified range.
+///
+/// `$` is stripped from the range only — a sheet may legally be named with one.
 fn parse_sheet_range(text : String) -> @model.SheetRange? {
-  let bare = text.replace_all(old="$", new="").replace_all(old="'", new="")
-  match bare.split_once("!") {
-    Some((name, rest)) =>
-      match @model.CellRange::parse_loose(rest.to_owned()) {
-        Some(range) => Some({ sheet: Some(name.to_owned()), range, })
-        None => None
-      }
-    None =>
-      match @model.CellRange::parse_loose(bare) {
-        Some(range) => Some({ sheet: None, range, })
-        None => None
-      }
+  guard @model.split_sheet_prefix(text) is Some((sheet, rest)) else {
+    return None
   }
+  guard @model.CellRange::parse_loose(rest.replace_all(old="$", new=""))
+    is Some(range) else {
+    return None
+  }
+  Some({ sheet, range, })
 }
