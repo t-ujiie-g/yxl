@@ -107,7 +107,7 @@ fn load_chart(
   guard series is Some(series) else {
     raise schema_error(file~, "\{context} is missing required key 'series'")
   }
-  { at, kind, series, title, legend, size, x_axis, y_axis }
+  { at, kind, series, title, legend, size, x_axis, y_axis, }
 }
 
 ///|
@@ -200,7 +200,7 @@ fn load_one_series(
   guard values is Some(values) else {
     raise schema_error(file~, "\{what} is missing required key 'values'")
   }
-  { values, categories, name }
+  { values, categories, name, }
 }
 
 ///|
@@ -234,7 +234,7 @@ fn load_chart_size(
   guard width is Some(width) && height is Some(height) else {
     raise schema_error(file~, "\{what} needs both 'width' and 'height'")
   }
-  { width, height }
+  { width, height, }
 }
 
 ///|
@@ -275,5 +275,5 @@ fn load_chart_axis(
       "\{context} has 'min' \{low} at or above 'max' \{high}",
     )
   }
-  { title, min, max }
+  { title, min, max, }
 }

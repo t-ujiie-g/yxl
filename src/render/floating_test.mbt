@@ -47,7 +47,7 @@ test "a shape outline without a width renders as a bare colour" {
     at: at("D1"),
     preset: "plus",
     text: Some(
-      Lines([{ text: "one", font: None }, { text: "two", font: None }]),
+      Lines([{ text: "one", font: None, }, { text: "two", font: None, }]),
     ),
     width: None,
     height: None,
@@ -83,7 +83,7 @@ test "one sparkline is placed the short way, several the long way" {
   let range = @model.CellRange::parse("B1:B3").unwrap()
   sheet.add_sparkline_group({
     kind: Line,
-    cells: [{ at: at("C1"), data: { sheet: None, range } }],
+    cells: [{ at: at("C1"), data: { sheet: None, range, }, }],
     markers: true,
     high: true,
     low: false,
@@ -99,8 +99,8 @@ test "one sparkline is placed the short way, several the long way" {
   sheet.add_sparkline_group({
     kind: WinLoss,
     cells: [
-      { at: at("D1"), data: { sheet: Some("Results"), range } },
-      { at: at("D2"), data: { sheet: None, range } },
+      { at: at("D1"), data: { sheet: Some("Results"), range, }, },
+      { at: at("D2"), data: { sheet: None, range, }, },
     ],
     markers: false,
     high: false,

@@ -165,7 +165,7 @@ fn XmlScanner::element(self : XmlScanner) -> XmlElement? {
     }
   }
   self.scopes.pop() |> ignore
-  Some({ ns, name, attributes, children, text: text.to_string() })
+  Some({ ns, name, attributes, children, text: text.to_string(), })
 }
 
 ///|

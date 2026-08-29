@@ -65,7 +65,7 @@ pub fn DateTime::parse(text : String) -> DateTime? {
       (hour, minute, second)
     }
   }
-  Some({ year, month, day, hour, minute, second })
+  Some({ year, month, day, hour, minute, second, })
 }
 
 ///|

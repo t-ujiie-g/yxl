@@ -129,7 +129,7 @@ fn load_sparkline_group(
     }
   }
   match (at, data, cells.is_empty()) {
-    (Some(at), Some(data), true) => cells.push({ at, data })
+    (Some(at), Some(data), true) => cells.push({ at, data, })
     (Some(_), None, _) =>
       raise schema_error(file~, "\{context} is missing required key 'data'")
     (None, Some(_), _) =>
@@ -222,7 +222,7 @@ fn load_sparkline_cell(
       "a sparkline 'cells' entry is missing required key 'data'",
     )
   }
-  { at, data }
+  { at, data, }
 }
 
 ///|

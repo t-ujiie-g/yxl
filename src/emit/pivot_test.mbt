@@ -22,10 +22,10 @@ fn source_workbook() -> (@model.Workbook, @model.Sheet) {
 fn plain_pivot() -> @model.Pivot {
   {
     at: range("A1", "E20"),
-    source: { sheet: Some("Orders"), range: range("A1", "D3") },
-    rows: [{ field: "Region", name: None }],
+    source: { sheet: Some("Orders"), range: range("A1", "D3"), },
+    rows: [{ field: "Region", name: None, }],
     columns: [],
-    values: [{ field: "Revenue", function: Sum, name: None }],
+    values: [{ field: "Revenue", function: Sum, name: None, }],
     name: None,
     style: None,
     row_grand_totals: true,
@@ -70,8 +70,8 @@ test "each axis puts its fields where Excel expects them" {
   let (wb, sheet) = source_workbook()
   sheet.add_pivot({
     ..plain_pivot(),
-    rows: [{ field: "Region", name: None }, { field: "Channel", name: None }],
-    columns: [{ field: "Quarter", name: Some("Period") }],
+    rows: [{ field: "Region", name: None, }, { field: "Channel", name: None, }],
+    columns: [{ field: "Quarter", name: Some("Period"), }],
   })
   let xml = only_pivot(wb).table_xml
   assert_true(xml.contains("<pivotField name=\"Region\" axis=\"axisRow\""))
@@ -100,7 +100,7 @@ test "every aggregation reaches the file under its OOXML name" {
     let (wb, sheet) = source_workbook()
     sheet.add_pivot({
       ..plain_pivot(),
-      values: [{ field: "Revenue", function, name: None }],
+      values: [{ field: "Revenue", function, name: None, }],
     })
     assert_true(only_pivot(wb).table_xml.contains("subtotal=\"\{name}\""))
   }
@@ -113,7 +113,7 @@ test "a named pivot, field, and style reach the file" {
     ..plain_pivot(),
     name: Some("RevenueByRegion"),
     style: Some("PivotStyleMedium9"),
-    values: [{ field: "Revenue", function: Sum, name: Some("Total revenue") }],
+    values: [{ field: "Revenue", function: Sum, name: Some("Total revenue"), }],
   })
   let pivot = only_pivot(wb)
   assert_eq(pivot.name, "RevenueByRegion")
@@ -152,7 +152,7 @@ test "a pivot may summarize the sheet it sits on" {
   sheet.add_pivot({
     ..plain_pivot(),
     at: range("D1", "F20"),
-    source: { sheet: None, range: range("A1", "B2") },
+    source: { sheet: None, range: range("A1", "B2"), },
   })
   assert_true(only_pivot(wb).cache_definition_xml.contains("sheet=\"S\""))
 }

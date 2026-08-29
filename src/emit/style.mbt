@@ -280,7 +280,7 @@ fn render_cached(
 ///|
 /// A model rich-text run as the backend's `RichTextRun`.
 fn build_rich_run(run : @model.RichRun) -> @xlsx.RichTextRun {
-  { text: run.text, font: run.font.map(build_rich_font) }
+  { text: run.text, font: run.font.map(build_rich_font), }
 }
 
 ///|

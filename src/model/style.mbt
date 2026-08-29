@@ -59,7 +59,7 @@ pub fn Style::empty() -> Style {
 ///|
 /// A style carrying only a number-format code — the common shorthand.
 pub fn Style::number_format(code : String) -> Style {
-  { ..Style::empty(), number_format: Some(code) }
+  { ..Style::empty(), number_format: Some(code), }
 }
 
 ///|
@@ -123,7 +123,7 @@ pub fn Style::inherited_by(self : Style, value : CellValue) -> Style {
   guard self.number_format is Some(code) && !has_text_section(code) else {
     return self
   }
-  { ..self, number_format: None }
+  { ..self, number_format: None, }
 }
 
 ///|
@@ -316,7 +316,7 @@ pub(all) struct Alignment {
 ///|
 /// The empty alignment — Excel's own placement.
 pub fn Alignment::empty() -> Alignment {
-  { horizontal: None, vertical: None, wrap: None }
+  { horizontal: None, vertical: None, wrap: None, }
 }
 
 ///|
@@ -353,13 +353,13 @@ pub(all) struct Borders {
 ///|
 /// No border on any side.
 pub fn Borders::empty() -> Borders {
-  { left: None, right: None, top: None, bottom: None }
+  { left: None, right: None, top: None, bottom: None, }
 }
 
 ///|
 /// The protection that changes nothing: Excel's own defaults.
 pub fn CellProtection::empty() -> CellProtection {
-  { locked: None, hidden: None }
+  { locked: None, hidden: None, }
 }
 
 ///|

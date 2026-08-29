@@ -30,7 +30,7 @@ test "a blank cell is written for its style alone" {
   let sheet = wb.add_sheet("S")
   sheet.set(@units.CellRef::new(col=2, row=2), Blank, style={
     ..@model.Style::empty(),
-    fill: Some({ color: @units.Color::parse("FFFF0000").unwrap() }),
+    fill: Some({ color: @units.Color::parse("FFFF0000").unwrap(), }),
   })
   let reopened = @xlsx.read(@emit.to_bytes(wb)[:])
   // The cell exists and wears the fill; the backend cannot yet leave it without
@@ -162,17 +162,17 @@ test "a full style round-trips its attributes and identical styles share one id"
       name: Some("Arial"),
       color: @units.Color::parse("FF0000"),
     }),
-    fill: Some({ color: @units.Color::parse("FFFF00").unwrap() }),
+    fill: Some({ color: @units.Color::parse("FFFF00").unwrap(), }),
     align: Some({
       horizontal: Some(Center),
       vertical: Some(Middle),
       wrap: Some(true),
     }),
     borders: Some({
-      left: Some({ style: Thin, color: None }),
+      left: Some({ style: Thin, color: None, }),
       right: None,
       top: None,
-      bottom: Some({ style: Double, color: @units.Color::parse("000000") }),
+      bottom: Some({ style: Double, color: @units.Color::parse("000000"), }),
     }),
   }
   sheet.set(@units.CellRef::new(col=1, row=1), Number(1.5), style~)
@@ -202,7 +202,7 @@ test "column/row default styles emit and share the cell style cache; default fon
   let sheet = wb.add_sheet("S")
   let bold : @model.Style = {
     ..@model.Style::empty(),
-    font: Some({ ..@model.Font::empty(), bold: Some(true) }),
+    font: Some({ ..@model.Font::empty(), bold: Some(true), }),
   }
   sheet.set(@units.CellRef::new(col=1, row=1), Text("x"), style=bold)
   sheet.set_column_band(first=2, last=3, style=bold)
@@ -439,8 +439,8 @@ test "a rich-text cell round-trips its runs and per-run fonts" {
   sheet.set(
     @units.CellRef::new(col=1, row=1),
     RichText([
-      { text: "Plain ", font: None },
-      { text: "bold red", font: Some(bold_red) },
+      { text: "Plain ", font: None, },
+      { text: "bold red", font: Some(bold_red), },
     ]),
   )
   let reopened = reopen(wb)

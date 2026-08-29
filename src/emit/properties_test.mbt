@@ -50,11 +50,11 @@ test "custom properties round-trip with their types and their order" {
   wb.set_properties({
     ..@model.DocumentProperties::empty(),
     custom: [
-      { name: "Reviewed by", value: Text("J. Smith") },
+      { name: "Reviewed by", value: Text("J. Smith"), },
       // Whole, so it must reach the file as an integer rather than `4210.0`.
-      { name: "Cost centre", value: Number(4210.0) },
-      { name: "Approved", value: Bool(true) },
-      { name: "Margin", value: Number(0.185) },
+      { name: "Cost centre", value: Number(4210.0), },
+      { name: "Approved", value: Bool(true), },
+      { name: "Margin", value: Number(0.185), },
     ],
   })
   let properties = reopen(wb).get_custom_props()
@@ -76,7 +76,7 @@ test "each calc mode round-trips as its OOXML code" {
     ] {
     let (mode, code) = entry
     let (wb, _) = fixture()
-    wb.set_calc({ mode: Some(mode), on_load: None })
+    wb.set_calc({ mode: Some(mode), on_load: None, })
     let calc = reopen(wb).get_calc_props()
     assert_eq(calc.calc_mode, Some(code))
   }
@@ -85,7 +85,7 @@ test "each calc mode round-trips as its OOXML code" {
 ///|
 test "a recalculation on open round-trips on its own" {
   let (wb, _) = fixture()
-  wb.set_calc({ mode: None, on_load: Some(true) })
+  wb.set_calc({ mode: None, on_load: Some(true), })
   let calc = reopen(wb).get_calc_props()
   assert_eq(calc.full_calc_on_load, Some(true))
   assert_eq(calc.calc_mode, None)
@@ -185,7 +185,7 @@ test "cell protection round-trips through the style" {
   let (wb, sheet) = fixture()
   let unlocked : @model.Style = {
     ..@model.Style::empty(),
-    protection: Some({ locked: Some(false), hidden: None }),
+    protection: Some({ locked: Some(false), hidden: None, }),
   }
   sheet.set(@units.CellRef::new(col=1, row=1), Number(1.0), style=unlocked)
   let reopened = reopen(wb)
@@ -206,7 +206,7 @@ test "a style asking only for Excel's defaults leaves the seed slot free" {
   let (wb, sheet) = fixture()
   let default_protection : @model.Style = {
     ..@model.Style::number_format("0.0%"),
-    protection: Some({ locked: Some(true), hidden: Some(false) }),
+    protection: Some({ locked: Some(true), hidden: Some(false), }),
   }
   sheet.set(
     @units.CellRef::new(col=1, row=1),
@@ -228,7 +228,7 @@ test "a style cannot carry both a number format and real cell protection" {
   let (wb, sheet) = fixture()
   let clash : @model.Style = {
     ..@model.Style::number_format("0.0%"),
-    protection: Some({ locked: Some(false), hidden: None }),
+    protection: Some({ locked: Some(false), hidden: None, }),
   }
   sheet.set(@units.CellRef::new(col=1, row=1), Number(0.085), style=clash)
   let message = try {
@@ -250,7 +250,7 @@ test "a style cannot carry both a number format and real cell protection" {
 ///|
 test "workbook protection round-trips" {
   let (wb, _) = fixture()
-  wb.set_protection({ structure: true, windows: false, password: None })
+  wb.set_protection({ structure: true, windows: false, password: None, })
   let reopened = reopen(wb)
   // The backend keeps its `WorkbookProtection` abstract, so the assertion is
   // that one exists at all; what it says is checked in the file itself.

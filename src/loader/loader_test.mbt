@@ -48,7 +48,7 @@ fn load_ok(
 fn memory_files(files : Map[String, String]) -> @loader.IncludeResolver {
   (_from, path) => {
     match files.get(path) {
-      Some(source) => { name: path, source }
+      Some(source) => { name: path, source, }
       None =>
         raise @diag.SchemaError(
           @diag.Diagnostic::new("no such included file '\{path}'"),
@@ -62,7 +62,7 @@ fn memory_files(files : Map[String, String]) -> @loader.IncludeResolver {
 fn memory_binaries(files : Map[String, Bytes]) -> @loader.BytesResolver {
   (_from, path) => {
     match files.get(path) {
-      Some(data) => { name: path, data }
+      Some(data) => { name: path, data, }
       None =>
         raise @diag.SchemaError(@diag.Diagnostic::new("no such file '\{path}'"))
     }

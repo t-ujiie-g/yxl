@@ -14,7 +14,7 @@ pub struct CellRef {
 /// `>= 1`; a reference derived from user input is validated where it is parsed
 /// (a bad ref becomes a `SchemaError` in the loader), not here.
 pub fn CellRef::new(col~ : Int, row~ : Int) -> CellRef {
-  { col, row }
+  { col, row, }
 }
 
 ///|
@@ -33,7 +33,7 @@ pub fn CellRef::parse_a1(text : String) -> CellRef? {
   guard split > 0 && split < text.length() else { return None }
   guard parse_column(text[:split]) is Some(col) else { return None }
   guard parse_uint(text[split:]) is Some(row) && row >= 1 else { return None }
-  Some({ col, row })
+  Some({ col, row, })
 }
 
 ///|
@@ -59,7 +59,7 @@ pub fn CellRef::rect(a : CellRef, b : CellRef) -> (CellRef, CellRef) {
   let max_col = if a.col > b.col { a.col } else { b.col }
   let min_row = if a.row < b.row { a.row } else { b.row }
   let max_row = if a.row > b.row { a.row } else { b.row }
-  ({ col: min_col, row: min_row }, { col: max_col, row: max_row })
+  ({ col: min_col, row: min_row, }, { col: max_col, row: max_row, })
 }
 
 ///|

@@ -38,7 +38,7 @@ fn combine_style(
     None => @model.Style::empty()
   }
   let combined = match number_format {
-    Some(code) => { ..base, number_format: Some(code) }
+    Some(code) => { ..base, number_format: Some(code), }
     None => base
   }
   let combined = combined.clearing(cleared)

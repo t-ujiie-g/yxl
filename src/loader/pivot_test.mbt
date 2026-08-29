@@ -34,11 +34,11 @@ test "a pivot loads its location, source, and axes" {
   assert_eq(pivot.at.bottom_right.to_a1(), "E20")
   assert_eq(pivot.source.sheet, Some("Orders"))
   assert_eq(pivot.source.range.bottom_right.to_a1(), "D3")
-  assert_eq(pivot.rows, [{ field: "Region", name: None }])
+  assert_eq(pivot.rows, [{ field: "Region", name: None, }])
   assert_eq(pivot.columns, [])
   // A bare name in `values:` sums, which is what Excel does with a numeric
   // field dropped there.
-  assert_eq(pivot.values, [{ field: "Revenue", function: Sum, name: None }])
+  assert_eq(pivot.values, [{ field: "Revenue", function: Sum, name: None, }])
   assert_eq(pivot.name, None)
   assert_eq(pivot.style, None)
   // Excel shows both grand totals by default.
@@ -64,9 +64,9 @@ test "a pivot loads every axis, name, style, and total" {
       #|
     ),
   )
-  assert_eq(pivot.columns, [{ field: "Quarter", name: Some("Period") }])
+  assert_eq(pivot.columns, [{ field: "Quarter", name: Some("Period"), }])
   assert_eq(pivot.values, [
-    { field: "Revenue", function: Average, name: Some("Mean revenue") },
+    { field: "Revenue", function: Average, name: Some("Mean revenue"), },
   ])
   assert_eq(pivot.name, Some("RevenueByRegion"))
   assert_eq(pivot.style, Some("PivotStyleMedium9"))

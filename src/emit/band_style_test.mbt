@@ -1,7 +1,7 @@
 ///|
 /// A style setting only a number format.
 fn formatted(code : String) -> @model.Style {
-  { ..@model.Style::empty(), number_format: Some(code) }
+  { ..@model.Style::empty(), number_format: Some(code), }
 }
 
 ///|
@@ -9,7 +9,7 @@ fn formatted(code : String) -> @model.Style {
 fn bold() -> @model.Style {
   {
     ..@model.Style::empty(),
-    font: Some({ ..@model.Font::empty(), bold: Some(true) }),
+    font: Some({ ..@model.Font::empty(), bold: Some(true), }),
   }
 }
 
@@ -153,7 +153,7 @@ fn clears(attrs : Array[@model.StyleAttr]) -> @model.Style {
 fn filled(hex : String) -> @model.Style {
   {
     ..@model.Style::empty(),
-    fill: Some({ color: @units.Color::parse(hex).unwrap() }),
+    fill: Some({ color: @units.Color::parse(hex).unwrap(), }),
   }
 }
 

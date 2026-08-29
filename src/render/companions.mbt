@@ -18,7 +18,7 @@ priv struct Names {
 
 ///|
 fn Names::new() -> Names {
-  { taken: Set([]) }
+  { taken: Set([]), }
 }
 
 ///|

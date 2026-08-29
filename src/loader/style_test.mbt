@@ -30,17 +30,17 @@ test "load parses a full style: font, fill, border, alignment, and number format
         name: Some("Calibri"),
         color: @units.Color::parse("FF0000"),
       }),
-      fill: Some({ color: @units.Color::parse("FFFF00").unwrap() }),
+      fill: Some({ color: @units.Color::parse("FFFF00").unwrap(), }),
       align: Some({
         horizontal: Some(Center),
         vertical: Some(Middle),
         wrap: Some(true),
       }),
       borders: Some({
-        left: Some({ style: Thin, color: None }),
-        right: Some({ style: Thin, color: None }),
-        top: Some({ style: Thin, color: None }),
-        bottom: Some({ style: Double, color: @units.Color::parse("000000") }),
+        left: Some({ style: Thin, color: None, }),
+        right: Some({ style: Thin, color: None, }),
+        top: Some({ style: Thin, color: None, }),
+        bottom: Some({ style: Double, color: @units.Color::parse("000000"), }),
       }),
       protection: None,
     }),
@@ -193,8 +193,8 @@ test "a named style is declared once and referenced by name from many cells" {
   let sheet = workbook.sheets[0]
   let header : @model.Style = {
     ..@model.Style::empty(),
-    font: Some({ ..@model.Font::empty(), bold: Some(true) }),
-    fill: Some({ color: @units.Color::parse("DDDDDD").unwrap() }),
+    font: Some({ ..@model.Font::empty(), bold: Some(true), }),
+    fill: Some({ color: @units.Color::parse("DDDDDD").unwrap(), }),
   }
   // Both cells and the column band resolve to the one declared style, so the
   // emitter interns them to a single cellXfs id (ADR-004).
@@ -253,7 +253,7 @@ test "a style extends another, overriding attribute by attribute" {
   assert_eq(font.size, Some(11.0))
   assert_eq(header.align.unwrap().horizontal, Some(Center))
   assert_eq(header.align.unwrap().wrap, Some(true))
-  assert_eq(header.borders.unwrap().left, Some({ style: Thin, color: None }))
+  assert_eq(header.borders.unwrap().left, Some({ style: Thin, color: None, }))
   assert_eq(header.fill.unwrap().color, @units.Color::parse("1F3864").unwrap())
   let base = workbook.sheets[0].cells[1].style.unwrap()
   assert_eq(base.font.unwrap().bold, None)
@@ -342,14 +342,17 @@ test "load accepts a fill and border shorthand" {
     ),
   )
   let style = workbook.sheets[0].cells[0].style.unwrap()
-  assert_eq(style.fill, Some({ color: @units.Color::parse("00FF00").unwrap() }))
+  assert_eq(
+    style.fill,
+    Some({ color: @units.Color::parse("00FF00").unwrap(), }),
+  )
   assert_eq(
     style.borders,
     Some({
-      left: Some({ style: Medium, color: None }),
-      right: Some({ style: Medium, color: None }),
-      top: Some({ style: Medium, color: None }),
-      bottom: Some({ style: Medium, color: None }),
+      left: Some({ style: Medium, color: None, }),
+      right: Some({ style: Medium, color: None, }),
+      top: Some({ style: Medium, color: None, }),
+      bottom: Some({ style: Medium, color: None, }),
     }),
   )
 }

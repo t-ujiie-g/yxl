@@ -13,7 +13,7 @@ fn at(reference : String) -> @units.CellRef {
 ///|
 /// A style setting only a number format.
 fn formatted(code : String) -> @model.Style {
-  { ..@model.Style::empty(), number_format: Some(code) }
+  { ..@model.Style::empty(), number_format: Some(code), }
 }
 
 ///|
@@ -21,14 +21,14 @@ fn formatted(code : String) -> @model.Style {
 fn bold() -> @model.Style {
   {
     ..@model.Style::empty(),
-    font: Some({ ..@model.Font::empty(), bold: Some(true) }),
+    font: Some({ ..@model.Font::empty(), bold: Some(true), }),
   }
 }
 
 ///|
 /// A bold style on a fill — the one combination that reads as a heading.
 fn header_style() -> @model.Style {
-  { ..bold(), fill: Some({ color: @units.Color::parse("1F3864").unwrap() }) }
+  { ..bold(), fill: Some({ color: @units.Color::parse("1F3864").unwrap(), }), }
 }
 
 ///|
@@ -205,7 +205,7 @@ test "a look with nothing to say for itself gets a neutral name" {
   let (wb, sheet) = fixture()
   let odd : @model.Style = {
     ..@model.Style::empty(),
-    align: Some({ horizontal: Some(Right), vertical: None, wrap: None }),
+    align: Some({ horizontal: Some(Right), vertical: None, wrap: None, }),
   }
   sheet.set(at("A1"), Text("a"), style=odd)
   sheet.set(at("A2"), Text("b"), style=odd)
@@ -217,7 +217,7 @@ test "a formula range renders as one entry, not as its cells" {
   let (wb, sheet) = fixture()
   sheet.set(at("A1"), Number(1.0))
   sheet.add_formula({
-    at: { top_left: at("C1"), bottom_right: at("C9") },
+    at: { top_left: at("C1"), bottom_right: at("C9"), },
     formula: "A1*2",
   })
   inspect(
@@ -295,8 +295,11 @@ test "rich text renders its runs, plain ones as bare strings" {
   sheet.set(
     at("A1"),
     RichText([
-      { text: "plain ", font: None },
-      { text: "bold", font: Some({ ..@model.Font::empty(), bold: Some(true) }) },
+      { text: "plain ", font: None, },
+      {
+        text: "bold",
+        font: Some({ ..@model.Font::empty(), bold: Some(true), }),
+      },
     ]),
   )
   inspect(
@@ -320,16 +323,16 @@ test "rich text renders its runs, plain ones as bare strings" {
 test "the decorations render in the schema's own vocabulary" {
   let (wb, sheet) = fixture()
   sheet.set(at("A1"), Text("x"))
-  sheet.set_filter({ top_left: at("A1"), bottom_right: at("C1") })
+  sheet.set_filter({ top_left: at("A1"), bottom_right: at("C1"), })
   sheet.add_validation({
-    at: { top_left: at("B2"), bottom_right: at("B9") },
+    at: { top_left: at("B2"), bottom_right: at("B9"), },
     rule: List(["Draft", "Sent"]),
     allow_blank: false,
     prompt: None,
     error: None,
   })
   sheet.add_validation({
-    at: { top_left: at("C2"), bottom_right: at("C9") },
+    at: { top_left: at("C2"), bottom_right: at("C9"), },
     rule: Compare(kind=TextLength, check=AtMost(Number(12.0))),
     allow_blank: true,
     prompt: None,
@@ -368,7 +371,7 @@ test "a table renders only the toggles that differ from Excel's defaults" {
   let (wb, sheet) = fixture()
   sheet.set(at("A1"), Text("Region"))
   sheet.add_table({
-    at: { top_left: at("A1"), bottom_right: at("B2") },
+    at: { top_left: at("A1"), bottom_right: at("B2"), },
     name: Some("Sales"),
     style: None,
     banded_rows: true,
@@ -408,7 +411,7 @@ test "a cleared attribute is written as null, beside the ones that are set" {
     style=(
         {
           ..@model.Style::empty(),
-          font: Some({ ..@model.Font::empty(), italic: Some(true) }),
+          font: Some({ ..@model.Font::empty(), italic: Some(true), }),
         } : @model.Style)
       .clearing(@model.StyleAttrs::of([Fill]))
       .clearing(@model.StyleAttrs::of([FontBold])),

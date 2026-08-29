@@ -42,7 +42,7 @@ test "every kind of form control comes back as itself" {
   ]
   let mut row = 1
   for kind in kinds {
-    sheet.add_control({ ..bare_control(kind, "D\{row}"), text: Some("Go") })
+    sheet.add_control({ ..bare_control(kind, "D\{row}"), text: Some("Go"), })
     row += 2
   }
   let recovered = only_sheet(wb)
@@ -119,7 +119,7 @@ test "a control field the schema forbids on that kind is dropped" {
     link: Some(at("F2")),
     min: Some(1),
   })
-  sheet.add_control({ ..bare_control(SpinButton, "D6"), page: Some(4) })
+  sheet.add_control({ ..bare_control(SpinButton, "D6"), page: Some(4), })
   let recovered = round_trip(wb)
   let button = recovered.workbook.sheets[0].controls[0]
   assert_eq(button.checked, None)
@@ -326,16 +326,18 @@ test "shape text comes back, and the font on it does not" {
             color: None,
           }),
         },
-        { text: "quarter", font: None },
+        { text: "quarter", font: None, },
       ]),
     ),
   })
-  sheet.add_shape({ ..bare_shape("plus", "D8"), text: Some(Plain("Approved")) })
+  sheet.add_shape({ ..bare_shape("plus", "D8"), text: Some(Plain("Approved")), })
   let recovered = round_trip(wb)
   let shapes = recovered.workbook.sheets[0].shapes
   assert_eq(
     shapes[0].text,
-    Some(Lines([{ text: "Next", font: None }, { text: "quarter", font: None }])),
+    Some(
+      Lines([{ text: "Next", font: None, }, { text: "quarter", font: None, }]),
+    ),
   )
   assert_eq(shapes[1].text, Some(Plain("Approved")))
   assert_true(noted(recovered, "any font on a line of shape text"))
@@ -352,7 +354,7 @@ fn bare_group(
     cells: [
       {
         at: at(at_ref),
-        data: { sheet: None, range: @model.CellRange::parse("B1:B3").unwrap() },
+        data: { sheet: None, range: @model.CellRange::parse("B1:B3").unwrap(), },
       },
     ],
     markers: false,
@@ -388,11 +390,11 @@ test "a sparkline group comes back with its kind, points, and bounds" {
     cells: [
       {
         at: at("C1"),
-        data: { sheet: None, range: @model.CellRange::parse("B1:B3").unwrap() },
+        data: { sheet: None, range: @model.CellRange::parse("B1:B3").unwrap(), },
       },
       {
         at: at("C2"),
-        data: { sheet: None, range: @model.CellRange::parse("B1:B3").unwrap() },
+        data: { sheet: None, range: @model.CellRange::parse("B1:B3").unwrap(), },
       },
     ],
     markers: true,

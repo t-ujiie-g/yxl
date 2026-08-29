@@ -67,10 +67,10 @@ test "a shape's text lines each round-trip as their own paragraph" {
     preset: "chevron",
     text: Some(
       @model.Lines([
-        { text: "next", font: None },
+        { text: "next", font: None, },
         {
           text: "quarter",
-          font: Some({ ..@model.Font::empty(), bold: Some(true) }),
+          font: Some({ ..@model.Font::empty(), bold: Some(true), }),
         },
       ]),
     ),

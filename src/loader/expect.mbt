@@ -199,7 +199,7 @@ fn parse_range(
   let first = expect_cell_ref(left.to_owned(), file~, what=corner)
   let second = expect_cell_ref(right.to_owned(), file~, what=corner)
   let (top_left, bottom_right) = @units.CellRef::rect(first, second)
-  { top_left, bottom_right }
+  { top_left, bottom_right, }
 }
 
 ///|

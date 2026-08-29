@@ -202,7 +202,7 @@ fn read_prompt(validation : @xlsx.DataValidation) -> @model.ValidationPrompt? {
   if title.is_empty() && body.is_empty() {
     None
   } else {
-    Some({ title, body })
+    Some({ title, body, })
   }
 }
 
@@ -222,7 +222,7 @@ fn read_validation_error(
     Some("information") => Information
     _ => Stop
   }
-  Some({ title, body, style })
+  Some({ title, body, style, })
 }
 
 ///|
@@ -302,12 +302,12 @@ fn parse_sheet_range(text : String) -> @model.SheetRange? {
   match bare.split_once("!") {
     Some((name, rest)) =>
       match @model.CellRange::parse_loose(rest.to_owned()) {
-        Some(range) => Some({ sheet: Some(name.to_owned()), range })
+        Some(range) => Some({ sheet: Some(name.to_owned()), range, })
         None => None
       }
     None =>
       match @model.CellRange::parse_loose(bare) {
-        Some(range) => Some({ sheet: None, range })
+        Some(range) => Some({ sheet: None, range, })
         None => None
       }
   }

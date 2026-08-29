@@ -11,7 +11,7 @@ pub struct Diagnostic {
 /// Build a diagnostic. Pass `span=` to anchor it to a source location; omit it
 /// for failures with no meaningful position (e.g. a CLI usage error).
 pub fn Diagnostic::new(message : String, span? : Span) -> Diagnostic {
-  { message, span }
+  { message, span, }
 }
 
 ///|

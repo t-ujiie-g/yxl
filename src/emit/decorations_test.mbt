@@ -81,7 +81,7 @@ test "a sourced drop-down round-trips as an absolute, sheet-qualified reference"
   wb.add_sheet("Lists") |> ignore
   sheet.add_validation({
     at: range("B2", "B9"),
-    rule: ListFrom({ sheet: Some("Lists"), range: range("A1", "A3") }),
+    rule: ListFrom({ sheet: Some("Lists"), range: range("A1", "A3"), }),
     allow_blank: true,
     prompt: None,
     error: None,
@@ -97,7 +97,7 @@ test "a list sourced from no named sheet resolves to the sheet holding it" {
   let (wb, sheet) = fixture()
   sheet.add_validation({
     at: range("B2", "B9"),
-    rule: ListFrom({ sheet: None, range: range("E1", "E3") }),
+    rule: ListFrom({ sheet: None, range: range("E1", "E3"), }),
     allow_blank: true,
     prompt: None,
     error: None,
@@ -205,8 +205,8 @@ test "the prompt, the error, and the blank policy round-trip" {
     at: range("B2", "B9"),
     rule: List(["a", "b"]),
     allow_blank: false,
-    prompt: Some({ title: "Pick", body: "a or b" }),
-    error: Some({ title: "Nope", body: "a or b only", style: Warning }),
+    prompt: Some({ title: "Pick", body: "a or b", }),
+    error: Some({ title: "Nope", body: "a or b only", style: Warning, }),
   })
   let validation = only_validation(wb)
   assert_false(validation.allow_blank)
@@ -234,7 +234,7 @@ test "every error style round-trips" {
       rule: List(["a"]),
       allow_blank: true,
       prompt: None,
-      error: Some({ title: "t", body: "b", style }),
+      error: Some({ title: "t", body: "b", style, }),
     })
     assert_eq(only_validation(wb).error_style, Some(expected))
   }

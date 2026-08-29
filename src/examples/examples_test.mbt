@@ -22,7 +22,7 @@ fn promise(
   value : String,
   params? : Map[String, String] = Map([]),
 ) -> Promise {
-  { spec, sheet, cell, value, params }
+  { spec, sheet, cell, value, params, }
 }
 
 ///|
@@ -85,14 +85,14 @@ fn promises() -> Array[Promise] {
 /// applies, so the corpus exercises the real resolution instead of a copy.
 fn included(from : String, path : String) -> @loader.Included raise {
   let name = @cli.resolve_path(from, path)
-  { name, source: @fs.read_file_to_string(name) }
+  { name, source: @fs.read_file_to_string(name), }
 }
 
 ///|
 /// The same, for a file the spec names but cannot hold as text: an image.
 fn included_bytes(from : String, path : String) -> @loader.IncludedBytes raise {
   let name = @cli.resolve_path(from, path)
-  { name, data: @fs.read_file_to_bytes(name) }
+  { name, data: @fs.read_file_to_bytes(name), }
 }
 
 ///|

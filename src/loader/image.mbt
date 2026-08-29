@@ -108,7 +108,7 @@ fn load_background(
   guard read.data.length() > 0 else {
     raise schema_error(file~, "\{context} reads '\{read.name}', which is empty")
   }
-  sheet.set_background({ data: read.data, format })
+  sheet.set_background({ data: read.data, format, })
 }
 
 ///|

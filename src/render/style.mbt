@@ -68,7 +68,7 @@ fn StyleNames::of(wb : @model.Workbook) -> StyleNames {
     declared.push((name, style))
     by_style[style] = name
   }
-  { declared, by_style }
+  { declared, by_style, }
 }
 
 ///|
@@ -101,7 +101,7 @@ fn StyleNames::split(
   // number format reads better as the bare `format:` shorthand than as a style
   // mapping with one key in it.
   let format = style.number_format
-  let rest = { ..style, number_format: None }
+  let rest = { ..style, number_format: None, }
   if rest.is_empty() {
     (None, format)
   } else {

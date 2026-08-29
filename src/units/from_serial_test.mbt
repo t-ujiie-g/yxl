@@ -1,6 +1,6 @@
 ///|
 fn civil(year : Int, month : Int, day : Int) -> @units.DateTime {
-  { year, month, day, hour: 0, minute: 0, second: 0 }
+  { year, month, day, hour: 0, minute: 0, second: 0, }
 }
 
 ///|
@@ -15,8 +15,8 @@ test "a date survives the round trip through its serial, in both systems" {
         civil(2000, 2, 29),
         civil(2026, 7, 28),
         civil(2100, 12, 31),
-        { ..civil(2026, 7, 28), hour: 13, minute: 45, second: 30 },
-        { ..civil(2026, 7, 28), hour: 23, minute: 59, second: 59 },
+        { ..civil(2026, 7, 28), hour: 13, minute: 45, second: 30, },
+        { ..civil(2026, 7, 28), hour: 23, minute: 59, second: 59, },
       ] {
       // The 1904 system has no dates before 1904.
       if system is Date1904 && date.year < 1904 {

@@ -302,7 +302,7 @@ fn parse_sheet_range(
   what~ : String,
 ) -> @model.SheetRange raise @diag.SchemaError {
   let (sheet, rest) = split_sheet_prefix(text, file~, what~)
-  { sheet, range: parse_range(rest, file~, what~) }
+  { sheet, range: parse_range(rest, file~, what~), }
 }
 
 ///|

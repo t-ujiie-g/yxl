@@ -262,7 +262,7 @@ test "--flat leaves the tables inline but still writes the pictures" {
       #|
     ),
     file="in.yaml",
-    read_bytes=(_from, path) => { name: path, data: png },
+    read_bytes=(_from, path) => { name: path, data: png, },
   )
   let flat = @cli.extract(bytes, file="in.xlsx", flat=true)
   assert_eq(flat.companions.length(), 1)

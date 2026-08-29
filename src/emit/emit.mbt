@@ -14,7 +14,7 @@ pub struct MbtexcelEmitter {}
 ///|
 /// The default emitter.
 pub fn MbtexcelEmitter::new() -> MbtexcelEmitter {
-  MbtexcelEmitter::{  }
+  MbtexcelEmitter::{ }
 }
 
 ///|

@@ -75,7 +75,7 @@ test "an override may carry both facets at once" {
 ///|
 test "an override inside a filled range leaves the rest of it shared" {
   let (wb, sheet) = calculation_sheet()
-  sheet.add_formula({ at: range_of("C1", "C3"), formula: "A1*B1" })
+  sheet.add_formula({ at: range_of("C1", "C3"), formula: "A1*B1", })
   wb.add_override(override_at("C2", value=Formula(formula="B2", cached=None)))
   let reopened = reopen(wb)
   // The master keeps the range's one stored formula and C3 keeps following it;
@@ -89,7 +89,7 @@ test "an override inside a filled range leaves the rest of it shared" {
 ///|
 test "an override inside a filled range may be a plain value" {
   let (wb, sheet) = calculation_sheet()
-  sheet.add_formula({ at: range_of("C1", "C3"), formula: "A1*B1" })
+  sheet.add_formula({ at: range_of("C1", "C3"), formula: "A1*B1", })
   wb.add_override(override_at("C2", value=Number(0.0)))
   let reopened = reopen(wb)
   assert_eq(reopened.get_cell_formula("S", "C2"), None)
@@ -101,7 +101,7 @@ test "an override inside a filled range may be a plain value" {
 test "a filled range's band style survives an override of one of its cells" {
   let (wb, sheet) = calculation_sheet()
   sheet.set_column_band(first=3, last=3, style=formatted("0.00"))
-  sheet.add_formula({ at: range_of("C1", "C3"), formula: "A1*B1" })
+  sheet.add_formula({ at: range_of("C1", "C3"), formula: "A1*B1", })
   wb.add_override(override_at("C2", value=Number(7.0)))
   assert_eq(cell_format(wb, "C2"), Some("0.00"))
 }

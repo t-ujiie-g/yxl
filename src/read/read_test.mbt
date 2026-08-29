@@ -105,12 +105,12 @@ test "plain text does not come back as a one-run rich text" {
 ///|
 test "text that really does mix fonts comes back as runs" {
   let (wb, sheet) = fixture()
-  let italic : @model.Font = { ..@model.Font::empty(), italic: Some(true) }
+  let italic : @model.Font = { ..@model.Font::empty(), italic: Some(true), }
   sheet.set(
     at("A1"),
     RichText([
-      { text: "plain ", font: None },
-      { text: "italic", font: Some(italic) },
+      { text: "plain ", font: None, },
+      { text: "italic", font: Some(italic), },
     ]),
   )
   let recovered = cell_at(only_sheet(wb), "A1")
@@ -126,8 +126,8 @@ test "a style comes back, and cells that shared one still share it" {
   let (wb, sheet) = fixture()
   let header : @model.Style = {
     ..@model.Style::empty(),
-    font: Some({ ..@model.Font::empty(), bold: Some(true) }),
-    fill: Some({ color: @units.Color::parse("1F3864").unwrap() }),
+    font: Some({ ..@model.Font::empty(), bold: Some(true), }),
+    fill: Some({ color: @units.Color::parse("1F3864").unwrap(), }),
   }
   sheet.set(at("A1"), Text("Region"), style=header)
   sheet.set(at("B1"), Text("Revenue"), style=header)
@@ -273,7 +273,7 @@ test "a shared formula's followers are translated where the range cannot fold" {
   sheet.set(at("B3"), Number(3.0))
   sheet.set_column_band(first=3, last=3, style={
     ..@model.Style::empty(),
-    font: Some({ ..@model.Font::empty(), bold: Some(true) }),
+    font: Some({ ..@model.Font::empty(), bold: Some(true), }),
   })
   sheet.add_formula({
     at: @model.CellRange::parse("C2:C3").unwrap(),
@@ -460,9 +460,9 @@ test "the workbook's own keys come back" {
     title: Some("Regional summary"),
     author: Some("Finance"),
     company: Some("Example Ltd"),
-    custom: [{ name: "Cost centre", value: Number(4210.0) }],
+    custom: [{ name: "Cost centre", value: Number(4210.0), }],
   })
-  wb.set_calc({ mode: Some(Manual), on_load: Some(true) })
+  wb.set_calc({ mode: Some(Manual), on_load: Some(true), })
   let recovered = round_trip(wb).workbook
   assert_eq(recovered.default_font, Some("Georgia"))
   assert_eq(recovered.defined_names.length(), 3)
@@ -608,7 +608,7 @@ test "a cleared attribute survives the round trip through the file" {
   let (wb, sheet) = fixture()
   sheet.set_column_band(first=3, last=3, style={
     ..@model.Style::empty(),
-    fill: Some({ color: @units.Color::parse("FFF2CC").unwrap() }),
+    fill: Some({ color: @units.Color::parse("FFF2CC").unwrap(), }),
   })
   sheet.set(at("C1"), Number(1.0))
   sheet.set(at("C2"), Number(2.0), style=clears([Fill]))

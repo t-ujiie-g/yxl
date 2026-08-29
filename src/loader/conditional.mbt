@@ -128,7 +128,7 @@ fn load_conditional_format(
       )
     }
   }
-  { at, rule, style, stop_if_true }
+  { at, rule, style, stop_if_true, }
 }
 
 ///|

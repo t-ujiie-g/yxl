@@ -86,7 +86,7 @@ fn record_band_deviations(sheet : @model.Sheet) -> Unit {
       .assigned()
       .except(own.assigned())
     guard !cleared.is_empty() else { continue }
-    sheet.cells[index] = { ..cell, style: Some(own.clearing(cleared)) }
+    sheet.cells[index] = { ..cell, style: Some(own.clearing(cleared)), }
   }
 }
 

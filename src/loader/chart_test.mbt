@@ -54,11 +54,14 @@ test "a chart loads its title, legend, size, and axes" {
   assert_eq(chart.kind, Line)
   assert_eq(chart.title, Some("Revenue by region"))
   assert_eq(chart.legend, Some(TopRight))
-  assert_eq(chart.size, Some({ width: 520, height: 300 }))
-  assert_eq(chart.x_axis, Some({ title: Some("Region"), min: None, max: None }))
+  assert_eq(chart.size, Some({ width: 520, height: 300, }))
+  assert_eq(
+    chart.x_axis,
+    Some({ title: Some("Region"), min: None, max: None, }),
+  )
   assert_eq(
     chart.y_axis,
-    Some({ title: Some("Amount"), min: Some(0.0), max: Some(4000000.0) }),
+    Some({ title: Some("Amount"), min: Some(0.0), max: Some(4000000.0), }),
   )
 }
 

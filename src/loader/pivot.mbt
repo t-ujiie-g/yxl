@@ -142,7 +142,7 @@ fn load_pivot_fields(
   let fields : Array[@model.PivotField] = []
   for item in expect_seq(node, file~, context=what) {
     if item is @yaml.Str(field) {
-      fields.push({ field, name: None })
+      fields.push({ field, name: None, })
       continue
     }
     let mut field = None
@@ -167,7 +167,7 @@ fn load_pivot_fields(
         "a \{what} field is missing required key 'field'",
       )
     }
-    fields.push({ field, name })
+    fields.push({ field, name, })
   }
   fields
 }
@@ -184,7 +184,7 @@ fn load_pivot_values(
   let values : Array[@model.PivotValue] = []
   for item in expect_seq(node, file~, context=what) {
     if item is @yaml.Str(field) {
-      values.push({ field, function: Sum, name: None })
+      values.push({ field, function: Sum, name: None, })
       continue
     }
     let mut field = None
@@ -218,7 +218,7 @@ fn load_pivot_values(
         "a \{what} field is missing required key 'field'",
       )
     }
-    values.push({ field, function, name })
+    values.push({ field, function, name, })
   }
   values
 }

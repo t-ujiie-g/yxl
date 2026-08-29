@@ -58,7 +58,7 @@ fn load_font(
       _ => raise unknown_font_key(key, file~, context~)
     }
   }
-  ({ bold, italic, underline, strike, size, name, color }, cleared)
+  ({ bold, italic, underline, strike, size, name, color, }, cleared)
 }
 
 ///|
@@ -81,7 +81,7 @@ fn load_fill(
   context~ : String,
 ) -> @model.Fill raise @diag.SchemaError {
   match node {
-    @yaml.Str(_) => { color: expect_color(node, file~, what="fill", context~) }
+    @yaml.Str(_) => { color: expect_color(node, file~, what="fill", context~), }
     @yaml.Map(entries) => {
       let mut color = None
       for entry in entries {
@@ -143,7 +143,7 @@ fn load_alignment(
       _ => raise unknown_align_key(key, file~, context~)
     }
   }
-  ({ horizontal, vertical, wrap }, cleared)
+  ({ horizontal, vertical, wrap, }, cleared)
 }
 
 ///|
@@ -280,7 +280,7 @@ fn load_borders(
           _ => raise unknown_border_key(key, file~, context~)
         }
       }
-      ({ left, right, top, bottom }, cleared)
+      ({ left, right, top, bottom, }, cleared)
     }
     _ =>
       raise schema_error(
@@ -311,7 +311,7 @@ fn load_border(
 ) -> @model.Border raise @diag.SchemaError {
   match node {
     @yaml.Str(_) =>
-      { style: load_border_style(node, file~, context~), color: None }
+      { style: load_border_style(node, file~, context~), color: None, }
     @yaml.Map(entries) => {
       let mut style = None
       let mut color = None
@@ -333,7 +333,7 @@ fn load_border(
       guard style is Some(style) else {
         raise schema_error(file~, "\{context} border needs a 'style'")
       }
-      { style, color }
+      { style, color, }
     }
     _ =>
       raise schema_error(
@@ -396,7 +396,7 @@ fn load_cell_protection(
       "\{what} sets nothing (expected 'locked' or 'hidden')",
     )
   }
-  ({ locked, hidden }, cleared)
+  ({ locked, hidden, }, cleared)
 }
 
 ///|

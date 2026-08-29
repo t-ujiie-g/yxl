@@ -43,7 +43,7 @@ test "a styled cell anywhere in the region keeps the whole region inline" {
   // into one would drop the style without saying so.
   wb.sheets[0].set(@units.CellRef::new(col=1, row=1), Text("Title"), style={
     ..@model.Style::empty(),
-    font: Some({ ..@model.Font::empty(), bold: Some(true) }),
+    font: Some({ ..@model.Font::empty(), bold: Some(true), }),
   })
   assert_eq(@render.data_tables(wb).length(), 0)
 }

@@ -17,8 +17,8 @@ fn one_series(kind : @model.ChartKind) -> @model.Chart {
     kind,
     series: [
       {
-        values: { sheet: None, range: range("B2", "B4") },
-        categories: Some({ sheet: None, range: range("A2", "A4") }),
+        values: { sheet: None, range: range("B2", "B4"), },
+        categories: Some({ sheet: None, range: range("A2", "A4"), }),
         name: None,
       },
     ],
@@ -88,7 +88,7 @@ test "a series is named either outright or from a cell" {
   sheet.add_chart({
     ..chart,
     series: [
-      { ..chart.series[0], name: Some(Literal("Revenue")) },
+      { ..chart.series[0], name: Some(Literal("Revenue")), },
       {
         ..chart.series[0],
         name: Some(
@@ -114,8 +114,8 @@ test "a series may plot another sheet" {
     ..chart,
     series: [
       {
-        values: { sheet: Some("Data"), range: range("B2", "B4") },
-        categories: Some({ sheet: Some("Data"), range: range("A2", "A4") }),
+        values: { sheet: Some("Data"), range: range("B2", "B4"), },
+        categories: Some({ sheet: Some("Data"), range: range("A2", "A4"), }),
         name: None,
       },
     ],
@@ -132,8 +132,8 @@ test "the title, legend, and axes reach the file" {
     ..one_series(Column),
     title: Some("Revenue by region"),
     legend: Some(Right),
-    x_axis: Some({ title: Some("Region"), min: None, max: None }),
-    y_axis: Some({ title: None, min: Some(0.0), max: Some(4000000.0) }),
+    x_axis: Some({ title: Some("Region"), min: None, max: None, }),
+    y_axis: Some({ title: None, min: Some(0.0), max: Some(4000000.0), }),
   })
   let xml = only_chart(wb).xml
   assert_true(xml.contains("<a:t>Revenue by region</a:t>"))
@@ -146,7 +146,7 @@ test "the title, legend, and axes reach the file" {
 ///|
 test "a chart without a legend has none, rather than an empty one" {
   let (wb, sheet) = fixture()
-  sheet.add_chart({ ..one_series(Column), legend: Some(NoLegend) })
+  sheet.add_chart({ ..one_series(Column), legend: Some(NoLegend), })
   assert_false(only_chart(wb).xml.contains("<c:legend>"))
 }
 
@@ -155,7 +155,7 @@ test "a size in pixels reaches the file in EMU" {
   let (wb, sheet) = fixture()
   sheet.add_chart({
     ..one_series(Column),
-    size: Some({ width: 520, height: 300 }),
+    size: Some({ width: 520, height: 300, }),
   })
   let chart = only_chart(wb)
   // One pixel is 9525 EMU (ECMA-376 §20.1.2.1: 914400 EMU per inch, at 96 dpi).

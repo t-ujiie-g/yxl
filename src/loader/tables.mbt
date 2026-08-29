@@ -77,7 +77,7 @@ fn load_table(
       "\{context} covers one row; a table needs a header row and at least one row of data",
     )
   }
-  { at, name, style, banded_rows, banded_columns, first_column, last_column }
+  { at, name, style, banded_rows, banded_columns, first_column, last_column, }
 }
 
 ///|

@@ -308,7 +308,7 @@ fn read_shape_text(shape : @xlsx.Shape, notes : Notes) -> @model.ShapeText? {
       // Unreachable today; see the note below, which claims the opposite.
       notes.drop("a font on a line of shape text, reported but not recovered")
     }
-    lines.push(@model.RichRun::{ text: run.text, font: None })
+    lines.push(@model.RichRun::{ text: run.text, font: None, })
   }
   if lines.is_empty() {
     // A shape written with a plain `text` rather than runs still comes back as
@@ -385,7 +385,7 @@ fn read_sparkline_group(
       )
       continue
     }
-    cells.push({ at, data: { sheet: None, range } })
+    cells.push({ at, data: { sheet: None, range, }, })
   }
   guard !cells.is_empty() else { return None }
   if qualified_ranges {

@@ -140,7 +140,7 @@ fn read_run(
       })
     None => None
   }
-  { text: run.text, font }
+  { text: run.text, font, }
 }
 
 ///|

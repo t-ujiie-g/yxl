@@ -279,7 +279,7 @@ test "golden: an included data file compiles into the same workbook" {
   }
   let bytes = @cli.compile(source, file="spec.yaml", resolve=(_from, path) => {
     match files.get(path) {
-      Some(text) => { name: path, source: text }
+      Some(text) => { name: path, source: text, }
       None => raise @diag.SchemaError(@diag.Diagnostic::new("missing \{path}"))
     }
   })

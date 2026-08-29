@@ -1,7 +1,7 @@
 ///|
 /// The range `TopLeft:BottomRight`, both corners given in A1.
 fn range(top_left : String, bottom_right : String) -> @model.CellRange {
-  { top_left: at(top_left), bottom_right: at(bottom_right) }
+  { top_left: at(top_left), bottom_right: at(bottom_right), }
 }
 
 ///|
@@ -26,8 +26,8 @@ fn plain_chart(kind : @model.ChartKind) -> @model.Chart {
     kind,
     series: [
       {
-        values: { sheet: None, range: range("B2", "B3") },
-        categories: Some({ sheet: None, range: range("A2", "A3") }),
+        values: { sheet: None, range: range("B2", "B3"), },
+        categories: Some({ sheet: None, range: range("A2", "A3"), }),
         name: None,
       },
     ],
@@ -80,13 +80,13 @@ test "a chart round-trips its anchor, ranges, title, legend, size, and axes" {
     ..plain_chart(Column),
     title: Some("Revenue by region"),
     legend: Some(Bottom),
-    size: Some({ width: 520, height: 300 }),
-    x_axis: Some({ title: Some("Region"), min: None, max: None }),
-    y_axis: Some({ title: Some("Amount"), min: Some(0.0), max: Some(40.0) }),
+    size: Some({ width: 520, height: 300, }),
+    x_axis: Some({ title: Some("Region"), min: None, max: None, }),
+    y_axis: Some({ title: Some("Amount"), min: Some(0.0), max: Some(40.0), }),
     series: [
       {
-        values: { sheet: None, range: range("B2", "B3") },
-        categories: Some({ sheet: None, range: range("A2", "A3") }),
+        values: { sheet: None, range: range("B2", "B3"), },
+        categories: Some({ sheet: None, range: range("A2", "A3"), }),
         name: Some(FromCell(sheet=None, at=at("B1"))),
       },
     ],
@@ -95,14 +95,14 @@ test "a chart round-trips its anchor, ranges, title, legend, size, and axes" {
   assert_eq(recovered.at, at("D2"))
   assert_eq(recovered.title, Some("Revenue by region"))
   assert_eq(recovered.legend, Some(Bottom))
-  assert_eq(recovered.size, Some({ width: 520, height: 300 }))
+  assert_eq(recovered.size, Some({ width: 520, height: 300, }))
   assert_eq(
     recovered.x_axis,
-    Some({ title: Some("Region"), min: None, max: None }),
+    Some({ title: Some("Region"), min: None, max: None, }),
   )
   assert_eq(
     recovered.y_axis,
-    Some({ title: Some("Amount"), min: Some(0.0), max: Some(40.0) }),
+    Some({ title: Some("Amount"), min: Some(0.0), max: Some(40.0), }),
   )
   // Every range comes back sheet-qualified, because that is how the file stores
   // one: a chart lives in a part of its own, where a bare `B2:B3` names nothing.
@@ -113,7 +113,7 @@ test "a chart round-trips its anchor, ranges, title, legend, size, and axes" {
   })
   assert_eq(
     recovered.series[0].categories,
-    Some({ sheet: Some("S"), range: range("A2", "A3") }),
+    Some({ sheet: Some("S"), range: range("A2", "A3"), }),
   )
   assert_eq(
     recovered.series[0].name,
@@ -127,8 +127,8 @@ test "a series named outright keeps its words" {
     ..plain_chart(Pie),
     series: [
       {
-        values: { sheet: None, range: range("B2", "B3") },
-        categories: Some({ sheet: None, range: range("A2", "A3") }),
+        values: { sheet: None, range: range("B2", "B3"), },
+        categories: Some({ sheet: None, range: range("A2", "A3"), }),
         name: Some(Literal("Revenue")),
       },
     ],
@@ -142,7 +142,7 @@ test "a chart with no legend comes back saying so" {
   // `none` and "unset" are different specs — one draws no legend, the other
   // takes Excel's default — so the absent `<c:legend>` has to mean the first.
   let recovered = only_chart(
-    with_chart({ ..plain_chart(Column), legend: Some(NoLegend) }),
+    with_chart({ ..plain_chart(Column), legend: Some(NoLegend), }),
   )
   assert_eq(recovered.legend, Some(NoLegend))
 }
@@ -360,9 +360,9 @@ test "an axis is matched to its group by id, not by where it sits" {
   assert_eq(charts.length(), 1)
   assert_eq(
     charts[0].x_axis,
-    Some({ title: Some("Region"), min: None, max: None }),
+    Some({ title: Some("Region"), min: None, max: None, }),
   )
-  assert_eq(charts[0].y_axis, Some({ title: None, min: Some(0.0), max: None }))
+  assert_eq(charts[0].y_axis, Some({ title: None, min: Some(0.0), max: None, }))
 }
 
 ///|

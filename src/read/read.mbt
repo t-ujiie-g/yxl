@@ -24,7 +24,7 @@ pub struct MbtexcelReader {}
 ///|
 /// The default reader.
 pub fn MbtexcelReader::new() -> MbtexcelReader {
-  MbtexcelReader::{  }
+  MbtexcelReader::{ }
 }
 
 ///|
@@ -133,7 +133,7 @@ fn recover(bytes : Bytes) -> Recovered raise {
     worksheets.contains(name) {
     workbook.set_active_sheet(name)
   }
-  { workbook, dropped: notes.take() }
+  { workbook, dropped: notes.take(), }
 }
 
 ///|
@@ -189,7 +189,7 @@ priv struct Notes {
 
 ///|
 fn Notes::new() -> Notes {
-  { seen: Set([]), order: [] }
+  { seen: Set([]), order: [], }
 }
 
 ///|

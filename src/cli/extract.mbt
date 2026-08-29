@@ -60,11 +60,11 @@ pub fn extract(
   let companions = []
   for table in tables {
     companions.push(
-      ({ path: table.path, content: @utf8.encode(table.csv) } : Companion),
+      ({ path: table.path, content: @utf8.encode(table.csv), } : Companion),
     )
   }
   for picture in pictures {
-    companions.push({ path: picture.path, content: picture.content })
+    companions.push({ path: picture.path, content: picture.content, })
   }
   {
     spec,
@@ -107,7 +107,7 @@ fn verify(
   // A picture is read through the other resolver, as bytes, because that is what
   // it is; decoding it as text and back would not survive.
   let read_bytes : @loader.BytesResolver = fn(_from, path) {
-    { name: path, data: by_path.get(path).unwrap_or(b"") }
+    { name: path, data: by_path.get(path).unwrap_or(b""), }
   }
   let rebuilt = @read.from_bytes(
       @emit.to_bytes(
