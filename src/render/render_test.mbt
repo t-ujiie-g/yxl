@@ -446,3 +446,16 @@ test "a style that only clears a format is a style, not the format shorthand" {
   sheet.set(at("A1"), Number(1.0), style=clears([NumberFormat]))
   assert_true(spec(wb).contains("style:\n          format: null"))
 }
+
+///|
+test "Picture::key separates an anchored picture from the sheet background" {
+  let at = @units.CellRef(col=2, row=3)
+  assert_eq(@render.Picture::key("Sales", Some(at)), "Sales!B3")
+  assert_eq(@render.Picture::key("Sales", None), "Sales!background")
+  // The background and a picture anchored on the same sheet must not collide,
+  // or one would overwrite the other's file.
+  assert_true(
+    @render.Picture::key("Sales", Some(at)) !=
+    @render.Picture::key("Sales", None),
+  )
+}

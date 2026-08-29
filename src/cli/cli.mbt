@@ -24,9 +24,27 @@ pub(all) enum Command {
   Check(input~ : String, params~ : Map[String, String])
   /// Read a workbook and write the spec that would rebuild it (ADR-017).
   Extract(input~ : String, output~ : String, flat~ : Bool)
+  /// Write `starter_spec` to a file someone can build straight away (#77).
+  Init(output~ : String, force~ : Bool)
   Version
   Help
 } derive(Eq, Debug)
+
+///|
+/// The spec `yxl init` writes: one empty sheet, not a worked example the reader
+/// would have to delete first (#77). The build line names `output` itself, so
+/// it is a command that works as it stands.
+pub fn starter_spec(output~ : String) -> String {
+  let workbook = workbook_name(output)
+  (
+    $|# A yxl spec: a workbook as text.
+    $|# Build it with `yxl build \{output} -o \{workbook}`.
+    $|# The format: docs/spec.md
+    $|sheets:
+    $|  - name: Sheet1
+    $|
+  )
+}
 
 ///|
 /// The full usage text, shown by `yxl help` and on a bare `yxl`.
@@ -37,6 +55,7 @@ pub let usage : String =
   #|  yxl build <spec.yaml> -o <out.xlsx> [--set name=value]...
   #|  yxl build <spec.yaml> --check [--set name=value]...
   #|  yxl extract <book.xlsx> -o <spec.yxl.yaml> [--flat]
+  #|  yxl init -o <spec.yxl.yaml> [--force]
   #|  yxl help | --help | -h
   #|  yxl version | --version | -V
   #|
@@ -45,6 +64,10 @@ pub let usage : String =
   #|      --check           validate the spec and write nothing
   #|      --set name=value  override a parameter the spec declares (repeatable)
   #|      --flat            extract into one file, writing no CSV beside it
+  #|      --force           let `init` overwrite a file that already exists
+  #|
+  #|`init` writes a spec holding one empty sheet — somewhere to start typing,
+  #|not a worked example. It refuses to overwrite an existing file.
   #|
   #|`extract` is a one-way migration aid: it recovers what the spec format can
   #|express and says what it could not, then checks its own output by compiling
@@ -65,9 +88,10 @@ pub fn parse_args(args : ArrayView[String]) -> Command raise @diag.CliError {
     ["version" | "--version" | "-V", ..] => Version
     ["build", .. rest] => parse_build(rest)
     ["extract", .. rest] => parse_extract(rest)
+    ["init", .. rest] => parse_init(rest)
     [other, ..] =>
       raise usage_error(
-        "unknown command '\{other}' (expected 'build', 'extract', 'help', or 'version')",
+        "unknown command '\{other}' (expected 'build', 'extract', 'init', 'help', or 'version')",
       )
   }
 }
@@ -174,6 +198,44 @@ fn parse_extract(args : ArrayView[String]) -> Command raise @diag.CliError {
     raise usage_error("no output file given (use -o <spec.yxl.yaml>)")
   }
   Extract(input~, output~, flat~)
+}
+
+///|
+/// `init -o <spec.yxl.yaml> [--force]`. Alone among the commands it reads
+/// nothing, so `-o` is the whole command line — and, as with `extract`, there
+/// is nothing useful to do without somewhere to put the result.
+fn parse_init(args : ArrayView[String]) -> Command raise @diag.CliError {
+  let mut output = None
+  let mut force = false
+  let mut i = 0
+  while i < args.length() {
+    match args[i] {
+      "--force" => {
+        force = true
+        i += 1
+      }
+      "-o" | "--output" => {
+        guard i + 1 < args.length() else {
+          raise usage_error("'\{args[i]}' needs a file argument")
+        }
+        guard output is None else {
+          raise usage_error("'-o' was given more than once")
+        }
+        output = Some(args[i + 1])
+        i += 2
+      }
+      option if option.has_prefix("-") =>
+        raise usage_error("unknown option '\{option}'")
+      positional =>
+        raise usage_error(
+          "'init' takes no input file, but '\{positional}' was given",
+        )
+    }
+  }
+  guard output is Some(output) else {
+    raise usage_error("no output file given (use -o <spec.yxl.yaml>)")
+  }
+  Init(output~, force~)
 }
 
 ///|

@@ -37,6 +37,8 @@ pub let pivot_style_families : Array[(String, Int)]
 
 pub let shape_presets : Array[(String, String)]
 
+pub fn split_sheet_prefix(String) -> (String?, String)?
+
 pub let table_style_families : Array[(String, Int)]
 
 pub let unwritable_icon_set_styles : Array[String]

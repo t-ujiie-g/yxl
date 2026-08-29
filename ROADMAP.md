@@ -990,6 +990,20 @@ the first item changes what a spec looks like.
       `tests/validity/cells.yxl.yaml` puts every spelling through the Open XML
       validator, and `examples/styling.yxl.yaml` shows the two an author reaches
       for.
+- [x] **A first spec to start from (`yxl init`).** Raised from outside (#77):
+      `build` and `extract` both take a spec that already exists, so the only
+      way in was to know the format well enough to type it — the one thing a
+      person starting out cannot do. `yxl init -o sheet.yxl.yaml` writes one.
+      **Shipped** writing an *empty* sheet rather than a worked example: a
+      starter carrying a heading row, sample rows and a `SUM` reads as helpful
+      and is not, because the first thing the reader does is delete it. `-o` is
+      required, matching `extract`; an existing file is refused unless `--force`
+      says otherwise. The file names the path it was actually written to in its
+      own build line, so its one instruction is a command that works as it
+      stands. It belongs in the compiler rather than in an editor because a
+      starter spec is a statement about the format, and the format is ours
+      (ADR-011): kept anywhere else it is a second copy that drifts, and it is
+      out of reach for anyone using the CLI without that editor.
 
 
 ### v1.0 — Stability gate
@@ -1933,6 +1947,51 @@ accepted and means what leaving the key out means.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-08-29** — **A sheet named `It's data` survives `extract` again.** The
+  reader parsed a sheet-qualified range by stripping every `'` and `$` and
+  splitting on the first `!`, so `'It''s data'!A1:A3` came back sourcing a sheet
+  named `Its data` — one no workbook declared. The loader's half had implemented
+  Excel's quoting properly all along (a `''` inside the quotes is one
+  apostrophe), so the two directions of the round trip disagreed, and only the
+  direction that reads a real workbook was wrong. Found reviewing the two for
+  duplication (AGENTS.md §8.2); the self-check caught the result at run time and
+  said "please report this", which is how it was meant to behave, but the spec
+  it wrote still had to be fixed by hand.
+
+  The rule now lives once, in `@model.split_sheet_prefix`, with the loader
+  wrapping it to raise its diagnostic and the reader to fall back to `None`.
+  `$` is still dropped, but only from the range — a sheet may legally be named
+  with one. Affected validation list sources and chart series.
+
+- **2026-08-29** — **`yxl init`: there is now a way to get a *first* spec.**
+  `build` and `extract` both take a spec that already exists, so the way in was
+  to know the format well enough to type it — the one thing a person starting
+  out cannot do (#77). `yxl init -o sheet.yxl.yaml` writes one.
+
+  What it writes is the part worth recording, because the obvious answer is the
+  wrong one: **an empty sheet, not a worked example.** A starter carrying a
+  heading row, sample rows and a `SUM` reads as helpful and is not — the reader
+  deletes it before they can begin, and the first thing they do is fight the
+  example. What they want is Excel's first minute: one sheet, and a grid to type
+  into. So the file is five lines, three of them comment, and `docs/spec.md` §1
+  now shows the same smallest document.
+
+  The build line inside it names the path `init` was actually given — write
+  `report.yxl.yaml` and it says `yxl build report.yxl.yaml -o report.xlsx` —
+  because a starter whose one instruction is about some other file is a starter
+  that lies on its first line. `-o` is required rather than defaulting to
+  stdout, matching `extract`: every `yxl:` message goes to stdout for want of an
+  `eprintln`, so `yxl init > spec.yaml` would capture a diagnostic into the file
+  on any failure. An existing file is refused (exit 1) unless `--force` says
+  otherwise; overwriting a spec someone has worked on is the worst thing this
+  command could do, and it cannot tell that file from one of its own.
+
+  It sits in the compiler rather than in an editor because a starter spec is a
+  statement about the **format**, and the format is ours (ADR-011) — kept
+  anywhere else it is a second copy that drifts, and out of reach for anyone
+  using the CLI without that editor. `yxl-vscode`'s *New Spec* becomes: ask
+  where, run `yxl init -o <there>`, open it.
 
 - **2026-08-29** — **Toolchain catch-up: a constructor is named for its type.**
   MoonBit's current idiom is that a static method carrying its own type's name

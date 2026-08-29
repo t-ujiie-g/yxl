@@ -306,47 +306,18 @@ fn parse_sheet_range(
 }
 
 ///|
-/// Split `Sheet!rest` into its two halves, `None` when no sheet is named.
+/// `@model.split_sheet_prefix` with an unterminated quote turned into a
+/// diagnostic.
 fn split_sheet_prefix(
   text : String,
   file~ : String,
   what~ : String,
 ) -> (String?, String) raise @diag.SchemaError {
-  let chars = text.iter().to_array()
-  guard chars.length() > 0 && chars[0] == '\'' else {
-    // Unquoted: Excel requires quotes around any sheet name that could be
-    // confused for something else, so the first `!` is the separator.
-    return match text.split_once("!") {
-      Some((sheet, rest)) => (Some(sheet.to_owned()), rest.to_owned())
-      None => (None, text)
-    }
-  }
-  let name = StringBuilder()
-  let mut index = 1
-  while index < chars.length() {
-    if chars[index] == '\'' {
-      if index + 1 < chars.length() && chars[index + 1] == '\'' {
-        name.write_char('\'')
-        index += 2
-        continue
-      }
-      break
-    }
-    name.write_char(chars[index])
-    index += 1
-  }
-  // `index` is at the closing quote, which must be followed by `!range`.
-  guard index + 1 < chars.length() &&
-    chars[index] == '\'' &&
-    chars[index + 1] == '!' else {
+  guard @model.split_sheet_prefix(text) is Some(split) else {
     raise schema_error(
       file~,
       "\{what} '\{text}' has an unterminated quoted sheet name (expected \"'Sheet name'!A1:B9\")",
     )
   }
-  let rest = StringBuilder()
-  for taken in (index + 2)..<chars.length() {
-    rest.write_char(chars[taken])
-  }
-  (Some(name.to_string()), rest.to_string())
+  split
 }

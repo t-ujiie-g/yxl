@@ -79,3 +79,16 @@ pub fn directory_of(from : String) -> String? {
   }
   Some(from[:cut + 1].to_owned())
 }
+
+///|
+/// The workbook a spec would compile to: `report.yxl.yaml` -> `report.xlsx`.
+/// A name carrying none of the spellings yxl uses for a spec keeps what it has
+/// and gains `.xlsx`, so the result is always a path `-o` would accept.
+fn workbook_name(spec : String) -> String {
+  for suffix in [".yxl.yaml", ".yxl.yml", ".yaml", ".yml"] {
+    if spec.has_suffix(suffix) {
+      return spec[:spec.length() - suffix.length()].to_owned() + ".xlsx"
+    }
+  }
+  spec + ".xlsx"
+}

@@ -10,6 +10,47 @@ pub(all) struct SheetRange {
 } derive(Eq, Debug)
 
 ///|
+/// Split `Sheet!A1:B9` on Excel's quoting rules, where `''` inside `'...'` is
+/// one apostrophe; `None` if a quoted name never closes. Shared by the loader
+/// and the reader so a sheet named `It's data` survives the round trip.
+pub fn split_sheet_prefix(text : String) -> (String?, String)? {
+  let chars = text.iter().to_array()
+  guard chars.length() > 0 && chars[0] == '\'' else {
+    // Unquoted: Excel requires quotes around any sheet name that could be
+    // confused for something else, so the first `!` is the separator.
+    return match text.split_once("!") {
+      Some((sheet, rest)) => Some((Some(sheet.to_owned()), rest.to_owned()))
+      None => Some((None, text))
+    }
+  }
+  let name = StringBuilder()
+  let mut index = 1
+  while index < chars.length() {
+    if chars[index] == '\'' {
+      if index + 1 < chars.length() && chars[index + 1] == '\'' {
+        name.write_char('\'')
+        index += 2
+        continue
+      }
+      break
+    }
+    name.write_char(chars[index])
+    index += 1
+  }
+  // `index` is at the closing quote, which must be followed by `!range`.
+  guard index + 1 < chars.length() &&
+    chars[index] == '\'' &&
+    chars[index + 1] == '!' else {
+    return None
+  }
+  let rest = StringBuilder()
+  for taken in (index + 2)..<chars.length() {
+    rest.write_char(chars[taken])
+  }
+  Some((Some(name.to_string()), rest.to_string()))
+}
+
+///|
 /// What a data validation accepts. Excel calls this the "Allow" setting. A
 /// `List`'s choices are offered in the order given.
 pub(all) enum ValidationRule {

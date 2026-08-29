@@ -26,6 +26,8 @@ pub fn parse_args(ArrayView[String]) -> Command raise @diag.CliError
 
 pub fn resolve_path(String, String) -> String
 
+pub fn starter_spec(output~ : String) -> String
+
 pub let usage : String
 
 pub let version : String
@@ -37,6 +39,7 @@ pub(all) enum Command {
   Build(input~ : String, output~ : String, params~ : Map[String, String])
   Check(input~ : String, params~ : Map[String, String])
   Extract(input~ : String, output~ : String, flat~ : Bool)
+  Init(output~ : String, force~ : Bool)
   Version
   Help
 } derive(Eq, @debug.Debug)
