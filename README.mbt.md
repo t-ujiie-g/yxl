@@ -19,7 +19,8 @@ Spreadsheets-as-code, with the properties code has:
   everything in one file. Same result either way.
 - **One spec, many workbooks** — declare `params:` and override them per build
   with `--set region=EMEA`.
-- **A single native command** — `yxl build report.yxl.yaml -o report.xlsx`.
+- **A single native command** — `yxl init` for a first spec, then
+  `yxl build report.yxl.yaml -o report.xlsx`.
 
 The `.xlsx` bytes are produced by the mature
 [`bobzhang/mbtexcel`](https://mooncakes.io/docs/bobzhang/mbtexcel) library (a
@@ -33,8 +34,8 @@ is declarative authoring for people who'd rather edit YAML than write code.
 > validations, conditional
 > formatting, hyperlinks, notes, protection, Excel tables, charts, images,
 > shapes, sheet backgrounds, sparklines, form controls, table slicers, and
-> pivot tables all compile, and the CLI has `--check`, `--set`, and stable
-> exit codes. Still ahead: performance work, import, and the schema freeze —
+> pivot tables all compile, and the CLI has `init`, `--check`, `--set`, and
+> stable exit codes. Still ahead: performance work, import, and the schema freeze —
 > **the schema may change until v1.0.** See [`ROADMAP.md`](./ROADMAP.md) for the
 > phase plan and the living changelog.
 
@@ -157,6 +158,7 @@ be in any script.
 ## Using it
 
 ```bash
+yxl init -o sheet.yxl.yaml                   # a first spec: one empty sheet
 yxl build report.yxl.yaml -o report.xlsx     # compile
 yxl build report.yxl.yaml --check            # validate, write nothing
 yxl build report.yxl.yaml -o r.xlsx --set region=EMEA
@@ -164,6 +166,10 @@ yxl extract legacy.xlsx -o legacy.yxl.yaml   # existing workbook → starting sp
 yxl version                                  # print the version
 yxl help                                     # full usage
 ```
+
+`init` writes somewhere to start typing — one empty sheet, not a worked example
+you would have to delete first. It names your own file in the build line it
+carries, and refuses to overwrite an existing spec unless you pass `--force`.
 
 The full schema is in [`docs/spec.md`](./docs/spec.md); `extract` — a one-way
 migration aid, not a round trip — is its §22.

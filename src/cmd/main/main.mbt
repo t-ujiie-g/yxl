@@ -21,6 +21,7 @@ fn run() -> Int {
     Build(input~, output~, params~) => build(input, output, params)
     Check(input~, params~) => check(input, params)
     Extract(input~, output~, flat~) => extract(input, output, flat)
+    Init(output~, force~) => init_spec(output, force)
     Version => {
       println("yxl \{@cli.version}")
       @cli.exit_ok
@@ -85,6 +86,30 @@ fn compile(
       None
     }
   }
+}
+
+///|
+/// Write the starter spec to `output` (#77).
+///
+/// Refuses a file that is already there unless `--force` says otherwise: the
+/// worst thing this command could do is overwrite a spec someone has worked on,
+/// and it has no way to tell that file from one of its own.
+///
+/// Not named `init` for the command it serves: `fn init` is MoonBit's package
+/// initializer, which takes no arguments and returns nothing.
+fn init_spec(output : String, force : Bool) -> Int {
+  if !force && @fs.path_exists(output) {
+    report("\{output} already exists (use --force to overwrite)")
+    return @cli.exit_error
+  }
+  @fs.write_string_to_file(output, @cli.starter_spec(output~)) catch {
+    @fs.IOError(reason) => {
+      report("cannot write \{output}: \{reason}")
+      return @cli.exit_error
+    }
+  }
+  report("wrote \{output}")
+  @cli.exit_ok
 }
 
 ///|

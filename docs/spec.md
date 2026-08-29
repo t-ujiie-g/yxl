@@ -44,6 +44,16 @@ default_font: Calibri  # the workbook's default font face
 
 Any node may instead be `{ $include: path }` — see §8.
 
+The smallest document that compiles is one sheet with nothing in it, which is
+what `yxl init -o sheet.yxl.yaml` writes when you want somewhere to start:
+
+```yaml
+sheets:
+  - name: Sheet1
+```
+
+`init` refuses to overwrite a file that already exists; `--force` says to anyway.
+
 ## 2. Sheets
 
 ```yaml

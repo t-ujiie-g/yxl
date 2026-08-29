@@ -30,7 +30,7 @@ test "parse_args rejects malformed command lines" {
   assert_eq(
     usage_message(["serve"]),
     Some(
-      "unknown command 'serve' (expected 'build', 'extract', 'help', or 'version')",
+      "unknown command 'serve' (expected 'build', 'extract', 'init', 'help', or 'version')",
     ),
   )
   assert_eq(
@@ -403,4 +403,97 @@ test "resolve_path splits by character, so Japanese paths survive" {
     "specs/theme.yaml",
   )
   assert_eq(@cli.resolve_path("見積¥1000.yaml", "theme.yaml"), "theme.yaml")
+}
+
+///|
+test "parse_args accepts init with -o, and --force in either position" {
+  for
+    args in [
+      ["init", "-o", "sheet.yxl.yaml"],
+      ["init", "--output", "sheet.yxl.yaml"],
+    ] {
+    guard @cli.parse_args(args) is Init(output~, force~) else {
+      fail("expected an Init command")
+    }
+    assert_eq(output, "sheet.yxl.yaml")
+    assert_eq(force, false)
+  }
+  for
+    args in [
+      ["init", "-o", "sheet.yxl.yaml", "--force"],
+      ["init", "--force", "-o", "sheet.yxl.yaml"],
+    ] {
+    guard @cli.parse_args(args) is Init(force~, ..) else {
+      fail("expected an Init command")
+    }
+    assert_eq(force, true)
+  }
+}
+
+///|
+test "parse_args rejects malformed init command lines" {
+  assert_eq(
+    usage_message(["init"]),
+    Some("no output file given (use -o <spec.yxl.yaml>)"),
+  )
+  assert_eq(usage_message(["init", "-o"]), Some("'-o' needs a file argument"))
+  assert_eq(
+    usage_message(["init", "-o", "a.yaml", "-o", "b.yaml"]),
+    Some("'-o' was given more than once"),
+  )
+  assert_eq(
+    usage_message(["init", "-x", "-o", "a.yaml"]),
+    Some("unknown option '-x'"),
+  )
+  // `init` reads nothing, so a positional argument is a `build` habit rather
+  // than a path it could use — saying so beats "more than one input file".
+  assert_eq(
+    usage_message(["init", "book.xlsx", "-o", "a.yaml"]),
+    Some("'init' takes no input file, but 'book.xlsx' was given"),
+  )
+}
+
+///|
+test "starter_spec names the file it was written to, and the workbook it builds" {
+  assert_eq(
+    @cli.starter_spec(output="sheet.yxl.yaml"),
+    (
+      $|# A yxl spec: a workbook as text.
+      $|# Build it with `yxl build sheet.yxl.yaml -o sheet.xlsx`.
+      $|# The format: docs/spec.md
+      $|sheets:
+      $|  - name: Sheet1
+      $|
+    ),
+  )
+  // Every spelling yxl uses for a spec loses its suffix; a path it does not
+  // recognise keeps what it has, so the `-o` argument is always usable.
+  for
+    pair in [
+      ("report.yxl.yaml", "report.xlsx"),
+      ("report.yxl.yml", "report.xlsx"),
+      ("report.yaml", "report.xlsx"),
+      ("report.yml", "report.xlsx"),
+      ("specs/q3.yxl.yaml", "specs/q3.xlsx"),
+      ("report", "report.xlsx"),
+      ("report.txt", "report.txt.xlsx"),
+    ] {
+    let (spec, workbook) = pair
+    assert_true(
+      @cli.starter_spec(output=spec).contains(
+        "`yxl build \{spec} -o \{workbook}`",
+      ),
+    )
+  }
+}
+
+///|
+test "the starter spec compiles to a workbook holding one empty sheet" {
+  let source = @cli.starter_spec(output="sheet.yxl.yaml")
+  let bytes = @cli.compile(source, file="sheet.yxl.yaml")
+  // A starter that does not build is the one failure this command cannot have:
+  // it is the first thing a reader runs.
+  let reopened = @xlsx.read(bytes[:])
+  assert_eq(reopened.get_sheet_list(), ["Sheet1"])
+  assert_eq(reopened.get_cell("Sheet1", "A1"), None)
 }
