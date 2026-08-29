@@ -328,7 +328,7 @@ test "load parses a rich-text cell of plain and fonted runs" {
   assert_eq(
     cell.value,
     @model.RichText([
-      { text: "Plain ", font: None },
+      { text: "Plain ", font: None, },
       {
         text: "bold red",
         font: Some({
@@ -343,7 +343,7 @@ test "load parses a rich-text cell of plain and fonted runs" {
     cell.style,
     Some(@model.Style::{
       ..@model.Style::empty(),
-      align: Some({ horizontal: None, vertical: None, wrap: Some(true) }),
+      align: Some({ horizontal: None, vertical: None, wrap: Some(true), }),
     }),
   )
 }
@@ -506,8 +506,8 @@ test "named values and formulas become defined names, referenced as =name" {
     @model.Formula(formula="subtotal", cached=Some(@model.Number(100.0))),
   )
   assert_eq(workbook.defined_names, [
-    { name: "company", refers_to: @model.Text("Acme Corp") },
-    { name: "tax_rate", refers_to: @model.Number(0.08) },
+    { name: "company", refers_to: @model.Text("Acme Corp"), },
+    { name: "tax_rate", refers_to: @model.Number(0.08), },
     {
       name: "subtotal",
       refers_to: @model.Formula(formula="SUM(B2:B9)", cached=None),

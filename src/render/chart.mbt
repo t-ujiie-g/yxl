@@ -13,7 +13,7 @@ fn charts(sheet : @model.Sheet) -> @yaml.Node {
     if chart.legend is Some(position) {
       entries.push(("legend", @yaml.Str(legend_position(position))))
     }
-    if chart.size is Some({ width, height }) {
+    if chart.size is Some({ width, height, }) {
       if size(width=Some(width), height=Some(height)) is Some(node) {
         entries.push(("size", node))
       }

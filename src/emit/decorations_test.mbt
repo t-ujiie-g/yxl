@@ -1,7 +1,7 @@
 ///|
 /// A one-sheet workbook, plus the sheet, ready to decorate.
 fn fixture() -> (@model.Workbook, @model.Sheet) {
-  let wb = @model.Workbook::new()
+  let wb = @model.Workbook()
   let sheet = wb.add_sheet("S")
   (wb, sheet)
 }
@@ -49,7 +49,7 @@ fn only_validation(wb : @model.Workbook) -> @xlsx.DataValidation raise {
 ///|
 test "an auto filter round-trips as a range over the sheet" {
   let (wb, sheet) = fixture()
-  sheet.set(@units.CellRef::new(col=1, row=1), Text("Region"))
+  sheet.set(@units.CellRef(col=1, row=1), Text("Region"))
   sheet.set_filter(range("A1", "C50"))
   let reopened = reopen(wb)
   guard reopened.get_auto_filter("S") is Some(filter) else {
@@ -81,7 +81,7 @@ test "a sourced drop-down round-trips as an absolute, sheet-qualified reference"
   wb.add_sheet("Lists") |> ignore
   sheet.add_validation({
     at: range("B2", "B9"),
-    rule: ListFrom({ sheet: Some("Lists"), range: range("A1", "A3") }),
+    rule: ListFrom({ sheet: Some("Lists"), range: range("A1", "A3"), }),
     allow_blank: true,
     prompt: None,
     error: None,
@@ -97,7 +97,7 @@ test "a list sourced from no named sheet resolves to the sheet holding it" {
   let (wb, sheet) = fixture()
   sheet.add_validation({
     at: range("B2", "B9"),
-    rule: ListFrom({ sheet: None, range: range("E1", "E3") }),
+    rule: ListFrom({ sheet: None, range: range("E1", "E3"), }),
     allow_blank: true,
     prompt: None,
     error: None,
@@ -165,7 +165,7 @@ test "each validation kind round-trips as its OOXML type" {
 test "a date bound round-trips as the serial its epoch gives it" {
   for entry in [(@units.DateSystem::Date1900, "46023"), (Date1904, "44561")] {
     let (date_system, serial) = entry
-    let wb = @model.Workbook::new(date_system~)
+    let wb = @model.Workbook(date_system~)
     let sheet = wb.add_sheet("S")
     sheet.add_validation({
       at: range("D2", "D9"),
@@ -205,8 +205,8 @@ test "the prompt, the error, and the blank policy round-trip" {
     at: range("B2", "B9"),
     rule: List(["a", "b"]),
     allow_blank: false,
-    prompt: Some({ title: "Pick", body: "a or b" }),
-    error: Some({ title: "Nope", body: "a or b only", style: Warning }),
+    prompt: Some({ title: "Pick", body: "a or b", }),
+    error: Some({ title: "Nope", body: "a or b only", style: Warning, }),
   })
   let validation = only_validation(wb)
   assert_false(validation.allow_blank)
@@ -234,7 +234,7 @@ test "every error style round-trips" {
       rule: List(["a"]),
       allow_blank: true,
       prompt: None,
-      error: Some({ title: "t", body: "b", style }),
+      error: Some({ title: "t", body: "b", style, }),
     })
     assert_eq(only_validation(wb).error_style, Some(expected))
   }
@@ -267,9 +267,9 @@ test "validations are emitted in declaration order" {
 ///|
 test "an external link round-trips with its tooltip" {
   let (wb, sheet) = fixture()
-  sheet.set(@units.CellRef::new(col=1, row=1), Text("The report"))
+  sheet.set(@units.CellRef(col=1, row=1), Text("The report"))
   sheet.add_link(
-    @units.CellRef::new(col=1, row=1),
+    @units.CellRef(col=1, row=1),
     Url("https://example.com/q3"),
     tip="The Q3 report",
   )
@@ -287,7 +287,7 @@ test "an external link round-trips with its tooltip" {
 test "an in-workbook link round-trips as a location" {
   let (wb, sheet) = fixture()
   wb.add_sheet("Summary") |> ignore
-  sheet.add_link(@units.CellRef::new(col=2, row=3), Location("Summary!A1"))
+  sheet.add_link(@units.CellRef(col=2, row=3), Location("Summary!A1"))
   let reopened = reopen(wb)
   guard reopened.get_cell_hyperlink("S", "B3") is Some(link) else {
     fail("expected a hyperlink")

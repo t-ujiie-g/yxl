@@ -7,8 +7,8 @@ priv struct StyleTable {
 }
 
 ///|
-fn StyleTable::new() -> StyleTable {
-  { by_id: Map([]) }
+fn StyleTable::StyleTable() -> StyleTable {
+  { by_id: Map([]), }
 }
 
 ///|
@@ -260,7 +260,7 @@ fn read_borders(
   if left is None && right is None && top is None && bottom is None {
     None
   } else {
-    Some({ left, right, top, bottom })
+    Some({ left, right, top, bottom, })
   }
 }
 
@@ -275,7 +275,7 @@ fn read_border(border : @xlsx.Border, notes : Notes) -> @model.Border? {
     }
     return None
   }
-  Some({ style, color: read_color(border.color, notes) })
+  Some({ style, color: read_color(border.color, notes), })
 }
 
 ///|
@@ -340,7 +340,7 @@ fn read_alignment(align : @xlsx.Alignment?, notes : Notes) -> @model.Alignment? 
   if horizontal is None && vertical is None && wrap is None {
     None
   } else {
-    Some({ horizontal, vertical, wrap })
+    Some({ horizontal, vertical, wrap, })
   }
 }
 
@@ -354,7 +354,7 @@ fn read_protection(protection : @xlsx.Protection?) -> @model.CellProtection? {
   if locked is None && hidden is None {
     None
   } else {
-    Some({ locked, hidden })
+    Some({ locked, hidden, })
   }
 }
 

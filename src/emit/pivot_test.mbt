@@ -2,17 +2,17 @@
 /// A workbook whose `Orders` sheet holds four named columns over two rows, and
 /// a `Summary` sheet ready for a pivot over them.
 fn source_workbook() -> (@model.Workbook, @model.Sheet) {
-  let wb = @model.Workbook::new()
+  let wb = @model.Workbook()
   let summary = wb.add_sheet("S")
   let orders = wb.add_sheet("Orders")
   for column, header in ["Region", "Quarter", "Channel", "Revenue"] {
-    orders.set(@units.CellRef::new(col=column + 1, row=1), Text(header))
+    orders.set(@units.CellRef(col=column + 1, row=1), Text(header))
   }
   for row in 2..<=3 {
-    orders.set(@units.CellRef::new(col=1, row~), Text("R\{row}"))
-    orders.set(@units.CellRef::new(col=2, row~), Text("Q3"))
-    orders.set(@units.CellRef::new(col=3, row~), Text("Direct"))
-    orders.set(@units.CellRef::new(col=4, row~), Number(row.to_double()))
+    orders.set(@units.CellRef(col=1, row~), Text("R\{row}"))
+    orders.set(@units.CellRef(col=2, row~), Text("Q3"))
+    orders.set(@units.CellRef(col=3, row~), Text("Direct"))
+    orders.set(@units.CellRef(col=4, row~), Number(row.to_double()))
   }
   (wb, summary)
 }
@@ -22,10 +22,10 @@ fn source_workbook() -> (@model.Workbook, @model.Sheet) {
 fn plain_pivot() -> @model.Pivot {
   {
     at: range("A1", "E20"),
-    source: { sheet: Some("Orders"), range: range("A1", "D3") },
-    rows: [{ field: "Region", name: None }],
+    source: { sheet: Some("Orders"), range: range("A1", "D3"), },
+    rows: [{ field: "Region", name: None, }],
     columns: [],
-    values: [{ field: "Revenue", function: Sum, name: None }],
+    values: [{ field: "Revenue", function: Sum, name: None, }],
     name: None,
     style: None,
     row_grand_totals: true,
@@ -70,8 +70,8 @@ test "each axis puts its fields where Excel expects them" {
   let (wb, sheet) = source_workbook()
   sheet.add_pivot({
     ..plain_pivot(),
-    rows: [{ field: "Region", name: None }, { field: "Channel", name: None }],
-    columns: [{ field: "Quarter", name: Some("Period") }],
+    rows: [{ field: "Region", name: None, }, { field: "Channel", name: None, }],
+    columns: [{ field: "Quarter", name: Some("Period"), }],
   })
   let xml = only_pivot(wb).table_xml
   assert_true(xml.contains("<pivotField name=\"Region\" axis=\"axisRow\""))
@@ -100,7 +100,7 @@ test "every aggregation reaches the file under its OOXML name" {
     let (wb, sheet) = source_workbook()
     sheet.add_pivot({
       ..plain_pivot(),
-      values: [{ field: "Revenue", function, name: None }],
+      values: [{ field: "Revenue", function, name: None, }],
     })
     assert_true(only_pivot(wb).table_xml.contains("subtotal=\"\{name}\""))
   }
@@ -113,7 +113,7 @@ test "a named pivot, field, and style reach the file" {
     ..plain_pivot(),
     name: Some("RevenueByRegion"),
     style: Some("PivotStyleMedium9"),
-    values: [{ field: "Revenue", function: Sum, name: Some("Total revenue") }],
+    values: [{ field: "Revenue", function: Sum, name: Some("Total revenue"), }],
   })
   let pivot = only_pivot(wb)
   assert_eq(pivot.name, "RevenueByRegion")
@@ -145,14 +145,14 @@ test "grand totals are on unless the spec turns them off" {
 test "a pivot may summarize the sheet it sits on" {
   let (wb, sheet) = source_workbook()
   for column, header in ["Region", "Revenue"] {
-    sheet.set(@units.CellRef::new(col=column + 1, row=1), Text(header))
+    sheet.set(@units.CellRef(col=column + 1, row=1), Text(header))
   }
-  sheet.set(@units.CellRef::new(col=1, row=2), Text("APAC"))
-  sheet.set(@units.CellRef::new(col=2, row=2), Number(1.0))
+  sheet.set(@units.CellRef(col=1, row=2), Text("APAC"))
+  sheet.set(@units.CellRef(col=2, row=2), Number(1.0))
   sheet.add_pivot({
     ..plain_pivot(),
     at: range("D1", "F20"),
-    source: { sheet: None, range: range("A1", "B2") },
+    source: { sheet: None, range: range("A1", "B2"), },
   })
   assert_true(only_pivot(wb).cache_definition_xml.contains("sheet=\"S\""))
 }

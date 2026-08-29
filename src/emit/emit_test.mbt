@@ -3,12 +3,12 @@
 /// bytes, and re-opening those bytes with the backend's reader yields the cells
 /// the model declared.
 test "to_bytes round-trips a model through real .xlsx bytes" {
-  let wb = @model.Workbook::new()
+  let wb = @model.Workbook()
   let sheet = wb.add_sheet("Sheet1")
-  sheet.set(@units.CellRef::new(col=1, row=1), Text("yxl"))
-  sheet.set(@units.CellRef::new(col=2, row=1), Number(42.0))
-  sheet.set(@units.CellRef::new(col=3, row=1), Bool(true))
-  sheet.set(@units.CellRef::new(col=1, row=2), Text("second row"))
+  sheet.set(@units.CellRef(col=1, row=1), Text("yxl"))
+  sheet.set(@units.CellRef(col=2, row=1), Number(42.0))
+  sheet.set(@units.CellRef(col=3, row=1), Bool(true))
+  sheet.set(@units.CellRef(col=1, row=2), Text("second row"))
   let bytes = @emit.to_bytes(wb)
 
   // A valid .xlsx is a non-empty ZIP: check the local-file-header magic.
@@ -26,11 +26,11 @@ test "to_bytes round-trips a model through real .xlsx bytes" {
 
 ///|
 test "a blank cell is written for its style alone" {
-  let wb = @model.Workbook::new()
+  let wb = @model.Workbook()
   let sheet = wb.add_sheet("S")
-  sheet.set(@units.CellRef::new(col=2, row=2), Blank, style={
+  sheet.set(@units.CellRef(col=2, row=2), Blank, style={
     ..@model.Style::empty(),
-    fill: Some({ color: @units.Color::parse("FFFF0000").unwrap() }),
+    fill: Some({ color: @units.Color::parse("FFFF0000").unwrap(), }),
   })
   let reopened = @xlsx.read(@emit.to_bytes(wb)[:])
   // The cell exists and wears the fill; the backend cannot yet leave it without
@@ -47,9 +47,9 @@ test "a sheet tab colour is written as four bytes" {
   // bytes — and the backend writes this attribute through verbatim, where it
   // widens the style colours itself. Six digits is a schema violation, and a
   // schema violation is Excel's repair dialog.
-  let wb = @model.Workbook::new()
+  let wb = @model.Workbook()
   let sheet = wb.add_sheet("S")
-  sheet.set(@units.CellRef::new(col=1, row=1), Text("a"))
+  sheet.set(@units.CellRef(col=1, row=1), Text("a"))
   sheet.set_tab_color(@units.Color::parse("1F77B4").unwrap())
   assert_true(
     part(wb, "xl/worksheets/sheet1.xml").contains(
@@ -60,9 +60,9 @@ test "a sheet tab colour is written as four bytes" {
 
 ///|
 test "a tab colour that carries its own alpha keeps it" {
-  let wb = @model.Workbook::new()
+  let wb = @model.Workbook()
   let sheet = wb.add_sheet("S")
-  sheet.set(@units.CellRef::new(col=1, row=1), Text("a"))
+  sheet.set(@units.CellRef(col=1, row=1), Text("a"))
   sheet.set_tab_color(@units.Color::parse("801F77B4").unwrap())
   assert_true(
     part(wb, "xl/worksheets/sheet1.xml").contains(
@@ -77,10 +77,10 @@ test "every part of the package is deflated" {
   // times the size Excel writes for it (#46). Asserted on the archive rather
   // than on a byte count, so it fails for the reason it exists rather than
   // because some part happened to compress well.
-  let wb = @model.Workbook::new()
+  let wb = @model.Workbook()
   let sheet = wb.add_sheet("S")
   for row in 1..<200 {
-    sheet.set(@units.CellRef::new(col=1, row~), Text("a repetitive value"))
+    sheet.set(@units.CellRef(col=1, row~), Text("a repetitive value"))
   }
   let bytes = @emit.to_bytes(wb)
   let archive = @zip.read(bytes[:])
@@ -96,10 +96,10 @@ test "every part of the package is deflated" {
 
 ///|
 test "MbtexcelEmitter emits every sheet in order" {
-  let wb = @model.Workbook::new()
-  wb.add_sheet("First").set(@units.CellRef::new(col=1, row=1), Text("a"))
-  wb.add_sheet("Second").set(@units.CellRef::new(col=1, row=1), Text("b"))
-  let bytes = @emit.Emitter::emit(@emit.MbtexcelEmitter::new(), wb)
+  let wb = @model.Workbook()
+  wb.add_sheet("First").set(@units.CellRef(col=1, row=1), Text("a"))
+  wb.add_sheet("Second").set(@units.CellRef(col=1, row=1), Text("b"))
+  let bytes = @emit.Emitter::emit(@emit.MbtexcelEmitter(), wb)
   let reopened = @xlsx.read(bytes[:])
   assert_eq(reopened.get_cell("First", "A1"), Some("a"))
   assert_eq(reopened.get_cell("Second", "A1"), Some("b"))
@@ -109,7 +109,7 @@ test "MbtexcelEmitter emits every sheet in order" {
 
 ///|
 test "sheet visibility and the active sheet survive a round trip" {
-  let wb = @model.Workbook::new()
+  let wb = @model.Workbook()
   // The first sheet is hidden, so the backend must see every sheet before any
   // of them is hidden — otherwise no visible sheet would be left at that point.
   wb.add_sheet("Scratch", visibility=Hidden) |> ignore
@@ -125,16 +125,12 @@ test "sheet visibility and the active sheet survive a round trip" {
 
 ///|
 test "number formats are applied, and equal formats share one style id" {
-  let wb = @model.Workbook::new()
+  let wb = @model.Workbook()
   let sheet = wb.add_sheet("S")
-  sheet.set(@units.CellRef::new(col=1, row=1), Number(0.5), format="0.00%")
-  sheet.set(@units.CellRef::new(col=2, row=1), Number(0.25), format="0.00%")
-  sheet.set(
-    @units.CellRef::new(col=3, row=1),
-    Number(1234.5),
-    format="#,##0.00",
-  )
-  sheet.set(@units.CellRef::new(col=4, row=1), Number(7.0))
+  sheet.set(@units.CellRef(col=1, row=1), Number(0.5), format="0.00%")
+  sheet.set(@units.CellRef(col=2, row=1), Number(0.25), format="0.00%")
+  sheet.set(@units.CellRef(col=3, row=1), Number(1234.5), format="#,##0.00")
+  sheet.set(@units.CellRef(col=4, row=1), Number(7.0))
   let reopened = reopen(wb)
 
   assert_eq(reopened.get_cell_value("S", "A1", raw=false), Some("50.00%"))
@@ -149,7 +145,7 @@ test "number formats are applied, and equal formats share one style id" {
 
 ///|
 test "a full style round-trips its attributes and identical styles share one id" {
-  let wb = @model.Workbook::new()
+  let wb = @model.Workbook()
   let sheet = wb.add_sheet("S")
   let style : @model.Style = {
     ..@model.Style::empty(),
@@ -162,22 +158,22 @@ test "a full style round-trips its attributes and identical styles share one id"
       name: Some("Arial"),
       color: @units.Color::parse("FF0000"),
     }),
-    fill: Some({ color: @units.Color::parse("FFFF00").unwrap() }),
+    fill: Some({ color: @units.Color::parse("FFFF00").unwrap(), }),
     align: Some({
       horizontal: Some(Center),
       vertical: Some(Middle),
       wrap: Some(true),
     }),
     borders: Some({
-      left: Some({ style: Thin, color: None }),
+      left: Some({ style: Thin, color: None, }),
       right: None,
       top: None,
-      bottom: Some({ style: Double, color: @units.Color::parse("000000") }),
+      bottom: Some({ style: Double, color: @units.Color::parse("000000"), }),
     }),
   }
-  sheet.set(@units.CellRef::new(col=1, row=1), Number(1.5), style~)
-  sheet.set(@units.CellRef::new(col=2, row=1), Number(2.5), style~)
-  sheet.set(@units.CellRef::new(col=3, row=1), Number(3.5), style={
+  sheet.set(@units.CellRef(col=1, row=1), Number(1.5), style~)
+  sheet.set(@units.CellRef(col=2, row=1), Number(2.5), style~)
+  sheet.set(@units.CellRef(col=3, row=1), Number(3.5), style={
     ..style,
     font: None,
   })
@@ -198,13 +194,13 @@ test "a full style round-trips its attributes and identical styles share one id"
 
 ///|
 test "column/row default styles emit and share the cell style cache; default font applies" {
-  let wb = @model.Workbook::new(default_font="Arial")
+  let wb = @model.Workbook(default_font="Arial")
   let sheet = wb.add_sheet("S")
   let bold : @model.Style = {
     ..@model.Style::empty(),
-    font: Some({ ..@model.Font::empty(), bold: Some(true) }),
+    font: Some({ ..@model.Font::empty(), bold: Some(true), }),
   }
-  sheet.set(@units.CellRef::new(col=1, row=1), Text("x"), style=bold)
+  sheet.set(@units.CellRef(col=1, row=1), Text("x"), style=bold)
   sheet.set_column_band(first=2, last=3, style=bold)
   sheet.set_row_band(first=5, last=5, style=bold)
   let reopened = reopen(wb)
@@ -221,14 +217,11 @@ test "column/row default styles emit and share the cell style cache; default fon
 
 ///|
 test "merges, column widths, and row heights survive a round trip" {
-  let wb = @model.Workbook::new()
+  let wb = @model.Workbook()
   let sheet = wb.add_sheet("S")
-  sheet.set(@units.CellRef::new(col=1, row=1), Text("title"))
+  sheet.set(@units.CellRef(col=1, row=1), Text("title"))
   // Corners given reversed; the model canonicalizes to A1:C1.
-  sheet.merge(
-    @units.CellRef::new(col=3, row=1),
-    @units.CellRef::new(col=1, row=1),
-  )
+  sheet.merge(@units.CellRef(col=3, row=1), @units.CellRef(col=1, row=1))
   sheet.set_column_band(first=2, last=2, width=18.0)
   sheet.set_row_band(first=1, last=1, height=24.0)
   let reopened = reopen(wb)
@@ -240,7 +233,7 @@ test "merges, column widths, and row heights survive a round trip" {
 
 ///|
 test "hidden and grouped bands survive a round trip alongside their other properties" {
-  let wb = @model.Workbook::new()
+  let wb = @model.Workbook()
   let sheet = wb.add_sheet("S")
   sheet.set_column_band(first=2, last=3, hidden=true, outline_level=1)
   sheet.set_column_band(first=4, last=4, width=12.0, outline_level=1)
@@ -263,10 +256,10 @@ test "hidden and grouped bands survive a round trip alongside their other proper
 
 ///|
 test "frozen panes, gridlines, and a tab color survive a round trip" {
-  let wb = @model.Workbook::new()
+  let wb = @model.Workbook()
   let sheet = wb.add_sheet("Report")
   // Freezing at B2 keeps row 1 and column A in place.
-  sheet.set_panes(Freeze(@units.CellRef::new(col=2, row=2)))
+  sheet.set_panes(Freeze(@units.CellRef(col=2, row=2)))
   sheet.set_gridlines(false)
   sheet.set_tab_color(@units.Color::parse("1F77B4").unwrap())
   let reopened = reopen(wb)
@@ -285,7 +278,7 @@ test "frozen panes, gridlines, and a tab color survive a round trip" {
 
 ///|
 test "a split pane converts its point position to twips" {
-  let wb = @model.Workbook::new()
+  let wb = @model.Workbook()
   wb.add_sheet("Wide").set_panes(Split(x=120.0, y=0.0))
   let reopened = reopen(wb)
   let panes = reopened.get_panes("Wide")
@@ -300,12 +293,12 @@ test "a split pane converts its point position to twips" {
 
 ///|
 test "page setup round-trips: layout, margins, header/footer, and the print area" {
-  let wb = @model.Workbook::new()
+  let wb = @model.Workbook()
   let sheet = wb.add_sheet("Report")
   sheet.set_page_setup({
     area: Some({
-      top_left: @units.CellRef::new(col=1, row=1),
-      bottom_right: @units.CellRef::new(col=4, row=50),
+      top_left: @units.CellRef(col=1, row=1),
+      bottom_right: @units.CellRef(col=4, row=50),
     }),
     orientation: Some(Landscape),
     margins: Some({
@@ -319,7 +312,7 @@ test "page setup round-trips: layout, margins, header/footer, and the print area
     scale: Some(Percent(80)),
     header: Some("&CQuarterly report"),
     footer: Some("&LPage &P of &N"),
-    breaks: [@units.CellRef::new(col=1, row=21)],
+    breaks: [@units.CellRef(col=1, row=21)],
   })
   let reopened = reopen(wb)
   let layout = reopened.get_page_layout("Report")
@@ -341,7 +334,7 @@ test "page setup round-trips: layout, margins, header/footer, and the print area
 
 ///|
 test "a fit-to-page scale also flags the sheet fit-to-page" {
-  let wb = @model.Workbook::new()
+  let wb = @model.Workbook()
   wb
   .add_sheet("Wide")
   .set_page_setup({
@@ -367,34 +360,31 @@ test "a date cell serializes to its Excel serial under the workbook's system" {
     second: 0,
   }
   // 1900 system: 1900-01-01 is serial 1.
-  let wb1900 = @model.Workbook::new()
-  wb1900.add_sheet("S").set(@units.CellRef::new(col=1, row=1), Date(date))
+  let wb1900 = @model.Workbook()
+  wb1900.add_sheet("S").set(@units.CellRef(col=1, row=1), Date(date))
   let r1900 = reopen(wb1900)
   assert_eq(r1900.get_cell_value("S", "A1", raw=true), Some("1"))
 
   // 1904 system: 1900-01-01 is 1460 real days before the 1904 epoch. (The
   // familiar "1462" offset between the systems only holds after Feb 1900, once
   // the 1900 leap-year bug applies.) The backend computes the same serial.
-  let wb1904 = @model.Workbook::new(date_system=Date1904)
-  wb1904.add_sheet("S").set(@units.CellRef::new(col=1, row=1), Date(date))
+  let wb1904 = @model.Workbook(date_system=Date1904)
+  wb1904.add_sheet("S").set(@units.CellRef(col=1, row=1), Date(date))
   let r1904 = reopen(wb1904)
   assert_eq(r1904.get_cell_value("S", "A1", raw=true), Some("-1460"))
 }
 
 ///|
 test "a formula cell emits its formula and optional cached value" {
-  let wb = @model.Workbook::new()
+  let wb = @model.Workbook()
   let sheet = wb.add_sheet("S")
-  sheet.set(@units.CellRef::new(col=1, row=1), Number(3.0))
-  sheet.set(@units.CellRef::new(col=2, row=1), Number(4.0))
+  sheet.set(@units.CellRef(col=1, row=1), Number(3.0))
+  sheet.set(@units.CellRef(col=2, row=1), Number(4.0))
   sheet.set(
-    @units.CellRef::new(col=3, row=1),
+    @units.CellRef(col=3, row=1),
     Formula(formula="A1+B1", cached=Some(Number(7.0))),
   )
-  sheet.set(
-    @units.CellRef::new(col=4, row=1),
-    Formula(formula="A1*B1", cached=None),
-  )
+  sheet.set(@units.CellRef(col=4, row=1), Formula(formula="A1*B1", cached=None))
   let reopened = reopen(wb)
   assert_eq(reopened.get_cell_formula("S", "C1"), Some("A1+B1"))
   assert_eq(reopened.get_cell_formula("S", "D1"), Some("A1*B1"))
@@ -403,12 +393,12 @@ test "a formula cell emits its formula and optional cached value" {
 
 ///|
 test "defined names emit and a reference cell resolves them via =name" {
-  let wb = @model.Workbook::new()
+  let wb = @model.Workbook()
   wb.add_defined_name("tax_rate", Number(0.08))
   wb.add_defined_name("company", Text("Acme Corp"))
   let sheet = wb.add_sheet("S")
   sheet.set(
-    @units.CellRef::new(col=1, row=1),
+    @units.CellRef(col=1, row=1),
     Formula(formula="tax_rate", cached=Some(Number(0.08))),
   )
   let reopened = reopen(wb)
@@ -429,7 +419,7 @@ test "defined names emit and a reference cell resolves them via =name" {
 
 ///|
 test "a rich-text cell round-trips its runs and per-run fonts" {
-  let wb = @model.Workbook::new()
+  let wb = @model.Workbook()
   let sheet = wb.add_sheet("S")
   let bold_red : @model.Font = {
     ..@model.Font::empty(),
@@ -437,10 +427,10 @@ test "a rich-text cell round-trips its runs and per-run fonts" {
     color: @units.Color::parse("FF0000"),
   }
   sheet.set(
-    @units.CellRef::new(col=1, row=1),
+    @units.CellRef(col=1, row=1),
     RichText([
-      { text: "Plain ", font: None },
-      { text: "bold red", font: Some(bold_red) },
+      { text: "Plain ", font: None, },
+      { text: "bold red", font: Some(bold_red), },
     ]),
   )
   let reopened = reopen(wb)
@@ -456,8 +446,8 @@ test "a rich-text cell round-trips its runs and per-run fonts" {
 
 ///|
 test "an error literal round-trips as the error text" {
-  let wb = @model.Workbook::new()
-  wb.add_sheet("S").set(@units.CellRef::new(col=1, row=1), Error("#DIV/0!"))
+  let wb = @model.Workbook()
+  wb.add_sheet("S").set(@units.CellRef(col=1, row=1), Error("#DIV/0!"))
   let reopened = reopen(wb)
   assert_eq(reopened.get_cell_value("S", "A1", raw=true), Some("#DIV/0!"))
 }
@@ -466,7 +456,7 @@ test "an error literal round-trips as the error text" {
 test "a backend failure surfaces as an EmitError, not a backend error" {
   // Two sheets with the same name make the backend reject the second one; the
   // seam must translate that into the pipeline's own error type.
-  let wb = @model.Workbook::new()
+  let wb = @model.Workbook()
   wb.add_sheet("Dup") |> ignore
   wb.add_sheet("Dup") |> ignore
   let caught = try {

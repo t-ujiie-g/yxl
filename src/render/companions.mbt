@@ -17,8 +17,8 @@ priv struct Names {
 }
 
 ///|
-fn Names::new() -> Names {
-  { taken: Set([]) }
+fn Names::Names() -> Names {
+  { taken: Set([]), }
 }
 
 ///|
@@ -59,7 +59,7 @@ const FALLBACK_STEM : String = "sheet"
 /// because a sheet called `売上` flattened to `__` names nothing, and beside a
 /// second such sheet it is legible only by counting underscores.
 fn file_stem(sheet_name : String) -> String {
-  let out = StringBuilder::new()
+  let out = StringBuilder()
   for ch in sheet_name {
     if ch is ('a'..='z' | '0'..='9') {
       out.write_char(ch)

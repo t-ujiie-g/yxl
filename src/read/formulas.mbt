@@ -39,10 +39,10 @@ fn fold_shared_formulas(
       ) else {
         continue
       }
-      sheet.add_formula({ at: range, formula: info.formula })
+      sheet.add_formula({ at: range, formula: info.formula, })
       for r in range.top_left.row..<=range.bottom_right.row {
         for c in range.top_left.col..<=range.bottom_right.col {
-          covered.add(@units.CellRef::new(col=c, row=r).to_a1())
+          covered.add(@units.CellRef(col=c, row=r).to_a1())
         }
       }
     }
@@ -71,7 +71,7 @@ fn range_follows(
       guard info.shared_index is Some(other) && other == index else {
         return false
       }
-      let reference = @units.CellRef::new(col~, row~).to_a1()
+      let reference = @units.CellRef(col~, row~).to_a1()
       if read_cell_style(backend, sheet_name, reference, styles, notes)
         is Some(_) {
         return false

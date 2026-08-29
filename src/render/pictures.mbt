@@ -28,7 +28,7 @@ pub fn Picture::key(sheet : String, at : @units.CellRef?) -> String {
 /// the caller writing the files agree without either guessing: this returns
 /// both, and `workbook` takes the same list back.
 pub fn pictures(wb : @model.Workbook) -> Array[Picture] {
-  companion_pictures(wb, Names::new())
+  companion_pictures(wb, Names())
 }
 
 ///|

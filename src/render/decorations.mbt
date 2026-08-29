@@ -265,7 +265,7 @@ fn one_conditional(format : @model.ConditionalFormat) -> @yaml.Node {
   }
   if format.style is Some(style) {
     let format_code = style.number_format
-    let rest = { ..style, number_format: None }
+    let rest = { ..style, number_format: None, }
     if !rest.is_empty() {
       entries.push(("style", style_node(rest)))
     }

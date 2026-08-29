@@ -4,12 +4,12 @@
 fn tabular() -> (@model.Workbook, @model.Sheet) {
   let (wb, sheet) = fixture()
   for column, header in ["Region", "Amount", "Share"] {
-    sheet.set(@units.CellRef::new(col=column + 1, row=1), Text(header))
+    sheet.set(@units.CellRef(col=column + 1, row=1), Text(header))
   }
   for row in 2..<=3 {
-    sheet.set(@units.CellRef::new(col=1, row~), Text("R\{row}"))
-    sheet.set(@units.CellRef::new(col=2, row~), Number(row.to_double()))
-    sheet.set(@units.CellRef::new(col=3, row~), Number(0.5))
+    sheet.set(@units.CellRef(col=1, row~), Text("R\{row}"))
+    sheet.set(@units.CellRef(col=2, row~), Number(row.to_double()))
+    sheet.set(@units.CellRef(col=3, row~), Number(0.5))
   }
   (wb, sheet)
 }
@@ -91,8 +91,8 @@ test "a table left unstyled keeps Excel's default banding" {
 ///|
 test "two tables on one sheet keep their own ranges and names" {
   let (wb, sheet) = tabular()
-  sheet.set(@units.CellRef::new(col=5, row=1), Text("Quarter"))
-  sheet.set(@units.CellRef::new(col=5, row=2), Text("Q3"))
+  sheet.set(@units.CellRef(col=5, row=1), Text("Quarter"))
+  sheet.set(@units.CellRef(col=5, row=2), Text("Q3"))
   sheet.add_table(plain_table(range("A1", "C3"), name="Sales"))
   sheet.add_table(plain_table(range("E1", "E2"), name="Quarters"))
   let reopened = reopen(wb)

@@ -239,7 +239,7 @@ fn load_rich_run(
   owner~ : String,
 ) -> @model.RichRun raise @diag.SchemaError {
   match node {
-    @yaml.Str(text) => { text, font: None }
+    @yaml.Str(text) => { text, font: None, }
     @yaml.Map(entries) => {
       let mut text = None
       let mut font = None
@@ -278,7 +278,7 @@ fn load_rich_run(
       guard text is Some(text) else {
         raise schema_error(file~, "\{owner} rich text run needs a 'text'")
       }
-      { text, font }
+      { text, font, }
     }
     _ =>
       raise schema_error(

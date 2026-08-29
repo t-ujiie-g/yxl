@@ -77,7 +77,7 @@ fn load_validation(
   guard rule is Some(rule) else {
     raise schema_error(file~, "\{context} needs a rule: \{VALIDATION_RULES}")
   }
-  { at, rule, allow_blank, prompt, error }
+  { at, rule, allow_blank, prompt, error, }
 }
 
 ///|
@@ -164,7 +164,7 @@ fn load_prompt(
   context~ : String,
 ) -> @model.ValidationPrompt raise @diag.SchemaError {
   let (title, body) = load_message(node, file~, what="\{context} 'prompt'")
-  { title, body }
+  { title, body, }
 }
 
 ///|
@@ -194,7 +194,7 @@ fn load_validation_error(
     }
   }
   let (title, body) = load_message(node, file~, what~, allow_style=true)
-  { title, body, style }
+  { title, body, style, }
 }
 
 ///|

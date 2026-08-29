@@ -117,7 +117,7 @@ pub(all) struct SheetProtection {
 ///|
 /// Sheet protection as Excel's dialog opens it: the sheet is locked, but a
 /// reader may still select any cell.
-pub fn SheetProtection::new() -> SheetProtection {
+pub fn SheetProtection::SheetProtection() -> SheetProtection {
   {
     password: None,
     select_locked_cells: true,

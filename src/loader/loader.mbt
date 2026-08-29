@@ -63,7 +63,7 @@ pub fn load(
   let document = expand_includes(document, file~, resolve~, chain=[file])
   let document = substitute_params(document, file~, overrides=params)
   let root = expect_map(document, file~, context="the top level")
-  let workbook = @model.Workbook::new(
+  let workbook = @model.Workbook(
     date_system=read_date_system(root, file~),
     default_font?=read_default_font(root, file~),
   )

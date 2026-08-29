@@ -9,18 +9,18 @@ test "a chart renders as its identity, then its trimmings, then its series" {
       {
         values: {
           sheet: Some("Figures"),
-          range: { top_left: at("B2"), bottom_right: at("B4") },
+          range: { top_left: at("B2"), bottom_right: at("B4"), },
         },
         categories: Some({
           sheet: Some("Figures"),
-          range: { top_left: at("A2"), bottom_right: at("A4") },
+          range: { top_left: at("A2"), bottom_right: at("A4"), },
         }),
         name: Some(FromCell(sheet=Some("Figures"), at=at("B1"))),
       },
       {
         values: {
           sheet: None,
-          range: { top_left: at("C2"), bottom_right: at("C4") },
+          range: { top_left: at("C2"), bottom_right: at("C4"), },
         },
         categories: None,
         name: Some(Literal("Cost")),
@@ -28,9 +28,9 @@ test "a chart renders as its identity, then its trimmings, then its series" {
     ],
     title: Some("Revenue and cost"),
     legend: Some(Bottom),
-    size: Some({ width: 520, height: 300 }),
-    x_axis: Some({ title: Some("Region"), min: None, max: None }),
-    y_axis: Some({ title: None, min: Some(0.0), max: Some(4000000.0) }),
+    size: Some({ width: 520, height: 300, }),
+    x_axis: Some({ title: Some("Region"), min: None, max: None, }),
+    y_axis: Some({ title: None, min: Some(0.0), max: Some(4000000.0), }),
   })
   inspect(
     spec(wb),
@@ -74,7 +74,7 @@ test "a chart that asked for nothing extra says nothing extra" {
       {
         values: {
           sheet: None,
-          range: { top_left: at("B1"), bottom_right: at("B3") },
+          range: { top_left: at("B1"), bottom_right: at("B3"), },
         },
         categories: None,
         name: None,
@@ -114,7 +114,7 @@ test "a chart drawn without a legend says so, since unset means something else" 
       {
         values: {
           sheet: None,
-          range: { top_left: at("B1"), bottom_right: at("B3") },
+          range: { top_left: at("B1"), bottom_right: at("B3"), },
         },
         categories: None,
         name: None,

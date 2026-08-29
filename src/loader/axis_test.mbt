@@ -75,12 +75,12 @@ test "load parses merges, column widths, and row heights" {
   assert_eq(sheet.rows[0].size, Some(24.0))
   assert_eq(sheet.merges, [
     {
-      top_left: @units.CellRef::new(col=1, row=1),
-      bottom_right: @units.CellRef::new(col=3, row=1),
+      top_left: @units.CellRef(col=1, row=1),
+      bottom_right: @units.CellRef(col=3, row=1),
     },
     {
-      top_left: @units.CellRef::new(col=2, row=2),
-      bottom_right: @units.CellRef::new(col=2, row=4),
+      top_left: @units.CellRef(col=2, row=2),
+      bottom_right: @units.CellRef(col=2, row=4),
     },
   ])
 }
@@ -90,8 +90,8 @@ test "a merge range's corners are canonicalized regardless of order" {
   let workbook = load_ok("sheets:\n  - name: S\n    merges:\n      - C3:A1\n")
   assert_eq(workbook.sheets[0].merges, [
     {
-      top_left: @units.CellRef::new(col=1, row=1),
-      bottom_right: @units.CellRef::new(col=3, row=3),
+      top_left: @units.CellRef(col=1, row=1),
+      bottom_right: @units.CellRef(col=3, row=3),
     },
   ])
 }

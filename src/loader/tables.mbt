@@ -77,7 +77,7 @@ fn load_table(
       "\{context} covers one row; a table needs a header row and at least one row of data",
     )
   }
-  { at, name, style, banded_rows, banded_columns, first_column, last_column }
+  { at, name, style, banded_rows, banded_columns, first_column, last_column, }
 }
 
 ///|
@@ -230,7 +230,7 @@ fn check_header_row(
   let headers = header_row(sheet, table.at)
   let seen : Map[String, Int] = Map([])
   for col in table.at.top_left.col..<=table.at.bottom_right.col {
-    let reference = @units.CellRef::new(col~, row~).to_a1()
+    let reference = @units.CellRef(col~, row~).to_a1()
     guard headers.get(col) is Some(header) else {
       raise schema_error(
         file~,

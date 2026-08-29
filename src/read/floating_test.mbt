@@ -42,7 +42,7 @@ test "every kind of form control comes back as itself" {
   ]
   let mut row = 1
   for kind in kinds {
-    sheet.add_control({ ..bare_control(kind, "D\{row}"), text: Some("Go") })
+    sheet.add_control({ ..bare_control(kind, "D\{row}"), text: Some("Go"), })
     row += 2
   }
   let recovered = only_sheet(wb)
@@ -119,7 +119,7 @@ test "a control field the schema forbids on that kind is dropped" {
     link: Some(at("F2")),
     min: Some(1),
   })
-  sheet.add_control({ ..bare_control(SpinButton, "D6"), page: Some(4) })
+  sheet.add_control({ ..bare_control(SpinButton, "D6"), page: Some(4), })
   let recovered = round_trip(wb)
   let button = recovered.workbook.sheets[0].controls[0]
   assert_eq(button.checked, None)
@@ -169,7 +169,7 @@ fn with_table(wb : @model.Workbook) -> @model.Sheet {
 
 ///|
 test "a slicer comes back naming the same table column" {
-  let wb = @model.Workbook::new()
+  let wb = @model.Workbook()
   let sheet = with_table(wb)
   sheet.add_slicer({
     at: at("D2"),
@@ -194,7 +194,7 @@ test "a slicer comes back naming the same table column" {
 
 ///|
 test "a slicer at the backend's own size says nothing about it" {
-  let wb = @model.Workbook::new()
+  let wb = @model.Workbook()
   let sheet = with_table(wb)
   sheet.add_slicer({
     at: at("D2"),
@@ -218,7 +218,7 @@ test "a slicer's own defined name is not recovered as a definition" {
   // places the slicer. Recovering it *and* the slicer would make the spec
   // declare the name and then place something that declares it again, which the
   // backend refuses with DefinedNameDuplicate — so the spec would not compile.
-  let wb = @model.Workbook::new()
+  let wb = @model.Workbook()
   let sheet = with_table(wb)
   sheet.add_slicer({
     at: at("D2"),
@@ -326,16 +326,18 @@ test "shape text comes back, and the font on it does not" {
             color: None,
           }),
         },
-        { text: "quarter", font: None },
+        { text: "quarter", font: None, },
       ]),
     ),
   })
-  sheet.add_shape({ ..bare_shape("plus", "D8"), text: Some(Plain("Approved")) })
+  sheet.add_shape({ ..bare_shape("plus", "D8"), text: Some(Plain("Approved")), })
   let recovered = round_trip(wb)
   let shapes = recovered.workbook.sheets[0].shapes
   assert_eq(
     shapes[0].text,
-    Some(Lines([{ text: "Next", font: None }, { text: "quarter", font: None }])),
+    Some(
+      Lines([{ text: "Next", font: None, }, { text: "quarter", font: None, }]),
+    ),
   )
   assert_eq(shapes[1].text, Some(Plain("Approved")))
   assert_true(noted(recovered, "any font on a line of shape text"))
@@ -352,7 +354,7 @@ fn bare_group(
     cells: [
       {
         at: at(at_ref),
-        data: { sheet: None, range: @model.CellRange::parse("B1:B3").unwrap() },
+        data: { sheet: None, range: @model.CellRange::parse("B1:B3").unwrap(), },
       },
     ],
     markers: false,
@@ -381,18 +383,18 @@ fn with_series(wb : @model.Workbook, name : String) -> @model.Sheet {
 
 ///|
 test "a sparkline group comes back with its kind, points, and bounds" {
-  let wb = @model.Workbook::new()
+  let wb = @model.Workbook()
   let sheet = with_series(wb, "S")
   sheet.add_sparkline_group({
     ..bare_group(Line, "C1"),
     cells: [
       {
         at: at("C1"),
-        data: { sheet: None, range: @model.CellRange::parse("B1:B3").unwrap() },
+        data: { sheet: None, range: @model.CellRange::parse("B1:B3").unwrap(), },
       },
       {
         at: at("C2"),
-        data: { sheet: None, range: @model.CellRange::parse("B1:B3").unwrap() },
+        data: { sheet: None, range: @model.CellRange::parse("B1:B3").unwrap(), },
       },
     ],
     markers: true,
@@ -421,7 +423,7 @@ test "a sparkline group comes back with its kind, points, and bounds" {
 
 ///|
 test "a sparkline colour comes back only where the file names one" {
-  let wb = @model.Workbook::new()
+  let wb = @model.Workbook()
   let sheet = with_series(wb, "S")
   sheet.add_sparkline_group({
     ..bare_group(Line, "C1"),
@@ -449,7 +451,7 @@ test "markers on a sparkline that is not a line are dropped" {
   // Only a line sparkline draws them, and the schema follows Excel's dialog in
   // refusing them elsewhere — so carrying one through would make a spec that
   // does not load.
-  let wb = @model.Workbook::new()
+  let wb = @model.Workbook()
   let sheet = with_series(wb, "S")
   sheet.add_sparkline_group({
     ..bare_group(Column, "C1"),
@@ -469,7 +471,7 @@ test "the sheet a sparkline plots from is lost, and only said where it can be" {
   // plotted `Data!B1:B3` comes back plotting this sheet's `B1:B3` — the same
   // shape of answer, the wrong numbers. Nothing at the seam can tell the two
   // apart, which is why this is reported rather than worked around.
-  let wb = @model.Workbook::new()
+  let wb = @model.Workbook()
   let _ = with_series(wb, "Data")
   let sheet = wb.add_sheet("S")
   sheet.set(at("A1"), Text("x"))
@@ -495,7 +497,7 @@ test "the sheet a sparkline plots from is lost, and only said where it can be" {
 test "a one-sheet workbook says nothing about a sparkline's sheet" {
   // With one sheet a qualifier could only ever have named that sheet, so
   // nothing can have been lost and the note would be pure noise.
-  let wb = @model.Workbook::new()
+  let wb = @model.Workbook()
   let sheet = with_series(wb, "S")
   sheet.add_sparkline_group(bare_group(Line, "C1"))
   let recovered = round_trip(wb)

@@ -95,7 +95,7 @@ pub fn CellRange::parse(text : String) -> CellRange? {
     return None
   }
   let (top_left, bottom_right) = @units.CellRef::rect(first, second)
-  Some({ top_left, bottom_right })
+  Some({ top_left, bottom_right, })
 }
 
 ///|
@@ -106,7 +106,7 @@ pub fn CellRange::parse_loose(text : String) -> CellRange? {
     Some(range) => Some(range)
     None =>
       match @units.CellRef::parse_a1(text) {
-        Some(at) => Some({ top_left: at, bottom_right: at })
+        Some(at) => Some({ top_left: at, bottom_right: at, })
         None => None
       }
   }

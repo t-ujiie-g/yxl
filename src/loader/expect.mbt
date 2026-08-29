@@ -2,7 +2,7 @@
 /// A diagnostic naming the source file, the pipeline's one way to report a bad
 /// spec.
 fn schema_error(file~ : String, message : String) -> @diag.SchemaError {
-  @diag.SchemaError(@diag.Diagnostic::new("\{file}: \{message}"))
+  @diag.SchemaError(@diag.Diagnostic("\{file}: \{message}"))
 }
 
 ///|
@@ -199,7 +199,7 @@ fn parse_range(
   let first = expect_cell_ref(left.to_owned(), file~, what=corner)
   let second = expect_cell_ref(right.to_owned(), file~, what=corner)
   let (top_left, bottom_right) = @units.CellRef::rect(first, second)
-  { top_left, bottom_right }
+  { top_left, bottom_right, }
 }
 
 ///|

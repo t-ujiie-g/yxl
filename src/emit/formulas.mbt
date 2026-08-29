@@ -36,7 +36,7 @@ fn apply_formula_range(
   guard !(sheet.columns.is_empty() && sheet.rows.is_empty()) else { return }
   for row in range.at.top_left.row..<=range.at.bottom_right.row {
     for col in range.at.top_left.col..<=range.at.bottom_right.col {
-      let at = @units.CellRef::new(col~, row~)
+      let at = @units.CellRef(col~, row~)
       // The text-cell exemption that `effective_style` applies does not arise:
       // a formula's result has no type until Excel computes it, and the cell is
       // written as a numeric one, so an inherited number format is exactly what

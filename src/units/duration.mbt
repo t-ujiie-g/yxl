@@ -26,7 +26,7 @@ pub fn Duration::parse(text : String) -> Duration? {
     return None
   }
   guard minutes <= 59 && seconds <= 59 else { return None }
-  Some({ hours, minutes, seconds })
+  Some({ hours, minutes, seconds, })
 }
 
 ///|

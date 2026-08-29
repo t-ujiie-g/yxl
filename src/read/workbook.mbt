@@ -124,20 +124,20 @@ fn read_properties(
       Some(Integer(number)) =>
         custom.push(
           (
-            { name: property.name, value: Number(number.to_double()) } :
+            { name: property.name, value: Number(number.to_double()), } :
             @model.CustomProperty),
         )
       Some(Float(number)) =>
-        custom.push({ name: property.name, value: Number(number) })
+        custom.push({ name: property.name, value: Number(number), })
       Some(Boolean(flag)) =>
-        custom.push({ name: property.name, value: Bool(flag) })
+        custom.push({ name: property.name, value: Bool(flag), })
       Some(Text(text)) =>
-        custom.push({ name: property.name, value: Text(text) })
+        custom.push({ name: property.name, value: Text(text), })
       Some(DateTime(text)) => {
         // The schema has no date property: Excel wants a full timestamp with a
         // zone, and the spec says to write one as text until that is settled.
         notes.drop("a date document property, kept as its text")
-        custom.push({ name: property.name, value: Text(text) })
+        custom.push({ name: property.name, value: Text(text), })
       }
       None => ()
     }
@@ -183,8 +183,8 @@ fn read_calc(
   } else {
     None
   }
-  let calc : @model.CalcSettings = { mode, on_load }
-  if calc != ({ mode: None, on_load: None } : @model.CalcSettings) {
+  let calc : @model.CalcSettings = { mode, on_load, }
+  if calc != ({ mode: None, on_load: None, } : @model.CalcSettings) {
     workbook.set_calc(calc)
   }
 }

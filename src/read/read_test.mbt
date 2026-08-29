@@ -26,7 +26,7 @@ fn cell_at(sheet : @model.Sheet, reference : String) -> @model.CellValue? {
 ///|
 /// A one-sheet workbook, plus the sheet.
 fn fixture() -> (@model.Workbook, @model.Sheet) {
-  let wb = @model.Workbook::new()
+  let wb = @model.Workbook()
   (wb, wb.add_sheet("S"))
 }
 
@@ -42,7 +42,7 @@ test "the reader seam works through the trait, not only the shorthand" {
   // the trait, so exercising only that would leave the seam itself unproven.
   let (wb, sheet) = fixture()
   sheet.set(at("A1"), Text("Region"))
-  let reader = @read.MbtexcelReader::new()
+  let reader = @read.MbtexcelReader()
   let recovered = reader.read(@emit.to_bytes(wb))
   assert_eq(recovered.workbook.sheets.length(), 1)
   assert_eq(cell_at(recovered.workbook.sheets[0], "A1"), Some(Text("Region")))
@@ -105,12 +105,12 @@ test "plain text does not come back as a one-run rich text" {
 ///|
 test "text that really does mix fonts comes back as runs" {
   let (wb, sheet) = fixture()
-  let italic : @model.Font = { ..@model.Font::empty(), italic: Some(true) }
+  let italic : @model.Font = { ..@model.Font::empty(), italic: Some(true), }
   sheet.set(
     at("A1"),
     RichText([
-      { text: "plain ", font: None },
-      { text: "italic", font: Some(italic) },
+      { text: "plain ", font: None, },
+      { text: "italic", font: Some(italic), },
     ]),
   )
   let recovered = cell_at(only_sheet(wb), "A1")
@@ -126,8 +126,8 @@ test "a style comes back, and cells that shared one still share it" {
   let (wb, sheet) = fixture()
   let header : @model.Style = {
     ..@model.Style::empty(),
-    font: Some({ ..@model.Font::empty(), bold: Some(true) }),
-    fill: Some({ color: @units.Color::parse("1F3864").unwrap() }),
+    font: Some({ ..@model.Font::empty(), bold: Some(true), }),
+    fill: Some({ color: @units.Color::parse("1F3864").unwrap(), }),
   }
   sheet.set(at("A1"), Text("Region"), style=header)
   sheet.set(at("B1"), Text("Revenue"), style=header)
@@ -273,7 +273,7 @@ test "a shared formula's followers are translated where the range cannot fold" {
   sheet.set(at("B3"), Number(3.0))
   sheet.set_column_band(first=3, last=3, style={
     ..@model.Style::empty(),
-    font: Some({ ..@model.Font::empty(), bold: Some(true) }),
+    font: Some({ ..@model.Font::empty(), bold: Some(true), }),
   })
   sheet.add_formula({
     at: @model.CellRange::parse("C2:C3").unwrap(),
@@ -406,7 +406,7 @@ test "a sheet with no panes comes back with none" {
 
 ///|
 test "sheet names, order, hiding, and the active tab come back" {
-  let wb = @model.Workbook::new()
+  let wb = @model.Workbook()
   let first = wb.add_sheet("Summary")
   first.set(at("A1"), Text("x"))
   wb.add_sheet("Hidden", visibility=Hidden).set(at("A1"), Text("y"))
@@ -422,14 +422,14 @@ test "sheet names, order, hiding, and the active tab come back" {
 
 ///|
 test "the 1904 date system comes back" {
-  let wb = @model.Workbook::new(date_system=Date1904)
+  let wb = @model.Workbook(date_system=Date1904)
   wb.add_sheet("S").set(at("A1"), Number(1.0))
   assert_true(round_trip(wb).workbook.date_system is Date1904)
 }
 
 ///|
 test "an empty workbook reads as an empty workbook" {
-  let wb = @model.Workbook::new()
+  let wb = @model.Workbook()
   wb.add_sheet("S") |> ignore
   let recovered = round_trip(wb)
   assert_eq(recovered.workbook.sheets.length(), 1)
@@ -450,7 +450,7 @@ test "bytes that are not a workbook are a diagnostic, not a crash" {
 
 ///|
 test "the workbook's own keys come back" {
-  let wb = @model.Workbook::new(default_font="Georgia")
+  let wb = @model.Workbook(default_font="Georgia")
   wb.add_sheet("S").set(at("A1"), Text("x"))
   wb.add_defined_name("tax_rate", Number(0.085))
   wb.add_defined_name("company", Text("Acme Corp"))
@@ -460,9 +460,9 @@ test "the workbook's own keys come back" {
     title: Some("Regional summary"),
     author: Some("Finance"),
     company: Some("Example Ltd"),
-    custom: [{ name: "Cost centre", value: Number(4210.0) }],
+    custom: [{ name: "Cost centre", value: Number(4210.0), }],
   })
-  wb.set_calc({ mode: Some(Manual), on_load: Some(true) })
+  wb.set_calc({ mode: Some(Manual), on_load: Some(true), })
   let recovered = round_trip(wb).workbook
   assert_eq(recovered.default_font, Some("Georgia"))
   assert_eq(recovered.defined_names.length(), 3)
@@ -488,7 +488,7 @@ test "the workbook's own keys come back" {
 
 ///|
 test "a defined name comes back as the kind of thing it refers to" {
-  let wb = @model.Workbook::new()
+  let wb = @model.Workbook()
   wb.add_sheet("S").set(at("A1"), Text("x"))
   wb.add_defined_name("number", Number(0.085))
   wb.add_defined_name("text", Text("Acme Corp"))
@@ -512,7 +512,7 @@ test "sheet protection comes back, without the password it cannot know" {
   let (wb, sheet) = fixture()
   sheet.set(at("A1"), Text("x"))
   sheet.set_protection({
-    ..@model.SheetProtection::new(),
+    ..@model.SheetProtection(),
     password: Some("secret"),
     sort: true,
     auto_filter: true,
@@ -536,7 +536,7 @@ test "an unprotected sheet comes back unprotected" {
 
 ///|
 test "a very hidden sheet is told from a merely hidden one" {
-  let wb = @model.Workbook::new()
+  let wb = @model.Workbook()
   wb.add_sheet("Visible").set(at("A1"), Text("x"))
   wb.add_sheet("Hidden", visibility=Hidden) |> ignore
   wb.add_sheet("Locked", visibility=VeryHidden) |> ignore
@@ -608,7 +608,7 @@ test "a cleared attribute survives the round trip through the file" {
   let (wb, sheet) = fixture()
   sheet.set_column_band(first=3, last=3, style={
     ..@model.Style::empty(),
-    fill: Some({ color: @units.Color::parse("FFF2CC").unwrap() }),
+    fill: Some({ color: @units.Color::parse("FFF2CC").unwrap(), }),
   })
   sheet.set(at("C1"), Number(1.0))
   sheet.set(at("C2"), Number(2.0), style=clears([Fill]))

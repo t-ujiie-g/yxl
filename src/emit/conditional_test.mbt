@@ -32,7 +32,7 @@ fn only_format(wb : @model.Workbook) -> @xlsx.ConditionalFormatOptions raise {
 fn highlight() -> @model.Style {
   {
     ..@model.Style::empty(),
-    fill: Some({ color: @units.Color::parse("C6EFCE").unwrap() }),
+    fill: Some({ color: @units.Color::parse("C6EFCE").unwrap(), }),
   }
 }
 
@@ -222,7 +222,7 @@ test "a style becomes a differential format id" {
 test "rules sharing a style share one differential format id" {
   let (wb, sheet) = fixture()
   let shared = highlight()
-  let other : @model.Style = { ..shared, number_format: Some("0.0%") }
+  let other : @model.Style = { ..shared, number_format: Some("0.0%"), }
   for
     entry in [
       (range("A1", "A9"), shared),

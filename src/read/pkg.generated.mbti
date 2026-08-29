@@ -14,7 +14,7 @@ pub fn from_bytes(Bytes) -> Recovered raise @diag.ReadError
 // Types and methods
 pub struct MbtexcelReader {
 }
-pub fn MbtexcelReader::new() -> Self
+pub fn MbtexcelReader::MbtexcelReader() -> Self
 pub impl Reader for MbtexcelReader
 
 pub struct Recovered {

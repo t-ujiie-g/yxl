@@ -70,7 +70,7 @@ test "a shape's text takes lines, each written as a cell's rich run is" {
   )
   guard shape.text is Some(Lines(lines)) else { fail("expected text lines") }
   assert_eq(lines.length(), 2)
-  assert_eq(lines[0], { text: "plain", font: None })
+  assert_eq(lines[0], { text: "plain", font: None, })
   assert_eq(lines[1].text, "loud")
   assert_eq(lines[1].font.unwrap().bold, Some(true))
 }

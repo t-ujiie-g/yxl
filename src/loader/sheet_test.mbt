@@ -72,7 +72,7 @@ test "load parses frozen and split panes, gridlines, and a tab color" {
     ),
   )
   let report = workbook.sheets[0]
-  assert_eq(report.panes, Some(Freeze(@units.CellRef::new(col=2, row=2))))
+  assert_eq(report.panes, Some(Freeze(@units.CellRef(col=2, row=2))))
   assert_eq(report.gridlines, Some(false))
   assert_eq(report.tab_color, @units.Color::parse("1F77B4"))
   assert_eq(workbook.sheets[1].panes, Some(Split(x=120.0, y=0.0)))

@@ -60,7 +60,7 @@ fn load_slicer(
   guard column is Some(column) else {
     raise schema_error(file~, "\{context} is missing required key 'column'")
   }
-  { at, table, column, caption, width, height, header }
+  { at, table, column, caption, width, height, header, }
 }
 
 ///|

@@ -141,7 +141,7 @@ pub fn Style::assigned(self : Style) -> StyleAttrs {
 /// This style, also clearing `attrs` — except any it gives a value to, since a
 /// value written beside a `null` wins (`docs/spec.md` §6).
 pub fn Style::clearing(self : Style, attrs : StyleAttrs) -> Style {
-  { ..self, cleared: self.cleared.union(attrs).except(self.assigned()) }
+  { ..self, cleared: self.cleared.union(attrs).except(self.assigned()), }
 }
 
 ///|
@@ -151,5 +151,5 @@ pub fn Style::clearing(self : Style, attrs : StyleAttrs) -> Style {
 /// from one nobody mentioned — Excel writes both the same way — and dropping the
 /// record is what keeps the two from interning as two `cellXfs` ids (ADR-004).
 pub fn Style::settled(self : Style) -> Style {
-  { ..self, cleared: StyleAttrs::none() }
+  { ..self, cleared: StyleAttrs::none(), }
 }

@@ -42,7 +42,7 @@ fn line_group() -> @model.SparklineGroup {
 ///|
 test "a sparkline round-trips its location, data, and kind" {
   let (wb, sheet) = fixture()
-  sheet.add_sparkline_group({ ..line_group(), kind: WinLoss })
+  sheet.add_sparkline_group({ ..line_group(), kind: WinLoss, })
   let group = only_sparkline_group(wb)
   assert_true(group.sparkline_type is WinLoss)
   assert_eq(group.sparklines.length(), 1)

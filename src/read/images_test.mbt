@@ -69,7 +69,7 @@ test "each positioning comes back as itself" {
 test "a picture's scale is reported lost rather than silently applied" {
   let (wb, sheet) = fixture()
   sheet.set(at("A1"), Text("x"))
-  sheet.add_image({ ..plain_image(), scale_x: 0.5, scale_y: 0.5 })
+  sheet.add_image({ ..plain_image(), scale_x: 0.5, scale_y: 0.5, })
   let recovered = round_trip(wb)
   // The backend bakes the scale into an absolute size and reports 1 back, so a
   // scaled picture cannot be told from an unscaled one.
@@ -83,7 +83,7 @@ test "a picture's scale is reported lost rather than silently applied" {
 test "a sheet background comes back, bytes and format" {
   let (wb, sheet) = fixture()
   sheet.set(at("A1"), Text("x"))
-  sheet.set_background({ data: png(), format: "png" })
+  sheet.set_background({ data: png(), format: "png", })
   let recovered = only_sheet(wb)
   assert_true(recovered.background is Some(_))
   guard recovered.background is Some(background) else { return }

@@ -14,7 +14,7 @@ pub fn to_bytes(@model.Workbook) -> Bytes raise @diag.EmitError
 // Types and methods
 pub struct MbtexcelEmitter {
 }
-pub fn MbtexcelEmitter::new() -> Self
+pub fn MbtexcelEmitter::MbtexcelEmitter() -> Self
 pub impl Emitter for MbtexcelEmitter
 
 // Type aliases

@@ -13,8 +13,8 @@ pub struct MbtexcelEmitter {}
 
 ///|
 /// The default emitter.
-pub fn MbtexcelEmitter::new() -> MbtexcelEmitter {
-  MbtexcelEmitter::{  }
+pub fn MbtexcelEmitter::MbtexcelEmitter() -> MbtexcelEmitter {
+  MbtexcelEmitter::{ }
 }
 
 ///|
@@ -28,7 +28,7 @@ pub impl Emitter for MbtexcelEmitter with fn emit(_self, wb) {
     // was actually complaining about.
     err =>
       raise @diag.EmitError(
-        @diag.Diagnostic::new("Excel backend: " + @debug.to_string(err)),
+        @diag.Diagnostic("Excel backend: " + @debug.to_string(err)),
       )
   }
 }
@@ -37,7 +37,7 @@ pub impl Emitter for MbtexcelEmitter with fn emit(_self, wb) {
 /// Emit a workbook to `.xlsx` bytes using the default backend — the convenient
 /// entry point when a caller does not care which backend is used.
 pub fn to_bytes(wb : @model.Workbook) -> Bytes raise @diag.EmitError {
-  Emitter::emit(MbtexcelEmitter::new(), wb)
+  Emitter::emit(MbtexcelEmitter(), wb)
 }
 
 ///|

@@ -76,7 +76,7 @@ fn load_custom_properties(
       @yaml.Bool(flag) => Bool(flag)
       other => Text(scalar_text(other))
     }
-    into.push({ name, value })
+    into.push({ name, value, })
   }
 }
 
@@ -120,7 +120,7 @@ fn load_calc(
       "'calc' sets nothing (expected 'mode' or 'on_load')",
     )
   }
-  { mode, on_load }
+  { mode, on_load, }
 }
 
 ///|
@@ -140,7 +140,7 @@ fn load_sheet_protection(
   node : @yaml.Node,
   file~ : String,
 ) -> @model.SheetProtection raise @diag.SchemaError {
-  let protection = @model.SheetProtection::new()
+  let protection = @model.SheetProtection()
   let mut password = None
   let mut allow : Array[(String, Bool)] = []
   for entry in expect_map(node, file~, context="sheet 'protect'") {
@@ -161,22 +161,22 @@ fn load_sheet_protection(
   let with_allowances = allow.fold(init=protection, (protection, entry) => {
     let (name, allowed) = entry
     match name {
-      "select_locked_cells" => { ..protection, select_locked_cells: allowed }
+      "select_locked_cells" => { ..protection, select_locked_cells: allowed, }
       "select_unlocked_cells" =>
-        { ..protection, select_unlocked_cells: allowed }
-      "format_cells" => { ..protection, format_cells: allowed }
-      "format_columns" => { ..protection, format_columns: allowed }
-      "format_rows" => { ..protection, format_rows: allowed }
-      "insert_columns" => { ..protection, insert_columns: allowed }
-      "insert_rows" => { ..protection, insert_rows: allowed }
-      "insert_hyperlinks" => { ..protection, insert_hyperlinks: allowed }
-      "delete_columns" => { ..protection, delete_columns: allowed }
-      "delete_rows" => { ..protection, delete_rows: allowed }
-      "sort" => { ..protection, sort: allowed }
-      "auto_filter" => { ..protection, auto_filter: allowed }
-      "pivot_tables" => { ..protection, pivot_tables: allowed }
-      "edit_objects" => { ..protection, edit_objects: allowed }
-      "edit_scenarios" => { ..protection, edit_scenarios: allowed }
+        { ..protection, select_unlocked_cells: allowed, }
+      "format_cells" => { ..protection, format_cells: allowed, }
+      "format_columns" => { ..protection, format_columns: allowed, }
+      "format_rows" => { ..protection, format_rows: allowed, }
+      "insert_columns" => { ..protection, insert_columns: allowed, }
+      "insert_rows" => { ..protection, insert_rows: allowed, }
+      "insert_hyperlinks" => { ..protection, insert_hyperlinks: allowed, }
+      "delete_columns" => { ..protection, delete_columns: allowed, }
+      "delete_rows" => { ..protection, delete_rows: allowed, }
+      "sort" => { ..protection, sort: allowed, }
+      "auto_filter" => { ..protection, auto_filter: allowed, }
+      "pivot_tables" => { ..protection, pivot_tables: allowed, }
+      "edit_objects" => { ..protection, edit_objects: allowed, }
+      "edit_scenarios" => { ..protection, edit_scenarios: allowed, }
       // Unreachable: `load_allowances` already refused any other name.
       _ => protection
     }

@@ -50,7 +50,7 @@ fn load_page_setup(
         )
     }
   }
-  { area, orientation, margins, scale, header, footer, breaks }
+  { area, orientation, margins, scale, header, footer, breaks, }
 }
 
 ///|
@@ -158,12 +158,12 @@ fn load_margins(
       raise schema_error(file~, "print margin '\{key}' cannot be negative")
     }
     match key {
-      "top" => margins = { ..margins, top: Some(inches) }
-      "bottom" => margins = { ..margins, bottom: Some(inches) }
-      "left" => margins = { ..margins, left: Some(inches) }
-      "right" => margins = { ..margins, right: Some(inches) }
-      "header" => margins = { ..margins, header: Some(inches) }
-      "footer" => margins = { ..margins, footer: Some(inches) }
+      "top" => margins = { ..margins, top: Some(inches), }
+      "bottom" => margins = { ..margins, bottom: Some(inches), }
+      "left" => margins = { ..margins, left: Some(inches), }
+      "right" => margins = { ..margins, right: Some(inches), }
+      "header" => margins = { ..margins, header: Some(inches), }
+      "footer" => margins = { ..margins, footer: Some(inches), }
       _ =>
         raise schema_error(
           file~,

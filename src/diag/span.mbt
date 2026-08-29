@@ -9,8 +9,8 @@ pub struct Pos {
 
 ///|
 /// Build a position from a 1-based line and column.
-pub fn Pos::new(line : Int, col : Int) -> Pos {
-  { line, col }
+pub fn Pos::Pos(line : Int, col : Int) -> Pos {
+  { line, col, }
 }
 
 ///|
@@ -25,15 +25,15 @@ pub struct Span {
 
 ///|
 /// Build a span covering `start`..`end` within `file`.
-pub fn Span::new(file : String, start : Pos, end : Pos) -> Span {
-  { file, start, end }
+pub fn Span::Span(file : String, start : Pos, end : Pos) -> Span {
+  { file, start, end, }
 }
 
 ///|
 /// A zero-width span at a single position (`start == end`) — used when a
 /// diagnostic points at one spot rather than a range.
 pub fn Span::point(file : String, at : Pos) -> Span {
-  { file, start: at, end: at }
+  { file, start: at, end: at, }
 }
 
 ///|

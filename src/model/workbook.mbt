@@ -66,7 +66,7 @@ pub fn Workbook::sheet(self : Workbook, name : String) -> Sheet? {
 ///|
 /// A new, empty workbook. Defaults to the 1900 date system, the backend's
 /// default font, and the first sheet active.
-pub fn Workbook::new(
+pub fn Workbook::Workbook(
   date_system? : @units.DateSystem = Date1900,
   default_font? : String,
 ) -> Workbook {
@@ -122,7 +122,7 @@ pub fn Workbook::add_defined_name(
   name : String,
   refers_to : CellValue,
 ) -> Unit {
-  self.defined_names.push({ name, refers_to })
+  self.defined_names.push({ name, refers_to, })
 }
 
 ///|
@@ -150,7 +150,7 @@ pub fn Workbook::add_sheet(
   name : String,
   visibility? : SheetVisibility = Visible,
 ) -> Sheet {
-  let sheet = Sheet::new(name, visibility~)
+  let sheet = Sheet(name, visibility~)
   self.sheets.push(sheet)
   sheet
 }
@@ -207,7 +207,7 @@ pub(all) struct Sheet {
 
 ///|
 /// A new, empty sheet with the given name, visible unless told otherwise.
-pub fn Sheet::new(
+pub fn Sheet::Sheet(
   name : String,
   visibility? : SheetVisibility = Visible,
 ) -> Sheet {
@@ -342,7 +342,7 @@ pub fn Sheet::add_comment(
   text : String,
   author? : String,
 ) -> Unit {
-  self.comments.push({ at, text, author })
+  self.comments.push({ at, text, author, })
 }
 
 ///|
@@ -354,7 +354,7 @@ pub fn Sheet::add_link(
   target : LinkTarget,
   tip? : String,
 ) -> Unit {
-  self.links.push({ at, target, tip })
+  self.links.push({ at, target, tip, })
 }
 
 ///|
@@ -401,7 +401,7 @@ pub fn Sheet::set_column_band(
   hidden? : Bool,
   outline_level? : Int,
 ) -> Unit {
-  self.columns.push({ first, last, style, size: width, hidden, outline_level })
+  self.columns.push({ first, last, style, size: width, hidden, outline_level, })
 }
 
 ///|
@@ -417,7 +417,7 @@ pub fn Sheet::set_row_band(
   hidden? : Bool,
   outline_level? : Int,
 ) -> Unit {
-  self.rows.push({ first, last, style, size: height, hidden, outline_level })
+  self.rows.push({ first, last, style, size: height, hidden, outline_level, })
 }
 
 ///|
@@ -429,7 +429,7 @@ pub fn Sheet::merge(
   corner2 : @units.CellRef,
 ) -> Unit {
   let (top_left, bottom_right) = @units.CellRef::rect(corner1, corner2)
-  self.merges.push({ top_left, bottom_right })
+  self.merges.push({ top_left, bottom_right, })
 }
 
 ///|
@@ -448,7 +448,7 @@ pub fn Sheet::set(
   let combined = match (style, format) {
     (Some(s), Some(code)) =>
       if s.number_format is None {
-        Some({ ..s, number_format: Some(code) })
+        Some({ ..s, number_format: Some(code), })
       } else {
         Some(s)
       }
@@ -460,5 +460,5 @@ pub fn Sheet::set(
     Some(s) if s.is_empty() => None
     other => other
   }
-  self.cells.push({ pos, value, style })
+  self.cells.push({ pos, value, style, })
 }

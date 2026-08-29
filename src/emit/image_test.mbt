@@ -73,7 +73,7 @@ test "the placement a spec asks for reaches the file" {
 /// The workbook a positioning produces, read back.
 fn positioned(asked : @model.ImagePositioning) -> @xlsx.Image raise {
   let (wb, sheet) = fixture()
-  sheet.add_image({ ..plain_image(), positioning: asked })
+  sheet.add_image({ ..plain_image(), positioning: asked, })
   only_image(wb)
 }
 
@@ -102,7 +102,7 @@ test "two images on one sheet keep their own anchors" {
 ///|
 test "a background round-trips as the sheet's tiled image" {
   let (wb, sheet) = fixture()
-  sheet.set_background({ data: tiny_png, format: "png" })
+  sheet.set_background({ data: tiny_png, format: "png", })
   let reopened = reopen(wb)
   guard reopened.sheet("S") is Some(reopened_sheet) else {
     fail("expected the sheet")

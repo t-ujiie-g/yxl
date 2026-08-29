@@ -12,7 +12,7 @@ priv struct Defs {
 ///|
 /// The empty definition set — no names in any namespace.
 fn Defs::empty() -> Defs {
-  { styles: Map([]), values: Map([]), formulas: Map([]) }
+  { styles: Map([]), values: Map([]), formulas: Map([]), }
 }
 
 ///|

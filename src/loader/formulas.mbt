@@ -53,7 +53,7 @@ fn load_formula_range(
       "\{context} covers \{width} x \{height} cells, more than the \{@model.max_formula_range_cells} a formula range may fill",
     )
   }
-  { at, formula }
+  { at, formula, }
 }
 
 ///|

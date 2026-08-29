@@ -18,7 +18,7 @@ fn read_images(
   if backend.sheet(sheet.name) is Some(source) &&
     source.sheet_background() is Some(background) {
     if image_format(background.extension, notes) is Some(format) {
-      sheet.set_background({ data: background.data, format })
+      sheet.set_background({ data: background.data, format, })
     }
   }
 }

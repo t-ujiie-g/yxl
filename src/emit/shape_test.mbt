@@ -12,7 +12,7 @@ fn only_shape(wb : @model.Workbook) -> @xlsx.Shape raise {
 test "a shape round-trips its geometry, anchor, colours, text, and alt text" {
   let (wb, sheet) = fixture()
   sheet.add_shape({
-    at: @units.CellRef::new(col=3, row=3),
+    at: @units.CellRef(col=3, row=3),
     preset: "cloud",
     text: Some(@model.Plain("Ship it")),
     width: Some(240),
@@ -39,7 +39,7 @@ test "a shape round-trips its geometry, anchor, colours, text, and alt text" {
 test "a shape with defaults leaves the backend's own in place" {
   let (wb, sheet) = fixture()
   sheet.add_shape({
-    at: @units.CellRef::new(col=2, row=2),
+    at: @units.CellRef(col=2, row=2),
     preset: "rect",
     text: None,
     width: None,
@@ -63,14 +63,14 @@ test "a shape with defaults leaves the backend's own in place" {
 test "a shape's text lines each round-trip as their own paragraph" {
   let (wb, sheet) = fixture()
   sheet.add_shape({
-    at: @units.CellRef::new(col=2, row=2),
+    at: @units.CellRef(col=2, row=2),
     preset: "chevron",
     text: Some(
       @model.Lines([
-        { text: "next", font: None },
+        { text: "next", font: None, },
         {
           text: "quarter",
-          font: Some({ ..@model.Font::empty(), bold: Some(true) }),
+          font: Some({ ..@model.Font::empty(), bold: Some(true), }),
         },
       ]),
     ),
@@ -99,7 +99,7 @@ test "a shape's colours are written as three bytes" {
   // in the schema accepts — would reach the file one byte too long.
   let (wb, sheet) = fixture()
   sheet.add_shape({
-    at: @units.CellRef::new(col=3, row=3),
+    at: @units.CellRef(col=3, row=3),
     preset: "rect",
     text: None,
     width: None,

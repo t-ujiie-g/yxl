@@ -321,7 +321,7 @@ fn read_axis(element : XmlElement) -> @model.ChartAxis? {
   guard title is Some(_) || min is Some(_) || max is Some(_) else {
     return None
   }
-  Some({ title, min, max })
+  Some({ title, min, max, })
 }
 
 ///|
@@ -346,7 +346,7 @@ fn read_size(chart : @xlsx.Chart) -> @model.ChartSize? {
   guard width != DEFAULT_CHART_WIDTH || height != DEFAULT_CHART_HEIGHT else {
     return None
   }
-  Some({ width, height })
+  Some({ width, height, })
 }
 
 ///|
@@ -364,7 +364,7 @@ fn attribute_of(element : XmlElement, name : String) -> String? {
 fn text_of(title : XmlElement) -> String? {
   let runs = title.descendants(DRAWING_NS, "t")
   guard !runs.is_empty() else { return None }
-  let text = StringBuilder::new()
+  let text = StringBuilder()
   for run in runs {
     text.write_string(run.text)
   }

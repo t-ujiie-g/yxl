@@ -157,7 +157,7 @@ fn XmlScanner::element(self : XmlScanner) -> XmlElement? {
     attributes[local_name] = entry.1
   }
   let children = []
-  let text = StringBuilder::new()
+  let text = StringBuilder()
   if !self_closing {
     guard self.content(children, text) else {
       self.scopes.pop() |> ignore
@@ -165,7 +165,7 @@ fn XmlScanner::element(self : XmlScanner) -> XmlElement? {
     }
   }
   self.scopes.pop() |> ignore
-  Some({ ns, name, attributes, children, text: text.to_string() })
+  Some({ ns, name, attributes, children, text: text.to_string(), })
 }
 
 ///|
@@ -257,7 +257,7 @@ fn XmlScanner::read_name(self : XmlScanner) -> String? {
     self.at += 1
   }
   guard self.at > start else { return None }
-  let name = StringBuilder::new()
+  let name = StringBuilder()
   for index in start..<self.at {
     name.write_char(self.chars[index])
   }
@@ -287,7 +287,7 @@ fn XmlScanner::read_quoted(self : XmlScanner) -> String? {
 /// as written: a chart part holds none, and mangling one would be worse than
 /// carrying it through.
 fn XmlScanner::decode(self : XmlScanner, start : Int, end : Int) -> String {
-  let out = StringBuilder::new()
+  let out = StringBuilder()
   let mut index = start
   while index < end {
     guard self.chars[index] == '&' else {
@@ -304,7 +304,7 @@ fn XmlScanner::decode(self : XmlScanner, start : Int, end : Int) -> String {
       index += 1
       continue
     }
-    let entity = StringBuilder::new()
+    let entity = StringBuilder()
     for inner in (index + 1)..<close {
       entity.write_char(self.chars[inner])
     }

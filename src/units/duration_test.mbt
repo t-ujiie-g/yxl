@@ -2,15 +2,15 @@
 test "a duration parses hours beyond a day, with or without seconds" {
   assert_eq(
     @units.Duration::parse("26:30:00"),
-    Some(@units.Duration::{ hours: 26, minutes: 30, seconds: 0 }),
+    Some(@units.Duration::{ hours: 26, minutes: 30, seconds: 0, }),
   )
   assert_eq(
     @units.Duration::parse("0:05"),
-    Some(@units.Duration::{ hours: 0, minutes: 5, seconds: 0 }),
+    Some(@units.Duration::{ hours: 0, minutes: 5, seconds: 0, }),
   )
   assert_eq(
     @units.Duration::parse("100:00:59"),
-    Some(@units.Duration::{ hours: 100, minutes: 0, seconds: 59 }),
+    Some(@units.Duration::{ hours: 100, minutes: 0, seconds: 59, }),
   )
 }
 

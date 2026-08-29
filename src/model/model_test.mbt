@@ -1,11 +1,11 @@
 ///|
 test "a fresh workbook has no sheets" {
-  assert_eq(@model.Workbook::new().sheets.length(), 0)
+  assert_eq(@model.Workbook().sheets.length(), 0)
 }
 
 ///|
 test "sheet finds a declared sheet by name and misses an undeclared one" {
-  let wb = @model.Workbook::new()
+  let wb = @model.Workbook()
   wb.add_sheet("Sales") |> ignore
   assert_eq(wb.sheet("Sales").unwrap().name, "Sales")
   assert_true(wb.sheet("Notes") is None)
@@ -14,23 +14,23 @@ test "sheet finds a declared sheet by name and misses an undeclared one" {
 ///|
 test "to_a1 writes a range as its unqualified corners" {
   let range : @model.CellRange = {
-    top_left: @units.CellRef::new(col=1, row=1),
-    bottom_right: @units.CellRef::new(col=4, row=10),
+    top_left: @units.CellRef(col=1, row=1),
+    bottom_right: @units.CellRef(col=4, row=10),
   }
   assert_eq(range.to_a1(), "A1:D10")
 }
 
 ///|
 test "add_sheet appends a sheet whose edits are visible in the workbook" {
-  let wb = @model.Workbook::new()
+  let wb = @model.Workbook()
   let sheet = wb.add_sheet("Sheet1")
-  sheet.set(@units.CellRef::new(col=1, row=1), Text("yxl"))
-  sheet.set(@units.CellRef::new(col=2, row=1), Number(42.0), format="0.00")
+  sheet.set(@units.CellRef(col=1, row=1), Text("yxl"))
+  sheet.set(@units.CellRef(col=2, row=1), Number(42.0), format="0.00")
   assert_eq(wb.sheets.length(), 1)
   assert_eq(wb.sheets[0].name, "Sheet1")
   assert_eq(wb.sheets[0].cells.length(), 2)
   assert_eq(wb.sheets[0].cells[0], {
-    pos: @units.CellRef::new(col=1, row=1),
+    pos: @units.CellRef(col=1, row=1),
     value: Text("yxl"),
     style: None,
   })
@@ -43,23 +43,18 @@ test "add_sheet appends a sheet whose edits are visible in the workbook" {
 
 ///|
 test "set folds a format shorthand into a style, and merges with an explicit style" {
-  let wb = @model.Workbook::new()
+  let wb = @model.Workbook()
   let sheet = wb.add_sheet("S")
   let bold : @model.Style = {
     ..@model.Style::empty(),
-    font: Some({ ..Font::empty(), bold: Some(true) }),
+    font: Some({ ..Font::empty(), bold: Some(true), }),
   }
-  sheet.set(@units.CellRef::new(col=1, row=1), Number(1.0), format="0%")
+  sheet.set(@units.CellRef(col=1, row=1), Number(1.0), format="0%")
   assert_eq(sheet.cells[0].style, Some(@model.Style::number_format("0%")))
+  sheet.set(@units.CellRef(col=2, row=1), Number(1.0), format="0%", style=bold)
+  assert_eq(sheet.cells[1].style, Some({ ..bold, number_format: Some("0%"), }))
   sheet.set(
-    @units.CellRef::new(col=2, row=1),
-    Number(1.0),
-    format="0%",
-    style=bold,
-  )
-  assert_eq(sheet.cells[1].style, Some({ ..bold, number_format: Some("0%") }))
-  sheet.set(
-    @units.CellRef::new(col=3, row=1),
+    @units.CellRef(col=3, row=1),
     Number(1.0),
     style=@model.Style::empty(),
   )
@@ -71,7 +66,7 @@ test "Style::is_empty distinguishes the default style from any set attribute" {
   assert_true(@model.Style::empty().is_empty())
   assert_false(@model.Style::number_format("0.00").is_empty())
   assert_false(
-    @model.Style::{ ..@model.Style::empty(), fill: Some({ color: red() }) }.is_empty(),
+    @model.Style::{ ..@model.Style::empty(), fill: Some({ color: red(), }), }.is_empty(),
   )
 }
 
@@ -85,21 +80,21 @@ test "Style::over keeps what the overriding style leaves unset" {
       size: Some(11.0),
       name: Some("Calibri"),
     }),
-    fill: Some({ color: red() }),
+    fill: Some({ color: red(), }),
     borders: Some({
-      left: Some({ style: Thin, color: None }),
+      left: Some({ style: Thin, color: None, }),
       right: None,
       top: None,
       bottom: None,
     }),
-    align: Some({ horizontal: Some(Left), vertical: None, wrap: Some(true) }),
+    align: Some({ horizontal: Some(Left), vertical: None, wrap: Some(true), }),
     number_format: Some("0.00"),
     protection: None,
   }
   let over : @model.Style = {
     ..@model.Style::empty(),
-    font: Some({ ..Font::empty(), bold: Some(true) }),
-    align: Some({ horizontal: Some(Center), vertical: None, wrap: None }),
+    font: Some({ ..Font::empty(), bold: Some(true), }),
+    align: Some({ horizontal: Some(Center), vertical: None, wrap: None, }),
   }
   let merged = over.over(base)
   let font = merged.font.unwrap()
@@ -147,9 +142,9 @@ test "StyleAttrs is a set: membership, union, and difference" {
 test "an overriding style takes away the attribute it clears" {
   let base : @model.Style = {
     ..@model.Style::empty(),
-    fill: Some({ color: red() }),
+    fill: Some({ color: red(), }),
     number_format: Some("0.00"),
-    font: Some({ ..Font::empty(), bold: Some(true), size: Some(11.0) }),
+    font: Some({ ..Font::empty(), bold: Some(true), size: Some(11.0), }),
   }
   let over = clears([Fill, FontSize])
   let merged = over.over(base)
@@ -163,21 +158,21 @@ test "an overriding style takes away the attribute it clears" {
 test "a cleared attribute stays cleared until something sets it" {
   let column : @model.Style = {
     ..@model.Style::empty(),
-    fill: Some({ color: red() }),
+    fill: Some({ color: red(), }),
   }
   let row = clears([Fill])
   let cell : @model.Style = {
     ..@model.Style::empty(),
-    font: Some({ ..Font::empty(), bold: Some(true) }),
+    font: Some({ ..Font::empty(), bold: Some(true), }),
   }
   let layered = cell.over(row.over(column))
   assert_eq(layered.fill, None)
   assert_true(layered.cleared.has(Fill))
   let refilled = (
-    { ..@model.Style::empty(), fill: Some({ color: red() }) } : @model.Style).over(
+    { ..@model.Style::empty(), fill: Some({ color: red(), }), } : @model.Style).over(
     layered,
   )
-  assert_eq(refilled.fill, Some({ color: red() }))
+  assert_eq(refilled.fill, Some({ color: red(), }))
   assert_true(!refilled.cleared.has(Fill))
 }
 
@@ -186,10 +181,10 @@ test "an attribute this style sets cannot also be cleared" {
   let style = (
     {
       ..@model.Style::empty(),
-      fill: Some({ color: red() }),
-      font: Some({ ..Font::empty(), bold: Some(true) }),
+      fill: Some({ color: red(), }),
+      font: Some({ ..Font::empty(), bold: Some(true), }),
     } : @model.Style).clearing(@model.StyleAttrs::of([Fill, FontSize]))
-  assert_eq(style.fill, Some({ color: red() }))
+  assert_eq(style.fill, Some({ color: red(), }))
   assert_eq(style.assigned(), @model.StyleAttrs::of([Fill, FontBold]))
   assert_eq(style.cleared, @model.StyleAttrs::of([FontSize]))
 }
@@ -205,12 +200,12 @@ test "a style that only clears is not the empty style" {
 test "settling drops the record so one look interns once" {
   let plain : @model.Style = {
     ..@model.Style::empty(),
-    font: Some({ ..Font::empty(), bold: Some(true) }),
+    font: Some({ ..Font::empty(), bold: Some(true), }),
   }
   let arrived_by_clearing = (
     {
       ..@model.Style::empty(),
-      font: Some({ ..Font::empty(), bold: Some(true) }),
+      font: Some({ ..Font::empty(), bold: Some(true), }),
     } : @model.Style).clearing(@model.StyleAttrs::of([Fill]))
   assert_true(plain != arrived_by_clearing)
   assert_eq(plain, arrived_by_clearing.settled())
@@ -218,17 +213,17 @@ test "settling drops the record so one look interns once" {
 
 ///|
 test "a band style reaches a position from the column with the row over it" {
-  let sheet = @model.Sheet::new("S")
+  let sheet = @model.Sheet("S")
   sheet.set_column_band(first=3, last=3, style={
     ..@model.Style::empty(),
-    fill: Some({ color: red() }),
+    fill: Some({ color: red(), }),
   })
   sheet.set_row_band(first=2, last=2, style=clears([Fill]))
-  let filled = sheet.band_style_at(@units.CellRef::new(col=3, row=1)).unwrap()
-  assert_eq(filled.fill, Some({ color: red() }))
-  let cleared = sheet.band_style_at(@units.CellRef::new(col=3, row=2)).unwrap()
+  let filled = sheet.band_style_at(@units.CellRef(col=3, row=1)).unwrap()
+  assert_eq(filled.fill, Some({ color: red(), }))
+  let cleared = sheet.band_style_at(@units.CellRef(col=3, row=2)).unwrap()
   assert_eq(cleared.fill, None)
-  assert_true(sheet.band_style_at(@units.CellRef::new(col=1, row=1)) is None)
+  assert_true(sheet.band_style_at(@units.CellRef(col=1, row=1)) is None)
 }
 
 ///|
@@ -246,7 +241,7 @@ test "a band's number format is not inherited by a text cell" {
 
 ///|
 test "band setters record an inclusive span and only the properties given" {
-  let sheet = @model.Sheet::new("S")
+  let sheet = @model.Sheet("S")
   sheet.set_column_band(first=2, last=4, width=12.0, hidden=true)
   sheet.set_row_band(first=1, last=1, height=24.0, outline_level=2)
   assert_eq(sheet.columns, [
@@ -277,45 +272,36 @@ test "band setters record an inclusive span and only the properties given" {
 
 ///|
 test "merge canonicalizes its corners whichever pair is given" {
-  let sheet = @model.Sheet::new("S")
-  sheet.merge(
-    @units.CellRef::new(col=3, row=3),
-    @units.CellRef::new(col=1, row=1),
-  )
-  sheet.merge(
-    @units.CellRef::new(col=3, row=1),
-    @units.CellRef::new(col=1, row=3),
-  )
+  let sheet = @model.Sheet("S")
+  sheet.merge(@units.CellRef(col=3, row=3), @units.CellRef(col=1, row=1))
+  sheet.merge(@units.CellRef(col=3, row=1), @units.CellRef(col=1, row=3))
   let expected : @model.CellRange = {
-    top_left: @units.CellRef::new(col=1, row=1),
-    bottom_right: @units.CellRef::new(col=3, row=3),
+    top_left: @units.CellRef(col=1, row=1),
+    bottom_right: @units.CellRef(col=3, row=3),
   }
   assert_eq(sheet.merges, [expected, expected])
 }
 
 ///|
 test "sheet presentation setters are independent and default to Excel's own" {
-  let sheet = @model.Sheet::new("S")
+  let sheet = @model.Sheet("S")
   assert_eq(sheet.visibility, Visible)
   assert_eq(sheet.panes, None)
   assert_eq(sheet.gridlines, None)
   assert_eq(sheet.tab_color, None)
   assert_eq(sheet.page, None)
-  sheet.set_panes(Freeze(@units.CellRef::new(col=2, row=2)))
+  sheet.set_panes(Freeze(@units.CellRef(col=2, row=2)))
   sheet.set_gridlines(false)
   sheet.set_tab_color(red())
   sheet.set_page_setup({
     ..@model.PageSetup::empty(),
     orientation: Some(Landscape),
   })
-  assert_eq(sheet.panes, Some(Freeze(@units.CellRef::new(col=2, row=2))))
+  assert_eq(sheet.panes, Some(Freeze(@units.CellRef(col=2, row=2))))
   assert_eq(sheet.gridlines, Some(false))
   assert_eq(sheet.tab_color, Some(red()))
   assert_eq(sheet.page.unwrap().orientation, Some(Landscape))
-  assert_eq(
-    @model.Sheet::new("H", visibility=VeryHidden).visibility,
-    VeryHidden,
-  )
+  assert_eq(@model.Sheet("H", visibility=VeryHidden).visibility, VeryHidden)
 }
 
 ///|
@@ -332,13 +318,13 @@ test "PageSetup::empty changes nothing" {
 
 ///|
 test "defined names and the active sheet are workbook-wide, in declaration order" {
-  let wb = @model.Workbook::new()
+  let wb = @model.Workbook()
   assert_eq(wb.active_sheet, None)
   wb.add_defined_name("tax_rate", Number(0.08))
   wb.add_defined_name("company", Text("Acme"))
   assert_eq(wb.defined_names, [
-    { name: "tax_rate", refers_to: Number(0.08) },
-    { name: "company", refers_to: Text("Acme") },
+    { name: "tax_rate", refers_to: Number(0.08), },
+    { name: "company", refers_to: Text("Acme"), },
   ])
   wb.add_sheet("S") |> ignore
   wb.set_active_sheet("S")
@@ -347,8 +333,8 @@ test "defined names and the active sheet are workbook-wide, in declaration order
 
 ///|
 test "overrides are workbook-wide, in declaration order, and read back per sheet" {
-  let wb = @model.Workbook::new()
-  let at = @units.CellRef::new(col=1, row=1)
+  let wb = @model.Workbook()
+  let at = @units.CellRef(col=1, row=1)
   for name in ["First", "Second"] {
     wb.add_sheet(name) |> ignore
     wb.add_override({
@@ -374,11 +360,11 @@ fn red() -> @units.Color {
 
 ///|
 test "cells keep insertion order across multiple sheets" {
-  let wb = @model.Workbook::new()
+  let wb = @model.Workbook()
   let s1 = wb.add_sheet("First")
   let s2 = wb.add_sheet("Second")
-  s2.set(@units.CellRef::new(col=1, row=1), Text("b"))
-  s1.set(@units.CellRef::new(col=1, row=1), Text("a"))
+  s2.set(@units.CellRef(col=1, row=1), Text("b"))
+  s1.set(@units.CellRef(col=1, row=1), Text("a"))
   assert_eq(wb.sheets.map(s => s.name), ["First", "Second"])
   assert_eq(wb.sheets[0].cells[0].value, Text("a"))
   assert_eq(wb.sheets[1].cells[0].value, Text("b"))
@@ -422,7 +408,7 @@ test "Font::empty sets nothing, and says so" {
   assert_true(font.is_empty())
   assert_eq(font.bold, None)
   assert_eq(font.color, None)
-  assert_true(!{ ..@model.Font::empty(), bold: Some(true) }.is_empty())
+  assert_true(!{ ..@model.Font::empty(), bold: Some(true), }.is_empty())
   // Two empty fonts are equal, which is what lets a style holding one intern
   // with a style holding none.
   assert_eq(@model.Font::empty(), @model.Font::empty())

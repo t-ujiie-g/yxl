@@ -29,7 +29,7 @@ test "an inline drop-down comes back as its choices" {
   let (wb, sheet) = fixture()
   sheet.set(at("A1"), Text("x"))
   sheet.add_validation({
-    at: { top_left: at("B2"), bottom_right: at("B9") },
+    at: { top_left: at("B2"), bottom_right: at("B9"), },
     rule: List(["Draft", "Sent", "Paid"]),
     allow_blank: true,
     prompt: None,
@@ -46,11 +46,11 @@ test "a comparing validation comes back with its bounds and its messages" {
   let (wb, sheet) = fixture()
   sheet.set(at("A1"), Text("x"))
   sheet.add_validation({
-    at: { top_left: at("C2"), bottom_right: at("C9") },
+    at: { top_left: at("C2"), bottom_right: at("C9"), },
     rule: Compare(kind=Whole, check=Between(Number(1.0), Number(1000.0))),
     allow_blank: false,
-    prompt: Some({ title: "Quantity", body: "1 to 1000." }),
-    error: Some({ title: "Out of range", body: "Try again.", style: Warning }),
+    prompt: Some({ title: "Quantity", body: "1 to 1000.", }),
+    error: Some({ title: "Out of range", body: "Try again.", style: Warning, }),
   })
   let recovered = only_sheet(wb).validations[0]
   assert_eq(
@@ -75,7 +75,7 @@ test "a date validation's bounds come back as dates, not as serials" {
     second: 0,
   }
   sheet.add_validation({
-    at: { top_left: at("D2"), bottom_right: at("D9") },
+    at: { top_left: at("D2"), bottom_right: at("D9"), },
     rule: Compare(kind=DateValue, check=AtLeast(Date(start))),
     allow_blank: true,
     prompt: None,
@@ -93,12 +93,12 @@ test "a date validation's bounds come back as dates, not as serials" {
 test "a table comes back with its name, style, and toggles" {
   let (wb, sheet) = fixture()
   for column, header in ["Region", "Amount"] {
-    sheet.set(@units.CellRef::new(col=column + 1, row=1), Text(header))
+    sheet.set(@units.CellRef(col=column + 1, row=1), Text(header))
   }
   sheet.set(at("A2"), Text("APAC"))
   sheet.set(at("B2"), Number(1.0))
   sheet.add_table({
-    at: { top_left: at("A1"), bottom_right: at("B2") },
+    at: { top_left: at("A1"), bottom_right: at("B2"), },
     name: Some("Sales"),
     style: Some("TableStyleMedium9"),
     banded_rows: true,
@@ -117,7 +117,7 @@ test "a table comes back with its name, style, and toggles" {
 test "the auto filter comes back as its range" {
   let (wb, sheet) = fixture()
   sheet.set(at("A1"), Text("Region"))
-  sheet.set_filter({ top_left: at("A1"), bottom_right: at("C1") })
+  sheet.set_filter({ top_left: at("A1"), bottom_right: at("C1"), })
   assert_true(only_sheet(wb).filter is Some(range) && range.to_a1() == "A1:C1")
 }
 
@@ -130,12 +130,12 @@ fn conditional(
   let (wb, sheet) = fixture()
   sheet.set(at("A1"), Number(10.0))
   sheet.add_conditional_format({
-    at: { top_left: at("A1"), bottom_right: at("A9") },
+    at: { top_left: at("A1"), bottom_right: at("A9"), },
     rule,
     style: if style {
       Some({
         ..@model.Style::empty(),
-        fill: Some({ color: @units.Color::parse("FFC7CE").unwrap() }),
+        fill: Some({ color: @units.Color::parse("FFC7CE").unwrap(), }),
       })
     } else {
       None
@@ -202,11 +202,11 @@ test "a conditional format keeps its own look and its stop flag" {
   let (wb, sheet) = fixture()
   sheet.set(at("A1"), Number(1.0))
   sheet.add_conditional_format({
-    at: { top_left: at("A1"), bottom_right: at("A9") },
+    at: { top_left: at("A1"), bottom_right: at("A9"), },
     rule: Unique,
     style: Some({
       ..@model.Style::empty(),
-      fill: Some({ color: @units.Color::parse("FFC7CE").unwrap() }),
+      fill: Some({ color: @units.Color::parse("FFC7CE").unwrap(), }),
     }),
     stop_if_true: true,
   })
@@ -223,7 +223,7 @@ test "a highlighting rule with no expressible style is dropped and named" {
   let (wb, sheet) = fixture()
   sheet.set(at("A1"), Number(1.0))
   sheet.add_conditional_format({
-    at: { top_left: at("A1"), bottom_right: at("A9") },
+    at: { top_left: at("A1"), bottom_right: at("A9"), },
     rule: Unique,
     style: None,
     stop_if_true: false,

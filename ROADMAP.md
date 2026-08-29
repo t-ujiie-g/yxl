@@ -1934,6 +1934,27 @@ accepted and means what leaving the key out means.
 
 Reverse-chronological. One entry per user-visible or structural change.
 
+- **2026-08-29** — **Toolchain catch-up: a constructor is named for its type.**
+  MoonBit's current idiom is that a static method carrying its own type's name
+  *is* that type's constructor, callable as `T(…)`; core has moved its own
+  (`StringBuilder()`, `Bench()`, `Test()`, `Ref()`) and deprecates the `new`
+  spelling behind `#alias(new, deprecated=…)`. The twenty-one
+  `StringBuilder::new()` calls were the half the compiler flagged; the other
+  half is ours, and yxl's twelve `T::new` follow — `@units.CellRef(col~, row~)`,
+  `@model.Workbook()`, `@diag.Diagnostic(message)`. Only the *primary*
+  constructor takes the type's name: `Span::point`, `Style::empty`, and
+  `CellRef::parse_a1` say something `Span(…)` cannot, and keep their names.
+  `@xlsx.*::new` is left alone — mbtexcel 0.1.9 has not moved and its surface is
+  pinned (ADR-001). Seven of the twelve are public, so the `.mbti` records the
+  rename; no behaviour change (ADR-007, §8.8).
+
+  Landed underneath it, on its own commit so the next one is a revertable diff:
+  **a whole-tree reflow.** The formatter in moon 0.1.20260827 — the current
+  published release, which CI installs unpinned — writes a trailing comma into
+  single-line struct literals (`{ col, row, }`) and collapses `T::{  }` to
+  `T::{ }`. `moon fmt --check` was already failing on `main` before any of this;
+  seventy-nine files now say what the formatter says.
+
 - **2026-08-20** — **A style attribute can now say it is *not* set.** Leaving a
   key out has always meant "inherit" — from the style an inline one extends,
   from the column band, from the row band over it — which left no way to write

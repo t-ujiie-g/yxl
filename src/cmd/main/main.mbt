@@ -181,7 +181,7 @@ fn read_included(from : String, path : String) -> @loader.Included raise {
   let source = @fs.read_file_to_string(name) catch {
     @fs.IOError(reason) => raise read_error(from, name, reason)
   }
-  { name, source }
+  { name, source, }
 }
 
 ///|
@@ -196,7 +196,7 @@ fn read_included_bytes(
   let data = @fs.read_file_to_bytes(name) catch {
     @fs.IOError(reason) => raise read_error(from, name, reason)
   }
-  { name, data }
+  { name, data, }
 }
 
 ///|
@@ -208,7 +208,7 @@ fn read_error(
   reason : String,
 ) -> @diag.SchemaError {
   @diag.SchemaError(
-    @diag.Diagnostic::new("\{from}: cannot read '\{name}': \{reason}"),
+    @diag.Diagnostic("\{from}: cannot read '\{name}': \{reason}"),
   )
 }
 

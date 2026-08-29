@@ -17,7 +17,7 @@ pub struct CellRef {
   col : Int
   row : Int
 } derive(Eq, @debug.Debug)
-pub fn CellRef::new(col~ : Int, row~ : Int) -> Self
+pub fn CellRef::CellRef(col~ : Int, row~ : Int) -> Self
 pub fn CellRef::parse_a1(String) -> Self?
 pub fn CellRef::rect(Self, Self) -> (Self, Self)
 pub fn CellRef::to_a1(Self) -> String

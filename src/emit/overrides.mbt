@@ -22,7 +22,7 @@ fn apply_override(
       emit_cell(
         backend,
         sheet_name,
-        { pos: entry.at, value, style: None },
+        { pos: entry.at, value, style: None, },
         style_ids,
         date_system,
         style=entry.style,
