@@ -703,6 +703,21 @@ Excel keeps these looks in a table of its own, separate from the styles cells
 wear, but they are declared the same way and shared the same way: a look used by
 ten rules is stored once.
 
+> **Do not give a conditional look a `format:` or an `align:` yet.** The Excel
+> backend writes that table's entries with their parts in the wrong order
+> ([office.mbt#531](https://github.com/moonbitlang/office.mbt/issues/531)), and
+> a look carrying a number format or an alignment comes out invalid. Excel then
+> reports the workbook as damaged and, on repair, **throws away every style in
+> it** — fills, borders, fonts and number formats on ordinary cells too, not
+> only the conditional ones. A look built from a `font:` and a `fill:` is
+> unaffected, which is why this is easy to miss.
+>
+> The trap is `extends:`. A base style shared across a workbook — `align:
+> { vertical: middle }`, say — carries the alignment into every look that
+> inherits it, so a rule can hit this without the word `align` appearing near
+> it. Give a conditional look its own definition rather than extending a shared
+> one, until the fix lands upstream.
+
 ### The icon sets
 
 `3Arrows`, `3ArrowsGray`, `3Flags`, `3Signs`, `3Symbols`, `3Symbols2`,

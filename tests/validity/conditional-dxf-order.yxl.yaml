@@ -1,0 +1,43 @@
+# Part of the validity corpus (ROADMAP §5).
+#
+# a conditional format whose style carries a number format and an alignment,
+# which is the combination that puts `<dxf>`'s children out of CT_Dxf order
+#
+# This is not the cookbook. `examples/` is written to be read and teaches one
+# thing at a time; this is written to be *validated*, and reaches for every
+# variant the schema offers — because the Open XML validator only ever judges
+# the files something actually produces. Three icon sets shipped invalid for
+# two phases because the cookbook happened to use one of the twenty.
+#
+# Nothing here needs to be legible or realistic. Add a row when the schema
+# grows a variant; never delete one to make a build pass.
+#
+# This file exists to *hold a known defect still*: the workbook it builds is
+# invalid, waived by name in tools/openxml-validator/known-defects.txt, and the
+# waiver fails the day the backend starts writing the order correctly
+# (office.mbt#531). `conditional.yxl.yaml` stays clean so that it keeps proving
+# the feature itself validates; only this one file carries the defect.
+
+defs:
+  styles:
+    # A base style of the kind a spec shares across a workbook. Inheriting it
+    # into a conditional style is how an author hits this without ever writing
+    # `align:` on the rule.
+    base:
+      align: { vertical: middle }
+    hit:
+      extends: base
+      font: { bold: true }
+      format: "0.0"
+      fill: FFF2CC
+      border: thin
+
+sheets:
+  - name: Rules
+    cells:
+      A1: 1
+      A2: 2
+    conditional:
+      - at: A1:A10
+        formula: "TRUE"
+        style: hit

@@ -136,6 +136,14 @@ ADR-008). Dependencies point *downward*; lower packages never import higher.
   it lives outside `src/examples`: that package asserts on cells and enforces
   a coverage check both ways, and neither is what this corpus is for.
 
+  **A variant is not the same as a combination**, which the `<dxf>` order
+  defect showed a phase later (§9, §11). `conditional.yxl.yaml` does reach for
+  every rule kind and every comparison — twenty-four rules — and still missed
+  it, because every look in it is made of a font and a fill, and the defect only
+  appears once a `format:` or an `align:` joins them. So the corpus rule is
+  wider than "one of each": where two features meet in one construct and the
+  file records them together, build that meeting too.
+
 ---
 
 ## 6. Phase roadmap
@@ -1811,6 +1819,47 @@ held: the whole migration is four `moon.pkg` import lines and one constructor.
   workbook that is schema-valid and still wrong — the pivot in the wrong place,
   the `#SPILL!` below — so the manual Tier-3 pass stays at the v1.0 gate.
   Raised in the post-v0.1.0 review.
+- **A conditional look with a number format or an alignment makes Excel throw
+  away every style in the workbook.** `<dxf>`'s children go out as `numFmt,
+  font, fill, border, alignment`, where `CT_Dxf` (ECMA-376 §18.8.14) is the
+  sequence `font, numFmt, fill, alignment, border, protection`. `styles.xml` is
+  load-bearing, so Excel does not ignore the part — it calls the workbook
+  damaged and repair discards the whole stylesheet, taking every ordinary
+  cell's fill, border, font and number format with it. **Reported 2026-09-10 as
+  [office.mbt#531](https://github.com/moonbitlang/office.mbt/issues/531)**;
+  ours is [#81](https://github.com/t-ujiie-g/yxl/issues/81), which has the
+  bisection.
+
+  **Nothing is worked around here, by decision** — the combination is refused
+  neither in the loader nor in `emit`, because the fix is one reordering
+  upstream and a refusal would cost a real feature (a currency-formatted
+  highlight) for however long that takes. `docs/spec.md` §10 warns instead, and
+  names the trap: a base style carrying `align:` reaches a conditional look
+  through `extends:` without the author writing the word.
+
+  **Why the corpus did not catch it, which is the part worth keeping.** A
+  `<dxf>` holding only a font and a fill comes out in a legal order by
+  accident, and that is every look in `conditional.yxl.yaml`'s twenty-four
+  rules. The validator sees the defect the moment a `format:` or an `align:`
+  joins them — this was found by hand, not by CI, which is the icon-set lesson
+  a second time: *the corpus judges only the variants something actually
+  builds.* `tests/validity/conditional-dxf-order.yxl.yaml` now builds exactly
+  that combination, waived by name so the waiver fails the day upstream fixes
+  it.
+
+- **A comment's VML shape style carries a value with no property name.**
+  `write_comments_vml.mbt:95` writes
+  `style="position:absolute;73.5pt;width:108pt;…"` — `margin-left:` and
+  `margin-top:` are missing, so `73.5pt` is not a declaration at all. Excel
+  positions a note from `<x:Anchor>` rather than from the VML, so Excel for
+  Mac 16.x shows it correctly and offers no repair; a stricter consumer need
+  not. The same file writes the header/footer image case correctly (line 873),
+  so it is a slip in the comment path alone. Every comment also shares one
+  fixed geometry, with only `<x:Anchor>` varying. **Reported 2026-09-10 as
+  [office.mbt#532](https://github.com/moonbitlang/office.mbt/issues/532)**;
+  ours is [#82](https://github.com/t-ujiie-g/yxl/issues/82). Not worked around:
+  there is nothing a spec could say differently.
+
 - **The backend writes a table slicer's cache extension in the wrong
   namespace.** `write_slicer_cache_xml_table` makes x14 the part's default
   namespace and then writes a bare `<ext>`, which therefore lands in x14;
@@ -2008,6 +2057,39 @@ held: the whole migration is four `moon.pkg` import lines and one constructor.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-09-10** — **Two backend defects reported, one of which loses every
+  style in the workbook.** Found by re-reading our own open issues against
+  `mbtexcel@0.1.10` after the v0.4.0 release: the 0.1.10 sweep had worked from
+  §9 and from the `office.mbt#` references in the source, and #81 and #82 were
+  in neither, so they were missed. Both are still present in 0.1.10.
+
+  **`<dxf>` is written out of `CT_Dxf` order** (ECMA-376 §18.8.14) — `numFmt`
+  before `font`, `alignment` after `border`. A conditional look built from a
+  font and a fill survives that by luck; one carrying a `format:` or an
+  `align:` does not, and because `styles.xml` is load-bearing Excel calls the
+  whole workbook damaged and repair **discards the stylesheet entire**, taking
+  every ordinary cell's formatting with it. Reported as
+  [office.mbt#531](https://github.com/moonbitlang/office.mbt/issues/531).
+  **Deliberately not worked around**: the fix upstream is one reordering, and
+  refusing the combination would cost a real feature — a currency-formatted
+  highlight — for however long that takes. `docs/spec.md` §10 warns instead and
+  names the trap, which is `extends:`: a shared base style carrying `align:`
+  reaches a conditional look without the author writing the word.
+
+  **A comment's VML shape style is missing `margin-left` / `margin-top`**, so
+  it carries a bare `73.5pt` that is not a declaration
+  ([office.mbt#532](https://github.com/moonbitlang/office.mbt/issues/532)).
+  Excel reads a note's position from `<x:Anchor>` and is unbothered; a stricter
+  consumer need not be. Nothing to work around — no spec says this differently.
+
+  **The corpus lesson, for the second time.** The validator catches the `<dxf>`
+  defect the instant it is asked to — but `conditional.yxl.yaml`'s twenty-four
+  rules all use looks made of a font and a fill, so it was never asked. This is
+  the icon-set blind spot again: *the corpus judges only the variants something
+  actually builds.* `tests/validity/conditional-dxf-order.yxl.yaml` now builds
+  the combination on purpose, waived by name in `known-defects.txt` so the
+  waiver fails the day upstream fixes the order.
 
 - **2026-09-09** — **The backend moved to `moonbitlang/mbtexcel@0.1.10`, and
   four of our refusals came off with it.** The library changed owner —
