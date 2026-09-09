@@ -5,6 +5,11 @@
 # perfectly legal, and a link never supplies the text you see. The cell's value
 # still comes from `cells:`.
 
+# Nobody may add, remove, rename or reorder sheets. Not encryption — it stops
+# accidents, and Excel removes it for anyone who asks.
+protect:
+  structure: true
+
 defs:
   styles:
     # Sheet protection freezes every cell *except* those a style unlocks, so

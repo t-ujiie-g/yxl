@@ -40,6 +40,7 @@ fn load_pivot(
   let mut source = None
   let mut rows : Array[@model.PivotField] = []
   let mut columns : Array[@model.PivotField] = []
+  let mut filters : Array[@model.PivotField] = []
   let mut values : Array[@model.PivotValue] = []
   let mut name = None
   let mut style = None
@@ -57,22 +58,14 @@ fn load_pivot(
             what="\{context} 'source'",
           ),
         )
-      "rows" | "columns" => {
+      "rows" | "columns" | "filters" => {
         let fields = load_pivot_fields(value, file~, context~, axis=key)
-        if key == "rows" {
-          rows = fields
-        } else {
-          columns = fields
+        match key {
+          "rows" => rows = fields
+          "columns" => columns = fields
+          _ => filters = fields
         }
       }
-      // Named rather than left to fall through as an unknown key: the axis is
-      // one Excel has and a spec will reach for, and the author deserves the
-      // reason instead of a workbook whose pivot reads `#SPILL!`.
-      "filters" =>
-        raise schema_error(
-          file~,
-          "\{context} sets 'filters', which the Excel backend cannot write in a form Excel opens — it leaves the filter rows out of the pivot's location, and Excel shows '#SPILL!' where the pivot should be",
-        )
       "values" => values = load_pivot_values(value, file~, context~)
       "name" =>
         name = Some(expect_string(value, file~, context="\{context} 'name'"))
@@ -101,7 +94,7 @@ fn load_pivot(
       _ =>
         raise schema_error(
           file~,
-          "unknown key '\{key}' in \{context} (expected 'at', 'source', 'rows', 'columns', 'values', 'name', 'style', 'row_grand_totals', or 'column_grand_totals')",
+          "unknown key '\{key}' in \{context} (expected 'at', 'source', 'rows', 'columns', 'filters', 'values', 'name', 'style', 'row_grand_totals', or 'column_grand_totals')",
         )
     }
   }
@@ -121,6 +114,7 @@ fn load_pivot(
     source,
     rows,
     columns,
+    filters,
     values,
     name,
     style,
@@ -235,13 +229,6 @@ fn check_pivots(
   workbook : @model.Workbook,
   file~ : String,
 ) -> Unit raise @diag.SchemaError {
-  // The Excel backend numbers every pivot's cache `1`, while the workbook part
-  // it writes numbers them 1, 2, … — and Excel resolves a pivot's cache by that
-  // number. A second pivot over a *different* source would therefore summarize
-  // the first one's data, silently and with no error anywhere. Sharing one
-  // source is the case that stays correct, so it is the case allowed
-  // (moonbitlang/office.mbt#264).
-  let mut declared : (String, @model.CellRange, String)? = None
   for sheet in workbook.sheets {
     for pivot in sheet.pivots {
       let context = "pivot '\{pivot.at.to_a1()}' on sheet '\{sheet.name}'"
@@ -279,16 +266,6 @@ fn check_pivots(
           "\{context} is drawn over the cells it summarizes at '\{source.to_a1()}'",
         )
       }
-      match declared {
-        Some((first_sheet, first_range, first_context)) =>
-          if first_sheet != source_name || first_range != source {
-            raise schema_error(
-              file~,
-              "\{context} summarizes '\{source_name}!\{source.to_a1()}', but \{first_context} summarizes '\{first_sheet}!\{first_range.to_a1()}' — every pivot in a workbook must share one source, because the Excel backend gives them all the same cache and the later ones would quietly summarize the first one's data",
-            )
-          }
-        None => declared = Some((source_name, source, context))
-      }
       check_pivot_fields(source_sheet, pivot, file~, context~)
     }
   }
@@ -318,6 +295,9 @@ fn check_pivot_fields(
     named.push(field.field)
   }
   for field in pivot.columns {
+    named.push(field.field)
+  }
+  for field in pivot.filters {
     named.push(field.field)
   }
   for value in pivot.values {

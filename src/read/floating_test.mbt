@@ -293,17 +293,22 @@ test "a shape at the backend's own size and outline says nothing about them" {
 }
 
 ///|
-test "a shape geometry spelled with a capital cannot come back" {
-  // The backend lowercases the `prst` token on the way out, so `roundRect`
-  // reads back as `roundrect`, which names no geometry the schema knows and
-  // could not be told from any other. The schema refuses those geometries on
-  // the way in for the same reason; this is the other end of it.
+test "a shape geometry spelled with a capital survives the round trip" {
   let (wb, sheet) = fixture()
   sheet.set(at("A1"), Text("x"))
   sheet.add_shape(bare_shape("roundRect", "D2"))
   let recovered = round_trip(wb)
+  assert_eq(recovered.workbook.sheets[0].shapes[0].preset, "rounded_rectangle")
+}
+
+///|
+test "a geometry the schema does not name is reported as a loss" {
+  let (wb, sheet) = fixture()
+  sheet.set(at("A1"), Text("x"))
+  sheet.add_shape(bare_shape("gear9", "D2"))
+  let recovered = round_trip(wb)
   assert_eq(recovered.workbook.sheets[0].shapes, [])
-  assert_true(noted(recovered, "roundrect"))
+  assert_true(noted(recovered, "gear9"))
 }
 
 ///|

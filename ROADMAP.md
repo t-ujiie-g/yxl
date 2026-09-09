@@ -30,7 +30,7 @@ Spreadsheets-as-code, with the properties code has:
 - **A single native command.** `yxl build report.yxl.yaml -o report.xlsx`.
 
 The engine that writes the actual `.xlsx` bytes is
-[`bobzhang/mbtexcel`](https://mooncakes.io/docs/bobzhang/mbtexcel) (a mature
+[`moonbitlang/mbtexcel`](https://mooncakes.io/docs/moonbitlang/mbtexcel) (a mature
 MoonBit port of Go's excelize). `yxl` is the **compiler and CLI on top** — it
 owns the language, the reuse/dedup model, validation, and ergonomics.
 
@@ -295,11 +295,15 @@ six are wanted rather than optional.
       / `filters`, with all eleven of Excel's aggregations, a display name per
       field, one of its built-in styles, and either grand total. The file
       carries the definition and an empty cache marked "refresh on load", so
-      Excel builds the summary on open. **Two backend defects bound what is
-      accepted** (reported upstream, and §9): no `filters:` axis, and one source
-      per workbook. Deferred: number formats per value field, sorting and manual
-      field order, calculated fields, classic layout, and a pivot sourced from
-      an Excel table rather than a range
+      Excel builds the summary on open. Two backend defects bound what was
+      accepted for two releases — no `filters:` axis, and one source per
+      workbook — and **`mbtexcel@0.1.10` closed both**
+      ([office.mbt#264](https://github.com/moonbitlang/office.mbt/issues/264)):
+      `<location>` is now derived from the axes a pivot uses, and each pivot's
+      cache gets its own id. Both refusals are lifted. Deferred: number formats
+      per value field, sorting and manual field order, calculated fields,
+      classic layout, and a pivot sourced from an Excel table rather than a
+      range
 - [x] **Data validation** — drop-downs (inline choices or sourced from cells,
       including another sheet), and `whole` / `decimal` / `text_length` / `date`
       comparisons across all eight OOXML operators, with Excel's "Ignore blank",
@@ -325,11 +329,13 @@ six are wanted rather than optional.
 - [x] **Sheet / workbook protection** — `protect:` at both levels, plus
       `protection: { locked, hidden }` in a style, without which protection
       cannot leave a form's input cells editable. Excel's own defaults apply,
-      and a misspelt allowance is a diagnostic. **The workbook half was
-      re-refused 2026-07-27**: the first Tier-3 check to reach it showed Excel
-      reporting the file corrupt — the backend writes `<workbookProtection>`
-      out of schema order (§9) — so top-level `protect:` is now a named
-      refusal until the upstream fix; the sheet half is unaffected. **File encryption**
+      and a misspelt allowance is a diagnostic. The workbook half was refused
+      from 2026-07-27, when the first Tier-3 check to reach it showed Excel
+      reporting the file corrupt — the backend wrote `<workbookProtection>`
+      out of CT_Workbook's element order — and **`mbtexcel@0.1.10` places it
+      before `bookViews`**, so top-level `protect:` is accepted again, with an
+      emit test pinning the order and the Open XML validator agreeing.
+      **File encryption**
       (`write_with_password`) is *not* included: it changes the emitter's
       signature and needs the CLI to carry a secret, which wants its own
       decision — a protection password is only anti-accident, and the spec says
@@ -356,16 +362,15 @@ Excel by hand** before ticking the box, not only round-trip it.
       geometry, a pixel size, fill and line colour, plain text or a list of
       lines each in its own font (the backend writes one paragraph per run, so
       one font covers one line), alt text, and the three anchor kinds images
-      spell. The anticipated design point — the backend puts `shape_type`
-      straight into `prst=` unchecked — turned out a step worse: it also
-      **lowercases the token**, and `ST_ShapeType` is case-sensitive, so
-      `roundRect` reaches the file as a geometry Excel does not recognize. The
-      accepted subset is therefore the ~23 presets whose token has no capitals
-      (rectangle, ellipse, the polygons, star_5, plus, chevron, cloud, …), a
-      test pins that invariant, and the camel-case kinds an author will reach
-      for — the rounded rectangle, right triangle, the eight arrows, the four
-      callouts — are refused *by name* with the reason, the pivots-`filters:`
-      arrangement (recorded in §9 pending an upstream report). Not available
+      spell. The backend puts `shape_type` straight into `prst=` unchecked, and
+      for two releases it also **lowercased the token** — `ST_ShapeType` is
+      case-sensitive, so `roundRect` reached the file as a geometry Excel does
+      not recognize, and the twelve camel-case kinds were refused by name.
+      **`mbtexcel@0.1.10` writes the token as given**
+      ([office.mbt#293](https://github.com/moonbitlang/office.mbt/issues/293)),
+      so the schema now names **35** presets — the rounded rectangle, right
+      triangle, the six straight arrows and the four callouts among them — and
+      the validity corpus builds one of each. Not available
       from the backend:
       an `offset` (its shape constructor takes none, unlike pictures) and a
       `scale` (dropped deliberately — a shape has no natural size to scale;
@@ -422,10 +427,10 @@ Excel by hand** before ticking the box, not only round-trip it.
       check is what sees it
 - [x] **Slicers** (`add_slicer`) — the button panel that filters an Excel
       table, with a caption, size, and header toggle. Last on purpose, and
-      landed as scoped: **table slicers only**; pivot slicers stay a separate
-      decision until
+      landed as scoped: **table slicers only**. Pivot slicers were held until
       [office.mbt#264](https://github.com/moonbitlang/office.mbt/issues/264)
-      is answered, and `docs/spec.md` §21 says so. A slicer is entirely
+      was answered; it now is, so they are a schema decision rather than a
+      blocked one — see "Not scheduled" below, and `docs/spec.md` §21. A slicer is entirely
       references, like a pivot: `table:` must name a *declared, named* table
       (found case-insensitively, workbook-wide — the panel may sit on a
       different sheet than its data) and `column:` one of that table's header
@@ -444,11 +449,16 @@ feature that already works, and any can be pulled forward on request — none is
 gate, which is why none carries a box:
 
 - **per-column auto-filter criteria** — asked for by
-  [#75](https://github.com/t-ujiie-g/yxl/issues/75), and **blocked on the
-  backend** rather than on the schema: its only way in is an expression string
-  whose grammar caps a checkbox list at two values and whose quoting corrupts
-  any value containing a space, so `values: [North America, EMEA, APAC]` — the
-  ordinary case — cannot be written at all. Measured and reported; see §9. The
+  [#75](https://github.com/t-ujiie-g/yxl/issues/75), and still **blocked on the
+  backend** rather than on the schema. Of the two defects measured and reported,
+  `mbtexcel@0.1.10` fixed the quoting
+  ([office.mbt#477](https://github.com/moonbitlang/office.mbt/issues/477)), so a
+  value with a space in it now reaches the file intact; the grammar still caps a
+  checkbox list at two values
+  ([office.mbt#478](https://github.com/moonbitlang/office.mbt/issues/478)), so
+  `values: [North America, EMEA, APAC]` — the ordinary case — remains
+  unwritable. Shipping the comparison half alone is the "backend's subset" this
+  entry already rejected once, so the schema still waits. See §9. The
   schema shape is settled meanwhile: `filter:` grows `at:` and `columns:`, each
   column naming `values:` or reusing the eight comparisons `validations:` and
   `conditional:`'s `cell:` already spell, with dynamic, colour, and icon filters
@@ -465,13 +475,12 @@ gate, which is why none carries a box:
 - pivot number formats per value field, sorting and manual field order,
   calculated fields, and classic layout
 - a hyperlink on an image, and cell-embedded ("place in cell") images
-- **pivot `filters:`, and more than one pivot source per workbook** — blocked on
-  [office.mbt#264](https://github.com/moonbitlang/office.mbt/issues/264) rather
-  than on us; both become schema changes the day it is fixed
-- **shape geometries whose DrawingML token carries a capital** — the rounded
-  rectangle, right triangle, the six straight arrows, and the four callouts —
-  blocked on the backend lowercasing `prst` (§9); each becomes one more row in
-  the preset table the day it keeps the token's case
+- **pivot slicers** — the panel that filters a *pivot* rather than a table. Held
+  until [office.mbt#264](https://github.com/moonbitlang/office.mbt/issues/264)
+  was answered; it now is, so what remains is a schema decision — which axis a
+  slicer may name, and how it refers to a pivot the spec identifies by `name:`
+  or not at all. The backend's `SlicerOptions` takes the pivot's name where a
+  table slicer takes the table's, so the emitter side is one branch
 - **form controls Excel actually draws.** Found by opening a built workbook
   rather than by reading its bytes: the backend writes only the *legacy* half of
   a control — the VML shape and its `x:ClientData` — and not the worksheet's
@@ -599,8 +608,21 @@ gate, which is why none carries a box:
             outside §12, a series holding its numbers rather than pointing at
             cells. Two smaller ones are named while the chart is kept: a title
             read from a cell, and a series name pointing at a range
-      - [ ] **Slice 5b — pivots. Deliberately waiting on the backend release,
-            and it is not the parsing that is holding it up.**
+      - [x] **Slice 5b — pivots.** Landed with the `mbtexcel@0.1.10` pin bump,
+            exactly as this item planned: the release lifted the two loader
+            refusals, and the reader was written once against the schema that
+            resulted rather than twice. The estimate held — `src/read/pivot.mbt`
+            is two parts read together, `location`/`worksheetSource` off
+            attributes and one index lookup from `<field x>`/`<dataField fld>`
+            into `<cacheFields>` for the names, with `src/render/pivot.mbt` the
+            inverse. A byte-identical recompile test pins the round trip.
+            Refused whole and named, the way slice 5a refuses a combination
+            chart: a source that is not a region of cells (external, another
+            pivot, an Excel table), a calculated field, an aggregation outside
+            §14's list, a style outside the three families, and a source sheet
+            the read itself skipped. Reported while the pivot is kept: a number
+            format on a value field, Excel's compact layout, and field sorting —
+            none of which the schema states.
             **The correlation was overstated too**, the same way the chart half
             was before anyone measured it. `table_xml` does name its fields by
             index into `cache_definition_xml`, but that is *one lookup*:
@@ -612,20 +634,16 @@ gate, which is why none carries a box:
             grand-total flags are attributes of the definition. With the XML
             reader from 5a in the tree this is the same size of job as the chart
             half, or smaller.
-            **What is actually holding it up** is that the loader currently
-            refuses the two shapes a real workbook's pivots most often take, and
-            both refusals are workarounds for one unpublished upstream fix
-            ([office.mbt#264](https://github.com/moonbitlang/office.mbt/issues/264), merged, awaiting a `bobzhang/mbtexcel` release):
+            **What held it up** was that the loader refused the two shapes a
+            real workbook's pivots most often take, and both refusals were
+            workarounds for one unreleased upstream fix
+            ([office.mbt#264](https://github.com/moonbitlang/office.mbt/issues/264)):
             `filters:` (page fields), and a second pivot over a *different*
-            source. Building the reader now would mean writing recovery for
-            those two shapes as "reported, not recovered", then deleting that
-            code weeks later — where every refusal slice 5a shipped is permanent,
-            because the schema genuinely has no word for a combination chart.
-            **So this lands with the pin bump**, as one change: raise
-            `mbtexcel`, lift the four workarounds that release unblocks, and
-            recover pivots whole. Until then `extract` names a pivot as dropped,
-            which it does. Revisit sooner only if a real workbook makes the gap
-            hurt before the release does
+            source. Building the reader then would have meant writing recovery
+            for those two shapes as "reported, not recovered" and deleting that
+            code weeks later — where every refusal slice 5a shipped is
+            permanent, because the schema genuinely has no word for a
+            combination chart. So it waited for the pin bump, and landed with it
       - [x] **CSV extraction**, which settled one-file vs. many: **many**.
             `Extracted` carries `companions` — the files the spec names, as
             bytes — and `cmd/main` writes them beside it, making the directory
@@ -1045,7 +1063,7 @@ ADRs are append-only. When a decision changes, add a new ADR and mark the old
 one **Superseded** — never rewrite an accepted ADR.
 
 ### ADR-001 — Build on `bobzhang/mbtexcel` as the Excel backend
-**Status:** Accepted.
+**Status:** Accepted; the module's coordinates superseded by ADR-021.
 **Context:** Two credible bases exist: the official, comprehensive
 `bobzhang/mbtexcel` (a Go-excelize port: read/write, styles, charts, images,
 pivots, formulas, data validation) and `t-ujiie-g/moon-xlsx` (a leaner, pure,
@@ -1545,6 +1563,20 @@ to take away — and that is a compiler diagnostic rather than a schema rule. In
 conditional format's style, where nothing is inherited either, `null` is
 accepted and means what leaving the key out means.
 
+### ADR-021 — The backend is `moonbitlang/mbtexcel`, and the ZIP comes from `moonbit-community/flate`
+**Status:** Accepted. Supersedes ADR-001's *coordinates* only; the decision to
+build on this backend (ADR-001) and to keep it behind a seam (ADR-002) stand.
+**Context:** The library moved from `bobzhang/mbtexcel` to
+`moonbitlang/mbtexcel` — same code, same `xlsx` package, an ownership change
+rather than a fork. Its `0.1.10` also dropped the vendored `zip` package in
+favour of `moonbit-community/flate/zip`, which `emit` uses directly to deflate
+the package the backend hands over.
+**Decision:** Depend on `moonbitlang/mbtexcel@0.1.10` and, for the ZIP,
+`moonbit-community/flate@0.7.3`. Pin both, as ADR-001 says.
+**Trade-offs:** one more direct dependency, and the `zip` API is not identical
+(`Archive::Archive()` where the vendored one had `Archive::new()`). The seam
+held: the whole migration is four `moon.pkg` import lines and one constructor.
+
 ## 8. Open questions
 
 - **Q1 — YAML parser.** ✅ **Decided (ADR-009), refined (ADR-010):** depend on
@@ -1692,8 +1724,15 @@ accepted and means what leaving the key out means.
   stack. It is a formula *evaluator* yxl never calls (§2: Excel computes), but it
   is in the same package as everything we do use, so it compiles into every
   binary that touches the backend. We had been sitting just under the limit;
-  whatever landed next was going to cross it. **It is still growing**: 4 917
-  lines in 0.1.8, 5 054 in 0.1.9, so the margin is moving the wrong way.
+  whatever landed next was going to cross it — 4 917 lines in 0.1.8, 5 054 in
+  0.1.9, the margin moving the wrong way. **`mbtexcel@0.1.10` restructured it**:
+  `eval_function` is now a five-arm `match` over the reference-shaped builtins
+  plus two hash-map lookups (`raising_handlers()` / `plain_handlers()`), with
+  the families split into
+  `formula_builtins_eval_{math,text,stats,lookup,date_time,logical,info}.mbt`.
+  The if/else chain C1026 was counting is gone. Whether MSVC now compiles it is
+  the next Windows CI run's to say: the leg still reports without blocking, and
+  flipping `continue-on-error` waits on that evidence.
   Neither way round works from here. `clang-cl` is the documented substitute and
   gets past C1026, but `moon`'s Windows native path then fails to spawn its own
   toolchain (`CreateProcessW`, whatever form the name is given in). The LLVM
@@ -1710,7 +1749,8 @@ accepted and means what leaving the key out means.
 
 - **The backend's auto filter has a front door too narrow for Excel's own
   files.** Criteria reach `set_auto_filter` only as an expression string, and
-  two defects in that one seam put the common case out of reach. The grammar is
+  two defects in that one seam put the common case out of reach. **One is now
+  fixed** (see the note below); the other is not. The grammar is
   exactly three tokens, or seven with a conjunction, so a checkbox list of three
   values (`x == EMEA or x == APAC or x == AMER`) is refused with
   `InvalidAutoFilter` — while the writer emits one `<filter>` per value and the
@@ -1731,6 +1771,11 @@ accepted and means what leaving the key out means.
   criteria are not expressible. Shipping the backend's subset was considered and
   rejected — a schema that refuses a value with a space in it is worse than one
   that has no criteria at all.
+  **`mbtexcel@0.1.10` fixed #477**: the tokenizer no longer keeps a quoted
+  token's quote characters, and an unclosed quote raises rather than silently
+  mangling the value. #478 stands, so the two-value ceiling stands with it —
+  and so does the decision above, since the comparison half alone is that same
+  rejected subset.
 
 - **`extract`'s self-check compares cells, not their looks.** It recompiles the
   spec it wrote and asserts the *values* match, so a styling inference that goes
@@ -1830,17 +1875,24 @@ accepted and means what leaving the key out means.
   unaccused. Three round-trip tests pin it, including the sheet with no panes
   at all, since the widened branch must not invent one.
 
-- **Backend defects that only Excel reveals.** Phase 9's pivot tables shipped
-  round-trip-green while Excel showed `#SPILL!`, because the backend writes a
-  fixed `<location>`; a second defect gives every pivot the same `cacheId`, so a
-  second source would be summarized wrongly with no error at all. Both are
-  reported upstream ([office.mbt#264](https://github.com/moonbitlang/office.mbt/issues/264)) and worked around by refusing the
-  spec (`docs/spec.md` §14).
-  Mitigation is the one already listed below — automate "does Excel open it
-  cleanly" — and, until then, **open the output by hand when a feature writes a
-  part Excel interprets rather than displays**.
-- **The backend writes `<workbookProtection>` out of schema order.**
-  `write_workbook_xml.mbt` emits it after `</sheets>` and `definedNames`,
+- **Backend defects that only Excel reveals.** ~~Phase 9's pivot tables shipped
+  round-trip-green while Excel showed `#SPILL!`~~ — **both halves fixed in
+  `mbtexcel@0.1.10`** ([office.mbt#264](https://github.com/moonbitlang/office.mbt/issues/264)):
+  `<location>` is derived from the axes a pivot uses (`PivotLocation`, citing
+  [MS-OI29500] on 18.10.1.49 for why the filter block sits above `ref`), and
+  `Workbook::next_pivot_cache_id` hands each pivot its own id. `filters:` and a
+  second source are accepted (`docs/spec.md` §14); the emit tests assert the
+  `axisPage` field, the page counts, and two distinct cache ids.
+  The *lesson* is what stays: nothing in the round trip could see either, since
+  the backend's reader agrees with its own writer. Mitigation is the one listed
+  below — automate "does Excel open it cleanly" — and, until then, **open the
+  output by hand when a feature writes a part Excel interprets rather than
+  displays**.
+- ~~**The backend writes `<workbookProtection>` out of schema order.**~~
+  **Fixed in `mbtexcel@0.1.10`**, which emits it before `bookViews`; top-level
+  `protect:` is accepted again, an emit test pins the order against the part's
+  text, and the Open XML validator agrees. Kept here for what it cost.
+  `write_workbook_xml.mbt` emitted it after `</sheets>` and `definedNames`,
   while CT_Workbook (ECMA-376 §18.2) wants it *before* `bookViews` — and a
   schema violation in workbook.xml makes Excel report the whole file as
   corrupt, repair refused. Shipped broken in the first slice's protection and
@@ -1852,16 +1904,19 @@ accepted and means what leaving the key out means.
   and `locked: false` styles are unaffected and verified clean. The lesson
   already in this section stands sharper: *a feature is not done until Excel
   has opened it* — the round trip cannot catch what the reader tolerates.
-- **The backend lowercases a shape's `prst` token.** `write.mbt` passes
+- ~~**The backend lowercases a shape's `prst` token.**~~ **Fixed in
+  `mbtexcel@0.1.10`** (#293 released): the token is written as given, the twelve
+  camel-case geometries are plain schema entries, and the validity corpus builds
+  one of each. The two reader defects found alongside are *not* fixed and stay
+  in the reader batch below. What it was: `write.mbt` passed
   `shape_type` through `.to_lower()`, and DrawingML's `ST_ShapeType` enum is
   case-sensitive — `roundRect` written as `roundrect` is a geometry Excel does
   not recognize. Found in Phase 9's shapes by dumping the drawing part rather
   than trusting the round trip (the backend's own reader accepts what its
   writer produced, so tests stay green). Worked around by accepting only
   presets whose token has no capitals and refusing the rest by name; a test
-  pins the no-capitals invariant. The writer half is fixed upstream
-  ([office.mbt#293](https://github.com/moonbitlang/office.mbt/issues/293), merged, awaiting a release); the two reader defects found
-  alongside are not, and are part of the reader batch below.
+  pinned the no-capitals invariant
+  ([office.mbt#293](https://github.com/moonbitlang/office.mbt/issues/293)).
 
 - **Seven things the backend's reader does not hand back**, each turning a
   detail of a real workbook into a line in `extract`'s loss report
@@ -1947,6 +2002,74 @@ accepted and means what leaving the key out means.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-09-09** — **The backend moved to `moonbitlang/mbtexcel@0.1.10`, and
+  four of our refusals came off with it.** The library changed owner —
+  `bobzhang/mbtexcel` → `moonbitlang/mbtexcel`, same `xlsx` package — and
+  `0.1.10` closes three of the defects this project had reported and one it had
+  not. ADR-021 records the coordinates; ADR-001's decision and ADR-002's seam
+  are unchanged, and the seam is what made the move four `moon.pkg` lines plus
+  one constructor (`@zip` now comes from `moonbit-community/flate`, whose
+  `Archive::Archive()` replaces the vendored `Archive::new()`).
+
+  **Pivots gained their fourth axis and their second source**
+  ([#264](https://github.com/moonbitlang/office.mbt/issues/264)). The backend
+  derives `<location>` from the axes a pivot actually uses — filter block above
+  `ref`, per [MS-OI29500] on 18.10.1.49 — and allocates a cache id per pivot
+  instead of stamping `1` on all of them. So `filters:` is a plain axis now,
+  and two pivots may summarize two different regions. The two whole-workbook
+  checks that enforced the refusals are gone; the field-existence check grew to
+  cover the new axis. The cookbook's `pivots` example filters by channel, and a
+  new `tests/validity/pivot-axes.yxl.yaml` builds every axis and every
+  aggregation at once.
+
+  **And with the refusals gone, `extract` recovers pivots** — Phase 10's slice
+  5b, which had been waiting for exactly this release so the reader would be
+  written once against the final schema rather than twice.
+  `src/read/pivot.mbt` reads the definition and its cache together (the one
+  names fields by index into the other), `src/render/pivot.mbt` writes them
+  back, and a test asserts a workbook recompiles to *identical bytes* after a
+  round trip. What the schema cannot describe is refused whole and named, as
+  slice 5a's charts are: a source that is not a region of cells, a calculated
+  field, an unknown aggregation, a style outside the three families. Reported
+  while the pivot is kept: a number format on a value field, Excel's compact
+  layout, and field sorting.
+
+  **Twelve shape geometries came back**
+  ([#293](https://github.com/moonbitlang/office.mbt/issues/293)). `prst` keeps
+  its capitals, so `rounded_rectangle`, `right_triangle`, the six straight
+  arrows and the four callouts are ordinary entries in the preset table rather
+  than named refusals — 35 where there were 23. `unwritable_shape_presets` and
+  the no-capitals invariant test are deleted; `extract` no longer has to explain
+  why a `roundrect` could not be identified.
+
+  **Workbook-level `protect:` works again.** `<workbookProtection>` is written
+  before `bookViews`, where CT_Workbook (ECMA-376 §18.2) wants it, so the file
+  Excel used to call corrupt now opens. The loader's refusal is replaced by the
+  `load_workbook_protection` it displaced, an emit test asserts the element
+  order against `xl/workbook.xml` itself rather than through the round trip
+  (which never disagreed), and the `interactive` example locks its structure
+  again.
+
+  **The auto filter is half unblocked, so it stays blocked.**
+  [#477](https://github.com/moonbitlang/office.mbt/issues/477) is fixed — a
+  quoted criterion no longer reaches the file wrapped in its own quote
+  characters — but
+  [#478](https://github.com/moonbitlang/office.mbt/issues/478) is not, and a
+  checkbox list still caps at two values. Shipping the comparison half alone is
+  exactly the backend subset §9 rejected once already, so `filter:` keeps its
+  range and nothing else.
+
+  **And the Windows story may have changed.** `eval_function` — the ~5 000-line
+  chain MSVC answered with `C1026` — is now a five-arm match plus two hash-map
+  lookups, its families split across seven files. The structural cause is gone;
+  whether `cl.exe` agrees is the next Windows CI run's to say, so the leg still
+  reports without blocking until it does.
+
+  Verified beyond `moon test`: every example and the validity corpus were built
+  with the release binary and run through the Open XML SDK validator — 22
+  workbooks, all valid, the one standing waiver (`modular.xlsx`'s table-slicer
+  namespace) still firing, which is how we know it has not silently changed.
 
 - **2026-08-29** — **A sheet named `It's data` survives `extract` again.** The
   reader parsed a sheet-qualified range by stripping every `'` and `$` and

@@ -18,7 +18,7 @@ pub trait Reader {
 }
 
 ///|
-/// The `bobzhang/mbtexcel`-backed reader — the one place `@xlsx` is read from.
+/// The `moonbitlang/mbtexcel`-backed reader — the one place `@xlsx` is read from.
 pub struct MbtexcelReader {}
 
 ///|
@@ -121,6 +121,7 @@ fn recover(bytes : Bytes) -> Recovered raise {
       qualified_ranges=worksheets.length() > 1,
       notes,
     )
+    read_pivots(backend, sheet, declared=worksheets, notes)
     read_sheet_protection(backend, sheet, notes)
     read_unsupported(backend, sheet, notes)
   }

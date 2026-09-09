@@ -23,7 +23,7 @@ Spreadsheets-as-code, with the properties code has:
   `yxl build report.yxl.yaml -o report.xlsx`.
 
 The `.xlsx` bytes are produced by the mature
-[`bobzhang/mbtexcel`](https://mooncakes.io/docs/bobzhang/mbtexcel) library (a
+[`moonbitlang/mbtexcel`](https://mooncakes.io/docs/moonbitlang/mbtexcel) library (a
 MoonBit port of Go's excelize); `yxl` is the language, the reuse/dedup engine,
 the validator, and the CLI on top. It is not another spreadsheet *library* — it
 is declarative authoring for people who'd rather edit YAML than write code.
@@ -229,7 +229,7 @@ so the pages cannot drift from the compiler:
 | [`parameters.yxl.yaml`](./examples/parameters.yxl.yaml) | `params:` with `${}` and `--set` |
 | [`interactive.yxl.yaml`](./examples/interactive.yxl.yaml) | drop-downs and other validations, an auto filter, hyperlinks, notes, sheet protection, a check box and spin button |
 | [`charts.yxl.yaml`](./examples/charts.yxl.yaml) | column, pie, and bar charts, series named from cells, one plotting another sheet |
-| [`pivots.yxl.yaml`](./examples/pivots.yxl.yaml) | two pivot tables over one source: rows, columns, and two aggregations |
+| [`pivots.yxl.yaml`](./examples/pivots.yxl.yaml) | two pivot tables: rows, columns, a `filters:` axis, and two aggregations |
 | [`shapes.yxl.yaml`](./examples/shapes.yxl.yaml) | a cloud stamp, a chevron with two text lines, a pinned star |
 | [`sparklines.yxl.yaml`](./examples/sparklines.yxl.yaml) | a trend line per row with markers, and win/loss cells plotting another sheet |
 | [`overrides.yxl.yaml`](./examples/overrides.yxl.yaml) | one-off exceptions written down as exceptions: a row of a filled formula range that does not follow it, a corrected value, a style alone — each with its reason |
@@ -263,7 +263,7 @@ report.yxl.yaml
    → parse (YAML → document tree)
    → load + validate + resolve references (typed model, diagnostics naming the file)
    → emit: intern shared styles, strings, and defined names   ← the DRY engine
-     via a swappable backend (bobzhang/mbtexcel)
+     via a swappable backend (moonbitlang/mbtexcel)
    → report.xlsx
 ```
 

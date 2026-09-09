@@ -90,14 +90,14 @@
     "protect": {
       "anyOf": [
         {
-          "$ref": "#/definitions/protect"
+          "$ref": "#/definitions/workbook_protect"
         },
         {
           "$ref": "#/definitions/include"
         }
       ],
-      "description": "Workbook protection — **refused for now**, a backend defect. §16.",
-      "markdownDescription": "Workbook protection — **refused for now**, a backend defect. §16."
+      "description": "Workbook protection. §16.",
+      "markdownDescription": "Workbook protection. §16."
     },
     "date1904": {
       "allOf": [
@@ -1969,6 +1969,21 @@
           "description": "Field names, or `{ field, name }` to relabel one.",
           "markdownDescription": "Field names, or `{ field, name }` to relabel one."
         },
+        "filters": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/pivot_field"
+              }
+            },
+            {
+              "$ref": "#/definitions/include"
+            }
+          ],
+          "description": "The same, for Excel's \"Filters\" box — which it draws in the rows *above* `at`.",
+          "markdownDescription": "The same, for Excel's \"Filters\" box — which it draws in the rows *above* `at`."
+        },
         "values": {
           "anyOf": [
             {
@@ -2633,8 +2648,10 @@
               "type": "string",
               "enum": [
                 "rectangle",
+                "rounded_rectangle",
                 "ellipse",
                 "triangle",
+                "right_triangle",
                 "diamond",
                 "parallelogram",
                 "trapezoid",
@@ -2654,7 +2671,17 @@
                 "sun",
                 "cloud",
                 "pie",
-                "line"
+                "line",
+                "arrow_right",
+                "arrow_left",
+                "arrow_up",
+                "arrow_down",
+                "arrow_left_right",
+                "arrow_up_down",
+                "callout_rectangle",
+                "callout_rounded_rectangle",
+                "callout_ellipse",
+                "callout_cloud"
               ]
             },
             {
@@ -3905,6 +3932,26 @@
       "required": [
         "$ref"
       ]
+    },
+    "workbook_protect": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "What a reader may not do to the workbook itself (§16).",
+      "properties": {
+        "structure": {
+          "$ref": "#/definitions/boolean"
+        },
+        "windows": {
+          "$ref": "#/definitions/boolean"
+        },
+        "password": {
+          "$ref": "#/definitions/text"
+        },
+        "$include": {
+          "type": "string",
+          "description": "Another document, pasted in place of this node (§8)."
+        }
+      }
     }
   }
 }

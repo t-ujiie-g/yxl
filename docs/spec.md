@@ -24,7 +24,7 @@ defs: {...}            # named styles, values, and formulas    → §6
 overrides: [...]       # deliberate one-off deviations         → §23
 properties: {...}      # what the file says about itself       → §15
 calc: {...}            # when Excel recalculates               → §15
-protect: {...}         # refused for now — backend defect      → §16
+protect: {...}         # workbook protection                    → §16
 date1904: false        # use Excel's 1904 date epoch
 default_font: Calibri  # the workbook's default font face
 ```
@@ -38,7 +38,7 @@ default_font: Calibri  # the workbook's default font face
 | `overrides` | sequence | One-off deviations, applied after every cell. §23. |
 | `properties` | mapping | Document properties. §15. |
 | `calc` | mapping | Calculation settings. §15. |
-| `protect` | mapping | Workbook protection — **refused for now**, a backend defect. §16. |
+| `protect` | mapping | Workbook protection. §16. |
 | `date1904` | boolean | `true` selects the 1904 epoch. Affects how dates serialize. |
 | `default_font` | text | Face name only; size and colour are per-style. |
 
@@ -550,7 +550,10 @@ filter: A1:D1        # the header row Excel hangs its dropdowns off
 ```
 
 One per sheet. Excel reads the range's top row as the header and filters what
-lies beneath it. Per-column criteria are not expressible yet.
+lies beneath it. Per-column criteria are not expressible yet: the backend takes
+them only as an expression whose grammar caps a value list at two, so the
+ordinary checkbox list of three or more cannot be written
+([office.mbt#478](https://github.com/moonbitlang/office.mbt/issues/478)).
 
 ### Validations
 
@@ -901,6 +904,7 @@ pivots:
     source: Orders!A1:D7       # required; header row first
     rows: [Region]
     columns: [Quarter]
+    filters: [Channel]
     values:
       - field: Revenue
         function: sum          # default
@@ -916,6 +920,7 @@ pivots:
 | `at` | range | **Required.** The corner the pivot starts from; Excel grows it past this as it needs to. |
 | `source` | range | **Required.** `Sheet!A1:D7` names another sheet, which must be declared. Its **top row names the fields**, and there must be at least one row beneath and more than one column. |
 | `rows` / `columns` | sequence | Field names, or `{ field, name }` to relabel one. |
+| `filters` | sequence | The same, for Excel's "Filters" box — which it draws in the rows *above* `at`. |
 | `values` | sequence | Field names (summed), or `{ field, function, name }`. |
 | `name` | text | Default: `PivotTable1`, `PivotTable2`, … |
 | `style` | text | `PivotStyleLight1`–`28`, `PivotStyleMedium1`–`28`, `PivotStyleDark1`–`28`. |
@@ -934,24 +939,9 @@ summarizes.
 > the workbook — the same arrangement as a formula, which `yxl` also emits
 > without evaluating.
 
-### Two limits the Excel backend imposes today
-
-Both are defects in `bobzhang/mbtexcel`, reported upstream as
-[office.mbt#264](https://github.com/moonbitlang/office.mbt/issues/264). `yxl` refuses the spec rather than emit a workbook that is
-broken or quietly wrong.
-
-**No `filters:` axis.** Excel's "Filters" box is the fourth axis a pivot can
-have. The backend writes the pivot's `<location>` without accounting for the
-filter rows above the body, and Excel answers with `#SPILL!` where the pivot
-should be. `filters:` is therefore rejected by name, with that reason. Rows,
-columns, several fields on an axis, and every aggregation are unaffected —
-each was checked in Excel.
-
-**One source per workbook.** The backend gives every pivot `cacheId="1"` while
-numbering the caches `1`, `2`, …, and Excel resolves a pivot's cache by that
-number. A second pivot over a *different* source would summarize the first
-one's data — silently, with no error anywhere. Two pivots over the **same**
-source are fine and stay correct; a second source is rejected.
+> **A filter field draws above `at`.** Excel puts the "Filters" box in the rows
+> over the pivot's own range, so leave them clear — `at: A3:F30` with two filter
+> fields uses rows 1 and 2 as well.
 
 ## 15. Document properties and calculation
 
@@ -1006,11 +996,6 @@ sheets:
         select_locked_cells: false
 ```
 
-> **Workbook-level `protect:` is refused for now** — a backend defect: it
-> writes `<workbookProtection>` after `<sheets>`, out of the schema's element
-> order, and Excel reports the whole file as corrupt. Protect each sheet
-> instead; the key returns the day the upstream writer places it correctly.
-
 **Excel locks every cell by default**, so protecting a sheet freezes all of it.
 The way to leave a form's input boxes editable is to give *them* a style with
 `protection: { locked: false }`. `hidden: true` additionally keeps the cell's
@@ -1031,6 +1016,20 @@ not a permission that silently never applies.
 > are readable either way. A spec is usually version-controlled, so write the
 > password as a parameter (§7) and pass it with `--set` rather than committing
 > it. Encrypting the *file* is not supported.
+
+### Locking the workbook itself
+
+```yaml
+protect:
+  structure: true           # no adding, removing, renaming, reordering sheets
+  windows: false            # no moving or resizing its windows
+  password: "${book_password}"
+```
+
+Top-level `protect:` locks the workbook rather than its cells, and at least one
+of `structure` and `windows` must be set — locking neither would write nothing.
+Excel for Windows has ignored `windows` since 2013; it is written for older
+readers. The password carries the same caveat as a sheet's.
 
 ### One combination the backend cannot express
 
@@ -1089,20 +1088,17 @@ shapes:
 | `alt` | text | What a screen reader announces; Excel's "Alt Text". |
 | `positioning` | bareword | The same three anchors an image takes (§13). |
 
-**Geometries.** `kind` is one of: `rectangle`, `ellipse`, `triangle`,
-`diamond`, `parallelogram`, `trapezoid`, `pentagon`, `hexagon`, `octagon`,
-`decagon`, `star_5`, `plus`, `chevron`, `cube`, `can`, `donut`, `frame`,
-`heart`, `moon`, `sun`, `cloud`, `pie`, `line`. Each maps to a DrawingML
-preset (ECMA-376 §20.1.10.56); an unknown name is a diagnostic.
+**Geometries.** `kind` is one of: `rectangle`, `rounded_rectangle`, `ellipse`,
+`triangle`, `right_triangle`, `diamond`, `parallelogram`, `trapezoid`,
+`pentagon`, `hexagon`, `octagon`, `decagon`, `star_5`, `plus`, `chevron`,
+`cube`, `can`, `donut`, `frame`, `heart`, `moon`, `sun`, `cloud`, `pie`,
+`line`, `arrow_right`, `arrow_left`, `arrow_up`, `arrow_down`,
+`arrow_left_right`, `arrow_up_down`, `callout_rectangle`,
+`callout_rounded_rectangle`, `callout_ellipse`, `callout_cloud`. Each maps to a
+DrawingML preset (ECMA-376 §20.1.10.56); an unknown name is a diagnostic.
 
-**Backend limits.** The Excel backend lowercases the geometry token it writes
-into the file, and DrawingML's tokens are case-sensitive — `roundRect` written
-as `roundrect` is a geometry Excel does not recognize. The kinds whose token
-carries a capital are therefore *refused by name*, with the reason: the
-rounded rectangle, the right triangle, the six straight arrows, and the four
-callouts. They become plain schema additions the day the backend keeps the
-token's case. An offset in from the anchor cell (which images take) is not
-available either: the backend's shape constructor does not accept one.
+**Backend limits.** An offset in from the anchor cell (which images take) is not
+available: the backend's shape constructor does not accept one.
 
 The backend also writes **no theme style reference** for a shape — none of the
 `fillRef`/`lnRef` that Excel's own "Insert Shape" puts on one. So a shape given
@@ -1242,10 +1238,9 @@ sheets:
 The slicer may sit on a different sheet than its table — the panel goes where
 the reader looks, the data stays where it lives.
 
-**Pivot slicers are not offered.** A slicer over a pivot table touches the
-same cache machinery whose defects already bound `pivots:` (§14); they stay
-out until [office.mbt#264](https://github.com/moonbitlang/office.mbt/issues/264)
-is resolved.
+**Pivot slicers are not offered yet.** The backend defect that bound `pivots:`
+is fixed, so a slicer over a pivot is now a schema question rather than a
+blocked one; it is not answered here.
 
 ## 22. Going the other way: `yxl extract`
 
@@ -1315,6 +1310,11 @@ grouped — the ranges each series plots, the title, the legend's place, the siz
 where it is not Excel's own, and each axis' title and manual bounds. Every range
 comes back sheet-qualified, because that is how the file stores one.
 
+Pivot tables (§14): where each is drawn, the region and sheet it summarizes,
+all four axes with the names it gives their fields, every aggregation, its own
+name, its style, and either grand total. The field names come from the cache
+part, which is what a pivot's own definition refers to by position.
+
 The four things that float over a sheet rather than sitting in it: shapes (§18)
 with their geometry, text, size, fill, outline, and anchor; sparklines (§19)
 with their kind, points, bounds, weight, and any colour the file names outright;
@@ -1325,6 +1325,9 @@ and each is listed below.
 And what the workbook says about itself: named definitions (`defs.values` and
 `defs.formulas`), the document properties including the custom ones, the
 calculation settings, the default font, and each sheet's protection.
+
+Workbook-level `protect:` (§16) is **not** among them: the Excel backend keeps
+its workbook-protection record opaque, so `extract` cannot see what was locked.
 
 ### What it does not, and why
 
@@ -1359,11 +1362,9 @@ calculation settings, the default font, and each sheet's protection.
 - **The font on a line of shape text is not recovered**, for the same reason at
   the other end of the file: it is written into the drawing's `a:rPr` and not
   read back. A shape's words survive; how they were set does not.
-- **A shape geometry Excel spells with a capital cannot come back.** The backend
-  lowercases the `prst` token, so `roundRect` reads as `roundrect`, which names
-  no geometry in §18's table and could not be told from any other. Those
-  geometries are refused on the way in for the same reason; `extract` reports
-  the shape rather than guessing which one it was.
+- **A shape geometry outside §18's table is dropped and named.** DrawingML has
+  about 180 presets and the schema spells a subset of them; a shape drawn with
+  one of the others is reported rather than guessed at.
 - **The sheet a sparkline plots from is not recovered.** The file writes
   `'Data'!B2:E2` and the backend's reader keeps only what follows the `!`, so a
   sparkline that plotted another sheet comes back plotting this one — the same
@@ -1374,10 +1375,19 @@ calculation settings, the default font, and each sheet's protection.
   sheet — has no shape the spec can declare, and the chart on it is raw XML
   besides. It is left out with a note rather than recovered as an empty sheet,
   which would claim a data tab the workbook does not have.
-- **Pivot tables are not recovered yet.** They are in the file and it is not a
-  limit of the format: the Excel backend hands a pivot back as two raw XML
-  parts, and the one naming the fields refers to the other by position, so
-  recovering it means correlating two documents rather than translating one.
+- **A pivot's compact layout and its field sorting are not kept.** Excel's own
+  pivots are in compact form — every row field sharing one column — and may sort
+  a field by its values; the schema says neither, so a rebuilt pivot is in
+  outline form with a column per field, in the order the spec lists them. Both
+  are reported.
+- **A pivot the schema cannot describe is refused whole, not half-read.** One
+  summarizing an external source, another pivot, or an Excel table rather than a
+  region of cells; one with a calculated field, whose name stands for a formula
+  and not a source column; one aggregating with a function outside §14's list;
+  one wearing a style outside the three families. Each is reported with the
+  reason and no pivot is written. A number format on a value field is dropped
+  while the pivot is kept, and named — the schema formats cells, not
+  aggregations.
 - **A chart that says something the schema cannot is refused whole, not
   half-read.** A combination chart (bars with a line over them), a grouping the
   schema has no word for such as a stacked line, a kind outside §12's list, a

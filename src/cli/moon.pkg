@@ -18,7 +18,7 @@ import {
 // cells survived the whole pipeline; the compile benchmark times each pipeline
 // stage on its own, so it names them individually.
 import {
-  "bobzhang/mbtexcel/xlsx",
+  "moonbitlang/mbtexcel/xlsx",
   "moonbitlang/core/bench",
   "t-ujiie-g/yxl/yaml",
   "t-ujiie-g/yxl/loader",

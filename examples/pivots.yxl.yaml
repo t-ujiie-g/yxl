@@ -11,10 +11,15 @@ sheets:
     pivots:
       # The source's top row names the fields; everything below refers to those
       # names, not to columns or letters.
-      - at: A3:F30
+      # `filters:` is Excel's "Filters" box, which it draws in the rows above
+      # `at` — so this pivot starts at row 4 and leaves row 3 to the filter.
+      - at: A4:F30
         source: Orders!A1:D7
         rows: [Region]
         columns: [Quarter]
+        filters:
+          - field: Channel
+            name: Sold via
         values:
           - field: Revenue
             function: sum
@@ -23,8 +28,7 @@ sheets:
         style: PivotStyleMedium9
 
       # A second view of the same data: how many orders each channel placed. A
-      # field may group here and be counted there. Both pivots read the same
-      # source — see docs/spec.md §14 for why that is required today.
+      # field may group here and be counted there.
       - at: H3:J30
         source: Orders!A1:D7
         rows: [Channel]

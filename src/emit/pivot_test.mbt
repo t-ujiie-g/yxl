@@ -25,6 +25,7 @@ fn plain_pivot() -> @model.Pivot {
     source: { sheet: Some("Orders"), range: range("A1", "D3"), },
     rows: [{ field: "Region", name: None, }],
     columns: [],
+    filters: [],
     values: [{ field: "Revenue", function: Sum, name: None, }],
     name: None,
     style: None,
@@ -78,6 +79,46 @@ test "each axis puts its fields where Excel expects them" {
   assert_true(xml.contains("<pivotField name=\"Channel\" axis=\"axisRow\""))
   assert_true(xml.contains("<pivotField name=\"Period\" axis=\"axisCol\""))
   assert_true(xml.contains("<field x=\"1\"/>"))
+}
+
+///|
+test "the filter axis reaches the file as a page field" {
+  let (wb, sheet) = source_workbook()
+  sheet.add_pivot({
+    ..plain_pivot(),
+    filters: [{ field: "Channel", name: Some("Sold via"), }],
+  })
+  let xml = only_pivot(wb).table_xml
+  assert_true(xml.contains("<pivotField name=\"Sold via\" axis=\"axisPage\""))
+  assert_true(xml.contains("<pageField fld=\"2\""))
+  // The filter block sits above `ref`, so `<location>` counts it rather than
+  // shifting the rows below it (ECMA-376 §18.10.1.49, and [MS-OI29500]).
+  assert_true(xml.contains("rowPageCount=\"1\""))
+  assert_true(xml.contains("colPageCount=\"1\""))
+}
+
+///|
+test "two pivots over different sources get different caches" {
+  // Excel resolves a pivot's cache by `cacheId`; one id for both would make the
+  // second summarize the first one's data, silently (office.mbt#264).
+  let (wb, summary) = source_workbook()
+  let costs = wb.add_sheet("Costs")
+  for column, header in ["Team", "Spend"] {
+    costs.set(@units.CellRef(col=column + 1, row=1), Text(header))
+  }
+  costs.set(@units.CellRef(col=1, row=2), Text("Ops"))
+  costs.set(@units.CellRef(col=2, row=2), Number(7.0))
+  summary.add_pivot(plain_pivot())
+  summary.add_pivot({
+    ..plain_pivot(),
+    at: range("A30", "E50"),
+    source: { sheet: Some("Costs"), range: range("A1", "B2"), },
+    rows: [{ field: "Team", name: None, }],
+    values: [{ field: "Spend", function: Sum, name: None, }],
+  })
+  let pivots = reopen(wb).get_pivot_tables("S")
+  assert_eq(pivots.length(), 2)
+  assert_not_eq(pivots[0].cache_id, pivots[1].cache_id)
 }
 
 ///|

@@ -256,3 +256,23 @@ test "workbook protection round-trips" {
   // that one exists at all; what it says is checked in the file itself.
   assert_true(reopened.workbook_protection is Some(_))
 }
+
+///|
+test "workbook protection is written where CT_Workbook wants it" {
+  // ECMA-376 §18.2.27: `workbookProtection` precedes `bookViews` and `sheets`.
+  // Out of order, Excel reports the whole file corrupt and refuses to repair.
+  let (wb, _) = fixture()
+  wb.set_protection({ structure: true, windows: true, password: None, })
+  let workbook_xml = part(wb, "xl/workbook.xml")
+  guard workbook_xml.find("<workbookProtection") is Some(protection) else {
+    fail("no workbookProtection in xl/workbook.xml")
+  }
+  guard workbook_xml.find("<bookViews") is Some(views) else {
+    fail("no bookViews in xl/workbook.xml")
+  }
+  guard workbook_xml.find("<sheets") is Some(sheets) else {
+    fail("no sheets in xl/workbook.xml")
+  }
+  assert_true(protection < views)
+  assert_true(protection < sheets)
+}

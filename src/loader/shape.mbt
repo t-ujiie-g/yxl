@@ -34,17 +34,6 @@ fn load_shape(
       "at" => () // consumed above
       "kind" => {
         let written = expect_string(value, file~, context="\{context} 'kind'")
-        // The geometries the backend would corrupt are refused by name, so the
-        // author gets the reason instead of "unknown" (ADR-006).
-        for entry in @model.unwritable_shape_presets {
-          let (name, token) = entry
-          if name == written {
-            raise schema_error(
-              file~,
-              "\{context} asks for '\{written}', whose DrawingML token '\{token}' the Excel backend lowercases into one Excel does not recognize — pick a geometry whose token has no capitals, or wait for the upstream fix",
-            )
-          }
-        }
         preset = Some(
           named(
             @model.shape_presets,

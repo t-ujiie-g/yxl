@@ -14,11 +14,6 @@ fn read_unsupported(
   // Charts are not here: `chart.mbt` reads the part itself and reports each one
   // it cannot follow, with the reason. A blanket note would say less and would
   // fire on the charts that did come back.
-  if !source.pivot_tables.is_empty() {
-    notes.drop(
-      "a pivot table, which the Excel backend hands back as raw XML rather than as the fields the spec names",
-    )
-  }
   if has_print_setup(source) {
     notes.drop(
       "a sheet's print setup — its area, orientation, scaling, margins, header and footer, and page breaks — which the Excel backend cannot report per sheet without one sheet's answer leaking into the next",

@@ -160,6 +160,9 @@ fn one_sheet(
   if !sheet.slicers.is_empty() {
     entries.push(("slicers", slicers(sheet)))
   }
+  if !sheet.pivots.is_empty() {
+    entries.push(("pivots", pivots(sheet)))
+  }
   if sheet.page is Some(page) {
     entries.push(("print", print_setup(page)))
   }

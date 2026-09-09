@@ -196,25 +196,27 @@ test "a sheet name holding '!' is refused rather than silently mis-split" {
 }
 
 ///|
-/// Excel has a fourth axis, but the backend cannot write one Excel opens: the
-/// `<location>` it emits leaves out the filter rows, and Excel answers `#SPILL!`.
-/// Refused by name, with the reason, rather than left to look like a typo.
-test "'filters' is refused, and says why" {
+test "'filters' loads as the fourth axis" {
+  let pivot = loaded_pivot(
+    "      - at: A1:E20\n        source: Orders!A1:D3\n        rows: [Region]\n        values: [Revenue]\n        filters: [{ field: Channel, name: Sold via }]\n",
+  )
+  assert_eq(pivot.filters, [{ field: "Channel", name: Some("Sold via"), }])
+}
+
+///|
+test "a 'filters' field the source does not have is a diagnostic" {
   assert_eq(
     pivot_message(
-      "      - at: A1:E20\n        source: Orders!A1:D3\n        rows: [Region]\n        values: [Revenue]\n        filters: [Channel]\n",
+      "      - at: A1:E20\n        source: Orders!A1:D3\n        rows: [Region]\n        values: [Revenue]\n        filters: [Nope]\n",
     ),
     Some(
-      "spec.yaml: pivot 'A1:E20' sets 'filters', which the Excel backend cannot write in a form Excel opens — it leaves the filter rows out of the pivot's location, and Excel shows '#SPILL!' where the pivot should be",
+      "spec.yaml: pivot 'A1:E20' on sheet 'S' lays out field 'Nope', which its source does not have (it has Region, Quarter, Channel, Revenue)",
     ),
   )
 }
 
 ///|
-/// The backend numbers every pivot's cache 1 while the workbook part numbers
-/// them 1, 2, …, so a second pivot over another source would quietly summarize
-/// the first one's data.
-test "two pivots over different sources are refused" {
+test "two pivots over different sources are fine" {
   assert_eq(
     schema_message(
       "sheets:\n  - name: S\n    pivots:\n" +
@@ -223,9 +225,7 @@ test "two pivots over different sources are refused" {
       "  - name: A\n    cells: { A1: Alpha, B1: Num, A2: x, B2: 1 }\n" +
       "  - name: B\n    cells: { A1: Beta, B1: Val, A2: p, B2: 3 }\n",
     ),
-    Some(
-      "spec.yaml: pivot 'E1:G10' on sheet 'S' summarizes 'B!A1:B3', but pivot 'A1:C10' on sheet 'S' summarizes 'A!A1:B3' — every pivot in a workbook must share one source, because the Excel backend gives them all the same cache and the later ones would quietly summarize the first one's data",
-    ),
+    None,
   )
 }
 

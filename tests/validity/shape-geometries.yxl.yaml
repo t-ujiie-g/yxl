@@ -1,6 +1,6 @@
 # Part of the validity corpus (ROADMAP §5).
 #
-# all twenty-three shape geometries, all three anchors, and a shape
+# all thirty-five shape geometries, all three anchors, and a shape
 # carrying text, per-line fonts, alt text, fill and outline
 #
 # This is not the cookbook. `examples/` is written to be read and teaches one
@@ -40,6 +40,20 @@ sheets:
       - { at: I15, kind: cloud, fill: "1F77B4", size: { width: 60, height: 40 } }
       - { at: K15, kind: pie, fill: "1F77B4", size: { width: 60, height: 40 } }
       - { at: M15, kind: line, line: { color: "333333", width: 2 }, size: { width: 60, height: 40 } }
+      # The geometries whose DrawingML token carries a capital, which the
+      # backend used to lowercase into one Excel does not recognize.
+      - { at: A18, kind: rounded_rectangle, fill: "1F77B4", size: { width: 60, height: 40 } }
+      - { at: C18, kind: right_triangle, fill: "1F77B4", size: { width: 60, height: 40 } }
+      - { at: E18, kind: arrow_right, fill: "1F77B4", size: { width: 60, height: 40 } }
+      - { at: G18, kind: arrow_left, fill: "1F77B4", size: { width: 60, height: 40 } }
+      - { at: I18, kind: arrow_up, fill: "1F77B4", size: { width: 60, height: 40 } }
+      - { at: K18, kind: arrow_down, fill: "1F77B4", size: { width: 60, height: 40 } }
+      - { at: M18, kind: arrow_left_right, fill: "1F77B4", size: { width: 60, height: 40 } }
+      - { at: O18, kind: arrow_up_down, fill: "1F77B4", size: { width: 60, height: 40 } }
+      - { at: A20, kind: callout_rectangle, fill: "1F77B4", size: { width: 60, height: 40 } }
+      - { at: C20, kind: callout_rounded_rectangle, fill: "1F77B4", size: { width: 60, height: 40 } }
+      - { at: E20, kind: callout_ellipse, fill: "1F77B4", size: { width: 60, height: 40 } }
+      - { at: G20, kind: callout_cloud, fill: "1F77B4", size: { width: 60, height: 40 } }
       - at: A22
         kind: cloud
         text:

@@ -263,10 +263,11 @@ keystroke.
   are the half the compiler cannot check.
 - Run `yxl build --check` after every meaningful edit. Diagnostics name the file
   and the construct (`sheet 'Sales' cell 'B2' …`) — trust them over guessing.
-  Some refusals are deliberate and documented: workbook-level `protect:`
-  (backend defect, §16), shape geometries whose token carries a capital (§18),
-  pivot layouts the backend miswrites (§14). Do not work around a refusal by
-  dropping the feature silently — tell the user what was refused and why.
+  Some refusals are deliberate and documented: three icon sets the backend
+  writes into the wrong attribute (§10), sparkline markers it cannot switch on
+  (§19), a style carrying both a number format and cell protection (§16). Do
+  not work around a refusal by dropping the feature silently — tell the user
+  what was refused and why.
 
 ## Operating a spec month to month
 
