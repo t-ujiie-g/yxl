@@ -138,15 +138,7 @@ with `xattr -d com.apple.quarantine ~/.local/bin/yxl`.
 Paths may use either separator, so `yxl build specs\report.yaml` works on
 Windows and a spec's own `$include: data/x.yaml` stays portable.
 
-> **Windows is experimental, and a release may carry no binary for it.** The
-> Excel library yxl is built on contains a single function matching 365 formula
-> names, and the Microsoft C compiler cannot parse what that compiles to
-> (`C1026: parser stack overflow`). It is code yxl never runs — formulas are
-> Excel's to evaluate, not yxl's — but it sits in the same package, so the
-> Windows build fails on it. Linux and macOS are unaffected. Until it is fixed
-> upstream, build from source or run yxl under WSL.
-
-**One further Windows limitation:** the *command line* cannot carry non-ASCII today —
+**One Windows limitation:** the *command line* cannot carry non-ASCII today —
 `yxl build 売上\report.yaml` fails, because the runtime reads arguments as UTF-8
 while Windows hands them over in the system code page
 ([upstream](https://github.com/moonbitlang/x): "TODO: Handle other encodings").

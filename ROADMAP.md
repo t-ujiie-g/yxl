@@ -1717,8 +1717,14 @@ held: the whole migration is four `moon.pkg` import lines and one constructor.
 
 ## 9. Risks
 
-- **Windows cannot build, and it is not our code.** `moon build --target native`
-  fails on the Windows runner with MSVC's `C1026: parser stack overflow`, in
+- ~~**Windows cannot build, and it is not our code.**~~ **Closed 2026-09-09**:
+  `mbtexcel@0.1.10` restructured the function, the Windows runner built, tested
+  and compiled every example on the first try, and the leg now **blocks** in
+  both `ci.yml` and `release.yml` — README and `install.ps1` no longer call the
+  platform experimental. Kept for the shape of the problem, which will recur the
+  next time a dependency grows a very large function.
+  `moon build --target native`
+  failed on the Windows runner with MSVC's `C1026: parser stack overflow`, in
   `bobzhang/mbtexcel`'s `eval_function` — one ~4900-line function matching 365
   formula names, which lowers to an if/else chain deeper than `cl.exe`'s parser
   stack. It is a formula *evaluator* yxl never calls (§2: Excel computes), but it
@@ -1730,22 +1736,22 @@ held: the whole migration is four `moon.pkg` import lines and one constructor.
   plus two hash-map lookups (`raising_handlers()` / `plain_handlers()`), with
   the families split into
   `formula_builtins_eval_{math,text,stats,lookup,date_time,logical,info}.mbt`.
-  The if/else chain C1026 was counting is gone. Whether MSVC now compiles it is
-  the next Windows CI run's to say: the leg still reports without blocking, and
-  flipping `continue-on-error` waits on that evidence.
+  The if/else chain C1026 was counting is gone, and MSVC agrees: every step of
+  the Windows leg passed — including `Build CLI (native)` and `Test (native)`,
+  the two that used to die — which is what promoted it to a blocking leg.
   Neither way round works from here. `clang-cl` is the documented substitute and
   gets past C1026, but `moon`'s Windows native path then fails to spawn its own
   toolchain (`CreateProcessW`, whatever form the name is given in). The LLVM
   target is closed off for a different reason: the backend depends on
   `moonbitlang/async`, whose `raw_fd` declares `supported_targets = "-all+native"`.
-  **Mitigation: Windows is experimental** — its CI leg runs and reports but does
-  not block, a release ships without it, and the README and `install.ps1` say so
-  in as many words. The fix is upstream: that function wants splitting.
+  The mitigation while it lasted was to make Windows *experimental* — its CI leg
+  ran and reported without blocking, a release shipped without it, and the README
+  and `install.ps1` said so. The fix was always upstream: that function wanted
+  splitting.
   **Reported 2026-08-09 as [office.mbt#402](https://github.com/moonbitlang/office.mbt/issues/402)**, with the measurement, both dead
   ends above, and a suggested split along the families
-  `formula_builtins_financial.mbt` and `formula_builtins_stats.mbt` already use.
-  Revisit the moment it lands, and before v1.0 either way, since "experimental"
-  is not a state to freeze a release policy around.
+  `formula_builtins_financial.mbt` and `formula_builtins_stats.mbt` already use
+  — which is roughly the shape the fix took.
 
 - **The backend's auto filter has a front door too narrow for Excel's own
   files.** Criteria reach `set_auto_filter` only as an expression string, and
@@ -2060,11 +2066,16 @@ Reverse-chronological. One entry per user-visible or structural change.
   exactly the backend subset §9 rejected once already, so `filter:` keeps its
   range and nothing else.
 
-  **And the Windows story may have changed.** `eval_function` — the ~5 000-line
-  chain MSVC answered with `C1026` — is now a five-arm match plus two hash-map
-  lookups, its families split across seven files. The structural cause is gone;
-  whether `cl.exe` agrees is the next Windows CI run's to say, so the leg still
-  reports without blocking until it does.
+  **And Windows stopped being experimental** — the oldest entry in §9, open
+  since Phase 9. `eval_function` — the ~5 000-line chain MSVC answered with
+  `C1026` — is now a five-arm match plus two hash-map lookups, its families
+  split across seven files ([#402](https://github.com/moonbitlang/office.mbt/issues/402)).
+  The runner built the CLI, ran the tests, and compiled every example and the
+  whole validity corpus, so `continue-on-error` is gone from both `ci.yml` and
+  `release.yml`: Windows blocks a merge and a release like the other two, and
+  `install.ps1` no longer has to apologise for a missing binary. The one
+  Windows limitation left is the unrelated one — a non-ASCII *command line*,
+  which is `moonbitlang/x`'s to fix.
 
   Verified beyond `moon test`: every example and the validity corpus were built
   with the release binary and run through the Open XML SDK validator — 22
