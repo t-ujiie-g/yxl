@@ -196,10 +196,15 @@ yxl extract rebuilt.xlsx -o check.yxl.yaml   # should verify clean
 ## Scope honesty
 
 Things that do not survive extraction and are not restored by this skill:
-pivots (declare them fresh from §14 if the workbook needs them), VBA/macros
-(out of yxl's scope entirely), and the exact saved state of filters (a view,
-not a description). Say so in the handover rather than leaving them to be
-discovered.
+VBA/macros (out of yxl's scope entirely) and the exact saved state of filters
+(a view, not a description). Say so in the handover rather than leaving them to
+be discovered.
+
+**Pivots do come back**, and like charts they are refused whole where the
+schema cannot describe one — an external or table source, a calculated field,
+an aggregation or style outside §14. What is kept but not carried is the look:
+Excel's compact layout and any field sorting, both reported. A rebuilt pivot is
+in outline form.
 
 **Charts do come back**, but read the loss report for them specifically: one
 the schema cannot express — a combination chart, a stacked line, a kind outside

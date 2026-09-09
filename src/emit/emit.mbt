@@ -8,7 +8,7 @@ pub trait Emitter {
 }
 
 ///|
-/// The `bobzhang/mbtexcel`-backed emitter — the single place `@xlsx` is touched.
+/// The `moonbitlang/mbtexcel`-backed emitter — the single place `@xlsx` is touched.
 pub struct MbtexcelEmitter {}
 
 ///|
@@ -130,7 +130,7 @@ fn build_workbook(wb : @model.Workbook) -> Bytes raise {
 /// the entries are copied in the backend's own order, each with the same name
 /// and bytes, and only the compression method differs.
 fn deflate_archive(archive : @zip.Archive) -> Bytes raise {
-  let compressed = @zip.Archive::new()
+  let compressed = @zip.Archive::Archive()
   for entry in archive.entries() {
     compressed.add(entry.name(), entry.data(), compression=Deflate)
   }

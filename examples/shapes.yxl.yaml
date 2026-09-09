@@ -48,3 +48,18 @@ sheets:
         fill: "F2C744"
         positioning: fixed
         alt: A decorative star
+
+      # A geometry DrawingML spells with a capital — `roundRect` — is written
+      # with its case intact, so Excel draws the rounded rectangle it names.
+      - at: D14
+        kind: rounded_rectangle
+        text: Ship by Friday
+        size: { width: 220, height: 80 }
+        fill: "E2F0D9"
+        line: "70AD47"
+
+      - at: D18
+        kind: arrow_right
+        size: { width: 160, height: 70 }
+        fill: "1F77B4"
+        alt: An arrow pointing at the next step

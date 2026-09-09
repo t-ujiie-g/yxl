@@ -1,13 +1,13 @@
 // The emitter: model -> .xlsx bytes. This is the ONLY package that imports the
-// Excel backend (`bobzhang/mbtexcel`); it lives behind the `Emitter` seam so the
+// Excel backend (`moonbitlang/mbtexcel`); it lives behind the `Emitter` seam so the
 // rest of the pipeline never calls the backend directly (ADR-002).
 import {
   "t-ujiie-g/yxl/model",
   "t-ujiie-g/yxl/units",
   "t-ujiie-g/yxl/diag",
-  "bobzhang/mbtexcel/xlsx",
+  "moonbitlang/mbtexcel/xlsx",
   // Compressing the package the backend hands over as a ZIP archive.
-  "bobzhang/mbtexcel/zip",
+  "moonbit-community/flate/zip",
   // Rendering the backend error's payload, which its `Show` drops.
   "moonbitlang/core/debug",
   // `Int`'s bounds, to keep an integral validation bound out of float notation.

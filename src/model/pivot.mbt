@@ -1,18 +1,14 @@
 ///|
 /// A pivot table placed on a sheet.
 ///
-/// Excel's fourth axis — the "Filters" box above the pivot — is missing because
-/// the Excel backend cannot yet write one Excel will open: the `<location>` it
-/// emits does not account for the filter rows above the body, and Excel answers
-/// with `#SPILL!` (moonbitlang/office.mbt#264). The loader refuses `filters:` by
-/// name and says why.
-///
 /// - `at` — where the pivot starts. Excel grows it past this range as it needs
 ///   to, so it is a corner rather than a promise about the size.
 /// - `source` — the cells summarized, header row first: the column names there
 ///   are the field names every axis refers to. May name another sheet, which is
 ///   the usual arrangement — raw data on one tab, the summary on another.
 /// - `rows`, `columns` — the fields grouped down the side and along the top.
+/// - `filters` — the fields in the "Filters" box above the pivot, which Excel
+///   lays out in the rows above `at`.
 /// - `values` — the fields aggregated in the body, each with its function.
 /// - `name` — what formulas and the field list call this pivot; `None` leaves
 ///   Excel to name it `PivotTable1`, `PivotTable2`, …
@@ -25,6 +21,7 @@ pub(all) struct Pivot {
   source : SheetRange
   rows : Array[PivotField]
   columns : Array[PivotField]
+  filters : Array[PivotField]
   values : Array[PivotValue]
   name : String?
   style : String?

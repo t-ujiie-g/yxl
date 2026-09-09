@@ -43,8 +43,6 @@ pub let table_style_families : Array[(String, Int)]
 
 pub let unwritable_icon_set_styles : Array[String]
 
-pub let unwritable_shape_presets : Array[(String, String)]
-
 // Errors
 
 // Types and methods
@@ -383,6 +381,7 @@ pub(all) struct Pivot {
   source : SheetRange
   rows : Array[PivotField]
   columns : Array[PivotField]
+  filters : Array[PivotField]
   values : Array[PivotValue]
   name : String?
   style : String?

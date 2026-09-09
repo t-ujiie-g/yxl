@@ -8,7 +8,7 @@ import {
   "t-ujiie-g/yxl/model",
   "t-ujiie-g/yxl/units",
   "t-ujiie-g/yxl/diag",
-  "bobzhang/mbtexcel/xlsx",
+  "moonbitlang/mbtexcel/xlsx",
   // Parsing a validation bound out of the formula the file stores it as.
   "moonbitlang/core/string",
   // The set of cells a recovered `formulas:` range already covers.

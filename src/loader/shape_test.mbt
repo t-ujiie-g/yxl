@@ -76,28 +76,6 @@ test "a shape's text takes lines, each written as a cell's rich run is" {
 }
 
 ///|
-test "a geometry the backend would corrupt is refused with the reason" {
-  assert_eq(
-    schema_message(
-      sheet_spec("    shapes:\n      - at: B2\n        kind: arrow_right\n"),
-    ),
-    Some(
-      "spec.yaml: shape at 'B2' asks for 'arrow_right', whose DrawingML token 'rightArrow' the Excel backend lowercases into one Excel does not recognize — pick a geometry whose token has no capitals, or wait for the upstream fix",
-    ),
-  )
-}
-
-///|
-test "no accepted geometry carries a capital, so every token survives" {
-  // The backend lowercases `prst` on the way out; the accepted table must
-  // never contain a token that trip would corrupt.
-  for preset in @model.shape_presets {
-    let (_, token) = preset
-    assert_eq(token, token.to_lower())
-  }
-}
-
-///|
 test "every spec preset maps to a distinct DrawingML token" {
   let seen_names = []
   let seen_tokens = []

@@ -19,6 +19,9 @@ fn apply_pivot(
   for field in pivot.columns {
     options.columns.push(grouping_field(field))
   }
+  for field in pivot.filters {
+    options.filter.push(grouping_field(field))
+  }
   for value in pivot.values {
     options.data.push(
       @xlsx.PivotTableField::new(

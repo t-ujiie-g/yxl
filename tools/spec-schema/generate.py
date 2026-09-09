@@ -945,6 +945,7 @@ def build(doc: Reference) -> dict:
             "source": ref("qualified_range"),
             "rows": seq(ref("pivot_field")),
             "columns": seq(ref("pivot_field")),
+            "filters": seq(ref("pivot_field")),
             "values": seq(ref("pivot_value")),
             "name": ref("text"),
             "style": enum(numbered_ranges(pivots["style"])),
@@ -1005,6 +1006,16 @@ def build(doc: Reference) -> dict:
         documented=doc.example("16. Protection", "protect"),
         description="Protection: locked cells stay locked (§16).",
         where="protection",
+    )
+    define["workbook_protect"] = obj(
+        {
+            "structure": ref("boolean"),
+            "windows": ref("boolean"),
+            "password": ref("text"),
+        },
+        documented=doc.example("Locking the workbook itself", "protect"),
+        description="What a reader may not do to the workbook itself (§16).",
+        where="workbook protection",
     )
 
     # -- §18 shapes --------------------------------------------------------
@@ -1195,7 +1206,7 @@ def build(doc: Reference) -> dict:
             "overrides": seq(ref("override")),
             "properties": ref("properties"),
             "calc": ref("calc"),
-            "protect": node(ref("protect")),
+            "protect": node(ref("workbook_protect")),
             "date1904": ref("boolean"),
             "default_font": ref("text"),
         },

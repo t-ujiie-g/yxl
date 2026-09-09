@@ -251,11 +251,8 @@ fn read_shapes(
 fn read_shape(shape : @xlsx.Shape, notes : Notes) -> @model.Shape? {
   guard @units.CellRef::parse_a1(shape.cell) is Some(at) else { return None }
   guard preset_spelling(shape.shape_type) is Some(preset) else {
-    // The backend lowercases the `prst` token on the way out, so a geometry
-    // Excel spells with a capital — `roundRect`, `rightArrow` — comes back as a
-    // token naming nothing, and there is no telling which one it was.
     notes.drop(
-      "a shape whose geometry reads back as '\{shape.shape_type}', which names none the spec knows — the Excel backend lowercases the geometry token, so one spelled with a capital cannot be recovered",
+      "a shape whose geometry is '\{shape.shape_type}', which names none the spec knows",
     )
     return None
   }

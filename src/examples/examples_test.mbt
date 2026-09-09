@@ -236,7 +236,7 @@ test "the pivots example summarizes what its comments describe" {
   let pivots = workbook.get_pivot_tables("Summary")
   assert_eq(pivots.length(), 2)
   assert_eq(pivots[0].name, "RevenueByRegion")
-  assert_true(pivots[0].table_xml.contains("<location ref=\"A3:F30\""))
+  assert_true(pivots[0].table_xml.contains("<location ref=\"A4:F30\""))
   assert_true(
     pivots[0].table_xml.contains("<pivotField name=\"Region\" axis=\"axisRow\""),
   )
@@ -247,6 +247,11 @@ test "the pivots example summarizes what its comments describe" {
   )
   assert_true(
     pivots[0].table_xml.contains("name=\"Total revenue\" subtotal=\"sum\""),
+  )
+  assert_true(
+    pivots[0].table_xml.contains(
+      "<pivotField name=\"Sold via\" axis=\"axisPage\"",
+    ),
   )
   // Both read the same source, and neither carries a cached summary: Excel
   // builds them on open.
@@ -457,7 +462,7 @@ test "the sparklines example draws its two groups" {
 }
 
 ///|
-/// The `shapes` example claims three drawings. A shape is not a cell value, so
+/// The `shapes` example claims five drawings. A shape is not a cell value, so
 /// the promise table cannot carry it.
 test "the shapes example floats what its comments describe" {
   let path = "\{EXAMPLES}/shapes.yxl.yaml"
@@ -473,7 +478,7 @@ test "the shapes example floats what its comments describe" {
     fail("expected the Board sheet")
   }
   let shapes = board.shapes()
-  assert_eq(shapes.length(), 3)
+  assert_eq(shapes.length(), 5)
   assert_eq(shapes[0].shape_type, "cloud")
   assert_eq(shapes[0].cell, "D1")
   assert_eq(shapes[0].fill_color, "D6E9F8")
@@ -484,6 +489,9 @@ test "the shapes example floats what its comments describe" {
   assert_eq(shapes[1].paragraph.map(run => run.text), ["Next", "quarter"])
   assert_eq(shapes[2].shape_type, "star5")
   assert_true(shapes[2].format.positioning is Some(Absolute))
+  // A `prst` token keeps its capitals, or Excel does not know the geometry.
+  assert_eq(shapes[3].shape_type, "roundRect")
+  assert_eq(shapes[4].shape_type, "rightArrow")
 }
 
 ///|

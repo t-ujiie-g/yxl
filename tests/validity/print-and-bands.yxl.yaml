@@ -2,7 +2,7 @@
 #
 # print setup both ways (fit and scale), page breaks, header and footer
 # codes, outline groups on rows and columns, a table with all four toggles,
-# and sheet protection with a password
+# and both halves of protection — the workbook's and a sheet's, with passwords
 #
 # This is not the cookbook. `examples/` is written to be read and teaches one
 # thing at a time; this is written to be *validated*, and reaches for every
@@ -12,6 +12,11 @@
 #
 # Nothing here needs to be legible or realistic. Add a row when the schema
 # grows a variant; never delete one to make a build pass.
+
+protect:
+  structure: true
+  windows: true
+  password: bookpw
 
 sheets:
   - name: Fit

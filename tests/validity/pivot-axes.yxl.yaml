@@ -1,0 +1,80 @@
+# Part of the validity corpus (ROADMAP §5).
+#
+# all four pivot axes including `filters:`, two pivots over two different
+# sources, every aggregation, and both grand-total toggles
+#
+# This is not the cookbook. `examples/` is written to be read and teaches one
+# thing at a time; this is written to be *validated*, and reaches for every
+# variant the schema offers — because the Open XML validator only ever judges
+# the files something actually produces. Three icon sets shipped invalid for
+# two phases because the cookbook happened to use one of the twenty.
+#
+# Nothing here needs to be legible or realistic. Add a row when the schema
+# grows a variant; never delete one to make a build pass.
+
+sheets:
+  - name: Summary
+    pivots:
+      # Every axis at once. The filter block draws in the rows above `at`.
+      - at: A4:F30
+        source: Orders!A1:D5
+        rows: [Region]
+        columns: [Quarter]
+        filters:
+          - field: Channel
+            name: Sold via
+        values:
+          - { field: Revenue, function: sum, name: Total }
+          - { field: Revenue, function: average }
+          - { field: Revenue, function: count }
+          - { field: Revenue, function: count_numbers }
+          - { field: Revenue, function: max }
+          - { field: Revenue, function: min }
+          - { field: Revenue, function: product }
+          - { field: Revenue, function: std_dev }
+          - { field: Revenue, function: std_dev_p }
+          - { field: Revenue, function: var }
+          - { field: Revenue, function: var_p }
+        name: EveryAxis
+        style: PivotStyleDark4
+
+      # A second pivot over a *different* source: each gets its own cache, and
+      # Excel resolves one from the other by `cacheId`.
+      - at: H4:J30
+        source: Costs!A1:B3
+        rows: [Team]
+        values: [Spend]
+        row_grand_totals: false
+        column_grand_totals: false
+
+  - name: Orders
+    cells:
+      A1: Region
+      B1: Quarter
+      C1: Channel
+      D1: Revenue
+      A2: APAC
+      B2: Q3
+      C2: Direct
+      D2: 100
+      A3: EMEA
+      B3: Q3
+      C3: Partner
+      D3: 200
+      A4: AMER
+      B4: Q4
+      C4: Direct
+      D4: 300
+      A5: APAC
+      B5: Q4
+      C5: Partner
+      D5: 400
+
+  - name: Costs
+    cells:
+      A1: Team
+      B1: Spend
+      A2: Ops
+      B2: 10
+      A3: Sales
+      B3: 20
