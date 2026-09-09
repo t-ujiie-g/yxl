@@ -27,3 +27,24 @@
 modular.xlsx
   Sch_InvalidElementContentExpectingComplex /x14:slicerCacheDefinition[1]/x14:extLst[1]
     The element has invalid child element 'http://schemas.microsoft.com/office/spreadsheetml/2009/9/main:ext'. List of possible elements expected: <http://schemas.openxmlformats.org/spreadsheetml/2006/main:ext>.
+
+# ---------------------------------------------------------------------------
+# conditional-dxf-order.xlsx — a `<dxf>`'s children are written in the order
+# `numFmt, font, fill, border, alignment`, while CT_Dxf (ECMA-376 §18.8.14) is
+# the sequence `font, numFmt, fill, alignment, border, protection`. Excel does
+# not merely ignore the part: `styles.xml` is load-bearing, so it reports the
+# workbook as damaged and repair *discards styles.xml whole* — every fill,
+# border, font and number format in the workbook, not only the conditional
+# format that produced the `<dxf>`.
+#
+# A `<dxf>` carrying only a font and a fill comes out in a legal order by
+# accident, which is why `conditional.yxl.yaml` — twenty-four rules — never
+# showed it: no style there has a `format:` or an `align:`. That corpus file
+# stays clean and keeps proving the feature validates; this one exists solely
+# to hold the defect still until upstream fixes it.
+#
+# Reported as office.mbt#531. Downstream: t-ujiie-g/yxl#81, which is where the
+# blast radius is written down. See also ROADMAP §9.
+conditional-dxf-order.xlsx
+  Sch_UnexpectedElementContentExpectingComplex /x:styleSheet[1]/x:dxfs[1]/x:dxf[1]
+    The element has unexpected child element 'http://schemas.openxmlformats.org/spreadsheetml/2006/main:font'.
