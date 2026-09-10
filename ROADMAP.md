@@ -416,7 +416,8 @@ Excel by hand** before ticking the box, not only round-trip it.
       `stacked`, and the sheet-qualified `<xm:f>` are all as ECMA-376 Part 4
       §2.9 wants them. Two backend gaps bound the schema: the *first*, *last*,
       and *negative* markers are options nothing can set (refused by name with
-      the reason), and `manualMin`/`manualMax` are written without
+      the reason — **re-confirmed against 0.1.10 by compiling the attempt**,
+      §9), and `manualMin`/`manualMax` are written without
       `minAxisType`/`maxAxisType="custom"` — whether Excel honours them anyway
       is what the manual check watches
 - [x] **Form controls** (`add_form_control`) — a button, check box, option
@@ -2024,6 +2025,22 @@ held: the whole migration is four `moon.pkg` import lines and one constructor.
   written. **All unreported**; one batch, or seven small ones, after
   #401–#403.
 
+- **A sparkline's first / last / negative markers cannot be set, and the
+  `.mbti` says otherwise.** `SparklineOptions` — what `add_sparkline` takes —
+  declares the three without `mut` and offers no setter, which is the half that
+  was already written down. What 0.1.10 added to the picture is
+  `SparklineGroupOptions`, whose generated interface shows `mut first`,
+  `mut last`, `mut negative`, reachable through `Worksheet::sparkline_groups()`
+  — so there looked to be a way in after all. There is not: assigning to one is
+  a compile error, *"Cannot modify a read-only field: first"*, because the type
+  is read-only outside its own package. **This is the second time the `.mbti`'s
+  shape has suggested a mutability that the compiler refuses** — `Style` is the
+  other (below) — so the rule for this backend is that a `mut` in the interface
+  is not a promise, and the only way to know is to compile the assignment.
+  Verified 2026-09-11 with a throwaway package rather than by reading. Not
+  reported: it is one of a family of small gaps, and the upstream batch was
+  kept to three.
+
 - **A style cannot carry both a number format and cell protection.** The
   backend builds a `Style` by seeding it from one attribute and layering the
   rest with `with_*` builders, and it has `with_font`, `with_fill`,
@@ -2129,6 +2146,16 @@ Reverse-chronological. One entry per user-visible or structural change.
   ([office.mbt#534](https://github.com/moonbitlang/office.mbt/issues/534)) —
   which is what a protected form's currency-formatted entry cell is made of.
   Nothing changed in the code for either; they were simply never sent.
+
+  **And one gap was re-checked rather than assumed.** 0.1.10's `.mbti` shows
+  `SparklineGroupOptions` with `mut first`, `mut last`, `mut negative`, reached
+  through `Worksheet::sparkline_groups()` — which read like a way to set the
+  markers the schema refuses. Compiling the assignment says otherwise:
+  *"Cannot modify a read-only field: first"*. The type is read-only outside its
+  package, so the refusal stands. That is the **second** time this backend's
+  generated interface has implied a mutability the compiler denies (`Style` is
+  the other), which is worth stating as a rule: here, a `mut` in the `.mbti` is
+  not a promise, and only compiling the assignment settles it.
 
 - **2026-09-10** — **Two backend defects reported, one of which loses every
   style in the workbook.** Found by re-reading our own open issues against
