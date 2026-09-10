@@ -196,6 +196,21 @@ and XML 1.0 §2.11 has every reader — Excel included — normalize it to a lin
 feed on the way back in, so the two spellings open the same and only the second
 one survives a re-`extract` unchanged.
 
+> **Do not put a line break in a cell that a table's header row will use.** The
+> Excel backend writes attribute values without escaping a line feed
+> ([office.mbt#533](https://github.com/moonbitlang/office.mbt/issues/533)), and
+> XML 1.0 §3.3.3 has a parser turn a raw one into a space. A table records its
+> column names in attributes while the header *cells* keep their line breaks,
+> so the two stop matching — which ECMA-376 requires them to do — and Excel
+> offers to repair the workbook. Write a one-line heading (`"Phase1 載せ替え"`),
+> or use `filter:` (§10) instead of `tables:`, until the fix lands.
+>
+> The same escaping gap quietly costs a line break anywhere else it reaches an
+> attribute rather than a cell — a validation's `prompt:` or `error:` (§10) is
+> the one you are most likely to notice, where `"T1\nT2"` arrives as `T1 T2`.
+> Nothing is refused and no workbook breaks there; the text is simply not what
+> was asked for.
+
 > **`yxl` emits formulas; Excel computes them.** There is no evaluator here.
 
 ### Filled formula ranges
