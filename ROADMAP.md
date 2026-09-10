@@ -416,7 +416,8 @@ Excel by hand** before ticking the box, not only round-trip it.
       `stacked`, and the sheet-qualified `<xm:f>` are all as ECMA-376 Part 4
       §2.9 wants them. Two backend gaps bound the schema: the *first*, *last*,
       and *negative* markers are options nothing can set (refused by name with
-      the reason), and `manualMin`/`manualMax` are written without
+      the reason — **re-confirmed against 0.1.10 by compiling the attempt**,
+      §9), and `manualMin`/`manualMax` are written without
       `minAxisType`/`maxAxisType="custom"` — whether Excel honours them anyway
       is what the manual check watches
 - [x] **Form controls** (`add_form_control`) — a button, check box, option
@@ -1819,6 +1820,37 @@ held: the whole migration is four `moon.pkg` import lines and one constructor.
   workbook that is schema-valid and still wrong — the pivot in the wrong place,
   the `#SPILL!` below — so the manual Tier-3 pass stays at the v1.0 gate.
   Raised in the post-v0.1.0 review.
+- **A line feed in an attribute value is written raw, so a two-line table
+  heading breaks the workbook.** Both attribute escapers — `xlsx/write.mbt`'s
+  `LimitedXmlBuilder::write_xml_attr` and the shared `@ooxml.escape_xml_attr`,
+  whose own comment calls itself *"a single implementation to keep correct"* —
+  handle `& < > " '` and stop, so a tab, line feed or carriage return goes out
+  unescaped. XML 1.0 §3.3.3 then has every parser replace it with a space, and
+  the value read back is not the value written. A table is where that turns
+  into a broken file: `<tableColumn name>` is an attribute and loses the break,
+  the header *cell* keeps it (element text goes through `write_t_element`,
+  which does add `xml:space="preserve"`), the two stop matching as ECMA-376
+  requires, and Excel offers to repair. Elsewhere it is silent — a validation's
+  `prompt:`/`error:` simply arrives with spaces where the author wrote breaks.
+  **Reported 2026-09-11 as
+  [office.mbt#533](https://github.com/moonbitlang/office.mbt/issues/533)**;
+  ours is [#86](https://github.com/t-ujiie-g/yxl/issues/86).
+
+  **Not worked around**, on the same reasoning as the `<dxf>` order below: the
+  fix upstream is three character references, and refusing a line break in a
+  header cell would cost a documented feature (§3 tells authors to write `\n`)
+  for however long that takes. `docs/spec.md` §3 warns instead.
+
+  **And this one CI cannot see.** Unlike the `<dxf>` defect, the Open XML
+  validator passes the file — `name` is a plain string in the schema, and
+  "a `tableColumn`'s name matches its header cell" is a semantic rule it does
+  not check. So there is no corpus row to add and no waiver to expire: the only
+  automatic guard would be a check of our own that parses the emitted parts and
+  compares the two. Not written, deliberately — it is one more mechanism to
+  carry for a defect with a small, likely-quick fix upstream — but that is the
+  reason this entry is longer than the defect deserves. If #533 goes quiet, a
+  check is the answer.
+
 - **A conditional look with a number format or an alignment makes Excel throw
   away every style in the workbook.** `<dxf>`'s children go out as `numFmt,
   font, fill, border, alignment`, where `CT_Dxf` (ECMA-376 §18.8.14) is the
@@ -1872,7 +1904,10 @@ held: the whole migration is four `moon.pkg` import lines and one constructor.
   feature for a violation Excel may well tolerate, so it is **waived by name**
   in `tools/openxml-validator/known-defects.txt` and the waiver fails the day
   it stops happening. Found by the new validity check, first run.
-  **Still unreported** — the next upstream batch after #401–#403.
+  **Reported 2026-09-11 as
+  [office.mbt#535](https://github.com/moonbitlang/office.mbt/issues/535)**,
+  with the note that the pivot-backed path is unaffected because its default
+  namespace *is* the main one — which is why the backend's own demos validate.
 - **Three icon sets wrote a workbook Excel offers to repair, and had since
   Phase 9.** `3Stars`, `3Triangles` and `5Boxes` were added in Excel 2010 and
   live only in the `x14` extension schema; the base `ST_IconSetType`
@@ -1990,6 +2025,22 @@ held: the whole migration is four `moon.pkg` import lines and one constructor.
   written. **All unreported**; one batch, or seven small ones, after
   #401–#403.
 
+- **A sparkline's first / last / negative markers cannot be set, and the
+  `.mbti` says otherwise.** `SparklineOptions` — what `add_sparkline` takes —
+  declares the three without `mut` and offers no setter, which is the half that
+  was already written down. What 0.1.10 added to the picture is
+  `SparklineGroupOptions`, whose generated interface shows `mut first`,
+  `mut last`, `mut negative`, reachable through `Worksheet::sparkline_groups()`
+  — so there looked to be a way in after all. There is not: assigning to one is
+  a compile error, *"Cannot modify a read-only field: first"*, because the type
+  is read-only outside its own package. **This is the second time the `.mbti`'s
+  shape has suggested a mutability that the compiler refuses** — `Style` is the
+  other (below) — so the rule for this backend is that a `mut` in the interface
+  is not a promise, and the only way to know is to compile the assignment.
+  Verified 2026-09-11 with a throwaway package rather than by reading. Not
+  reported: it is one of a family of small gaps, and the upstream batch was
+  kept to three.
+
 - **A style cannot carry both a number format and cell protection.** The
   backend builds a `Style` by seeding it from one attribute and layering the
   rest with `with_*` builders, and it has `with_font`, `with_fill`,
@@ -2002,8 +2053,9 @@ held: the whole migration is four `moon.pkg` import lines and one constructor.
   also formatted as currency, which is what a protected form is made of.
   `emit/style.mbt` refuses it with a diagnostic that names the number format
   and says to split it into its own style, and layering (§4 of the spec's
-  styling keys) makes that work in practice. **Unreported**; the fix upstream
-  is two builders.
+  styling keys) makes that work in practice. **Reported 2026-09-11 as
+  [office.mbt#534](https://github.com/moonbitlang/office.mbt/issues/534)**; the
+  fix upstream is two builders beside the four that exist.
 - **MSVC cannot compile the backend's formula evaluator.** MoonBit's native
   backend hands each test executable to the platform C compiler as one
   translation unit, and `mbtexcel`'s formula dispatch — a `match` with a
@@ -2057,6 +2109,53 @@ held: the whole migration is four `moon.pkg` import lines and one constructor.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-09-11** — **A newline in a table heading breaks the workbook, and CI
+  structurally cannot see it.** Both attribute escapers stop at `& < > " '`, so
+  a tab, line feed or carriage return reaches the file raw; XML 1.0 §3.3.3 then
+  has every parser turn it into a space. `<tableColumn name>` is an attribute
+  and loses the break while the header *cell* keeps it — element text goes
+  through `write_t_element`, which does add `xml:space="preserve"` — so the two
+  stop matching as ECMA-376 requires and Excel offers to repair. Reported as
+  [office.mbt#533](https://github.com/moonbitlang/office.mbt/issues/533);
+  ours is [#86](https://github.com/t-ujiie-g/yxl/issues/86). Elsewhere it is
+  silent: a validation's `prompt:` or `error:` arrives with spaces where the
+  author wrote breaks.
+
+  **Not worked around**, matching the `<dxf>` decision: the fix upstream is
+  three character references, and refusing a line break in a header cell would
+  cost a feature §3 explicitly tells authors to use. `docs/spec.md` §3 warns,
+  and names the escape hatch — a one-line heading, or `filter:` instead of
+  `tables:`.
+
+  **What is new here is that the validity gate is no help.** The `<dxf>` defect
+  could be pinned with a corpus row and a waiver that expires when upstream
+  fixes it; this one passes the Open XML validator outright, because `name` is
+  a plain string in the schema and "a column's name matches its header cell" is
+  a semantic rule the SDK does not check. So the corpus grew a rule last week
+  and still would not have caught this: **there is a third class — valid XML
+  that is a wrong workbook — and only a check of our own, or Excel itself,
+  sees it.** §9 records what that check would be, and why it is not written yet.
+
+  **Two older defects reported at the same time**, both long-standing §9
+  entries: the table slicer's cache writing a bare `<ext>` into the x14
+  namespace instead of `x:ext`
+  ([office.mbt#535](https://github.com/moonbitlang/office.mbt/issues/535)), and
+  `Style` having no `with_protection` or `with_number_format`, so a style
+  cannot carry both a number format and cell protection
+  ([office.mbt#534](https://github.com/moonbitlang/office.mbt/issues/534)) —
+  which is what a protected form's currency-formatted entry cell is made of.
+  Nothing changed in the code for either; they were simply never sent.
+
+  **And one gap was re-checked rather than assumed.** 0.1.10's `.mbti` shows
+  `SparklineGroupOptions` with `mut first`, `mut last`, `mut negative`, reached
+  through `Worksheet::sparkline_groups()` — which read like a way to set the
+  markers the schema refuses. Compiling the assignment says otherwise:
+  *"Cannot modify a read-only field: first"*. The type is read-only outside its
+  package, so the refusal stands. That is the **second** time this backend's
+  generated interface has implied a mutability the compiler denies (`Style` is
+  the other), which is worth stating as a rule: here, a `mut` in the `.mbti` is
+  not a promise, and only compiling the assignment settles it.
 
 - **2026-09-10** — **Two backend defects reported, one of which loses every
   style in the workbook.** Found by re-reading our own open issues against
