@@ -3,4 +3,6 @@
 // behind the emitter seam (ADR-002).
 import {
   "t-ujiie-g/yxl/units",
+  // `extends.mbt` names `@debug.Debug` to decline its promotion.
+  "moonbitlang/core/debug",
 }

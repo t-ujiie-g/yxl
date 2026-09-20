@@ -416,7 +416,7 @@ Excel by hand** before ticking the box, not only round-trip it.
       `stacked`, and the sheet-qualified `<xm:f>` are all as ECMA-376 Part 4
       §2.9 wants them. Two backend gaps bound the schema: the *first*, *last*,
       and *negative* markers are options nothing can set (refused by name with
-      the reason — **re-confirmed against 0.1.10 by compiling the attempt**,
+      the reason — **re-confirmed against 0.2.0 by compiling the attempt**,
       §9), and `manualMin`/`manualMax` are written without
       `minAxisType`/`maxAxisType="custom"` — whether Excel honours them anyway
       is what the manual check watches
@@ -500,7 +500,8 @@ gate, which is why none carries a box:
   **Reported 2026-08-09 as [office.mbt#401](https://github.com/moonbitlang/office.mbt/issues/401)**, with the part Excel writes for
   the same control and the note that `shapeId` ties it back to the `<v:shape>`
   the existing VML writer already emits, so most of what the new part needs is
-  in hand
+  in hand. `mbtexcel@0.2.0` writes no `ctrlProps` part and no `<controls>`
+  element either
 - **a shape with no explicit colour is invisible**, for a neighbouring reason:
   the backend writes no `fillRef`/`lnRef` theme style reference, so a shape
   given neither `fill:` nor `line:` gets no fill and no outline rather than
@@ -1575,6 +1576,8 @@ accepted and means what leaving the key out means.
 ### ADR-021 — The backend is `moonbitlang/mbtexcel`, and the ZIP comes from `moonbit-community/flate`
 **Status:** Accepted. Supersedes ADR-001's *coordinates* only; the decision to
 build on this backend (ADR-001) and to keep it behind a seam (ADR-002) stand.
+The version numbers below are the pin as it stood when this was written —
+`moon.mod` is the pin of record, and §11 records each bump.
 **Context:** The library moved from `bobzhang/mbtexcel` to
 `moonbitlang/mbtexcel` — same code, same `xlsx` package, an ownership change
 rather than a fork. Its `0.1.10` also dropped the vendored `zip` package in
@@ -1585,6 +1588,28 @@ the package the backend hands over.
 **Trade-offs:** one more direct dependency, and the `zip` API is not identical
 (`Archive::Archive()` where the vendored one had `Archive::new()`). The seam
 held: the whole migration is four `moon.pkg` import lines and one constructor.
+
+### ADR-022 — Trait-method promotion is declined, once per type, in `extends.mbt`
+**Status:** Accepted. An instance of ADR-007.
+**Context:** MoonBit stopped promoting a trait's methods to inherent methods
+implicitly: a `derive(Eq, Debug)` on a public type now warns
+(`implicit_impl_as_method`) until the package says, by name, whether
+`x.equal(y)` and `x.to_repr()` are part of its surface. With 89 derived types
+that is 183 warnings, and `moon check --deny-warn` is a CI gate.
+**Decision:** Each package declines every promotion in an `extends.mbt`, with
+`#deprecated(…, skip_current_package=true)` and `#doc(hidden)` on each
+declaration. Nothing in `yxl` calls `equal`, `not_equal`, `hash`,
+`hash_combine`, `to_repr`, `Emitter::emit` or `Reader::read` in method
+position, and the traits are reached by operator (`==`, `!=`) or by trait
+(`Emitter::emit(e, wb)`, `debug_inspect`), so promoting would widen the public
+surface for callers that do not exist (§8.2).
+**Trade-offs:** ~960 lines of declaration, most of them `model`'s, for
+behaviour that does not change; the alternative — promoting `Eq::equal` and
+`Hash::hash` the way `moonbitlang/core` does for its own users — costs *more*
+lines, since the derivatives still need declining, and puts 89 `equal` methods
+into the `.mbti`. Declining keeps every `.mbti` byte-identical, which is what
+makes the diff of a language migration reviewable. Adding a derived type now
+costs an `extends.mbt` entry; the compiler names the missing one.
 
 ## 8. Open questions
 
@@ -1788,9 +1813,10 @@ held: the whole migration is four `moon.pkg` import lines and one constructor.
   that has no criteria at all.
   **`mbtexcel@0.1.10` fixed #477**: the tokenizer no longer keeps a quoted
   token's quote characters, and an unclosed quote raises rather than silently
-  mangling the value. #478 stands, so the two-value ceiling stands with it —
-  and so does the decision above, since the comparison half alone is that same
-  rejected subset.
+  mangling the value. #478 stands through `0.2.0` — the grammar is still three
+  tokens, or seven with a conjunction — so the two-value ceiling stands with
+  it, and so does the decision above, since the comparison half alone is that
+  same rejected subset.
 
 - **`extract`'s self-check compares cells, not their looks.** It recompiles the
   spec it wrote and asserts the *values* match, so a styling inference that goes
@@ -1834,7 +1860,8 @@ held: the whole migration is four `moon.pkg` import lines and one constructor.
   `prompt:`/`error:` simply arrives with spaces where the author wrote breaks.
   **Reported 2026-09-11 as
   [office.mbt#533](https://github.com/moonbitlang/office.mbt/issues/533)**;
-  ours is [#86](https://github.com/t-ujiie-g/yxl/issues/86).
+  ours is [#86](https://github.com/t-ujiie-g/yxl/issues/86). Both escapers
+  still stop at the five in `mbtexcel@0.2.0`.
 
   **Not worked around**, on the same reasoning as the `<dxf>` order below: the
   fix upstream is three character references, and refusing a line break in a
@@ -1860,7 +1887,8 @@ held: the whole migration is four `moon.pkg` import lines and one constructor.
   cell's fill, border, font and number format with it. **Reported 2026-09-10 as
   [office.mbt#531](https://github.com/moonbitlang/office.mbt/issues/531)**;
   ours is [#81](https://github.com/t-ujiie-g/yxl/issues/81), which has the
-  bisection.
+  bisection. `mbtexcel@0.2.0` still writes the same order, and
+  `conditional-dxf-order.xlsx` is still the one waiver left.
 
   **Nothing is worked around here, by decision** — the combination is refused
   neither in the loader nor in `emit`, because the fix is one reordering
@@ -1889,25 +1917,26 @@ held: the whole migration is four `moon.pkg` import lines and one constructor.
   so it is a slip in the comment path alone. Every comment also shares one
   fixed geometry, with only `<x:Anchor>` varying. **Reported 2026-09-10 as
   [office.mbt#532](https://github.com/moonbitlang/office.mbt/issues/532)**;
-  ours is [#82](https://github.com/t-ujiie-g/yxl/issues/82). Not worked around:
-  there is nothing a spec could say differently.
+  ours is [#82](https://github.com/t-ujiie-g/yxl/issues/82). Unchanged in
+  `mbtexcel@0.2.0`. Not worked around: there is nothing a spec could say
+  differently.
 
-- **The backend writes a table slicer's cache extension in the wrong
-  namespace.** `write_slicer_cache_xml_table` makes x14 the part's default
-  namespace and then writes a bare `<ext>`, which therefore lands in x14;
+- ~~**The backend writes a table slicer's cache extension in the wrong
+  namespace.**~~ **Closed 2026-09-21** by `mbtexcel@0.2.0`, which writes
+  `x:ext`; `modular.xlsx` validates clean and its waiver is gone from
+  `tools/openxml-validator/known-defects.txt`. Kept for how it was found and
+  how it ended. `write_slicer_cache_xml_table` made x14 the part's default
+  namespace and then wrote a bare `<ext>`, which therefore landed in x14;
   `CT_SlicerCacheDefinition`'s `extLst` is typed `x:CT_ExtensionList`, so the
-  child must be `x:ext`. The `x` prefix is already declared on the root
-  element, so the fix upstream is the prefix. The pivot-backed slicer is
-  unaffected — there the part's default namespace *is* the main one — which is
-  why the backend's own demos, which validate, do not show it. Nothing to work
-  around from here short of refusing table slicers, which would cost a shipped
-  feature for a violation Excel may well tolerate, so it is **waived by name**
-  in `tools/openxml-validator/known-defects.txt` and the waiver fails the day
-  it stops happening. Found by the new validity check, first run.
-  **Reported 2026-09-11 as
-  [office.mbt#535](https://github.com/moonbitlang/office.mbt/issues/535)**,
-  with the note that the pivot-backed path is unaffected because its default
-  namespace *is* the main one — which is why the backend's own demos validate.
+  child has to be `x:ext`. The `x` prefix was already declared on the root
+  element, so the fix upstream was the prefix — and that is the fix that
+  shipped. The pivot-backed slicer was never affected: there the part's default
+  namespace *is* the main one, which is why the backend's own demos validated
+  and nothing upstream showed it. Found by the validity check on its first run,
+  **reported 2026-09-11 as
+  [office.mbt#535](https://github.com/moonbitlang/office.mbt/issues/535)** with
+  that note, and closed upstream on 2026-09-14. The waiver expiring is what
+  told us: the run failed for a finding the list expected and no longer saw.
 - **Three icon sets wrote a workbook Excel offers to repair, and had since
   Phase 9.** `3Stars`, `3Triangles` and `5Boxes` were added in Excel 2010 and
   live only in the `x14` extension schema; the base `ST_IconSetType`
@@ -1924,7 +1953,8 @@ held: the whole migration is four `moon.pkg` import lines and one constructor.
   `unwritable_icon_set_styles`, apart from the seventeen, and a test pins that
   the two lists stay disjoint and add to twenty. `extract` names them apart
   too, since "the spec does not name it" would send a reader hunting a typo.
-  They become plain schema additions the day #403 lands.
+  They become plain schema additions the day #403 lands — not `mbtexcel@0.2.0`,
+  which still writes all twenty into the base attribute.
 
 - **A link into a sheet whose name needs quoting went out unquoted.**
   `links: { A2: { to: "Q1 Sales!B2" } }` reached the file as
@@ -2037,9 +2067,10 @@ held: the whole migration is four `moon.pkg` import lines and one constructor.
   shape has suggested a mutability that the compiler refuses** — `Style` is the
   other (below) — so the rule for this backend is that a `mut` in the interface
   is not a promise, and the only way to know is to compile the assignment.
-  Verified 2026-09-11 with a throwaway package rather than by reading. Not
-  reported: it is one of a family of small gaps, and the upstream batch was
-  kept to three.
+  Verified 2026-09-11 with a throwaway package rather than by reading, and
+  again on 2026-09-21 against `mbtexcel@0.2.0`, which changes neither type.
+  Not reported: it is one of a family of small gaps, and the upstream batch
+  was kept to three.
 
 - **A style cannot carry both a number format and cell protection.** The
   backend builds a `Style` by seeding it from one attribute and layering the
@@ -2055,7 +2086,9 @@ held: the whole migration is four `moon.pkg` import lines and one constructor.
   and says to split it into its own style, and layering (§4 of the spec's
   styling keys) makes that work in practice. **Reported 2026-09-11 as
   [office.mbt#534](https://github.com/moonbitlang/office.mbt/issues/534)**; the
-  fix upstream is two builders beside the four that exist.
+  fix upstream is two builders beside the four that exist. Still four in
+  `mbtexcel@0.2.0`, re-checked the only way that counts — by compiling
+  `with_protection` and reading the *"has no method"*.
 - **MSVC cannot compile the backend's formula evaluator.** MoonBit's native
   backend hands each test executable to the platform C compiler as one
   translation unit, and `mbtexcel`'s formula dispatch — a `match` with a
@@ -2109,6 +2142,41 @@ held: the whole migration is four `moon.pkg` import lines and one constructor.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-09-21** — **`mbtexcel@0.2.0`, and one waiver fewer.** The backend pin
+  moves to `0.2.0` (and with it `moonbitlang/x@0.5.5` and
+  `moonbit-community/flate@0.8.1`, which it requires). The `xlsx` package's
+  interface is byte-identical to `0.1.10`'s, so nothing here changed shape;
+  what changed is inside one part. **`office.mbt#535` is fixed**: a table
+  slicer's cache now writes `x:ext` instead of a bare `<ext>` that landed in
+  x14, so `examples/modular.xlsx` validates clean and its entry is gone from
+  `tools/openxml-validator/known-defects.txt` — the waiver expiring is how the
+  run reported it, which is the behaviour that waiver list was built for.
+  `conditional-dxf-order.xlsx` (#531) is now the only one left.
+
+  **Everything else we have open upstream was re-checked against `0.2.0` and
+  still stands**: #401 (no `ctrlProps` part, so Excel draws no form control),
+  #403 (three icon sets written into the base attribute), #478 (the auto-filter
+  grammar still caps a checkbox list at two values), #531 (`<dxf>` child
+  order), #532 (a comment's VML style with no property name) and #533
+  (attribute values still escape only `& < > " '`). So are the two gaps that
+  are shapes rather than bugs — `Style` has no `with_protection` or
+  `with_number_format` (#534), and a sparkline's first/last/negative markers
+  have no setter — both re-checked by *compiling* the attempt, since this
+  backend's `.mbti` has twice suggested a mutability the compiler refuses.
+
+- **2026-09-21** — **Trait-method promotion is declined by name (ADR-022).**
+  MoonBit no longer promotes a trait's methods to inherent methods implicitly,
+  so every `derive(Eq, Debug)` warned until the package said what it wanted.
+  Each package gained an `extends.mbt` that declines all of them — `Eq`,
+  `Hash`, `@debug.Debug`, and our own `Emitter` / `Reader` — with
+  `#deprecated(…, skip_current_package=true)` and `#doc(hidden)`, because
+  nothing calls any of these in method position. `moon check --deny-warn` is
+  clean again and every `.mbti` is unchanged, which is the point: a language
+  migration whose diff touches no interface is one a reviewer can read. Two
+  smaller migrations rode along — the blackbox seam test calls
+  `@read.Reader::read(reader, …)` rather than `reader.read(…)`, and
+  `model_test.mbt` qualifies `@model.Font`.
 
 - **2026-09-11** — **A newline in a table heading breaks the workbook, and CI
   structurally cannot see it.** Both attribute escapers stop at `& < > " '`, so

@@ -307,6 +307,10 @@ refactor, also:
 - **Clear deprecation warnings.** Anything the compiler flags deprecated gets
   migrated to the current construct; don't suppress it. Keep migrated-away
   blocks in `deprecated.mbt` only while callers still need them.
+- **A new derived type needs an `extends.mbt` entry.** Trait-method promotion
+  is declined per type, per trait (ADR-022), so `derive(Eq, Debug)` on a public
+  type warns until the package's `extends.mbt` says so. Copy a neighbouring
+  entry; the compiler names the trait and the methods.
 - **Verify against ground truth, not memory.** Use `moon ide doc`, the
   `moonbit-orientation` skill, and the local `.mooncakes/` source to confirm a
   construct is current — never assume from an older MoonBit version.

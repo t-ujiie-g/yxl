@@ -12,6 +12,8 @@ import {
   "t-ujiie-g/yxl/diag",
   // A companion file is bytes, whatever it holds; a CSV is text encoded once.
   "moonbitlang/core/encoding/utf8",
+  // `extends.mbt` names `@debug.Debug` to decline its promotion.
+  "moonbitlang/core/debug",
 }
 
 // The golden test re-opens compiled bytes with the backend reader to assert the

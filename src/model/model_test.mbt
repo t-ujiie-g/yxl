@@ -47,7 +47,7 @@ test "set folds a format shorthand into a style, and merges with an explicit sty
   let sheet = wb.add_sheet("S")
   let bold : @model.Style = {
     ..@model.Style::empty(),
-    font: Some({ ..Font::empty(), bold: Some(true), }),
+    font: Some({ ..@model.Font::empty(), bold: Some(true), }),
   }
   sheet.set(@units.CellRef(col=1, row=1), Number(1.0), format="0%")
   assert_eq(sheet.cells[0].style, Some(@model.Style::number_format("0%")))
@@ -75,7 +75,7 @@ test "Style::over keeps what the overriding style leaves unset" {
   let base : @model.Style = {
     ..@model.Style::empty(),
     font: Some({
-      ..Font::empty(),
+      ..@model.Font::empty(),
       bold: Some(false),
       size: Some(11.0),
       name: Some("Calibri"),
@@ -93,7 +93,7 @@ test "Style::over keeps what the overriding style leaves unset" {
   }
   let over : @model.Style = {
     ..@model.Style::empty(),
-    font: Some({ ..Font::empty(), bold: Some(true), }),
+    font: Some({ ..@model.Font::empty(), bold: Some(true), }),
     align: Some({ horizontal: Some(Center), vertical: None, wrap: None, }),
   }
   let merged = over.over(base)
@@ -144,7 +144,7 @@ test "an overriding style takes away the attribute it clears" {
     ..@model.Style::empty(),
     fill: Some({ color: red(), }),
     number_format: Some("0.00"),
-    font: Some({ ..Font::empty(), bold: Some(true), size: Some(11.0), }),
+    font: Some({ ..@model.Font::empty(), bold: Some(true), size: Some(11.0), }),
   }
   let over = clears([Fill, FontSize])
   let merged = over.over(base)
@@ -163,7 +163,7 @@ test "a cleared attribute stays cleared until something sets it" {
   let row = clears([Fill])
   let cell : @model.Style = {
     ..@model.Style::empty(),
-    font: Some({ ..Font::empty(), bold: Some(true), }),
+    font: Some({ ..@model.Font::empty(), bold: Some(true), }),
   }
   let layered = cell.over(row.over(column))
   assert_eq(layered.fill, None)
@@ -182,7 +182,7 @@ test "an attribute this style sets cannot also be cleared" {
     {
       ..@model.Style::empty(),
       fill: Some({ color: red(), }),
-      font: Some({ ..Font::empty(), bold: Some(true), }),
+      font: Some({ ..@model.Font::empty(), bold: Some(true), }),
     } : @model.Style).clearing(@model.StyleAttrs::of([Fill, FontSize]))
   assert_eq(style.fill, Some({ color: red(), }))
   assert_eq(style.assigned(), @model.StyleAttrs::of([Fill, FontBold]))
@@ -200,12 +200,12 @@ test "a style that only clears is not the empty style" {
 test "settling drops the record so one look interns once" {
   let plain : @model.Style = {
     ..@model.Style::empty(),
-    font: Some({ ..Font::empty(), bold: Some(true), }),
+    font: Some({ ..@model.Font::empty(), bold: Some(true), }),
   }
   let arrived_by_clearing = (
     {
       ..@model.Style::empty(),
-      font: Some({ ..Font::empty(), bold: Some(true), }),
+      font: Some({ ..@model.Font::empty(), bold: Some(true), }),
     } : @model.Style).clearing(@model.StyleAttrs::of([Fill]))
   assert_true(plain != arrived_by_clearing)
   assert_eq(plain, arrived_by_clearing.settled())
