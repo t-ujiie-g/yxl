@@ -43,7 +43,7 @@ test "the reader seam works through the trait, not only the shorthand" {
   let (wb, sheet) = fixture()
   sheet.set(at("A1"), Text("Region"))
   let reader = @read.MbtexcelReader()
-  let recovered = reader.read(@emit.to_bytes(wb))
+  let recovered = @read.Reader::read(reader, @emit.to_bytes(wb))
   assert_eq(recovered.workbook.sheets.length(), 1)
   assert_eq(cell_at(recovered.workbook.sheets[0], "A1"), Some(Text("Region")))
 }
