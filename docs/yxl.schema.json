@@ -1673,6 +1673,463 @@
         }
       ]
     },
+    "layout": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "A region of named columns (§25).",
+      "properties": {
+        "at": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/cell"
+            }
+          ],
+          "description": "**Required.** The top-left cell. The header row is here when any column has a `header`; otherwise the body starts here.",
+          "markdownDescription": "**Required.** The top-left cell. The header row is here when any column has a `header`; otherwise the body starts here."
+        },
+        "rows": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/integer"
+            }
+          ],
+          "description": "**Required.** How many body rows, at least 1.",
+          "markdownDescription": "**Required.** How many body rows, at least 1."
+        },
+        "header_style": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/style"
+            }
+          ],
+          "description": "A style (bareword or inline) for every header cell. Needs at least one `header`.",
+          "markdownDescription": "A style (bareword or inline) for every header cell. Needs at least one `header`."
+        },
+        "columns": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/layout_column"
+              }
+            },
+            {
+              "$ref": "#/definitions/include"
+            }
+          ],
+          "description": "**Required.** The columns, left to right from `at`. At least one.",
+          "markdownDescription": "**Required.** The columns, left to right from `at`. At least one."
+        },
+        "$include": {
+          "type": "string",
+          "description": "Another document, pasted in place of this node (§8)."
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "at",
+            "rows",
+            "columns"
+          ]
+        },
+        {
+          "required": [
+            "$include"
+          ]
+        }
+      ]
+    },
+    "layout_column": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "One named column of a layout (§25).",
+      "properties": {
+        "name": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/text"
+            }
+          ],
+          "description": "**Required.** Letters, digits and `_`, or any non-ASCII character, not starting with a digit. Unique on the sheet.",
+          "markdownDescription": "**Required.** Letters, digits and `_`, or any non-ASCII character, not starting with a digit. Unique on the sheet."
+        },
+        "header": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/scalar"
+            }
+          ],
+          "description": "The header cell's value: text or a number.",
+          "markdownDescription": "The header cell's value: text or a number."
+        },
+        "formula": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/text"
+            }
+          ],
+          "description": "Filled down the body as a formula range (§3), written for the body's first row.",
+          "markdownDescription": "Filled down the body as a formula range (§3), written for the body's first row."
+        },
+        "conditional": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "description": "A conditional format over the column's body.",
+                "properties": {
+                  "cell": {
+                    "allOf": [
+                      {
+                        "$ref": "#/definitions/comparison"
+                      }
+                    ],
+                    "description": "A comparison, spelled exactly as in a validation (§ above). The bound is read as it is written: a number, a date if it parses as one, otherwise text.",
+                    "markdownDescription": "A comparison, spelled exactly as in a validation (§ above). The bound is read as it is written: a number, a date if it parses as one, otherwise text."
+                  },
+                  "formula": {
+                    "allOf": [
+                      {
+                        "$ref": "#/definitions/text"
+                      }
+                    ],
+                    "description": "An expression, true where the rule should apply. Written relative to the range's **top-left** cell, as Excel's own dialog does — `$B2` holds the column and lets the row move.",
+                    "markdownDescription": "An expression, true where the rule should apply. Written relative to the range's **top-left** cell, as Excel's own dialog does — `$B2` holds the column and lets the row move."
+                  },
+                  "text": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "contains": {
+                        "$ref": "#/definitions/scalar"
+                      },
+                      "not_contains": {
+                        "$ref": "#/definitions/scalar"
+                      },
+                      "begins_with": {
+                        "$ref": "#/definitions/scalar"
+                      },
+                      "ends_with": {
+                        "$ref": "#/definitions/scalar"
+                      },
+                      "$include": {
+                        "type": "string",
+                        "description": "Another document, pasted in place of this node (§8)."
+                      }
+                    },
+                    "description": "Exactly one of `contains`, `not_contains`, `begins_with`, `ends_with`.",
+                    "markdownDescription": "Exactly one of `contains`, `not_contains`, `begins_with`, `ends_with`."
+                  },
+                  "top": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/definitions/integer"
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "count": {
+                            "$ref": "#/definitions/integer"
+                          },
+                          "percent": {
+                            "$ref": "#/definitions/boolean"
+                          },
+                          "$include": {
+                            "type": "string",
+                            "description": "Another document, pasted in place of this node (§8)."
+                          }
+                        }
+                      }
+                    ],
+                    "description": "A count (1–1000), or `{ count, percent: true }` for a percentage (1–100).",
+                    "markdownDescription": "A count (1–1000), or `{ count, percent: true }` for a percentage (1–100)."
+                  },
+                  "bottom": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/definitions/integer"
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "count": {
+                            "$ref": "#/definitions/integer"
+                          },
+                          "percent": {
+                            "$ref": "#/definitions/boolean"
+                          },
+                          "$include": {
+                            "type": "string",
+                            "description": "Another document, pasted in place of this node (§8)."
+                          }
+                        }
+                      }
+                    ],
+                    "description": "A count (1–1000), or `{ count, percent: true }` for a percentage (1–100).",
+                    "markdownDescription": "A count (1–1000), or `{ count, percent: true }` for a percentage (1–100)."
+                  },
+                  "duplicate": {
+                    "allOf": [
+                      {
+                        "$ref": "#/definitions/boolean"
+                      }
+                    ],
+                    "description": "`true`. Values appearing more than once, or exactly once, in the range.",
+                    "markdownDescription": "`true`. Values appearing more than once, or exactly once, in the range."
+                  },
+                  "unique": {
+                    "allOf": [
+                      {
+                        "$ref": "#/definitions/boolean"
+                      }
+                    ],
+                    "description": "`true`. Values appearing more than once, or exactly once, in the range.",
+                    "markdownDescription": "`true`. Values appearing more than once, or exactly once, in the range."
+                  },
+                  "color_scale": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "low": {
+                        "$ref": "#/definitions/color"
+                      },
+                      "high": {
+                        "$ref": "#/definitions/color"
+                      },
+                      "middle": {
+                        "$ref": "#/definitions/color"
+                      },
+                      "$include": {
+                        "type": "string",
+                        "description": "Another document, pasted in place of this node (§8)."
+                      }
+                    },
+                    "anyOf": [
+                      {
+                        "required": [
+                          "low",
+                          "high"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "$include"
+                        ]
+                      }
+                    ],
+                    "description": "`low` and `high`, optionally `middle` — a two- or three-color gradient.",
+                    "markdownDescription": "`low` and `high`, optionally `middle` — a two- or three-color gradient."
+                  },
+                  "data_bar": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "color": {
+                        "$ref": "#/definitions/color"
+                      },
+                      "bar_only": {
+                        "$ref": "#/definitions/boolean"
+                      },
+                      "$include": {
+                        "type": "string",
+                        "description": "Another document, pasted in place of this node (§8)."
+                      }
+                    },
+                    "description": "`color`, and `bar_only: true` to hide the value behind the bar.",
+                    "markdownDescription": "`color`, and `bar_only: true` to hide the value behind the bar."
+                  },
+                  "icon_set": {
+                    "anyOf": [
+                      {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "enum": [
+                              "3Arrows",
+                              "3ArrowsGray",
+                              "3Flags",
+                              "3Signs",
+                              "3Symbols",
+                              "3Symbols2",
+                              "3TrafficLights1",
+                              "3TrafficLights2",
+                              "4Arrows",
+                              "4ArrowsGray",
+                              "4Rating",
+                              "4RedToBlack",
+                              "4TrafficLights",
+                              "5Arrows",
+                              "5ArrowsGray",
+                              "5Quarters",
+                              "5Rating"
+                            ]
+                          },
+                          {
+                            "$ref": "#/definitions/parameterized"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "style": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "3Arrows",
+                                  "3ArrowsGray",
+                                  "3Flags",
+                                  "3Signs",
+                                  "3Symbols",
+                                  "3Symbols2",
+                                  "3TrafficLights1",
+                                  "3TrafficLights2",
+                                  "4Arrows",
+                                  "4ArrowsGray",
+                                  "4Rating",
+                                  "4RedToBlack",
+                                  "4TrafficLights",
+                                  "5Arrows",
+                                  "5ArrowsGray",
+                                  "5Quarters",
+                                  "5Rating"
+                                ]
+                              },
+                              {
+                                "$ref": "#/definitions/parameterized"
+                              }
+                            ]
+                          },
+                          "reverse": {
+                            "$ref": "#/definitions/boolean"
+                          },
+                          "icons_only": {
+                            "$ref": "#/definitions/boolean"
+                          },
+                          "$include": {
+                            "type": "string",
+                            "description": "Another document, pasted in place of this node (§8)."
+                          }
+                        }
+                      }
+                    ],
+                    "description": "One of Excel's own names — `3Arrows`, `3TrafficLights1`, `4Rating`, `5Rating`, … — optionally with `reverse` and `icons_only`. The seventeen are listed below.",
+                    "markdownDescription": "One of Excel's own names — `3Arrows`, `3TrafficLights1`, `4Rating`, `5Rating`, … — optionally with `reverse` and `icons_only`. The seventeen are listed below."
+                  },
+                  "style": {
+                    "allOf": [
+                      {
+                        "$ref": "#/definitions/style"
+                      }
+                    ],
+                    "description": "The look applied where the rule matches.",
+                    "markdownDescription": "The look applied where the rule matches."
+                  },
+                  "format": {
+                    "allOf": [
+                      {
+                        "$ref": "#/definitions/text"
+                      }
+                    ],
+                    "description": "The look applied where the rule matches.",
+                    "markdownDescription": "The look applied where the rule matches."
+                  },
+                  "stop_if_true": {
+                    "allOf": [
+                      {
+                        "$ref": "#/definitions/boolean"
+                      }
+                    ],
+                    "description": "Stop evaluating later rules on a cell this one matched.",
+                    "markdownDescription": "Stop evaluating later rules on a cell this one matched."
+                  },
+                  "$include": {
+                    "type": "string",
+                    "description": "Another document, pasted in place of this node (§8)."
+                  }
+                }
+              }
+            },
+            {
+              "$ref": "#/definitions/include"
+            }
+          ],
+          "description": "Conditional formats (§10) over the body, written without `at`.",
+          "markdownDescription": "Conditional formats (§10) over the body, written without `at`."
+        },
+        "width": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/number"
+            }
+          ],
+          "description": "The column's band, exactly as in §4.",
+          "markdownDescription": "The column's band, exactly as in §4."
+        },
+        "style": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/style"
+            }
+          ],
+          "description": "The column's band, exactly as in §4.",
+          "markdownDescription": "The column's band, exactly as in §4."
+        },
+        "format": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/text"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The column's band, exactly as in §4.",
+          "markdownDescription": "The column's band, exactly as in §4."
+        },
+        "hidden": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/boolean"
+            }
+          ],
+          "description": "The column's band, exactly as in §4.",
+          "markdownDescription": "The column's band, exactly as in §4."
+        },
+        "group": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/integer"
+            }
+          ],
+          "description": "The column's band, exactly as in §4.",
+          "markdownDescription": "The column's band, exactly as in §4."
+        },
+        "$include": {
+          "type": "string",
+          "description": "Another document, pasted in place of this node (§8)."
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "name"
+          ]
+        },
+        {
+          "required": [
+            "$include"
+          ]
+        }
+      ]
+    },
     "link": {
       "anyOf": [
         {
@@ -2883,6 +3340,21 @@
           ],
           "description": "Bands. §4.",
           "markdownDescription": "Bands. §4."
+        },
+        "layouts": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/layout"
+              }
+            },
+            {
+              "$ref": "#/definitions/include"
+            }
+          ],
+          "description": "Regions of named columns. §25.",
+          "markdownDescription": "Regions of named columns. §25."
         },
         "merges": {
           "anyOf": [

@@ -1042,7 +1042,7 @@ the first item changes what a spec looks like.
       adds a sheet key and a `defs:` namespace (the ADR-018 argument). The
       shape is ADR-023, which keeps the RFC's core and changes its surface;
       four slices, each shippable alone:
-      - [ ] **Slice 1 — `layouts:`.** A sheet key holding a list of anchored
+      - [x] **Slice 1 — `layouts:`.** A sheet key holding a list of anchored
             regions (`at: A1`, `rows: N`), each a sequence of named columns
             carrying their own `header`, `width`, `style`, `format`, `formula`
             and `conditional`. `{{name}}` inside a column's formula means *that
@@ -1050,6 +1050,19 @@ the first item changes what a spec looks like.
             columns, the body starts beneath it. Output equals the hand-written
             bands, cells, `formulas:` ranges and `conditional:` rules, byte for
             byte — the test is exactly that equivalence.
+            **Shipped** (`docs/spec.md` §25, `examples/columns.yxl.yaml`). The
+            loader's `layouts` arm goes through the conditional, formula-range
+            and band loaders, so the rules those keys enforce hold here too.
+            It makes the RFC's promised test two tests: loaded models equal in
+            `src/loader`, and compiled bytes equal in `src/cli`.
+            Decided while building it:
+            - Column names are unique across the **sheet**, not only across one
+              layout. That is the stricter rule, and it can be relaxed. Slice 4
+              needs it to name a column from outside a layout.
+            - A header is a scalar, and `header_style` styles all of them. One
+              header that looks different is an override.
+            - A `header_style` with no header, and two layouts banding the same
+              column, are both refused.
       - [ ] **Slice 2 — rows from data.** `values:` / `csv:` / `json:` on a
             layout fill the columns *without* a `formula:`, in declared order,
             and `rows:` defaults to their count. Without it slice 1 keeps a
@@ -2243,6 +2256,25 @@ taken.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-09-23** — **`layouts:` — columns named, not lettered (#89, slice 1
+  of ADR-023).** A new sheet key. A layout is an anchor cell, a body row count,
+  and named columns that carry their own header, width, style, format,
+  formula and conditional rules. Inside a column's formula, `{{name}}` is that
+  column's cell in the same row. A layout compiles to the bands, header cells,
+  `formulas:` ranges and `conditional:` rules one would write by hand, and the
+  bytes are identical: a test in `src/cli` compares both compilations. The
+  conditional-format loader now reads its rule apart from its `at:`, so a
+  layout's rules go through the same checks, and they report
+  `layout 'A2' column 'ratio'` rather than a letter the author never wrote.
+  `docs/spec.md` §25, the JSON Schema (and a selftest pair for it), and the
+  cookbook's `columns.yxl.yaml` document it.
+
+  **Taken ahead of Phase 10.** Phase 10 is still the first phase with an open
+  box, but nothing in it can be acted on now. Performance waits, by its own
+  terms, for a workbook that is actually slow, and every open `extract` item
+  but one is blocked upstream. That one, reading print setup through
+  `Worksheet`'s fields, is independent and in no hurry.
 
 - **2026-09-23** — **Position-free columns are planned (#89, ADR-023).** A new
   Phase 11 item, in four slices: `layouts:` (named columns that carry their

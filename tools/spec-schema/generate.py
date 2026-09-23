@@ -761,9 +761,7 @@ def build(doc: Reference) -> dict:
             ),
         ]
     }
-    define["conditional"] = obj(
-        {
-            "at": ref("range"),
+    conditional_rule = {
             "cell": ref("comparison"),
             "formula": ref("text"),
             "text": obj(
@@ -803,7 +801,9 @@ def build(doc: Reference) -> dict:
             "style": ref("style"),
             "format": ref("text"),
             "stop_if_true": ref("boolean"),
-        },
+    }
+    define["conditional"] = obj(
+        {"at": ref("range"), **conditional_rule},
         documented=rules,
         required=("at",),
         description="Formatting decided by the value (§10).",
@@ -1134,6 +1134,42 @@ def build(doc: Reference) -> dict:
         where="an override",
     )
 
+    # -- §25 layouts -------------------------------------------------------
+
+    layouts = "25. Layouts"
+    define["layout_column"] = obj(
+        {
+            "name": ref("text"),
+            "header": ref("scalar"),
+            "formula": ref("text"),
+            "conditional": seq(
+                obj(
+                    dict(conditional_rule),
+                    documented={k: v for k, v in rules.items() if k != "at"},
+                    description="A conditional format over the column's body.",
+                    where="a layout column's conditional format",
+                )
+            ),
+            **{key: band[key] for key in ("width", "style", "format", "hidden", "group")},
+        },
+        documented=doc.keys(layouts, table=1),
+        required=("name",),
+        description="One named column of a layout (§25).",
+        where="a layout column",
+    )
+    define["layout"] = obj(
+        {
+            "at": ref("cell"),
+            "rows": ref("integer"),
+            "header_style": ref("style"),
+            "columns": seq(ref("layout_column")),
+        },
+        documented=doc.keys(layouts),
+        required=("at", "rows", "columns"),
+        description="A region of named columns (§25).",
+        where="a layout",
+    )
+
     # -- §2 sheets ---------------------------------------------------------
 
     sheets = doc.keys("2. Sheets")
@@ -1144,6 +1180,7 @@ def build(doc: Reference) -> dict:
             "formulas": seq(ref("formula_range")),
             "data": seq(ref("data")),
             "columns": seq(ref("column_band")),
+            "layouts": seq(ref("layout")),
             "rows": seq(ref("row_band")),
             "merges": seq(ref("range")),
             "visibility": enum(doc.alternatives("2. Sheets", "visibility")),
@@ -1286,9 +1323,17 @@ ACCEPTED = {
     "the format shorthand cleared with null": (
         "sheets: [{name: S, cells: {A1: {value: 1, format: null}}}]"
     ),
+    "a layout of named columns": (
+        "sheets: [{name: S, layouts: [{at: A2, rows: 3, header_style: {font: {bold: true}},"
+        " columns: [{name: cy, header: 当年, width: 12}, {name: ratio, formula: '{{cy}}*2',"
+        " conditional: [{cell: {less_than: 0}, style: {font: {bold: true}}}]}]}]}]"
+    ),
 }
 
 REFUSED = {
+    "a layout column addressed by letter": (
+        "sheets: [{name: S, layouts: [{at: A1, rows: 1, columns: [{name: a, at: B}]}]}]"
+    ),
     "a misspelt sheet key": "sheets: [{name: S, celsl: {A1: 1}}]",
     "a misspelt top-level key": "sheets: [{name: S}]\nshets: []",
     "a misspelt cell facet": "sheets: [{name: S, cells: {A1: {valeu: 1}}}]",

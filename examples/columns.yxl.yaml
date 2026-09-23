@@ -1,0 +1,57 @@
+# Columns addressed by name rather than by letter. Build it with:
+#
+#   yxl build examples/columns.yxl.yaml -o columns.xlsx
+#
+# A year-on-year report: this year, last year, and the ratio, for sales and for
+# gross profit. Written with `columns:`, `formulas:` and `conditional:`, every
+# entry would carry a letter, and inserting a column would rewrite all of them.
+# Here the only letter is the layout's `at:`; the columns follow in order.
+
+defs:
+  styles:
+    header:
+      font: { bold: true, color: "FFFFFF" }
+      fill: "1F3864"
+      align: { horizontal: center }
+    fall:
+      font: { color: "9C0006" }
+
+sheets:
+  - name: 実績
+    freeze: B3
+    cells:
+      A1: 2026年度 上期 前年比
+    layouts:
+      - at: A2
+        rows: 4
+        header_style: header
+        columns:
+          - { name: item, header: 部門, width: 16 }
+          - { name: sales_cy, header: 売上 当年, width: 12, format: "#,##0" }
+          - { name: sales_py, header: 売上 前年, width: 12, format: "#,##0" }
+          # `{{sales_cy}}` is this row's cell of that column, so the formula
+          # never names a letter and survives a column inserted before it.
+          - name: sales_ratio
+            header: 売上 前年比
+            format: "0.0%"
+            formula: 'IFERROR({{sales_cy}}/{{sales_py}}-1,"")'
+            conditional:
+              - { cell: { less_than: 0 }, style: fall }
+          - { name: gross_cy, header: 粗利 当年, width: 12, format: "#,##0" }
+          - { name: gross_py, header: 粗利 前年, width: 12, format: "#,##0" }
+          - name: gross_ratio
+            header: 粗利 前年比
+            format: "0.0%"
+            formula: 'IFERROR({{gross_cy}}/{{gross_py}}-1,"")'
+            conditional:
+              - { cell: { less_than: 0 }, style: fall }
+
+    # The rows still land by position: a `null` leaves each ratio cell to its
+    # formula.
+    data:
+      - at: A3
+        values:
+          - [東日本, 5200000, 4800000, null, 1560000, 1500000]
+          - [西日本, 4100000, 4300000, null, 1150000, 1240000]
+          - [九州, 1900000, 1700000, null, 610000, 540000]
+          - [海外, 2600000, 2100000, null, 700000, 690000]

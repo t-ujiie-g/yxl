@@ -52,7 +52,30 @@ fn load_conditional_format(
     subject="a conditional format",
     noun="conditional",
   )
-  let context = "conditional '\{at.to_a1()}'"
+  load_conditional_rule(
+    entries,
+    at,
+    file~,
+    defs~,
+    context="conditional '\{at.to_a1()}'",
+    expected_before=["'at'"],
+    formula=text => text,
+  )
+}
+
+///|
+/// Everything in a conditional format but its `at:`, which the caller has
+/// already turned into `at`. `formula` rewrites a formula rule's text, and
+/// `expected_before` names the keys the caller read itself.
+fn load_conditional_rule(
+  entries : Array[(String, @yaml.Node)],
+  at : @model.CellRange,
+  file~ : String,
+  defs~ : Defs,
+  context~ : String,
+  expected_before~ : Array[String],
+  formula~ : (String) -> String raise @diag.SchemaError,
+) -> @model.ConditionalFormat raise @diag.SchemaError {
   let mut rule : @model.ConditionalRule? = None
   let mut style_node = None
   let mut number_format = None
@@ -60,7 +83,7 @@ fn load_conditional_format(
   for entry in entries {
     let (key, value) = entry
     match key {
-      "at" => () // consumed above
+      "at" if expected_before.contains("'at'") => () // read by the caller
       "cell" =>
         rule = Some(
           CellIs(
@@ -74,7 +97,9 @@ fn load_conditional_format(
         )
       "formula" =>
         rule = Some(
-          Formula(expect_string(value, file~, context="\{context} 'formula'")),
+          Formula(
+            formula(expect_string(value, file~, context="\{context} 'formula'")),
+          ),
         )
       "text" => rule = Some(load_text_rule(value, file~, context~))
       "top" | "bottom" =>
@@ -102,7 +127,7 @@ fn load_conditional_format(
       _ =>
         raise schema_error(
           file~,
-          "unknown key '\{key}' in \{context} (expected 'at', \{CONDITIONAL_RULES}, 'style', 'format', or 'stop_if_true')",
+          "unknown key '\{key}' in \{context} (expected \{expected_before.map(k => k + ", ").join("")}\{CONDITIONAL_RULES}, 'style', 'format', or 'stop_if_true')",
         )
     }
   }
