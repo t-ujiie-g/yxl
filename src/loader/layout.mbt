@@ -1,8 +1,6 @@
 ///|
-/// A sheet's `layouts:` — regions of named columns, each expanded into the
-/// bands, header cells, formula ranges and conditional formats a hand-written
-/// spec would hold (ADR-023, `docs/spec.md` §25). Column names are unique across
-/// the sheet, and one column carries a band from at most one layout.
+/// A sheet's `layouts:`, expanded into what the hand-written keys would hold
+/// (ADR-023, `docs/spec.md` §25). `names` and `banded` span the sheet.
 fn load_layouts(
   node : @yaml.Node,
   sheet : @model.Sheet,
@@ -107,91 +105,22 @@ fn load_layout(
     load_layout_column(item, col=at.col + index, file~, context~)
   })
   let inputs = columns.filter(column => column.formula is None)
-  let data = match source {
-    Some((key, value)) =>
-      load_layout_rows(key, value, inputs, file~, resolve~, context~)
-    None => {
-      for column in columns {
-        if column.field is Some(_) {
-          raise schema_error(
-            file~,
-            "\{context} column '\{column.name}' has a 'field' but the layout reads no 'csv' or 'json'",
-          )
-        }
-      }
-      []
-    }
-  }
-  let rows = match (rows, source) {
-    (Some(rows), _) => {
-      guard rows >= data.length() else {
-        raise schema_error(
-          file~,
-          "\{context} 'rows' is \{rows}, fewer than the \{data.length()} rows its data holds",
-        )
-      }
-      rows
-    }
-    (None, Some(_)) => {
-      guard !data.is_empty() else {
-        raise schema_error(
-          file~,
-          "\{context} reads no rows from its data, and sets no 'rows' to reserve",
-        )
-      }
-      data.length()
-    }
-    (None, None) =>
-      raise schema_error(
-        file~,
-        "\{context} needs 'rows', or a 'values', 'csv', or 'json' to count them from",
-      )
-  }
-  let in_layout : Map[String, Int] = Map([])
-  for column in columns {
-    let where_ = "\{context} column '\{column.name}'"
-    if names.get(column.name) is Some(first) {
-      raise schema_error(
-        file~,
-        "\{where_} reuses a name \{first} already has on sheet '\{sheet.name}'",
-      )
-    }
-    names[column.name] = context
-    in_layout[column.name] = column.col
-  }
-  let headers = columns.map(column => {
-    match column.header {
-      Some(node) =>
-        load_header_levels(
-          node,
-          file~,
-          defs~,
-          context="\{context} column '\{column.name}' header",
-        )
-      None => []
-    }
-  })
-  let depth = headers.fold(init=0, (deepest, levels) => {
-    if levels.length() > deepest {
-      levels.length()
-    } else {
-      deepest
-    }
-  })
-  let has_header = depth > 0
-  let header_style = combine_style(
+  let data = load_body_data(source, columns, inputs, file~, resolve~, context~)
+  let rows = body_rows(
+    rows,
+    data,
+    has_source=source is Some(_),
+    file~,
+    context~,
+  )
+  let col_of = register_names(columns, names~, sheet~, file~, context~)
+  let (headers, depth, header_style) = load_layout_header(
+    columns,
     header_style_node,
-    None,
     file~,
     defs~,
-    context="\{context} header_style",
+    context~,
   )
-  guard !(header_style is Some(_) && !has_header) else {
-    raise schema_error(
-      file~,
-      "\{context} has a 'header_style' but no column has a 'header' to wear it",
-    )
-  }
   let body_first = at.row + depth
   let body_last = body_first + rows - 1
   guard body_last <= max_sheet_row else {
@@ -201,101 +130,26 @@ fn load_layout(
     )
   }
   write_headers(sheet, headers, at~, depth~, header_style~)
-  for row_index, row in data {
-    for field_index, value in row {
-      if value is Some(value) {
-        sheet.set(
-          @units.CellRef(
-            col=inputs[field_index].col,
-            row=body_first + row_index,
-          ),
-          value,
-        )
-      }
-    }
-  }
+  write_body_rows(sheet, data, inputs, body_first~)
   for column in columns {
-    let where_ = "\{context} column '\{column.name}'"
-    let body : @model.CellRange = {
-      top_left: @units.CellRef(col=column.col, row=body_first),
-      bottom_right: @units.CellRef(col=column.col, row=body_last),
-    }
-    let expand = text => {
-      expand_column_refs(text, in_layout, row=body_first, file~, context=where_)
-    }
-    let band = load_axis_spec(
-      column.band,
+    write_layout_column(
+      column,
+      sheet,
+      col_of,
+      body_first~,
+      body_last~,
+      banded~,
       file~,
       defs~,
-      size_key="width",
-      context=where_,
+      context~,
     )
-    if !band.is_empty() {
-      if banded.get(column.col) is Some(first) {
-        raise schema_error(
-          file~,
-          "\{where_} lands on a column \{first} already formats; give the column its width and style in one layout",
-        )
-      }
-      banded[column.col] = where_
-      sheet.set_column_band(
-        first=column.col,
-        last=column.col,
-        style?=band.style,
-        width?=band.size,
-        hidden?=band.hidden,
-        outline_level?=band.outline_level,
-      )
-    }
-    if column.formula is Some(formula) {
-      let formula = match formula {
-        @yaml.Str(text) => @yaml.Str(expand(text))
-        other => other
-      }
-      check_formula_range_size(body, file~, context=where_)
-      sheet.add_formula({
-        at: body,
-        formula: load_filled_formula(formula, file~, context=where_),
-      })
-    }
-    if column.conditional is Some(conditional) {
-      for
-        rule in expect_seq(
-          conditional,
-          file~,
-          context="\{where_} 'conditional'",
-        ) {
-        let rule_entries = expect_map(
-          rule,
-          file~,
-          context="a conditional format of \{where_}",
-        )
-        guard find_key(rule_entries, "at") is None else {
-          raise schema_error(
-            file~,
-            "a conditional format of \{where_} takes no 'at'; it covers the column's body",
-          )
-        }
-        sheet.add_conditional_format(
-          load_conditional_rule(
-            rule_entries,
-            body,
-            file~,
-            defs~,
-            context="conditional of \{where_}",
-            expected_before=[],
-            formula=expand,
-          ),
-        )
-      }
-    }
   }
   if footer_node is Some(footer_node) {
     let scope : FooterScope = {
       sheet,
       columns: columns.map(column => (column.name, column.col)),
-      cols: in_layout,
-      inputs: Map::from_array(
+      col_of,
+      input_of: Map::from_array(
         inputs.mapi((index, column) => (column.name, index)),
       ),
       data,
@@ -319,6 +173,113 @@ fn load_layout(
       row=body_last + 1,
     )
     |> ignore
+  }
+}
+
+///|
+/// Record each column's name, refusing one another layout on the sheet already
+/// uses, and return the layout's own names by column.
+fn register_names(
+  columns : Array[LayoutColumn],
+  names~ : Map[String, String],
+  sheet~ : @model.Sheet,
+  file~ : String,
+  context~ : String,
+) -> Map[String, Int] raise @diag.SchemaError {
+  let col_of : Map[String, Int] = Map([])
+  for column in columns {
+    if names.get(column.name) is Some(first) {
+      raise schema_error(
+        file~,
+        "\{context} column '\{column.name}' reuses a name \{first} already has on sheet '\{sheet.name}'",
+      )
+    }
+    names[column.name] = context
+    col_of[column.name] = column.col
+  }
+  col_of
+}
+
+///|
+/// One column's band, filled formula, and conditional formats over the body.
+fn write_layout_column(
+  column : LayoutColumn,
+  sheet : @model.Sheet,
+  col_of : Map[String, Int],
+  body_first~ : Int,
+  body_last~ : Int,
+  banded~ : Map[Int, String],
+  file~ : String,
+  defs~ : Defs,
+  context~ : String,
+) -> Unit raise @diag.SchemaError {
+  let where_ = "\{context} column '\{column.name}'"
+  let body : @model.CellRange = {
+    top_left: @units.CellRef(col=column.col, row=body_first),
+    bottom_right: @units.CellRef(col=column.col, row=body_last),
+  }
+  let expand = text => {
+    expand_column_refs(text, col_of, row=body_first, file~, context=where_)
+  }
+  let band = load_axis_spec(
+    column.band,
+    file~,
+    defs~,
+    size_key="width",
+    context=where_,
+  )
+  if !band.is_empty() {
+    if banded.get(column.col) is Some(first) {
+      raise schema_error(
+        file~,
+        "\{where_} lands on a column \{first} already formats; give the column its width and style in one layout",
+      )
+    }
+    banded[column.col] = where_
+    sheet.set_column_band(
+      first=column.col,
+      last=column.col,
+      style?=band.style,
+      width?=band.size,
+      hidden?=band.hidden,
+      outline_level?=band.outline_level,
+    )
+  }
+  if column.formula is Some(formula) {
+    let formula = match formula {
+      @yaml.Str(text) => @yaml.Str(expand(text))
+      other => other
+    }
+    check_formula_range_size(body, file~, context=where_)
+    sheet.add_formula({
+      at: body,
+      formula: load_filled_formula(formula, file~, context=where_),
+    })
+  }
+  guard column.conditional is Some(conditional) else { return }
+  for rule in expect_seq(conditional, file~, context="\{where_} 'conditional'") {
+    let rule_entries = expect_map(
+      rule,
+      file~,
+      context="a conditional format of \{where_}",
+    )
+    guard find_key(rule_entries, "at") is None else {
+      raise schema_error(
+        file~,
+        "a conditional format of \{where_} takes no 'at'; it covers the column's body",
+      )
+    }
+    sheet.add_conditional_format(
+      load_conditional_rule(
+        rule_entries,
+        body,
+        file~,
+        defs~,
+        context="conditional of \{where_}",
+        expected_before=[],
+        formula=expand,
+      ),
+    )
   }
 }
 
@@ -427,7 +388,6 @@ fn check_column_name(
 
 ///|
 /// Replace each `{{name}}` in a formula with that column's cell in `row`.
-/// Text inside a `"…"` string literal is left alone (`""` escapes a quote).
 fn expand_column_refs(
   text : String,
   columns : Map[String, Int],
@@ -435,13 +395,35 @@ fn expand_column_refs(
   file~ : String,
   context~ : String,
 ) -> String raise @diag.SchemaError {
+  substitute_names(text, in_formula=true, file~, context="\{context} formula", name => {
+    guard columns.get(name) is Some(col) else {
+      let known = columns.keys().map(k => "'\{k}'").collect()
+      raise schema_error(
+        file~,
+        "\{context} formula refers to '{{\{name}}}', which is not a column of this layout (\{or_list(known)})",
+      )
+    }
+    @units.CellRef(col~, row~).to_a1()
+  })
+}
+
+///|
+/// Replace each `{{name}}` in `text` with what `replace` makes of the name. In a
+/// formula, a `"…"` string literal is skipped (`""` escapes a quote).
+fn substitute_names(
+  text : String,
+  in_formula~ : Bool,
+  file~ : String,
+  context~ : String,
+  replace : (String) -> String raise @diag.SchemaError,
+) -> String raise @diag.SchemaError {
   let chars = text.to_array()
   let out = StringBuilder()
   let mut quoted = false
   let mut i = 0
   while i < chars.length() {
     let ch = chars[i]
-    if ch == '"' {
+    if in_formula && ch == '"' {
       quoted = !quoted
     } else if !quoted &&
       ch == '{' &&
@@ -453,20 +435,9 @@ fn expand_column_refs(
         end += 1
       }
       guard end + 1 < chars.length() else {
-        raise schema_error(
-          file~,
-          "\{context} formula has a '{{' with no closing '}}'",
-        )
+        raise schema_error(file~, "\{context} has a '{{' with no closing '}}'")
       }
-      let name = String::from_array(chars[i + 2:end])
-      guard columns.get(name) is Some(col) else {
-        let known = columns.keys().map(k => "'\{k}'").collect()
-        raise schema_error(
-          file~,
-          "\{context} formula refers to '{{\{name}}}', which is not a column of this layout (\{or_list(known)})",
-        )
-      }
-      out.write_string(@units.CellRef(col~, row~).to_a1())
+      out.write_string(replace(String::from_array(chars[i + 2:end])))
       i = end + 2
       continue
     }
@@ -474,219 +445,4 @@ fn expand_column_refs(
     i += 1
   }
   out.to_string()
-}
-
-///|
-/// One header cell as written: its value and its own style. `None` in a level
-/// list is a `null`, a cell deliberately left blank.
-priv struct HeaderCell {
-  value : @model.CellValue
-  style : @model.Style?
-} derive(Eq)
-
-///|
-/// A column's `header:` as its levels, top first: a single cell is one level, a
-/// sequence is one per row, and `null` is a blank that merges with nothing.
-fn load_header_levels(
-  node : @yaml.Node,
-  file~ : String,
-  defs~ : Defs,
-  context~ : String,
-) -> Array[HeaderCell?] raise @diag.SchemaError {
-  let items = match node {
-    @yaml.Seq(items) => items
-    single => [single]
-  }
-  guard !items.is_empty() else {
-    raise schema_error(file~, "\{context} is an empty list")
-  }
-  items.map(item => {
-    match item {
-      @yaml.Null => None
-      @yaml.Seq(_) =>
-        raise schema_error(file~, "\{context} levels are cells, not lists")
-      cell => {
-        let (value, style) = load_cell(cell, file~, reference=context, defs~)
-        Some({ value, style, })
-      }
-    }
-  })
-}
-
-///|
-/// Lay out every column's header levels over `depth` rows from `at`. A column
-/// with fewer levels than `depth` stretches its last one down; adjacent columns
-/// whose level holds the same cell under the same parents share one merge.
-/// Every cell of a merge, and every blank, wears the header style, so a fill
-/// or a border runs unbroken across the block.
-fn write_headers(
-  sheet : @model.Sheet,
-  headers : Array[Array[HeaderCell?]],
-  at~ : @units.CellRef,
-  depth~ : Int,
-  header_style~ : @model.Style?,
-) -> Unit {
-  fn look(cell : HeaderCell) -> @model.Style? {
-    match (cell.style, header_style) {
-      (Some(own), Some(base)) => Some(own.over(base))
-      (Some(own), None) => Some(own)
-      (None, base) => base
-    }
-  }
-
-  fn place(col : Int, row : Int) -> @units.CellRef {
-    @units.CellRef(col=at.col + col, row=at.row + row)
-  }
-
-  fn blank(col : Int, row : Int, style : @model.Style?) -> Unit {
-    if style is Some(style) {
-      sheet.set(place(col, row), Blank, style~)
-    }
-  }
-
-  // A level stretches when it is its column's last and rows remain below it.
-  fn stretches(col : Int, row : Int) -> Bool {
-    row == headers[col].length() - 1 && row < depth - 1
-  }
-
-  fn same_parents(left : Int, right : Int, row : Int) -> Bool {
-    headers[right].length() > row &&
-    (0).until(row).all(level => headers[left][level] == headers[right][level])
-  }
-
-  for row in 0..<depth {
-    let mut col = 0
-    while col < headers.length() {
-      let levels = headers[col]
-      if row >= levels.length() {
-        col += 1
-        continue
-      }
-      guard levels[row] is Some(cell) else {
-        let below = if stretches(col, row) { depth - 1 } else { row }
-        for blank_row in row..<=below {
-          blank(col, blank_row, header_style)
-        }
-        col += 1
-        continue
-      }
-      let style = look(cell)
-      if stretches(col, row) {
-        sheet.set(place(col, row), cell.value, style?)
-        for covered in (row + 1)..<depth {
-          blank(col, covered, style)
-        }
-        sheet.merge(place(col, row), place(col, depth - 1))
-        col += 1
-        continue
-      }
-      let mut last = col
-      while last + 1 < headers.length() &&
-            same_parents(col, last + 1, row) &&
-            headers[last + 1][row] == Some(cell) &&
-            !stretches(last + 1, row) {
-        last += 1
-      }
-      sheet.set(place(col, row), cell.value, style?)
-      for covered in (col + 1)..<=last {
-        blank(covered, row, style)
-      }
-      if last > col {
-        sheet.merge(place(col, row), place(last, row))
-      }
-      col = last + 1
-    }
-  }
-}
-
-///|
-/// A layout's `values:`, `csv:` or `json:`, as rows over its input columns (the
-/// ones without a formula). Positional rows fill them in order. A CSV's header
-/// row and a JSON object's keys are matched by each column's `field`, which
-/// defaults to its `name`, so the source may reorder or add fields freely.
-fn load_layout_rows(
-  key : String,
-  node : @yaml.Node,
-  inputs : Array[LayoutColumn],
-  file~ : String,
-  resolve~ : IncludeResolver,
-  context~ : String,
-) -> Rows raise {
-  fn field_of(column : LayoutColumn) -> String {
-    column.field.unwrap_or(column.name)
-  }
-
-  fn positional(rows : Rows, source : String) -> Rows raise {
-    for column in inputs {
-      if column.field is Some(_) {
-        raise schema_error(
-          file~,
-          "\{context} column '\{column.name}' has a 'field', but \{source} rows are matched by position",
-        )
-      }
-    }
-    for index, row in rows {
-      guard row.length() <= inputs.length() else {
-        raise schema_error(
-          file~,
-          "row \{index + 1} of \{context} has \{row.length()} fields, but the layout has \{inputs.length()} columns without a formula to take them",
-        )
-      }
-    }
-    rows
-  }
-
-  match key {
-    "values" => positional(load_inline_rows(node, file~), "'values'")
-    "csv" => {
-      let path = expect_string(node, file~, context="\{context} 'csv'")
-      let table = resolve(file, path)
-      let records = parse_csv_fields(table.source, file=table.name)
-      guard records is [header, .. body] else {
-        raise schema_error(
-          file=table.name,
-          "a CSV read by a layout starts with a header row naming its fields, and this one is empty",
-        )
-      }
-      let names = header.map(field => field.0)
-      let picks = inputs.map(column => {
-        guard names.search(field_of(column)) is Some(index) else {
-          raise schema_error(
-            file=table.name,
-            "the header row has no field '\{field_of(column)}' for \{context} column '\{column.name}' (fields: \{or_list(names.map(name => "'\{name}'"))})",
-          )
-        }
-        index
-      })
-      body.map(record => {
-        picks.map(index => {
-          match record.get(index) {
-            Some((text, quoted)) => csv_field(text, quoted)
-            None => None
-          }
-        })
-      })
-    }
-    _ => {
-      let path = expect_string(node, file~, context="\{context} 'json'")
-      let table = resolve(file, path)
-      let document = @json.parse(table.source) catch {
-        err => raise schema_error(file=table.name, "invalid JSON: \{err}")
-      }
-      let named = document is Array(items) &&
-        items.iter().any(item => item is Object(_))
-      if named {
-        parse_json_table(
-          table.source,
-          file=table.name,
-          columns=Some(inputs.map(field_of)),
-        )
-      } else {
-        positional(
-          parse_json_table(table.source, file=table.name, columns=None),
-          "JSON array",
-        )
-      }
-    }
-  }
 }

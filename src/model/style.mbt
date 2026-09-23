@@ -103,6 +103,17 @@ pub fn Style::over(self : Style, base : Style) -> Style {
 }
 
 ///|
+/// `over` laid on `under` where either may be absent: whichever is present, or
+/// `None` when neither is.
+pub fn Style::layer(under : Style?, over : Style?) -> Style? {
+  match (under, over) {
+    (Some(under), Some(over)) => Some(over.over(under))
+    (None, over) => over
+    (under, None) => under
+  }
+}
+
+///|
 /// What a band actually passes down to a cell holding `value`.
 ///
 /// Everything a band sets reaches every cell — except a **number format landing

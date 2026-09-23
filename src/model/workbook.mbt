@@ -366,12 +366,10 @@ pub fn Sheet::add_link(
 /// reader needs the same answer to tell a cell that agrees with its band from
 /// one that deliberately does not.
 pub fn Sheet::band_style_at(self : Sheet, at : @units.CellRef) -> Style? {
-  match
-    (band_covering(self.columns, at.col), band_covering(self.rows, at.row)) {
-    (Some(column), Some(row)) => Some(row.over(column))
-    (None, row) => row
-    (column, None) => column
-  }
+  Style::layer(
+    band_covering(self.columns, at.col),
+    band_covering(self.rows, at.row),
+  )
 }
 
 ///|
