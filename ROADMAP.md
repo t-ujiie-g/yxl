@@ -2439,6 +2439,25 @@ readers cannot.
 
 Reverse-chronological. One entry per user-visible or structural change.
 
+- **2026-09-24** — **Refactor after layout names (AGENTS.md §8).** No behaviour
+  changes.
+  - **Duplication:**
+    - `load_layout` built its placed columns and input map twice, once for
+      the footer and once for the name record. It now builds them once.
+    - Column names and layout names had separate copies of the rule for
+      what a name may spell. They share `is_name`.
+  - **Split:** `{{name}}` expansion moved to `layout_refs.mbt`. The footer's
+    totals, criteria, labels and value order moved to `footer_values.mbt`,
+    with the whitebox test renamed to match. This brings `layout.mbt` from 508
+    to 448 lines and `footer.mbt` from 537 to 291.
+  - **Comments:** the two doc comments over three lines in this series' files
+    now point at ADR-026.
+  - **Not done here, and worth a pass of its own:** across the whole tree, 348
+    comment blocks run past the three-line rule. Most predate the rule, in
+    `expect.mbt`, `decorations.mbt` and the `read` package. Rewriting them
+    means deciding each one's rationale, which a mechanical refactor
+    shouldn't.
+
 - **2026-09-24** — **Fix: a newer function opened as `#NAME?` (#96).** A
   formula went to the file exactly as the spec wrote it. Excel reads a
   function added after the file format, such as `XLOOKUP`, `FILTER` or
