@@ -13,9 +13,12 @@ fn load_sparklines(
   node : @yaml.Node,
   sheet : @model.Sheet,
   file~ : String,
+  defs~ : Defs,
 ) -> Unit raise @diag.SchemaError {
   for item in expect_seq(node, file~, context="'sparklines'") {
-    sheet.add_sparkline_group(load_sparkline_group(item, file~))
+    sheet.add_sparkline_group(
+      load_sparkline_group(item, file~, defs~, sheet=sheet.name),
+    )
   }
 }
 
@@ -25,6 +28,8 @@ fn load_sparklines(
 fn load_sparkline_group(
   node : @yaml.Node,
   file~ : String,
+  defs~ : Defs,
+  sheet~ : String,
 ) -> @model.SparklineGroup raise @diag.SchemaError {
   let entries = expect_map(node, file~, context="a sparkline group")
   let context = match find_key(entries, "at") {
@@ -62,6 +67,7 @@ fn load_sparkline_group(
       "data" =>
         data = Some(
           parse_sheet_range(
+            defs~,
             expect_string(value, file~, context="\{context} 'data'"),
             file~,
             what="\{context} 'data'",
@@ -69,7 +75,7 @@ fn load_sparkline_group(
         )
       "cells" =>
         for item in expect_seq(value, file~, context="\{context} 'cells'") {
-          cells.push(load_sparkline_cell(item, file~))
+          cells.push(load_sparkline_cell(item, file~, defs~, sheet~))
         }
       "type" => {
         let written = expect_string(value, file~, context="\{context} 'type'")
@@ -188,6 +194,8 @@ fn load_sparkline_group(
 fn load_sparkline_cell(
   node : @yaml.Node,
   file~ : String,
+  defs~ : Defs,
+  sheet~ : String,
 ) -> @model.SparklineCell raise @diag.SchemaError {
   let entries = expect_map(node, file~, context="a sparkline 'cells' entry")
   let at = anchor_cell(
@@ -195,6 +203,8 @@ fn load_sparkline_cell(
     file~,
     subject="a sparkline 'cells' entry",
     noun="a sparkline cell",
+    defs~,
+    sheet~,
   )
   let mut data = None
   for entry in entries {
@@ -204,6 +214,7 @@ fn load_sparkline_cell(
       "data" =>
         data = Some(
           parse_sheet_range(
+            defs~,
             expect_string(value, file~, context="a sparkline cell 'data'"),
             file~,
             what="a sparkline cell 'data'",

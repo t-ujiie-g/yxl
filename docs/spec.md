@@ -1755,7 +1755,9 @@ overrides:
   (`店舗.cy`, and `売上.sales.cy` for a block's column). It refers to the body's
   absolute range, so any formula can use it, on any sheet, in any order. Excel
   keeps the name in step when rows are inserted, and it is what Name Manager
-  lists. The footer and the header are not part of it.
+  lists. The footer is not part of it. **The layout's own name** refers to the
+  whole table: its bottom header row, when it has one, and its body, across
+  every column.
 - **The name** follows Excel's rules for a defined name: letters, digits, `_`
   and `.`, starting with a letter or `_`, and not a cell reference in either
   case. It is unique among layouts. Each `layout.column` it produces must not
@@ -1766,9 +1768,30 @@ overrides:
   is not unique, or a row that is gone, is an error, never a guess. `row: n`
   instead of `where` takes the body's *n*th row. The layout must have a `name`.
 
-A chart series, a validation's list, or a sparkline cannot name a layout yet:
-each needs the range while the spec loads, before a later sheet's layout has a
-place. Until then, give them the range, or a formula that uses the name.
+**Where a spec reads a range, it may name a layout instead.** The layout may
+be on any sheet, declared before or after the reader, because every layout is
+placed before any sheet loads:
+
+- a chart series' `values` and `categories`: `values: 店舗.cy`
+- a validation's `list: { from: 店舗.branch }`
+- a sparkline's `data`
+- a pivot table's `source: 店舗`, the table with its header row
+
+On the layout's own sheet, a range that *covers* cells may name it too: a
+table's `at: 店舗`, which declares the layout an Excel table, and a
+validation's or a conditional format's `at: 店舗.cy`.
+
+**Anything anchored at a cell may follow a layout instead.** Write
+`at: { below: 店舗 }` for a chart, an image, a shape, a control, a slicer, a
+`data:` table, or another layout:
+
+| Key | Notes |
+|---|---|
+| `below` | A named layout on the same sheet, declared earlier in the spec. The anchor takes its first column. |
+| `gap` | Blank rows between the layout's last row (its footer included) and the anchor. Default 1. |
+
+A layout whose length follows its data then pushes everything below it down,
+with no row number to update.
 
 ### Blocks: a group of columns written once
 

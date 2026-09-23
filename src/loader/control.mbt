@@ -17,9 +17,10 @@ fn load_controls(
   node : @yaml.Node,
   sheet : @model.Sheet,
   file~ : String,
+  defs~ : Defs,
 ) -> Unit raise @diag.SchemaError {
   for item in expect_seq(node, file~, context="'controls'") {
-    sheet.add_control(load_control(item, file~))
+    sheet.add_control(load_control(item, file~, defs~, sheet=sheet.name))
   }
 }
 
@@ -29,9 +30,18 @@ fn load_controls(
 fn load_control(
   node : @yaml.Node,
   file~ : String,
+  defs~ : Defs,
+  sheet~ : String,
 ) -> @model.FormControl raise @diag.SchemaError {
   let entries = expect_map(node, file~, context="a control")
-  let at = anchor_cell(entries, file~, subject="a control", noun="control")
+  let at = anchor_cell(
+    entries,
+    file~,
+    defs~,
+    sheet~,
+    subject="a control",
+    noun="control",
+  )
   let context = "control at '\{at.to_a1()}'"
   let mut kind = None
   let mut kind_written = ""

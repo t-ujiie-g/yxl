@@ -204,6 +204,54 @@
         }
       }
     },
+    "anchor": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/cell"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "The cell under a named layout (§25).",
+          "properties": {
+            "below": {
+              "allOf": [
+                {
+                  "$ref": "#/definitions/text"
+                }
+              ],
+              "description": "A named layout on the same sheet, declared earlier in the spec. The anchor takes its first column.",
+              "markdownDescription": "A named layout on the same sheet, declared earlier in the spec. The anchor takes its first column."
+            },
+            "gap": {
+              "allOf": [
+                {
+                  "$ref": "#/definitions/integer"
+                }
+              ],
+              "description": "Blank rows between the layout's last row (its footer included) and the anchor. Default 1.",
+              "markdownDescription": "Blank rows between the layout's last row (its footer included) and the anchor. Default 1."
+            },
+            "$include": {
+              "type": "string",
+              "description": "Another document, pasted in place of this node (§8)."
+            }
+          },
+          "anyOf": [
+            {
+              "required": [
+                "below"
+              ]
+            },
+            {
+              "required": [
+                "$include"
+              ]
+            }
+          ]
+        }
+      ]
+    },
     "axis": {
       "type": "object",
       "additionalProperties": false,
@@ -607,7 +655,7 @@
         "at": {
           "allOf": [
             {
-              "$ref": "#/definitions/cell"
+              "$ref": "#/definitions/anchor"
             }
           ],
           "description": "**Required.** A chart floats above the grid; the cells beneath it keep whatever they hold.",
@@ -897,7 +945,7 @@
         "at": {
           "allOf": [
             {
-              "$ref": "#/definitions/range"
+              "$ref": "#/definitions/layout_range"
             }
           ],
           "description": "**Required.** The range the rule covers.",
@@ -1198,7 +1246,7 @@
         "at": {
           "allOf": [
             {
-              "$ref": "#/definitions/cell"
+              "$ref": "#/definitions/anchor"
             }
           ],
           "description": "**Required.**",
@@ -1342,7 +1390,7 @@
         "at": {
           "allOf": [
             {
-              "$ref": "#/definitions/cell"
+              "$ref": "#/definitions/anchor"
             }
           ],
           "description": "**Required.** The top-left field lands here.",
@@ -1973,7 +2021,7 @@
         "at": {
           "allOf": [
             {
-              "$ref": "#/definitions/cell"
+              "$ref": "#/definitions/anchor"
             }
           ],
           "description": "**Required.**",
@@ -2099,7 +2147,7 @@
         "at": {
           "allOf": [
             {
-              "$ref": "#/definitions/cell"
+              "$ref": "#/definitions/anchor"
             }
           ],
           "description": "**Required.** The top-left cell. The header rows start here when any column has a `header`; otherwise the body starts here.",
@@ -2675,6 +2723,21 @@
           ]
         }
       ]
+    },
+    "layout_range": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/range"
+        },
+        {
+          "$ref": "#/definitions/layout_ref"
+        }
+      ]
+    },
+    "layout_ref": {
+      "type": "string",
+      "pattern": "^[A-Za-z_\\u0080-\\uFFFF][A-Za-z0-9_.\\u0080-\\uFFFF]*$",
+      "description": "A named layout, or one of its columns (§25)."
     },
     "link": {
       "anyOf": [
@@ -3461,6 +3524,9 @@
     "qualified_range": {
       "anyOf": [
         {
+          "$ref": "#/definitions/layout_ref"
+        },
+        {
           "type": "string",
           "pattern": "^(('[^']*'|[^'!]+)!)?[A-Za-z]{1,3}[0-9]+:[A-Za-z]{1,3}[0-9]+$"
         },
@@ -3642,7 +3708,7 @@
         "at": {
           "allOf": [
             {
-              "$ref": "#/definitions/cell"
+              "$ref": "#/definitions/anchor"
             }
           ],
           "description": "**Required.**",
@@ -4254,7 +4320,7 @@
         "at": {
           "allOf": [
             {
-              "$ref": "#/definitions/cell"
+              "$ref": "#/definitions/anchor"
             }
           ],
           "description": "**Required.** Where the panel's top-left corner sits.",
@@ -4330,7 +4396,7 @@
       "additionalProperties": false,
       "properties": {
         "at": {
-          "$ref": "#/definitions/cell"
+          "$ref": "#/definitions/anchor"
         },
         "data": {
           "$ref": "#/definitions/qualified_range"
@@ -4635,7 +4701,7 @@
         "at": {
           "allOf": [
             {
-              "$ref": "#/definitions/range"
+              "$ref": "#/definitions/layout_range"
             }
           ],
           "description": "**Required.** Includes the header row, so it spans at least two rows.",
@@ -4789,7 +4855,7 @@
         "at": {
           "allOf": [
             {
-              "$ref": "#/definitions/range"
+              "$ref": "#/definitions/layout_range"
             }
           ],
           "description": "**Required.** The range the rule covers.",

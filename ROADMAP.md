@@ -1138,12 +1138,23 @@ the first item changes what a spec looks like.
             itself would. An override finds its cell by meaning, with
             `{ layout, column, where: { store: 渋谷 } }` matching exactly one
             data row. The totals row came earlier, as the footer (ADR-024).
-      - [ ] **Slice 4b — a layout's name where a range is read at load time.**
+      - [x] **Slice 4b — a layout's name where a range is read at load time.**
             A chart series, a validation's `from:` list, a sparkline, and
             content placed *below* a layout whose length follows its data.
             Each needs the range while the spec loads, possibly before the
             sheet holding the layout, so this needs every layout's position
             settled in a pass ahead of the sheets.
+            **Shipped** (ADR-026, `docs/spec.md` §25).
+            - Every range a spec reads, through `parse_sheet_range`, may name
+              a layout: chart series, validation lists, sparkline data, pivot
+              sources. `店舗` alone is the table, header row included, and is
+              emitted as a defined name too.
+            - On the layout's own sheet, a table's, a validation's and a
+              conditional format's `at:` may name it, so `tables: [{ at: 店舗 }]`
+              declares a layout an Excel table.
+            - Every cell anchor, through `anchor_cell`, may be
+              `{ below: layout, gap: n }`. That covers charts, images, shapes,
+              controls, slicers, `data:` and layouts stacked under layouts.
 
       Open, to settle inside the slices: whether `yxl extract` should
       *propose* a block when it finds a repeated column group, which is a guess
@@ -1869,6 +1880,33 @@ order, since a summary sheet often comes before the data sheet it sums.
   loading, so they cannot use the names yet (slice 4b).
 - `where` sees the data only, so a formula column cannot be a key.
 
+### ADR-026 — Layouts are placed in a pass ahead of the sheets
+
+**Status:** accepted 2026-09-23.
+
+**Context:** A chart series, a validation list and an anchor read their range
+while the spec loads (slice 4b of ADR-023). A named layout's range depends on
+its data's length, and on its footer's groups. It may also sit on a sheet that
+loads after the reader: a summary sheet usually comes first. Defined names
+(ADR-025) avoid the question for formulas, because Excel resolves those. These
+readers cannot.
+
+**Decision:** `load` runs `settle_layouts` right after `defs`.
+- It loads every sheet's `layouts:` onto a scratch sheet and records each
+  named layout's position in `defs.layouts`.
+- The real pass then loads layouts again, into the real sheets, without
+  recording them. `parse_sheet_range` and `anchor_cell` both consult the
+  record.
+- A `below:` anchor may only follow a layout declared earlier in the spec, so
+  the settling pass can place the follower too, and a cycle cannot be written.
+
+**Trade-offs / consequences:**
+- Layouts are expanded twice, and a layout's CSV is read twice through the
+  include resolver. Loading is linear and cheap next to emit, so the cost
+  buys a single place where every reader finds every layout.
+- A broken layout is now reported before the sheets' other errors.
+- The model is unchanged: a resolved name is an ordinary range.
+
 ## 8. Open questions
 
 - **Q1 — YAML parser.** ✅ **Decided (ADR-009), refined (ADR-010):** depend on
@@ -2400,6 +2438,24 @@ order, since a summary sheet often comes before the data sheet it sums.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-09-23** — **A layout's name wherever a range or an anchor is read (#89,
+  slice 4b, ADR-026).**
+  - **Ranges:** a chart series (`values: 店舗.cy`), a validation list
+    (`from: 店舗.store`), sparkline data and a pivot source (`source: 店舗`)
+    may name a layout on any sheet, before or after the reader.
+  - **Ranges on the layout's own sheet:** a table, a validation or a
+    conditional format may name it as its `at:`, so a layout can be declared
+    an Excel table.
+  - **Anchors:** anything anchored at a cell may be `at: { below: 店舗 }`, so
+    content under a layout whose length follows its data moves with it.
+  - **Table name:** the layout's own name is now also a defined name, for its
+    whole table.
+  - **How it works:** layouts are placed in a pass ahead of the sheets.
+  - **Example:** `examples/subtotals.yxl.yaml` puts a chart under the store
+    list and a store drop-down on サマリ, both by name.
+
+  This closes the layout work #89 proposed.
 
 - **2026-09-23** — **A layout reached from outside by name (#89, slice 4,
   ADR-025).** `name: 店舗` on a layout makes each column's body a workbook

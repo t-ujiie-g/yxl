@@ -4,9 +4,10 @@ fn load_slicers(
   node : @yaml.Node,
   sheet : @model.Sheet,
   file~ : String,
+  defs~ : Defs,
 ) -> Unit raise @diag.SchemaError {
   for item in expect_seq(node, file~, context="'slicers'") {
-    sheet.add_slicer(load_slicer(item, file~))
+    sheet.add_slicer(load_slicer(item, file~, defs~, sheet=sheet.name))
   }
 }
 
@@ -16,9 +17,18 @@ fn load_slicers(
 fn load_slicer(
   node : @yaml.Node,
   file~ : String,
+  defs~ : Defs,
+  sheet~ : String,
 ) -> @model.Slicer raise @diag.SchemaError {
   let entries = expect_map(node, file~, context="a slicer")
-  let at = anchor_cell(entries, file~, subject="a slicer", noun="slicer")
+  let at = anchor_cell(
+    entries,
+    file~,
+    defs~,
+    sheet~,
+    subject="a slicer",
+    noun="slicer",
+  )
   let context = "slicer at '\{at.to_a1()}'"
   let mut table = None
   let mut column = None

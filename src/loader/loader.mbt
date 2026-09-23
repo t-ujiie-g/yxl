@@ -69,6 +69,7 @@ pub fn load(
   )
   // Registers each declared value/formula as a workbook defined name (ADR-013).
   let defs = load_defs(root, workbook, file~)
+  settle_layouts(root, defs~, file~, resolve~)
   let mut seen_sheets = false
   for entry in root {
     let (key, value) = entry

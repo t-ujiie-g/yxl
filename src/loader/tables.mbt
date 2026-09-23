@@ -4,9 +4,10 @@ fn load_tables(
   node : @yaml.Node,
   sheet : @model.Sheet,
   file~ : String,
+  defs~ : Defs,
 ) -> Unit raise @diag.SchemaError {
   for item in expect_seq(node, file~, context="'tables'") {
-    sheet.add_table(load_table(item, file~))
+    sheet.add_table(load_table(item, file~, defs~, sheet=sheet.name))
   }
 }
 
@@ -16,9 +17,18 @@ fn load_tables(
 fn load_table(
   node : @yaml.Node,
   file~ : String,
+  defs~ : Defs,
+  sheet~ : String,
 ) -> @model.Table raise @diag.SchemaError {
   let entries = expect_map(node, file~, context="a table")
-  let at = anchor_range(entries, file~, subject="a table", noun="table")
+  let at = anchor_range(
+    entries,
+    file~,
+    subject="a table",
+    noun="table",
+    defs~,
+    sheet~,
+  )
   let context = "table '\{at.to_a1()}'"
   // Excel's own defaults, as its "Format as Table" applies them.
   let mut name = None

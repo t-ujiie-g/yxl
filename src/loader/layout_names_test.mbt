@@ -26,15 +26,15 @@ fn named_spec(rest : String) -> String {
 }
 
 ///|
-test "each column of a named layout is a defined name over its body" {
+test "a named layout is a defined name over its table, and each column over its body" {
   let workbook = load_ok(named_spec(""))
   let names = workbook.defined_names.map(name => {
     guard name.refers_to is Formula(formula~, ..) else { "" }
     "\{name.name}=\{formula}"
   })
   assert_eq(names, [
-    "店舗.branch='実績'!$A$2:$A$4", "店舗.store='実績'!$B$2:$B$4", "店舗.cy='実績'!$C$2:$C$4",
-    "店舗.py='実績'!$D$2:$D$4", "店舗.ratio='実績'!$E$2:$E$4",
+    "店舗='実績'!$A$1:$E$4", "店舗.branch='実績'!$A$2:$A$4", "店舗.store='実績'!$B$2:$B$4",
+    "店舗.cy='実績'!$C$2:$C$4", "店舗.py='実績'!$D$2:$D$4", "店舗.ratio='実績'!$E$2:$E$4",
   ])
 }
 
@@ -176,6 +176,161 @@ test "defined names and table names may not repeat, ignoring case" {
     ),
     Some(
       "spec.yaml: the table 't.a' is also the defined name 't.a'; Excel keeps one namespace for names and tables, ignoring case",
+    ),
+  )
+}
+
+///|
+/// A report sheet, declared before the data sheet it reads, over a named layout
+/// whose length follows its data.
+fn reach_spec(report : String) -> String {
+  (
+    #|sheets:
+    #|  - name: 報告
+    #|
+  ) +
+  report +
+  (
+    #|  - name: 店舗別
+    #|    layouts:
+    #|      - at: A1
+    #|        name: 店舗
+    #|        values: [[東京, 直営, 520], [大阪, FC, 410], [福岡, 直営, 220]]
+    #|        columns:
+    #|          - { name: branch, header: 支店 }
+    #|          - { name: channel, header: 区分 }
+    #|          - { name: cy, header: 当年 }
+    #|        footer:
+    #|          - row: { branch: 計, cy: { total: sum } }
+    #|
+  )
+}
+
+///|
+test "a chart on an earlier sheet plots a layout's columns by name" {
+  let chart = load_ok(
+      reach_spec(
+        "    charts:\n      - at: A1\n        type: column\n        series:\n          - { name: 当年, values: 店舗.cy, categories: 店舗.branch }\n",
+      ),
+    ).sheets[0].charts[0]
+  let series = chart.series[0]
+  assert_eq(series.values.sheet, Some("店舗別"))
+  assert_eq(series.values.range.to_a1(), "C2:C4")
+  assert_eq(series.categories.map(range => range.range.to_a1()), Some("A2:A4"))
+}
+
+///|
+test "a validation takes its list from a layout's column" {
+  let validation = load_ok(
+      reach_spec(
+        "    validations:\n      - { at: A1:A9, list: { from: 店舗.branch } }\n",
+      ),
+    ).sheets[0].validations[0]
+  guard validation.rule is ListFrom(range) else { fail("not a list") }
+  assert_eq(range.range.to_a1(), "A2:A4")
+}
+
+///|
+test "a pivot's source may be a whole layout: its header row and body" {
+  let pivot = load_ok(
+      reach_spec(
+        "    pivots:\n      - at: A1:D20\n        source: 店舗\n        rows: [支店]\n        values: [{ field: 当年 }]\n",
+      ),
+    ).sheets[0].pivots[0]
+  assert_eq(pivot.source.range.to_a1(), "A1:C4")
+}
+
+///|
+test "a range on the layout's own sheet may name it: a table, a rule, a validation" {
+  let source =
+    #|sheets:
+    #|  - name: S
+    #|    layouts:
+    #|      - at: A1
+    #|        name: t
+    #|        values: [[a, 1], [b, 2]]
+    #|        columns: [{ name: key, header: キー }, { name: v, header: 値 }]
+    #|    tables: [{ at: t, name: Stores }]
+    #|    validations: [{ at: t.v, whole: { at_least: 0 } }]
+    #|    conditional: [{ at: t.v, duplicate: true, style: { font: { bold: true } } }]
+    #|
+  let sheet = load_ok(source).sheets[0]
+  assert_eq(sheet.tables[0].at.to_a1(), "A1:B3")
+  assert_eq(sheet.validations[0].at.to_a1(), "B2:B3")
+  assert_eq(sheet.conditional_formats[0].at.to_a1(), "B2:B3")
+}
+
+///|
+test "an anchor may follow a layout, footer included" {
+  let source =
+    #|sheets:
+    #|  - name: S
+    #|    layouts:
+    #|      - at: B2
+    #|        name: first
+    #|        values: [[1], [2], [3]]
+    #|        columns: [{ name: v, header: 値 }]
+    #|        footer: [{ row: { v: { total: sum } } }]
+    #|      - at: { below: first, gap: 2 }
+    #|        rows: 1
+    #|        columns: [{ name: w, header: 次 }]
+    #|    charts:
+    #|      - at: { below: first }
+    #|        type: column
+    #|        series: [{ values: first.v }]
+    #|
+  let sheet = load_ok(source).sheets[0]
+  let header = sheet.cells.filter(cell => cell.value == Text("次"))
+  assert_eq(header.map(cell => cell.pos.to_a1()), ["B9"])
+  assert_eq(sheet.charts[0].at.to_a1(), "B8")
+}
+
+///|
+test "names that reach nothing, or reach too far, are refused" {
+  assert_eq(
+    schema_message(
+      reach_spec(
+        "    charts:\n      - at: A1\n        type: column\n        series: [{ values: 店舗.py }]\n",
+      ),
+    ),
+    Some(
+      "spec.yaml: chart at 'A1' series 'values' '店舗.py' is neither a range nor a named layout or one of its columns (layouts: '店舗')",
+    ),
+  )
+  assert_eq(
+    schema_message(
+      reach_spec(
+        "    validations: [{ at: 店舗.cy, whole: { at_least: 0 } }]\n",
+      ),
+    ),
+    Some(
+      "spec.yaml: validation 'at' '店舗.cy' names a layout on sheet '店舗別', not this one",
+    ),
+  )
+  assert_eq(
+    schema_message(
+      reach_spec(
+        "    images: []\n    charts:\n      - at: { below: 店舗 }\n        type: column\n        series: [{ values: 店舗.cy }]\n",
+      ),
+    ),
+    Some(
+      "spec.yaml: chart 'at' follows layout '店舗', which is on sheet '店舗別', not this one",
+    ),
+  )
+  assert_eq(
+    schema_message(
+      "sheets:\n  - name: S\n    layouts:\n      - { at: { below: later }, rows: 1, columns: [{ name: a }] }\n      - { at: A9, name: later, rows: 1, columns: [{ name: b }] }\n",
+    ),
+    Some(
+      "spec.yaml: layout 'at' follows layout 'later', which no layout declared before it is called",
+    ),
+  )
+  assert_eq(
+    schema_message(
+      "sheets:\n  - name: S\n    charts:\n      - at: { beneath: x }\n        type: column\n        series: [{ values: A1:A2 }]\n",
+    ),
+    Some(
+      "spec.yaml: unknown key 'beneath' in chart 'at' (expected 'below' or 'gap')",
     ),
   )
 }

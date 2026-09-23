@@ -13,10 +13,13 @@ fn load_images(
   node : @yaml.Node,
   sheet : @model.Sheet,
   file~ : String,
+  defs~ : Defs,
   read_bytes~ : BytesResolver,
 ) -> Unit raise {
   for item in expect_seq(node, file~, context="'images'") {
-    sheet.add_image(load_image(item, file~, read_bytes~))
+    sheet.add_image(
+      load_image(item, file~, defs~, sheet=sheet.name, read_bytes~),
+    )
   }
 }
 
@@ -25,10 +28,19 @@ fn load_images(
 fn load_image(
   node : @yaml.Node,
   file~ : String,
+  defs~ : Defs,
+  sheet~ : String,
   read_bytes~ : BytesResolver,
 ) -> @model.Image raise {
   let entries = expect_map(node, file~, context="an image")
-  let at = anchor_cell(entries, file~, subject="an image", noun="image")
+  let at = anchor_cell(
+    entries,
+    file~,
+    defs~,
+    sheet~,
+    subject="an image",
+    noun="image",
+  )
   let context = "image at '\{at.to_a1()}'"
   let mut path = None
   let mut alt_text = None
