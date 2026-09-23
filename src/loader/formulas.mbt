@@ -41,9 +41,19 @@ fn load_formula_range(
   guard formula is Some(formula) else {
     raise schema_error(file~, "\{context} is missing required key 'formula'")
   }
-  // Without a ceiling a mistyped 'A1:A99999999' would build cells until the
-  // machine gave up, since a cell reference is not bounded to Excel's grid where
-  // it is parsed.
+  check_formula_range_size(at, file~, context~)
+  { at, formula, }
+}
+
+///|
+/// Without a ceiling a mistyped 'A1:A99999999' would build cells until the
+/// machine gave up, since a cell reference is not bounded to Excel's grid where
+/// it is parsed.
+fn check_formula_range_size(
+  at : @model.CellRange,
+  file~ : String,
+  context~ : String,
+) -> Unit raise @diag.SchemaError {
   let width = at.bottom_right.col - at.top_left.col + 1
   let height = at.bottom_right.row - at.top_left.row + 1
   guard width.to_int64() * height.to_int64() <=
@@ -53,7 +63,6 @@ fn load_formula_range(
       "\{context} covers \{width} x \{height} cells, more than the \{@model.max_formula_range_cells} a formula range may fill",
     )
   }
-  { at, formula, }
 }
 
 ///|

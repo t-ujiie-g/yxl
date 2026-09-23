@@ -63,6 +63,7 @@ sheets:
     formulas: [...]    # → §3
     data: [...]        # → §9
     columns: [...]     # → §4
+    layouts: [...]     # → §25
     rows: [...]        # → §4
     merges: [A1:C1]
     visibility: visible | hidden | very_hidden
@@ -94,6 +95,7 @@ sheets:
 | `formulas` | sequence | One formula filled across a region. §3. |
 | `data` | sequence | Anchored tables — rows written inline, or read from CSV/JSON. §9. |
 | `columns` / `rows` | sequence | Bands. §4. |
+| `layouts` | sequence | Regions of named columns. §25. |
 | `merges` | sequence of `A1:B2` | Corners in any order; the merge shows the top-left value. |
 | `visibility` | bareword | `hidden` can be undone in Excel's UI; `very_hidden` only via VBA. **At least one sheet must stay visible.** |
 | `freeze` | cell | Rows above and columns left of it stay put. `A1` freezes nothing and is an error. |
@@ -1603,3 +1605,65 @@ schema is written for `*.yxl.yaml` and the pieces beside it are left alone. And
 `${parameter}` placeholders are accepted wherever a value goes, since a
 placeholder is text until it is substituted (§7) — so a parameter is never
 flagged for standing where a number belongs.
+
+## 25. Layouts
+
+A layout names the columns of a region, so nothing inside it has to address a
+column by letter. It anchors at one cell, and its columns follow from there in
+the order they are written. Each column carries its own formatting, formula,
+and conditional rules. Inserting a column is then a one-entry diff, where the
+same sheet written with `columns:`, `formulas:` and `conditional:` would
+rewrite every letter to the right of it.
+
+```yaml
+layouts:
+  - at: A2                     # the header's top-left; the only letter here
+    rows: 12                   # body rows, beneath the header
+    header_style: header
+    columns:
+      - { name: item, header: 部門, width: 16 }
+      - { name: cy, header: 当年, format: "#,##0" }
+      - { name: py, header: 前年, format: "#,##0" }
+      - name: ratio
+        header: 前年比
+        format: "0.0%"
+        formula: 'IFERROR({{cy}}/{{py}}-1,"")'
+        conditional:
+          - { cell: { less_than: 0 }, style: weak }
+```
+
+| Key | Notes |
+|---|---|
+| `at` | **Required.** The top-left cell. The header row is here when any column has a `header`; otherwise the body starts here. |
+| `rows` | **Required.** How many body rows, at least 1. |
+| `header_style` | A style (bareword or inline) for every header cell. Needs at least one `header`. |
+| `columns` | **Required.** The columns, left to right from `at`. At least one. |
+
+Each column:
+
+| Key | Notes |
+|---|---|
+| `name` | **Required.** Letters, digits and `_`, or any non-ASCII character, not starting with a digit. Unique on the sheet. |
+| `header` | The header cell's value: text or a number. |
+| `formula` | Filled down the body as a formula range (§3), written for the body's first row. |
+| `conditional` | Conditional formats (§10) over the body, written without `at`. |
+| `width`, `style`, `format`, `hidden`, `group` | The column's band, exactly as in §4. |
+
+**`{{name}}` is that column's cell in the same row.** It is read in a column's
+`formula` and in a conditional rule's `formula`, and nowhere else: a `{{`
+anywhere else in a spec is ordinary text. Inside a formula it is skipped within
+a `"…"` string literal. A name that is not a column of the layout, or a `{{`
+never closed, is an error.
+
+**A layout compiles to exactly what the hand-written keys would**: a band per
+column that sets one, a header cell, a formula range, and a conditional format
+per rule. So everything those keys refuse, a layout refuses too. In
+particular, a `cells:` entry inside a formula column is refused as in §3, and
+one row that differs is an override (§23).
+
+A sheet may hold several layouts. Two layouts may not both give one sheet
+column a band.
+
+The rows are still addressed by number. A `data:` block (§9) fills a layout's
+input columns by position, and leaves a formula column's cells as `null`.
+

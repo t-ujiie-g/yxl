@@ -497,3 +497,46 @@ test "the starter spec compiles to a workbook holding one empty sheet" {
   assert_eq(reopened.get_sheet_list(), ["Sheet1"])
   assert_eq(reopened.get_cell("Sheet1", "A1"), None)
 }
+
+///|
+/// ADR-023's claim, at the byte boundary: a layout compiles to the file its
+/// hand-written expansion does.
+test "golden: a layout compiles to the same bytes as its expansion" {
+  let layout =
+    #|sheets:
+    #|  - name: S
+    #|    layouts:
+    #|      - at: A1
+    #|        rows: 2
+    #|        header_style: { font: { bold: true } }
+    #|        columns:
+    #|          - { name: qty, header: Qty }
+    #|          - { name: price, header: Price, format: "#,##0" }
+    #|          - name: amount
+    #|            header: Amount
+    #|            formula: "{{qty}}*{{price}}"
+    #|            conditional: [{ cell: { at_least: 1000 }, style: { font: { bold: true } } }]
+    #|    data:
+    #|      - { at: A2, values: [[3, 250], [7, 125]] }
+    #|
+  let by_hand =
+    #|sheets:
+    #|  - name: S
+    #|    columns:
+    #|      - { at: B, format: "#,##0" }
+    #|    cells:
+    #|      A1: { value: Qty, style: { font: { bold: true } } }
+    #|      B1: { value: Price, style: { font: { bold: true } } }
+    #|      C1: { value: Amount, style: { font: { bold: true } } }
+    #|    formulas:
+    #|      - { at: C2:C3, formula: "A2*B2" }
+    #|    conditional:
+    #|      - { at: C2:C3, cell: { at_least: 1000 }, style: { font: { bold: true } } }
+    #|    data:
+    #|      - { at: A2, values: [[3, 250], [7, 125]] }
+    #|
+  assert_eq(
+    @cli.compile(layout, file="spec.yaml"),
+    @cli.compile(by_hand, file="spec.yaml"),
+  )
+}
