@@ -520,24 +520,32 @@ test "the workbook example holds its master once and points at it" {
     )[:],
   )
   assert_false(workbook.get_sheet_visible("Masters"))
-  let master_tables = workbook.get_tables("Masters")
-  assert_eq(master_tables.length(), 1)
-  assert_eq(master_tables[0].name, "StoreMaster")
-  assert_eq(master_tables[0].range_ref, "A1:C5")
-  assert_eq(master_tables[0].columns, ["store_code", "store_name", "region"])
+  // The master's columns are names, and the other sheets read them by name.
+  let names = workbook
+    .get_defined_names()
+    .map(name => "\{name.name}=\{name.refers_to}")
+  assert_true(names.contains("stores.code='Masters'!$A$2:$A$5"))
+  assert_true(names.contains("stores.name='Masters'!$B$2:$B$5"))
+  let tables = workbook.get_tables("Sales")
+  assert_eq(tables[0].name, "SalesEntries")
+  assert_eq(tables[0].range_ref, "A1:C9")
 
   // No sheet holds a second copy of a store name: the two that show one
-  // compute it from the table above.
+  // compute it from the master.
   assert_eq(workbook.get_cell("Sales", "C2"), Some(""))
   assert_eq(workbook.get_cell("Summary", "A4"), Some(""))
   assert_eq(
     workbook.get_cell_formula("Summary", "A4"),
-    Some("IFERROR(INDEX(StoreMaster[store_name], ROW()-3), \"\")"),
+    Some("IFERROR(INDEX(stores.name, MATCH(E4, stores.code, 0)), \"\")"),
   )
+  // The totals follow the rows, four stores in, and the note follows them.
+  assert_eq(workbook.get_cell("Summary", "A8"), Some("Total"))
+  assert_eq(workbook.get_cell("Summary", "A9"), Some("Target per store"))
 
   // The drop-down offers exactly the master's codes.
   let validations = workbook.get_data_validations("Sales")
   assert_eq(validations.length(), 1)
+  assert_eq(validations[0].sqref, "A2:A9")
   assert_eq(validations[0].formula1, "'Masters'!$A$2:$A$5")
 }
 

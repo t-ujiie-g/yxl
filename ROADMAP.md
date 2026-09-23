@@ -2439,6 +2439,38 @@ readers cannot.
 
 Reverse-chronological. One entry per user-visible or structural change.
 
+- **2026-09-24** — **0.5.0: layouts, and the skills and the reference workbook
+  built on them.** The version moves to `0.5.0` in `moon.mod` and in
+  `yxl version`, ready for the `v0.5.0` tag.
+
+  The release carries the #89 layout work (ADR-023–026), the `_xlfn.` fix
+  (#96), and the width-0 column fix. What changes in this entry is what the
+  agents are taught:
+  - **`skills/yxl-authoring`**: the default architecture is now built on
+    layouts. Every table is a named layout whose rows come from a CSV and
+    whose derived columns are `{{name}}` formulas. Totals and subtotals are
+    footers, and a column group repeated per item is a block. Shared data is a
+    named master that other sheets reach by name, in formulas, drop-downs,
+    chart series, `below:` anchors and overrides by `where:`. Row counts are no
+    longer `params:`. `cells:` / `data:` / `formulas:` addressed by letter
+    remain for what is not a table.
+  - **`skills/extract-to-spec`**: rewrites *towards* layouts. Data sheets
+    become named layouts fed by a CSV with a header row. A report sheet's
+    formula runs become layout columns, merged header rows become header
+    levels, repeated column groups become blocks, total rows become footers,
+    and cross-sheet addresses become names.
+  - **`examples/workbook.yxl.yaml`**, the architecture the skill tells agents
+    to copy, is rewritten the same way.
+    - The master is the named layout `stores`.
+    - Sales reads its month's CSV into a layout that is also declared an
+      Excel table, with a drop-down `from: stores.code`.
+    - Summary takes only the store *key* from the master's file, looks the
+      name up, and totals in a footer. Every store name therefore still
+      exists once in the workbook.
+    - `sales_rows` / `store_rows` are gone, and so are the over-reaching,
+      blank-guarded ranges they needed. The CSVs gained the header rows a
+      layout matches by.
+
 - **2026-09-24** — **Refactor after layout names (AGENTS.md §8).** No behaviour
   changes.
   - **Duplication:**
