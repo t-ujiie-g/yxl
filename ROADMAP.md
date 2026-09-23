@@ -2281,6 +2281,20 @@ Reverse-chronological. One entry per user-visible or structural change.
   it. `examples/columns.yxl.yaml` now has the two-row header that prompted
   this. `docs/spec.md` §25 and the JSON Schema are updated.
 
+- **2026-09-23** — **Fix: a column band with no `width` opened at width 0.**
+  The backend writes such a `<col>` with no `width` attribute, and Excel reads
+  that as zero, so a band that set only a style, a format, `hidden` or `group`
+  hid its column. Found by opening `examples/columns.yxl.yaml` in Excel for
+  the web: its ratio columns set a format and no width, and they vanished. No
+  earlier example had hit it, because each of their bands also set a width,
+  and CI's validator passes the file because the attribute is optional.
+  The emitter now gives every column a band touches, and no band sizes, Excel's
+  standard width as Excel stores it (`9.140625`: 8.43 characters of Calibri
+  11 plus padding, ECMA-376 §18.3.1.13). Only the column appears in the file
+  as custom-width. Where the workbook's default font is not Calibri, the
+  standard width is a pixel or two off, and a visible column beats an exact
+  one.
+
 - **2026-09-23** — **`layouts:` — columns named, not lettered (#89, slice 1
   of ADR-023).** A new sheet key. A layout is an anchor cell, a body row count,
   and named columns that carry their own header, width, style, format,

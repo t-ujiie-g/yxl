@@ -291,7 +291,8 @@ rows:
 | `width` (character units) | ✔ | — |
 | `height` (points) | — | ✔ |
 
-A band that sets nothing contributes nothing. `group` must be a whole number
+A band that sets nothing contributes nothing. A column band that sets no
+`width` keeps Excel's standard width, 8.43 characters. `group` must be a whole number
 between 0 and 7; `0` means ungrouped, which is distinct from omitting the key.
 
 ### How a band's styling reaches a cell
