@@ -96,7 +96,7 @@ fn read_conditional_rule(
       if options.criteria.is_empty() {
         None
       } else {
-        Some(Formula(options.criteria))
+        Some(Formula(@model.from_file_formula(options.criteria)))
       }
     "text" =>
       match text_match(options.criteria) {

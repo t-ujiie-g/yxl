@@ -401,3 +401,33 @@ test "a sheet named with an apostrophe survives the round trip" {
   assert_eq(result.warnings, [])
   assert_true(result.spec.contains("It's data!A1:A3"))
 }
+
+///|
+/// A function newer than the file format is stored as `_xlfn.NAME` (#96): the
+/// build writes the prefix Excel reads it by, and extract gives it back bare.
+test "a newer function is stored with _xlfn and extracted without it" {
+  let source =
+    #|sheets:
+    #|  - name: S
+    #|    cells:
+    #|      A1: 1
+    #|      A2: 2
+    #|      B1: { formula: "XLOOKUP(1,A1:A2,A1:A2)" }
+    #|    formulas:
+    #|      - { at: C1:C2, formula: "MAXIFS(A1:A2,A1:A2,\">0\")" }
+    #|
+  let bytes = @cli.compile(source, file="in.yaml")
+  let reopened = @xlsx.read(bytes[:])
+  assert_eq(
+    reopened.get_cell_formula("S", "B1"),
+    Some("_xlfn.XLOOKUP(1,A1:A2,A1:A2)"),
+  )
+  assert_eq(
+    reopened.get_cell_formula("S", "C1"),
+    Some("_xlfn.MAXIFS(A1:A2,A1:A2,\">0\")"),
+  )
+  let spec = @cli.extract(bytes, file="in.xlsx").spec
+  assert_true(spec.contains("XLOOKUP(1,A1:A2,A1:A2)"))
+  assert_true(!spec.contains("_xlfn"))
+  assert_true(spec.contains("MAXIFS(A1:A2,A1:A2,\">0\")"))
+}

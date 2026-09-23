@@ -99,11 +99,13 @@ fn defined_value(refers_to : String) -> @model.CellValue {
     // spec, which strips it on the way in either way.
     _ =>
       Formula(
-        formula=if refers_to.has_prefix("=") {
-          refers_to[1:].to_owned()
-        } else {
-          refers_to
-        },
+        formula=@model.from_file_formula(
+          if refers_to.has_prefix("=") {
+            refers_to[1:].to_owned()
+          } else {
+            refers_to
+          },
+        ),
         cached=None,
       )
   }

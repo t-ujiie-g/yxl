@@ -154,6 +154,14 @@ cells:
 
 YAML's own types carry over: a bare `1` is a number, a quoted `"1"` is text.
 
+**Write a formula the way Excel's formula bar shows it.** A function newer
+than the file format, such as `XLOOKUP`, `FILTER`, `TEXTJOIN` or `MAXIFS`, is
+stored in the file under Excel's `_xlfn.` prefix, and `yxl build` adds it
+wherever a formula goes: a cell, a formula range, a conditional format, a
+defined name. `yxl extract` takes it off again. The parameter names of
+`LET` and `LAMBDA` need a prefix of their own in the file (`_xlpm.`), which
+`yxl` does not add yet, so a formula using them may open as `#NAME?`.
+
 ### The expanded form
 
 | Key | Notes |

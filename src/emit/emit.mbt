@@ -327,7 +327,7 @@ fn emit_cell(
       backend.set_cell_formula(
         sheet_name,
         reference,
-        formula,
+        @model.to_file_formula(formula),
         value?=cached.map(value => render_cached(value, date_system)),
       )
     RichText(runs) =>
@@ -363,7 +363,7 @@ fn refers_to(
     Bool(flag) => if flag { "TRUE" } else { "FALSE" }
     Date(datetime) => datetime.to_serial(date_system).to_string()
     Error(text) => text
-    Formula(formula~, ..) => formula
+    Formula(formula~, ..) => @model.to_file_formula(formula)
     RichText(_) | Blank => ""
   }
 }

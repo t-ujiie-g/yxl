@@ -7,6 +7,8 @@ import {
 }
 
 // Values
+pub fn from_file_formula(String) -> String
+
 pub let icon_set_styles : Array[String]
 
 pub let image_formats : Array[String]
@@ -40,6 +42,8 @@ pub let shape_presets : Array[(String, String)]
 pub fn split_sheet_prefix(String) -> (String?, String)?
 
 pub let table_style_families : Array[(String, Int)]
+
+pub fn to_file_formula(String) -> String
 
 pub let unwritable_icon_set_styles : Array[String]
 

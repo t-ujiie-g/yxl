@@ -45,7 +45,7 @@ fn conditional_options(
       let options = @xlsx.ConditionalFormatOptions::new("formula")
       // An expression rule carries its formula in `criteria`, not `value` —
       // the one rule kind that does.
-      options.set_criteria(expression)
+      options.set_criteria(@model.to_file_formula(expression))
       options
     }
     Text(match_~, value~) => {
