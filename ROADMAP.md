@@ -100,6 +100,8 @@ ADR-008). Dependencies point *downward*; lower packages never import higher.
 | `loader` | Document tree → `model`; schema validation with diagnostics; expands `$include` through a reader the CLI injects (ADR-014) |
 | ~~`resolve`~~ | **Never built.** Reference resolution fitted in `loader` and interning in `emit`, so ADR-012/ADR-013 folded this package away rather than add a stage with nothing of its own to do |
 | `emit` | `model` → `.xlsx` bytes through the emitter seam; the `mbtexcel`-backed implementation lives here |
+| `read` | `.xlsx` bytes → `model` through the reader seam (ADR-017); with `emit`, the only package importing the backend |
+| `render` | `model` → document tree, the inverse of `loader`; where `extract` invents names for what the file shared |
 | `cli` (`cmd/main`) | Argument parsing, file read/write, `--check`, `--set`, exit codes, help |
 | `examples` | No product code: the tier-2 test that compiles the `examples/` cookbook and asserts on its output (§5) |
 
@@ -2336,6 +2338,27 @@ split the body. They are not taken here.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-09-23** — **Refactor after layouts (AGENTS.md §8).** No behaviour
+  changes. Each lens, in order:
+  - **Constants:** nothing to promote.
+  - **Duplicate code:**
+    - Laying one optional style over another had been written four times:
+      band inheritance in `model`, cell styles in `emit`, and header and footer
+      cells in `loader`. It is now `@model.Style::layer`, a new public function
+      with its own test.
+    - The `{{name}}` scanner had been written twice, once for formulas and once
+      for footer labels. It is now `substitute_names`, which the two share.
+  - **File split:** `layout.mbt` (692 lines) is split at its logical seams.
+    Headers moved to `layout_header.mbt`, data rows to `layout_rows.mbt`, each
+    with a matching test file. The 272-line `load_layout` became a sequence of
+    named steps. `FooterScope`'s `cols` / `inputs` are renamed `col_of` /
+    `input_of`, since they sat beside an array called `columns`.
+  - **Comments:** three comments were trimmed back under the three-line rule,
+    with pointers to `docs/spec.md` §25 in place of restated rules.
+  - **Docs:** README and §4 now list `read` and `render`, which had shipped
+    with `extract` but were missing from both package tables.
+  - **Language:** no deprecation warnings to clear.
 
 - **2026-09-23** — **A layout's footer: totals and subtotals per group
   (ADR-024).** `footer:` places rows straight after a layout's body, so a

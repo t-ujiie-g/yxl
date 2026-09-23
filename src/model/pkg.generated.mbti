@@ -590,6 +590,7 @@ pub fn Style::clearing(Self, StyleAttrs) -> Self
 pub fn Style::empty() -> Self
 pub fn Style::inherited_by(Self, CellValue) -> Self
 pub fn Style::is_empty(Self) -> Bool
+pub fn Style::layer(Self?, Self?) -> Self?
 pub fn Style::number_format(String) -> Self
 pub fn Style::over(Self, Self) -> Self
 pub fn Style::settled(Self) -> Self

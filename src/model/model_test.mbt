@@ -444,3 +444,19 @@ test "split_sheet_prefix follows Excel's quoting" {
   assert_eq(@model.split_sheet_prefix("'Lists'A1:A3"), None)
   assert_eq(@model.split_sheet_prefix("'Lists'"), None)
 }
+
+///|
+test "Style::layer lays one optional style over another" {
+  let bold : @model.Style = {
+    ..@model.Style::empty(),
+    font: Some({ ..@model.Font::empty(), bold: Some(true), }),
+  }
+  let percent = @model.Style::number_format("0%")
+  assert_eq(@model.Style::layer(None, None), None)
+  assert_eq(@model.Style::layer(Some(bold), None), Some(bold))
+  assert_eq(@model.Style::layer(None, Some(percent)), Some(percent))
+  assert_eq(
+    @model.Style::layer(Some(bold), Some(percent)),
+    Some(percent.over(bold)),
+  )
+}

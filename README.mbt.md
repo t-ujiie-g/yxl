@@ -275,6 +275,8 @@ the CLI touches disk. The Excel backend sits behind a seam so it can be swapped
 | `model` | Typed intermediate representation |
 | `loader` | Document tree → model: schema validation, reference resolution |
 | `emit` | Model → `.xlsx` bytes (mbtexcel-backed), style/string interning |
+| `read` | `.xlsx` bytes → model, the mirror of `emit` (for `yxl extract`) |
+| `render` | Model → document tree, the mirror of `loader`, where extracted styles get their names |
 | `cli` (`cmd/main`) | Argument parsing, file I/O, exit codes |
 | `examples` | Test-only: compiles the `examples/` cookbook and asserts on it |
 

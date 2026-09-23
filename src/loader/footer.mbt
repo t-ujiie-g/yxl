@@ -20,8 +20,8 @@ priv enum GroupOrder {
 priv struct FooterScope {
   sheet : @model.Sheet
   columns : Array[(String, Int)]
-  cols : Map[String, Int]
-  inputs : Map[String, Int]
+  col_of : Map[String, Int]
+  input_of : Map[String, Int]
   data : Rows
   body_first : Int
   body_last : Int
@@ -72,7 +72,7 @@ fn load_footer_entries(
       }
       let cells = expect_map(cells, file~, context="a \{context} footer row")
       for cell in cells {
-        guard scope.cols.contains(cell.0) else {
+        guard scope.col_of.contains(cell.0) else {
           raise schema_error(
             file~,
             "a \{context} footer row names '\{cell.0}', which is not a column of the layout",
@@ -84,7 +84,7 @@ fn load_footer_entries(
     } else if find_key(entries, "by") is Some(by_node) {
       let by = expect_string(by_node, file~, context="\{context} footer 'by'")
       let where_ = "\{context} footer group '\{by}'"
-      guard scope.inputs.contains(by) else {
+      guard scope.input_of.contains(by) else {
         raise schema_error(
           file~,
           "\{where_} must name a column the data fills (one without a 'formula')",
@@ -192,7 +192,7 @@ fn write_footer(
       }
       FooterGroup(by, order, nested) => {
         let where_ = "\{scope.context} footer group '\{by}'"
-        let field = scope.inputs[by]
+        let field = scope.input_of[by]
         let value_of = (index : Int) => {
           scope.data[index].get(field).unwrap_or(None)
         }
@@ -269,7 +269,7 @@ fn write_footer_row(
       }
       continue
     }
-    let merge_to = merge_target(node).map(target => scope.cols[target])
+    let merge_to = merge_target(node).map(target => scope.col_of[target])
     let node = match node {
       @yaml.Map(entries) =>
         @yaml.Map(entries.filter(entry => entry.0 != FOOTER_MERGE_KEY))
@@ -308,7 +308,7 @@ fn write_footer_row(
                   @yaml.Str(
                     expand_column_refs(
                       text,
-                      scope.cols,
+                      scope.col_of,
                       row~,
                       file~,
                       context=where_,
@@ -327,11 +327,7 @@ fn write_footer_row(
       reference=at.to_a1(),
       defs=scope.defs,
     )
-    let style = match (style, row_style) {
-      (Some(own), Some(base)) => Some(own.over(base))
-      (Some(own), None) => Some(own)
-      (None, base) => base
-    }
+    let style = @model.Style::layer(row_style, style)
     scope.sheet.set(at, value, style?)
     merged(style)
   }
@@ -369,13 +365,13 @@ fn check_footer_merges(
       file=scope.file,
       context="\{where_} '\{FOOTER_MERGE_KEY}'",
     )
-    guard scope.cols.get(target) is Some(last) else {
+    guard scope.col_of.get(target) is Some(last) else {
       raise schema_error(
         file=scope.file,
         "\{where_} merges to '\{target}', which is not a column of the layout",
       )
     }
-    let first = scope.cols[name]
+    let first = scope.col_of[name]
     guard last > first else {
       raise schema_error(
         file=scope.file,
@@ -383,7 +379,7 @@ fn check_footer_merges(
       )
     }
     for other in cells {
-      let col = scope.cols[other.0]
+      let col = scope.col_of[other.0]
       guard !(col > first && col <= last) else {
         raise schema_error(
           file=scope.file,
@@ -411,7 +407,7 @@ fn total_formula(
     "\{top}:\{bottom}"
   }
   let criteria = keys
-    .map(key => ",\{range(scope.cols[key.0])},\{group_criterion(key.1)}")
+    .map(key => ",\{range(scope.col_of[key.0])},\{group_criterion(key.1)}")
     .join("")
   let body = range(col)
   let grouped = !keys.is_empty()
@@ -524,38 +520,19 @@ fn interpolate_group_values(
   file~ : String,
   context~ : String,
 ) -> String raise @diag.SchemaError {
-  let chars = text.to_array()
-  let out = StringBuilder()
-  let mut i = 0
-  while i < chars.length() {
-    if chars[i] == '{' && i + 1 < chars.length() && chars[i + 1] == '{' {
-      let mut end = i + 2
-      while end + 1 < chars.length() &&
-            !(chars[end] == '}' && chars[end + 1] == '}') {
-        end += 1
+  substitute_names(text, in_formula=false, file~, context~, name => {
+    guard keys.search_by(key => key.0 == name) is Some(index) else {
+      let groups = keys.map(key => "'\{key.0}'")
+      let known = if groups.is_empty() {
+        "there is no enclosing 'by' group"
+      } else {
+        "the groups here are \{or_list(groups)}"
       }
-      guard end + 1 < chars.length() else {
-        raise schema_error(file~, "\{context} has a '{{' with no closing '}}'")
-      }
-      let name = String::from_array(chars[i + 2:end])
-      guard keys.search_by(key => key.0 == name) is Some(index) else {
-        let groups = keys.map(key => "'\{key.0}'")
-        let known = if groups.is_empty() {
-          "there is no enclosing 'by' group"
-        } else {
-          "the groups here are \{or_list(groups)}"
-        }
-        raise schema_error(
-          file~,
-          "\{context} spells '{{\{name}}}', but text can only spell a group's value, and \{known}",
-        )
-      }
-      out.write_string(group_label(keys[index].1))
-      i = end + 2
-      continue
+      raise schema_error(
+        file~,
+        "\{context} spells '{{\{name}}}', but text can only spell a group's value, and \{known}",
+      )
     }
-    out.write_char(chars[i])
-    i += 1
-  }
-  out.to_string()
+    group_label(keys[index].1)
+  })
 }

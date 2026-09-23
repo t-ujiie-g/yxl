@@ -21,7 +21,7 @@ fn effective_style(sheet : @model.Sheet, cell : @model.Cell) -> @model.Style? {
     Some(style) => Some(style.inherited_by(cell.value))
     None => None
   }
-  settle(layer(inherited, cell.style))
+  settle(@model.Style::layer(inherited, cell.style))
 }
 
 ///|
@@ -43,16 +43,6 @@ fn settle(style : @model.Style?) -> @model.Style? {
 /// no `cells` array to be styled with the rest.
 fn band_style_at(sheet : @model.Sheet, at : @units.CellRef) -> @model.Style? {
   settle(sheet.band_style_at(at))
-}
-
-///|
-/// `over` laid on `under`, either alone, or neither.
-fn layer(under : @model.Style?, over : @model.Style?) -> @model.Style? {
-  match (under, over) {
-    (Some(under), Some(over)) => Some(over.over(under))
-    (None, over) => over
-    (under, None) => under
-  }
 }
 
 ///|
