@@ -2351,6 +2351,9 @@ Reverse-chronological. One entry per user-visible or structural change.
   - A label spells group values as `{{branch}}`. That is still `{{name}}`'s
     one meaning, "this row's name", which in text is the value.
   - A row's `style:` spans the layout's width.
+  - A cell's `merge_to:` merges it across to a column on its right. So a label
+    can stand alone in the first column, or be merged over the columns a
+    group leaves empty.
   - `min` and `max` are written as `_xlfn.MINIFS` / `_xlfn.MAXIFS`, the names
     Excel reads.
 

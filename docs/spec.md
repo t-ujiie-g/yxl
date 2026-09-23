@@ -1753,6 +1753,22 @@ Each footer entry is a row or a group:
 | `order` | With `by`: `data` (as the rows list them, the default), `asc`, `desc`, or a list of the values. |
 | `rows` | With `by`: **required**. The entries repeated for each value, which may be groups themselves. |
 
+A footer cell takes, beyond §3's keys:
+
+| Key | Notes |
+|---|---|
+| `total` | `sum`, `count`, `average`, `min`, or `max` over the column's body. |
+| `merge_to` | A column to the right: the cell merges across to it. The covered cells wear its style, and the row may write nothing inside the span. |
+
+A label goes in whichever column suits the report. Write it alone in the
+first column and the columns after it stay blank; add `merge_to` and they
+merge under it:
+
+```yaml
+- row: { branch: "{{branch}}", channel: { value: "{{channel}} 計", merge_to: store } }
+- row: { branch: { value: 総合計, merge_to: store }, cy: { total: sum } }
+```
+
 - **`{ total: sum }`** aggregates the column's body. The choices are `sum`,
   `count` (non-blank cells), `average`, `min` and `max`. Inside groups it
   becomes `SUMIFS`, `COUNTIFS`, `AVERAGEIFS`, `MINIFS` or `MAXIFS`, with one

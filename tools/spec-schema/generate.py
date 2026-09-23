@@ -1164,12 +1164,20 @@ def build(doc: Reference) -> dict:
         where="a layout column",
     )
     footer = doc.keys("Footer rows and grouped totals")
+    footer_cell = doc.keys("Footer rows and grouped totals", table=1)
+    merge_to = {"merge_to": ref("text")}
     define["footer_cell"] = {
         "anyOf": [
-            ref("cell_value"),
+            ref("scalar"),
+            ref("value_ref"),
             obj(
-                {"total": enum(["sum", "count", "average", "min", "max"])},
-                documented={"total": footer["row"]},
+                {**cell_facets, **merge_to},
+                documented={**expanded, "merge_to": footer_cell["merge_to"]},
+                where="a footer cell",
+            ),
+            obj(
+                {"total": enum(names(footer_cell["total"])), **merge_to},
+                documented=footer_cell,
                 required=("total",),
                 where="a footer total",
             ),
@@ -1380,7 +1388,7 @@ ACCEPTED = {
     "a layout with nested grouped totals": (
         "sheets: [{name: S, layouts: [{at: A1, csv: s.csv, columns: [{name: b}, {name: c}, {name: v}],"
         " footer: [{by: b, order: asc, rows: [{by: c, order: [直営, FC], rows: [{row: {v: {total: sum}}}]},"
-        " {row: {c: '{{b}} 計', v: {total: sum}}, style: {font: {bold: true}}}]}]}]}]"
+        " {row: {b: {value: '{{b}} 計', merge_to: c}, v: {total: sum}}, style: {font: {bold: true}}}]}]}]}]"
     ),
     "a layout reading a CSV by field": (
         "sheets: [{name: S, layouts: [{at: A1, csv: data/sales.csv,"

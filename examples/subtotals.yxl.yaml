@@ -62,22 +62,25 @@ sheets:
               - by: channel
                 order: [直営, FC]
                 rows:
-                  # The label spells the group's values; the amounts are
-                  # SUMIFS over the rows of this branch *and* this channel.
+                  # The labels spell the group's values, in whichever columns
+                  # suit: the branch in its own column, the channel's label
+                  # merged across to the store's. The amounts are SUMIFS over
+                  # the rows of this branch *and* this channel.
                   - row:
-                      store: "{{branch}} {{channel}} 計"
+                      branch: "{{branch}}"
+                      channel: { value: "{{channel}} 計", merge_to: store }
                       cy: { total: sum }
                       py: { total: sum }
                       ratio: { formula: 'IFERROR({{cy}}/{{py}}-1,"")' }
                     style: channel_total
               - row:
-                  store: "{{branch}} 計"
+                  branch: { value: "{{branch}} 計", merge_to: store }
                   cy: { total: sum }
                   py: { total: sum }
                   ratio: { formula: 'IFERROR({{cy}}/{{py}}-1,"")' }
                 style: branch_total
           - row:
-              store: 総合計
+              branch: { value: 総合計, merge_to: store }
               cy: { total: sum }
               py: { total: sum }
               # This row's cy over this row's py: the ratio of the totals,

@@ -252,3 +252,55 @@ test "a group needs data to take values from, unless it lists them" {
     ),
   )
 }
+
+///|
+test "a footer cell merges across to the column it names" {
+  let sheet = load_ok(
+      store_spec(
+        "          - row: { branch: { value: 総合計, merge_to: store }, cy: { total: sum } }\n            style: sub\n",
+      ),
+    ).sheets[0]
+  assert_eq(sheet.merges.map(range => range.to_a1()), ["A6:C6"])
+  let cells = written(sheet)
+  assert_eq(cells.get("A6"), Some((Text("総合計"), true)))
+  assert_eq(cells.get("B6"), Some((Blank, true)))
+  assert_eq(cells.get("C6"), Some((Blank, true)))
+}
+
+///|
+test "a label in the first column leaves the rest blank, unmerged" {
+  let sheet = load_ok(
+      store_spec(
+        "          - by: branch\n            rows: [{ row: { branch: \"{{branch}} 計\", cy: { total: sum } }, style: sub }]\n",
+      ),
+    ).sheets[0]
+  assert_eq(sheet.merges, [])
+  let cells = written(sheet)
+  assert_eq(cells.get("A6"), Some((Text("大阪 計"), true)))
+  assert_eq(cells.get("B6"), Some((Blank, true)))
+}
+
+///|
+test "a merge names a column to the right, over nothing the row writes" {
+  let refused = (cells : String) => {
+    schema_message(store_spec("          - row: \{cells}\n"))
+  }
+  assert_eq(
+    refused("{ store: { value: x, merge_to: branch } }"),
+    Some(
+      "spec.yaml: a layout 'A1' footer cell 'store' merges to 'branch', which is not to its right",
+    ),
+  )
+  assert_eq(
+    refused("{ branch: { value: x, merge_to: shop } }"),
+    Some(
+      "spec.yaml: a layout 'A1' footer cell 'branch' merges to 'shop', which is not a column of the layout",
+    ),
+  )
+  assert_eq(
+    refused("{ branch: { value: x, merge_to: store }, channel: y }"),
+    Some(
+      "spec.yaml: a layout 'A1' footer cell 'branch' merges over 'channel', which the row also writes",
+    ),
+  )
+}

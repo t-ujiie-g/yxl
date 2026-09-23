@@ -79,6 +79,7 @@ fn load_footer_entries(
           )
         }
       }
+      check_footer_merges(cells, scope)
       FooterRow(cells, style)
     } else if find_key(entries, "by") is Some(by_node) {
       let by = expect_string(by_node, file~, context="\{context} footer 'by'")
@@ -250,19 +251,41 @@ fn write_footer_row(
   row~ : Int,
 ) -> Unit raise @diag.SchemaError {
   let file = scope.file
+  let mut covered_to = 0
+  let mut cover_style = None
   for column in scope.columns {
     let (name, col) = column
     let at = @units.CellRef(col~, row~)
     let where_ = "\{scope.context} footer row \{row} column '\{name}'"
+    if col <= covered_to {
+      if cover_style is Some(style) {
+        scope.sheet.set(at, Blank, style~)
+      }
+      continue
+    }
     guard find_key(cells, name) is Some(node) else {
       if row_style is Some(style) {
         scope.sheet.set(at, Blank, style~)
       }
       continue
     }
+    let merge_to = merge_target(node).map(target => scope.cols[target])
+    let node = match node {
+      @yaml.Map(entries) =>
+        @yaml.Map(entries.filter(entry => entry.0 != FOOTER_MERGE_KEY))
+      other => other
+    }
+    let merged = (style : @model.Style?) => {
+      if merge_to is Some(last) {
+        scope.sheet.merge(at, @units.CellRef(col=last, row~))
+        covered_to = last
+        cover_style = style
+      }
+    }
     if node is @yaml.Map([("total", total)]) {
       let formula = total_formula(total, col, scope, keys~, context=where_)
       scope.sheet.set(at, Formula(formula~, cached=None), style?=row_style)
+      merged(row_style)
       continue
     }
     let spelled = match node {
@@ -310,6 +333,64 @@ fn write_footer_row(
       (None, base) => base
     }
     scope.sheet.set(at, value, style?)
+    merged(style)
+  }
+}
+
+///|
+const FOOTER_MERGE_KEY : String = "merge_to"
+
+///|
+/// The column a footer cell's `merge_to:` names, if it has one.
+fn merge_target(node : @yaml.Node) -> String? {
+  guard node is @yaml.Map(entries) &&
+    find_key(entries, FOOTER_MERGE_KEY) is Some(@yaml.Str(target)) else {
+    return None
+  }
+  Some(target)
+}
+
+///|
+/// A `merge_to:` names a column of the layout to the cell's right, and no cell
+/// the row writes lies inside the span, where the merge would hide it.
+fn check_footer_merges(
+  cells : Array[(String, @yaml.Node)],
+  scope : FooterScope,
+) -> Unit raise @diag.SchemaError {
+  for cell in cells {
+    let (name, node) = cell
+    guard node is @yaml.Map(entries) &&
+      find_key(entries, FOOTER_MERGE_KEY) is Some(target_node) else {
+      continue
+    }
+    let where_ = "a \{scope.context} footer cell '\{name}'"
+    let target = expect_string(
+      target_node,
+      file=scope.file,
+      context="\{where_} '\{FOOTER_MERGE_KEY}'",
+    )
+    guard scope.cols.get(target) is Some(last) else {
+      raise schema_error(
+        file=scope.file,
+        "\{where_} merges to '\{target}', which is not a column of the layout",
+      )
+    }
+    let first = scope.cols[name]
+    guard last > first else {
+      raise schema_error(
+        file=scope.file,
+        "\{where_} merges to '\{target}', which is not to its right",
+      )
+    }
+    for other in cells {
+      let col = scope.cols[other.0]
+      guard !(col > first && col <= last) else {
+        raise schema_error(
+          file=scope.file,
+          "\{where_} merges over '\{other.0}', which the row also writes",
+        )
+      }
+    }
   }
 }
 
