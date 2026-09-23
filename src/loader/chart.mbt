@@ -35,9 +35,10 @@ fn load_charts(
   node : @yaml.Node,
   sheet : @model.Sheet,
   file~ : String,
+  defs~ : Defs,
 ) -> Unit raise @diag.SchemaError {
   for item in expect_seq(node, file~, context="'charts'") {
-    sheet.add_chart(load_chart(item, file~))
+    sheet.add_chart(load_chart(item, file~, defs~, sheet=sheet.name))
   }
 }
 
@@ -47,9 +48,18 @@ fn load_charts(
 fn load_chart(
   node : @yaml.Node,
   file~ : String,
+  defs~ : Defs,
+  sheet~ : String,
 ) -> @model.Chart raise @diag.SchemaError {
   let entries = expect_map(node, file~, context="a chart")
-  let at = anchor_cell(entries, file~, subject="a chart", noun="chart")
+  let at = anchor_cell(
+    entries,
+    file~,
+    defs~,
+    sheet~,
+    subject="a chart",
+    noun="chart",
+  )
   let context = "chart at '\{at.to_a1()}'"
   let mut kind = None
   let mut series = None
@@ -72,7 +82,7 @@ fn load_chart(
             context~,
           ),
         )
-      "series" => series = Some(load_series(value, file~, context~))
+      "series" => series = Some(load_series(value, file~, defs~, context~))
       "title" =>
         title = Some(expect_string(value, file~, context="\{context} 'title'"))
       "legend" =>
@@ -115,11 +125,12 @@ fn load_chart(
 fn load_series(
   node : @yaml.Node,
   file~ : String,
+  defs~ : Defs,
   context~ : String,
 ) -> Array[@model.ChartSeries] raise @diag.SchemaError {
   let series = []
   for item in expect_seq(node, file~, context="\{context} 'series'") {
-    series.push(load_one_series(item, file~, context~))
+    series.push(load_one_series(item, file~, defs~, context~))
   }
   // Excel draws nothing for a chart with no series, and says nothing about why.
   guard !series.is_empty() else {
@@ -137,6 +148,7 @@ fn load_series(
 fn load_one_series(
   node : @yaml.Node,
   file~ : String,
+  defs~ : Defs,
   context~ : String,
 ) -> @model.ChartSeries raise @diag.SchemaError {
   let what = "\{context} series"
@@ -148,6 +160,7 @@ fn load_one_series(
     match key {
       "values" | "categories" => {
         let range = parse_sheet_range(
+          defs~,
           expect_string(value, file~, context="\{what} '\{key}'"),
           file~,
           what="\{what} '\{key}'",

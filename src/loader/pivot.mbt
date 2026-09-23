@@ -21,9 +21,10 @@ fn load_pivots(
   node : @yaml.Node,
   sheet : @model.Sheet,
   file~ : String,
+  defs~ : Defs,
 ) -> Unit raise @diag.SchemaError {
   for item in expect_seq(node, file~, context="'pivots'") {
-    sheet.add_pivot(load_pivot(item, file~))
+    sheet.add_pivot(load_pivot(item, file~, defs~))
   }
 }
 
@@ -33,6 +34,7 @@ fn load_pivots(
 fn load_pivot(
   node : @yaml.Node,
   file~ : String,
+  defs~ : Defs,
 ) -> @model.Pivot raise @diag.SchemaError {
   let entries = expect_map(node, file~, context="a pivot table")
   let at = anchor_range(entries, file~, subject="a pivot table", noun="pivot")
@@ -53,6 +55,7 @@ fn load_pivot(
       "source" =>
         source = Some(
           parse_sheet_range(
+            defs~,
             expect_string(value, file~, context="\{context} 'source'"),
             file~,
             what="\{context} 'source'",

@@ -24,10 +24,11 @@ fn load_data(
   node : @yaml.Node,
   sheet : @model.Sheet,
   file~ : String,
+  defs~ : Defs,
   resolve~ : IncludeResolver,
 ) -> Unit raise {
   for item in expect_seq(node, file~, context="'data'") {
-    load_data_entry(item, sheet, file~, resolve~)
+    load_data_entry(item, sheet, file~, defs~, resolve~)
   }
 }
 
@@ -39,6 +40,7 @@ fn load_data_entry(
   node : @yaml.Node,
   sheet : @model.Sheet,
   file~ : String,
+  defs~ : Defs,
   resolve~ : IncludeResolver,
 ) -> Unit raise {
   let entries = expect_map(node, file~, context="a 'data' entry")
@@ -47,6 +49,8 @@ fn load_data_entry(
     file~,
     subject="a 'data' entry",
     noun="a 'data' entry",
+    defs~,
+    sheet=sheet.name,
   )
   let mut source = None
   let mut columns = None

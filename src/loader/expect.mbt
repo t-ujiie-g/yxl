@@ -212,13 +212,17 @@ fn anchor_cell(
   file~ : String,
   subject~ : String,
   noun~ : String,
+  defs~ : Defs,
+  sheet~ : String,
 ) -> @units.CellRef raise @diag.SchemaError {
-  let text = expect_string(
-    required_at(entries, file~, subject~),
-    file~,
-    context="\{noun} 'at'",
-  )
-  expect_cell_ref(text, file~, what="\{noun} 'at'")
+  match required_at(entries, file~, subject~) {
+    @yaml.Map(below) =>
+      below_layout(below, defs~, sheet~, file~, context="\{noun} 'at'")
+    node => {
+      let text = expect_string(node, file~, context="\{noun} 'at'")
+      expect_cell_ref(text, file~, what="\{noun} 'at'")
+    }
+  }
 }
 
 ///|
@@ -230,12 +234,23 @@ fn anchor_range(
   file~ : String,
   subject~ : String,
   noun~ : String,
+  defs? : Defs,
+  sheet? : String,
 ) -> @model.CellRange raise @diag.SchemaError {
   let text = expect_string(
     required_at(entries, file~, subject~),
     file~,
     context="\{noun} 'at'",
   )
+  if defs is Some(defs) && layout_range(text, defs) is Some(named) {
+    guard named.sheet == sheet else {
+      raise schema_error(
+        file~,
+        "\{noun} 'at' '\{text}' names a layout on sheet '\{named.sheet.unwrap_or("")}', not this one",
+      )
+    }
+    return named.range
+  }
   parse_range(text, file~, what="\{noun} range")
 }
 

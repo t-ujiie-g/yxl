@@ -4,9 +4,10 @@ fn load_shapes(
   node : @yaml.Node,
   sheet : @model.Sheet,
   file~ : String,
+  defs~ : Defs,
 ) -> Unit raise @diag.SchemaError {
   for item in expect_seq(node, file~, context="'shapes'") {
-    sheet.add_shape(load_shape(item, file~))
+    sheet.add_shape(load_shape(item, file~, defs~, sheet=sheet.name))
   }
 }
 
@@ -15,9 +16,18 @@ fn load_shapes(
 fn load_shape(
   node : @yaml.Node,
   file~ : String,
+  defs~ : Defs,
+  sheet~ : String,
 ) -> @model.Shape raise @diag.SchemaError {
   let entries = expect_map(node, file~, context="a shape")
-  let at = anchor_cell(entries, file~, subject="a shape", noun="shape")
+  let at = anchor_cell(
+    entries,
+    file~,
+    defs~,
+    sheet~,
+    subject="a shape",
+    noun="shape",
+  )
   let context = "shape at '\{at.to_a1()}'"
   let mut preset = None
   let mut text = None

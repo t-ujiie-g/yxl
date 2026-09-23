@@ -1,17 +1,20 @@
 ///|
 /// A sheet's `layouts:`, expanded into what the hand-written keys would hold
-/// (ADR-023, `docs/spec.md` §25). `names` and `banded` span the sheet.
+/// (ADR-023, `docs/spec.md` §25). `names` and `banded` span the sheet. Named
+/// layouts are recorded in `defs` only when `settle`, the pass ahead of the
+/// sheets (`settle_layouts`), so the rest of the spec may reach any of them.
 fn load_layouts(
   node : @yaml.Node,
   sheet : @model.Sheet,
   file~ : String,
   defs~ : Defs,
   resolve~ : IncludeResolver,
+  settle? : Bool = false,
 ) -> Unit raise {
   let names : Map[String, String] = Map([])
   let banded : Map[Int, String] = Map([])
   for item in expect_seq(node, file~, context="'layouts'") {
-    load_layout(item, sheet, file~, defs~, resolve~, names~, banded~)
+    load_layout(item, sheet, file~, defs~, resolve~, names~, banded~, settle~)
   }
 }
 
@@ -56,9 +59,17 @@ fn load_layout(
   resolve~ : IncludeResolver,
   names~ : Map[String, String],
   banded~ : Map[Int, String],
+  settle~ : Bool,
 ) -> Unit raise {
   let entries = expect_map(node, file~, context="a layout")
-  let at = anchor_cell(entries, file~, subject="a layout", noun="layout")
+  let at = anchor_cell(
+    entries,
+    file~,
+    subject="a layout",
+    noun="layout",
+    defs~,
+    sheet=sheet.name,
+  )
   let context = "layout '\{at.to_a1()}'"
   let mut rows = None
   let mut header_style_node = None
@@ -81,6 +92,7 @@ fn load_layout(
             defs~,
             file~,
             context~,
+            settle~,
           ),
         )
       "values" | "csv" | "json" => {
@@ -144,18 +156,6 @@ fn load_layout(
       "\{context} body ends at row \{body_last}, past Excel's last row (\{max_sheet_row})",
     )
   }
-  if name is Some(name) {
-    defs.layouts[name] = {
-      sheet: sheet.name,
-      columns: columns.map(column => (column.name, column.col)),
-      input_of: Map::from_array(
-        inputs.mapi((index, column) => (column.name, index)),
-      ),
-      data,
-      body_first,
-      body_last,
-    }
-  }
   write_headers(sheet, headers, at~, depth~, header_style~)
   write_body_rows(sheet, data, inputs, body_first~)
   for column in columns {
@@ -171,6 +171,7 @@ fn load_layout(
       context~,
     )
   }
+  let mut last_row = body_last
   if footer_node is Some(footer_node) {
     let scope : FooterScope = {
       sheet,
@@ -192,14 +193,32 @@ fn load_layout(
       groups=[],
       has_data=source is Some(_),
     )
-    write_footer(
-      entries,
-      scope,
-      keys=[],
-      members=(0).until(data.length()).collect(),
-      row=body_last + 1,
-    )
-    |> ignore
+    last_row = write_footer(
+        entries,
+        scope,
+        keys=[],
+        members=(0).until(data.length()).collect(),
+        row=body_last + 1,
+      ) -
+      1
+  }
+  if settle && name is Some(name) {
+    defs.layouts[name] = {
+      sheet: sheet.name,
+      columns: columns.map(column => (column.name, column.col)),
+      input_of: Map::from_array(
+        inputs.mapi((index, column) => (column.name, index)),
+      ),
+      data,
+      header_row: if depth > 0 {
+        Some(body_first - 1)
+      } else {
+        None
+      },
+      body_first,
+      body_last,
+      last_row,
+    }
   }
 }
 

@@ -33,7 +33,9 @@ fn load_conditional_formats(
   defs~ : Defs,
 ) -> Unit raise @diag.SchemaError {
   for item in expect_seq(node, file~, context="'conditional'") {
-    sheet.add_conditional_format(load_conditional_format(item, file~, defs~))
+    sheet.add_conditional_format(
+      load_conditional_format(item, file~, defs~, sheet=sheet.name),
+    )
   }
 }
 
@@ -44,6 +46,7 @@ fn load_conditional_format(
   node : @yaml.Node,
   file~ : String,
   defs~ : Defs,
+  sheet~ : String,
 ) -> @model.ConditionalFormat raise @diag.SchemaError {
   let entries = expect_map(node, file~, context="a conditional format")
   let at = anchor_range(
@@ -51,6 +54,8 @@ fn load_conditional_format(
     file~,
     subject="a conditional format",
     noun="conditional",
+    defs~,
+    sheet~,
   )
   load_conditional_rule(
     entries,

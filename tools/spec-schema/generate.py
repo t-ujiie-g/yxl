@@ -422,8 +422,14 @@ DEFINITIONS: dict[str, dict] = {
         ],
         "description": "A TopLeft:BottomRight range.",
     },
+    "layout_ref": {
+        "type": "string",
+        "pattern": "^[A-Za-z_\\u0080-\\uFFFF][A-Za-z0-9_.\\u0080-\\uFFFF]*$",
+        "description": "A named layout, or one of its columns (§25).",
+    },
     "qualified_range": {
         "anyOf": [
+            {"$ref": "#/definitions/layout_ref"},
             {
                 "type": "string",
                 "pattern": (
@@ -579,6 +585,20 @@ def build(doc: Reference) -> dict:
             "additionalProperties": ref("cell_value"),
         }
     )
+    reaching = doc.keys("Naming a layout: reaching it from outside")
+    define["anchor"] = {
+        "anyOf": [
+            ref("cell"),
+            obj(
+                {"below": ref("text"), "gap": ref("integer")},
+                documented=reaching,
+                required=("below",),
+                description="The cell under a named layout (§25).",
+                where="an anchor following a layout",
+            ),
+        ]
+    }
+    define["layout_range"] = {"anyOf": [ref("range"), ref("layout_ref")]}
     define["formula_range"] = obj(
         {"at": ref("range"), "formula": ref("text")},
         documented=doc.keys("Filled formula ranges"),
@@ -657,7 +677,7 @@ def build(doc: Reference) -> dict:
 
     define["data"] = obj(
         {
-            "at": ref("cell"),
+            "at": ref("anchor"),
             "values": seq(seq(ref("scalar"))),
             "csv": ref("path"),
             "json": ref("path"),
@@ -689,7 +709,7 @@ def build(doc: Reference) -> dict:
     )
     define["validation"] = obj(
         {
-            "at": ref("range"),
+            "at": ref("layout_range"),
             "list": {
                 "anyOf": [
                     seq(ref("scalar")),
@@ -803,7 +823,7 @@ def build(doc: Reference) -> dict:
             "stop_if_true": ref("boolean"),
     }
     define["conditional"] = obj(
-        {"at": ref("range"), **conditional_rule},
+        {"at": ref("layout_range"), **conditional_rule},
         documented=rules,
         required=("at",),
         description="Formatting decided by the value (§10).",
@@ -815,7 +835,7 @@ def build(doc: Reference) -> dict:
     tables = doc.keys("11. Tables")
     define["table"] = obj(
         {
-            "at": ref("range"),
+            "at": ref("layout_range"),
             "name": ref("text"),
             "style": enum(numbered_ranges(tables["style"])),
             "banded_rows": ref("boolean"),
@@ -860,7 +880,7 @@ def build(doc: Reference) -> dict:
     )
     define["chart"] = obj(
         {
-            "at": ref("cell"),
+            "at": ref("anchor"),
             "type": enum(doc.listed("12. Charts", after="**Types:**")),
             "series": seq(ref("series")),
             "title": ref("text"),
@@ -888,7 +908,7 @@ def build(doc: Reference) -> dict:
     )
     define["image"] = obj(
         {
-            "at": ref("cell"),
+            "at": ref("anchor"),
             "file": ref("path"),
             "alt": ref("text"),
             "scale": {
@@ -1023,7 +1043,7 @@ def build(doc: Reference) -> dict:
     shapes = doc.keys("18. Shapes")
     define["shape"] = obj(
         {
-            "at": ref("cell"),
+            "at": ref("anchor"),
             "kind": enum(doc.listed("18. Shapes", after="`kind` is one of:")),
             "text": {"anyOf": [ref("text"), seq(ref("rich_run"))]},
             "size": ref("size"),
@@ -1051,7 +1071,7 @@ def build(doc: Reference) -> dict:
 
     sparklines = doc.keys("19. Sparklines")
     define["sparkline_cell"] = obj(
-        {"at": ref("cell"), "data": ref("qualified_range")},
+        {"at": ref("anchor"), "data": ref("qualified_range")},
         documented=braced(doc.types("19. Sparklines")["cells"]),
         required=("at", "data"),
         where="a sparkline",
@@ -1088,7 +1108,7 @@ def build(doc: Reference) -> dict:
 
     define["control"] = obj(
         {
-            "at": ref("cell"),
+            "at": ref("anchor"),
             "kind": enum(doc.listed("20. Form controls", after="**Kinds:**")),
             "size": ref("size"),
             "text": ref("text"),
@@ -1111,7 +1131,7 @@ def build(doc: Reference) -> dict:
 
     define["slicer"] = obj(
         {
-            "at": ref("cell"),
+            "at": ref("anchor"),
             "table": ref("text"),
             "column": ref("text"),
             "caption": ref("text"),
@@ -1249,7 +1269,7 @@ def build(doc: Reference) -> dict:
     }
     define["layout"] = obj(
         {
-            "at": ref("cell"),
+            "at": ref("anchor"),
             "name": ref("text"),
             "rows": ref("integer"),
             "header_style": ref("style"),
@@ -1431,6 +1451,13 @@ ACCEPTED = {
     ),
     "the format shorthand cleared with null": (
         "sheets: [{name: S, cells: {A1: {value: 1, format: null}}}]"
+    ),
+    "ranges and anchors that name a layout": (
+        "sheets: [{name: R, charts: [{at: A1, type: column, series: [{values: 店舗.cy}]}],"
+        " validations: [{at: A1:A9, list: {from: 店舗.cy}}]},"
+        " {name: S, layouts: [{at: A1, name: 店舗, rows: 2, columns: [{name: cy, header: 当年}]},"
+        " {at: {below: 店舗, gap: 2}, rows: 1, columns: [{name: v}]}],"
+        " tables: [{at: 店舗, name: Stores}], conditional: [{at: 店舗.cy, duplicate: true, style: {font: {bold: true}}}]}]"
     ),
     "a named layout reached by a name and an override": (
         "sheets: [{name: S, layouts: [{at: A1, name: 店舗, rows: 2, columns: [{name: store}, {name: cy}]}],"

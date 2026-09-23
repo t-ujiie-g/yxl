@@ -300,7 +300,18 @@ fn parse_sheet_range(
   text : String,
   file~ : String,
   what~ : String,
+  defs~ : Defs,
 ) -> @model.SheetRange raise @diag.SchemaError {
+  if layout_range(text, defs) is Some(range) {
+    return range
+  }
+  if !text.contains(":") && !text.contains("!") && !defs.layouts.is_empty() {
+    let known = defs.layouts.keys().map(name => "'\{name}'").collect()
+    raise schema_error(
+      file~,
+      "\{what} '\{text}' is neither a range nor a named layout or one of its columns (layouts: \{or_list(known)})",
+    )
+  }
   let (sheet, rest) = split_sheet_prefix(text, file~, what~)
   { sheet, range: parse_range(rest, file~, what~), }
 }

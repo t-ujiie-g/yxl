@@ -91,6 +91,19 @@ sheets:
               ratio: { formula: 'IFERROR({{cy}}/{{py}}-1,"")' }
             style: grand_total
 
+    # Placed under the store list, its subtotals included, and plotting it by
+    # name: a longer list next month moves the chart down and widens the series
+    # with no row number to change.
+    charts:
+      - at: { below: 店舗, gap: 2 }
+        type: column
+        title: 店舗別 当年・前年
+        legend: bottom
+        size: { width: 560, height: 280 }
+        series:
+          - { name: 当年, values: 店舗.cy, categories: 店舗.store }
+          - { name: 前年, values: 店舗.py, categories: 店舗.store }
+
   # Another sheet reaches the store list by name, not by address: when next
   # month's list is longer, the names cover it without an edit here.
   - name: サマリ
@@ -104,6 +117,12 @@ sheets:
       B2: { formula: "SUM(店舗.py)" }
       A3: { value: 直営 当年, style: header }
       B3: { formula: 'SUMIFS(店舗.cy,店舗.channel,"直営")' }
+      A5: { value: 店舗, style: header }
+      B5: 銀座
+    # The drop-down lists the stores the layout holds, whichever month it is.
+    validations:
+      - at: B5:B5
+        list: { from: 店舗.store }
 
 # An exception by meaning: the row is found by the data's values, so it stays
 # on 渋谷 when rows are added above it.

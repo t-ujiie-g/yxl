@@ -4,9 +4,10 @@ fn load_validations(
   node : @yaml.Node,
   sheet : @model.Sheet,
   file~ : String,
+  defs~ : Defs,
 ) -> Unit raise @diag.SchemaError {
   for item in expect_seq(node, file~, context="'validations'") {
-    sheet.add_validation(load_validation(item, file~))
+    sheet.add_validation(load_validation(item, file~, defs~, sheet=sheet.name))
   }
 }
 
@@ -21,6 +22,8 @@ const VALIDATION_RULES : String = "'list', 'whole', 'decimal', 'text_length', or
 fn load_validation(
   node : @yaml.Node,
   file~ : String,
+  defs~ : Defs,
+  sheet~ : String,
 ) -> @model.Validation raise @diag.SchemaError {
   let entries = expect_map(node, file~, context="a validation")
   let at = anchor_range(
@@ -28,6 +31,8 @@ fn load_validation(
     file~,
     subject="a validation",
     noun="validation",
+    defs~,
+    sheet~,
   )
   let context = "validation '\{at.to_a1()}'"
   let mut rule : @model.ValidationRule? = None
@@ -39,7 +44,7 @@ fn load_validation(
     let (key, value) = entry
     match key {
       "at" => () // consumed above
-      "list" => rule = Some(load_validation_list(value, file~, context~))
+      "list" => rule = Some(load_validation_list(value, file~, defs~, context~))
       "whole" | "decimal" | "text_length" | "date" => {
         let kind = match key {
           "whole" => @model.Whole
@@ -86,6 +91,7 @@ fn load_validation(
 fn load_validation_list(
   node : @yaml.Node,
   file~ : String,
+  defs~ : Defs,
   context~ : String,
 ) -> @model.ValidationRule raise @diag.SchemaError {
   if node is @yaml.Map(entries) {
@@ -97,7 +103,7 @@ fn load_validation_list(
     }
     let text = expect_string(from, file~, context="\{context} 'list' from")
     return ListFrom(
-      parse_sheet_range(text, file~, what="\{context} 'list' from"),
+      parse_sheet_range(text, file~, what="\{context} 'list' from", defs~),
     )
   }
   let choices = []
