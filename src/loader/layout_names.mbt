@@ -23,20 +23,8 @@ fn check_layout_name(
   context~ : String,
   settle~ : Bool,
 ) -> String raise @diag.SchemaError {
-  let chars = name.to_array()
-  let valid = !chars.is_empty() &&
-    (chars[0].is_ascii_alphabetic() || chars[0] == '_' || !chars[0].is_ascii()) &&
-    chars
-    .iter()
-    .all(ch => {
-      ch.is_ascii_alphabetic() ||
-      ch.is_ascii_digit() ||
-      ch == '_' ||
-      ch == '.' ||
-      !ch.is_ascii()
-    }) &&
-    @units.CellRef::parse_a1(name.to_upper()) is None
-  guard valid else {
+  guard is_name(name, dots=true) &&
+    @units.CellRef::parse_a1(name.to_upper()) is None else {
     raise schema_error(
       file~,
       "\{context} 'name' '\{name}' is not a name Excel accepts: letters, digits, '_' and '.', starting with a letter or '_', and not a cell reference",
@@ -325,10 +313,8 @@ fn below_layout(
 }
 
 ///|
-/// Place every sheet's layouts ahead of the sheets themselves, on scratch
-/// sheets, so that a chart, a validation or an anchor on any sheet can reach a
-/// named layout wherever it is declared. Malformed sheets are left to the pass
-/// that loads them, which reports them in context.
+/// Place every sheet's layouts on scratch sheets ahead of the sheets (ADR-026).
+/// A malformed sheet is left to the pass that loads it, which reports it.
 fn settle_layouts(
   root : Array[(String, @yaml.Node)],
   defs~ : Defs,
