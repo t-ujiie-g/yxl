@@ -31,6 +31,9 @@ sheets:
       A1: 2026年度 上期 店舗別実績
     layouts:
       - at: A2
+        # Naming the layout makes each column's body a defined name, `店舗.cy`
+        # and so on, which a formula anywhere in the workbook can use.
+        name: 店舗
         header_style: header
         values:
           - [東京, 直営, 銀座, 5200000, 4800000]
@@ -87,3 +90,24 @@ sheets:
               # which is what a totals row should show, not a sum of ratios.
               ratio: { formula: 'IFERROR({{cy}}/{{py}}-1,"")' }
             style: grand_total
+
+  # Another sheet reaches the store list by name, not by address: when next
+  # month's list is longer, the names cover it without an edit here.
+  - name: サマリ
+    columns:
+      - { at: A, width: 14 }
+      - { at: B, width: 14, format: "#,##0" }
+    cells:
+      A1: { value: 当年 合計, style: header }
+      B1: { formula: "SUM(店舗.cy)" }
+      A2: { value: 前年 合計, style: header }
+      B2: { formula: "SUM(店舗.py)" }
+      A3: { value: 直営 当年, style: header }
+      B3: { formula: 'SUMIFS(店舗.cy,店舗.channel,"直営")' }
+
+# An exception by meaning: the row is found by the data's values, so it stays
+# on 渋谷 when rows are added above it.
+overrides:
+  - at: { layout: 店舗, column: ratio, where: { store: 渋谷 } }
+    value: "改装"
+    reason: "改装で前年比較の対象外"

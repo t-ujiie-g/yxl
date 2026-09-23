@@ -2172,6 +2172,15 @@
           "description": "Rows placed straight after the body: totals, and totals per group. See below.",
           "markdownDescription": "Rows placed straight after the body: totals, and totals per group. See below."
         },
+        "name": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/text"
+            }
+          ],
+          "description": "Makes each column's body a workbook defined name, `name.column`, and lets an override find a cell by meaning. See below.",
+          "markdownDescription": "Makes each column's body a workbook defined name, `name.column`, and lets an override find a cell by meaning. See below."
+        },
         "header_style": {
           "allOf": [
             {
@@ -2213,6 +2222,52 @@
           "required": [
             "at",
             "columns"
+          ]
+        },
+        {
+          "required": [
+            "$include"
+          ]
+        }
+      ]
+    },
+    "layout_cell": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "A cell of a named layout, found by meaning (§25).",
+      "properties": {
+        "layout": {
+          "$ref": "#/definitions/text"
+        },
+        "column": {
+          "$ref": "#/definitions/text"
+        },
+        "where": {
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/definitions/scalar"
+              }
+            },
+            {
+              "$ref": "#/definitions/include"
+            }
+          ]
+        },
+        "row": {
+          "$ref": "#/definitions/integer"
+        },
+        "$include": {
+          "type": "string",
+          "description": "Another document, pasted in place of this node (§8)."
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "layout",
+            "column"
           ]
         },
         {
@@ -2740,13 +2795,16 @@
       "description": "A deliberate one-off deviation, applied last (§23).",
       "properties": {
         "at": {
-          "allOf": [
+          "anyOf": [
             {
               "$ref": "#/definitions/qualified_cell"
+            },
+            {
+              "$ref": "#/definitions/layout_cell"
             }
           ],
-          "description": "**Required.** One **sheet-qualified** cell — `Sales!E37`, or `'Q3 data'!A1` where Excel would quote the name. Never a range.",
-          "markdownDescription": "**Required.** One **sheet-qualified** cell — `Sales!E37`, or `'Q3 data'!A1` where Excel would quote the name. Never a range."
+          "description": "**Required.** One **sheet-qualified** cell — `Sales!E37`, or `'Q3 data'!A1` where Excel would quote the name. Never a range. Or a cell of a named layout, given by meaning (§25).",
+          "markdownDescription": "**Required.** One **sheet-qualified** cell — `Sales!E37`, or `'Q3 data'!A1` where Excel would quote the name. Never a range. Or a cell of a named layout, given by meaning (§25)."
         },
         "reason": {
           "allOf": [

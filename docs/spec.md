@@ -365,7 +365,11 @@ defs:
 - A **style** is referenced by bareword: `style: header`.
 - A **value** or **formula** is referenced by `{ $ref: name }`.
 - A **block** is placed in a layout's `columns:` by `{ block: name }` (§25).
-- The four namespaces are separate; the same name may exist in each.
+- The four namespaces are separate in the spec, but values and formulas both
+  become Excel defined names, and Excel keeps one namespace for defined names
+  and table names (a named layout's columns included, §25), compared ignoring
+  case. A name that repeats there is an error, even between `values` and
+  `formulas`.
 - A reference to an undeclared name is an error, and so is a cycle.
 
 ### Style attributes
@@ -1488,7 +1492,7 @@ overrides:
 
 | Key | Notes |
 |---|---|
-| `at` | **Required.** One **sheet-qualified** cell — `Sales!E37`, or `'Q3 data'!A1` where Excel would quote the name. Never a range. |
+| `at` | **Required.** One **sheet-qualified** cell — `Sales!E37`, or `'Q3 data'!A1` where Excel would quote the name. Never a range. Or a cell of a named layout, given by meaning (§25). |
 | `reason` | Free text, for whoever reads the spec in six months. Nothing in the compiler reads it. |
 | `value` `formula` `rich` `type` `format` `style` | Exactly as in a `cells:` entry (§3). |
 
@@ -1642,6 +1646,7 @@ layouts:
 | `rows` | How many body rows, at least 1. With a source it defaults to the rows read, and may only reserve more. **Required** without one. |
 | `values` / `csv` / `json` | Where the body's rows come from, as in §9. **At most one.** They fill only the columns without a `formula`. |
 | `footer` | Rows placed straight after the body: totals, and totals per group. See below. |
+| `name` | Makes each column's body a workbook defined name, `name.column`, and lets an override find a cell by meaning. See below. |
 | `header_style` | A style (bareword or inline) for every header cell. Needs at least one `header`. |
 | `columns` | **Required.** The columns, left to right from `at`. At least one. |
 
@@ -1721,6 +1726,49 @@ layouts:
 A monthly file of a different length needs no edit: the body, and every
 formula range down it, follows the rows read. Set `rows:` to reserve a fixed
 body instead, with the formula filled beyond the data.
+
+### Naming a layout: reaching it from outside
+
+Inside a layout, `{{name}}` addresses a column. Outside it — another sheet's
+summary, a formula range, a cell anywhere — the layout's `name:` does:
+
+```yaml
+sheets:
+  - name: 店舗別
+    layouts:
+      - at: A2
+        name: 店舗
+        csv: data/stores.csv
+        columns: [...]            # branch, store, cy, py, …
+  - name: サマリ
+    cells:
+      B1: { formula: "SUM(店舗.cy)" }
+      B2: { formula: 'SUMIFS(店舗.cy,店舗.branch,"東京")' }
+
+overrides:
+  - at: { layout: 店舗, column: ratio, where: { store: 渋谷 } }
+    value: 改装
+    reason: 改装で前年比較の対象外
+```
+
+- **Each column's body becomes a workbook defined name**, `layout.column`
+  (`店舗.cy`, and `売上.sales.cy` for a block's column). It refers to the body's
+  absolute range, so any formula can use it, on any sheet, in any order. Excel
+  keeps the name in step when rows are inserted, and it is what Name Manager
+  lists. The footer and the header are not part of it.
+- **The name** follows Excel's rules for a defined name: letters, digits, `_`
+  and `.`, starting with a letter or `_`, and not a cell reference in either
+  case. It is unique among layouts. Each `layout.column` it produces must not
+  repeat another defined name or a table name (§6).
+- **An override may find its cell by meaning.** Its `at:` is then
+  `{ layout, column, where }`, with `where` naming input columns and the values
+  they hold. It must match exactly one row of the layout's data, so a key that
+  is not unique, or a row that is gone, is an error, never a guess. `row: n`
+  instead of `where` takes the body's *n*th row. The layout must have a `name`.
+
+A chart series, a validation's list, or a sparkline cannot name a layout yet:
+each needs the range while the spec loads, before a later sheet's layout has a
+place. Until then, give them the range, or a formula that uses the name.
 
 ### Blocks: a group of columns written once
 

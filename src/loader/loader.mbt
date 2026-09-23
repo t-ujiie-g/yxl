@@ -86,7 +86,7 @@ pub fn load(
       "protect" =>
         workbook.set_protection(load_workbook_protection(value, file~))
       PARAMS_KEY => () // consumed by the substitution pass
-      OVERRIDES_KEY => load_overrides(value, workbook, file~, defs~)
+      OVERRIDES_KEY => () // loaded below, once every layout has a place
       _ =>
         raise schema_error(
           file~,
@@ -97,9 +97,14 @@ pub fn load(
   guard seen_sheets else {
     raise schema_error(file~, "missing required key 'sheets'")
   }
+  add_layout_names(workbook, defs)
+  if find_key(root, OVERRIDES_KEY) is Some(overrides) {
+    load_overrides(overrides, workbook, file~, defs~)
+  }
   read_active_sheet(root, workbook, file~)
   check_cross_sheet_references(workbook, file~)
   check_tables(workbook, file~)
+  check_defined_names(workbook, file~)
   check_formula_ranges(workbook, file~)
   check_overrides(workbook, file~)
   check_slicers(workbook, file~)
