@@ -526,7 +526,7 @@ test "load rejects a $ref value combined with a type, and unknown defs keys" {
   assert_eq(
     schema_message("defs:\n  colors: {}\nsheets:\n  - name: S\n"),
     Some(
-      "spec.yaml: unknown key 'colors' in 'defs' (expected 'styles', 'values', or 'formulas')",
+      "spec.yaml: unknown key 'colors' in 'defs' (expected 'styles', 'values', 'formulas', or 'blocks')",
     ),
   )
 }

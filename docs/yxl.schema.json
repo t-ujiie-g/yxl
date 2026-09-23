@@ -224,6 +224,71 @@
         }
       }
     },
+    "block_instance": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "A block of `defs.blocks`, placed as columns (§25).",
+      "properties": {
+        "block": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/text"
+            }
+          ],
+          "description": "**Required.** A name `defs.blocks` declares.",
+          "markdownDescription": "**Required.** A name `defs.blocks` declares."
+        },
+        "as": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/text"
+            }
+          ],
+          "description": "The instance's name, which qualifies its columns: `sales.cy`. Defaults to the block's name; unique within the layout.",
+          "markdownDescription": "The instance's name, which qualifies its columns: `sales.cy`. Defaults to the block's name; unique within the layout."
+        },
+        "header": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/header_levels"
+            }
+          ],
+          "description": "A cell, or a list of them, laid above each column's own header levels, so it merges across the instance (see header levels above).",
+          "markdownDescription": "A cell, or a list of them, laid above each column's own header levels, so it merges across the instance (see header levels above)."
+        },
+        "fields": {
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/definitions/text"
+              }
+            },
+            {
+              "$ref": "#/definitions/include"
+            }
+          ],
+          "description": "Column name → CSV or JSON field, for this instance's input columns. Without it a column reads the field named like its qualified name.",
+          "markdownDescription": "Column name → CSV or JSON field, for this instance's input columns. Without it a column reads the field named like its qualified name."
+        },
+        "$include": {
+          "type": "string",
+          "description": "Another document, pasted in place of this node (§8)."
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "block"
+          ]
+        },
+        {
+          "required": [
+            "$include"
+          ]
+        }
+      ]
+    },
     "boolean": {
       "anyOf": [
         {
@@ -1403,6 +1468,52 @@
             }
           ]
         },
+        "blocks": {
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object",
+                "additionalProperties": false,
+                "description": "A group of layout columns (§25).",
+                "properties": {
+                  "columns": {
+                    "anyOf": [
+                      {
+                        "type": "array",
+                        "items": {
+                          "$ref": "#/definitions/layout_column"
+                        }
+                      },
+                      {
+                        "$ref": "#/definitions/include"
+                      }
+                    ]
+                  },
+                  "$include": {
+                    "type": "string",
+                    "description": "Another document, pasted in place of this node (§8)."
+                  }
+                },
+                "anyOf": [
+                  {
+                    "required": [
+                      "columns"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "$include"
+                    ]
+                  }
+                ]
+              }
+            },
+            {
+              "$ref": "#/definitions/include"
+            }
+          ]
+        },
         "$include": {
           "type": "string",
           "description": "Another document, pasted in place of this node (§8)."
@@ -1839,6 +1950,21 @@
         }
       ]
     },
+    "header_levels": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/cell_value"
+        },
+        {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/definitions/cell_value"
+          }
+        }
+      ],
+      "description": "A header cell, or one per header row, top first (§25)."
+    },
     "image": {
       "type": "object",
       "additionalProperties": false,
@@ -2060,7 +2186,14 @@
             {
               "type": "array",
               "items": {
-                "$ref": "#/definitions/layout_column"
+                "anyOf": [
+                  {
+                    "$ref": "#/definitions/layout_column"
+                  },
+                  {
+                    "$ref": "#/definitions/block_instance"
+                  }
+                ]
               }
             },
             {
@@ -2113,16 +2246,9 @@
           "markdownDescription": "The CSV or JSON field this column reads, when it differs from `name`. Only for a `csv`, or `json` of objects."
         },
         "header": {
-          "anyOf": [
+          "allOf": [
             {
-              "$ref": "#/definitions/cell_value"
-            },
-            {
-              "type": "array",
-              "minItems": 1,
-              "items": {
-                "$ref": "#/definitions/cell_value"
-              }
+              "$ref": "#/definitions/header_levels"
             }
           ],
           "description": "A cell (§3), or a list of them, one per header row, top first. `null` in the list is a blank.",

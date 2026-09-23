@@ -7,12 +7,13 @@ priv struct Defs {
   styles : Map[String, @model.Style]
   values : Map[String, @model.CellValue]
   formulas : Map[String, String]
+  blocks : Map[String, Array[@yaml.Node]]
 }
 
 ///|
 /// The empty definition set — no names in any namespace.
 fn Defs::empty() -> Defs {
-  { styles: Map([]), values: Map([]), formulas: Map([]), }
+  { styles: Map([]), values: Map([]), formulas: Map([]), blocks: Map([]), }
 }
 
 ///|
@@ -34,10 +35,11 @@ fn load_defs(
       "styles" => load_style_defs(value, defs, file~)
       "values" => load_value_defs(value, defs, workbook, file~)
       "formulas" => load_formula_defs(value, defs, workbook, file~)
+      "blocks" => load_block_defs(value, defs, file~)
       _ =>
         raise schema_error(
           file~,
-          "unknown key '\{key}' in 'defs' (expected 'styles', 'values', or 'formulas')",
+          "unknown key '\{key}' in 'defs' (expected 'styles', 'values', 'formulas', or 'blocks')",
         )
     }
   }
