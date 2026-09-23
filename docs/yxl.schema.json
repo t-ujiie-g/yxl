@@ -1684,8 +1684,8 @@
               "$ref": "#/definitions/cell"
             }
           ],
-          "description": "**Required.** The top-left cell. The header row is here when any column has a `header`; otherwise the body starts here.",
-          "markdownDescription": "**Required.** The top-left cell. The header row is here when any column has a `header`; otherwise the body starts here."
+          "description": "**Required.** The top-left cell. The header rows start here when any column has a `header`; otherwise the body starts here.",
+          "markdownDescription": "**Required.** The top-left cell. The header rows start here when any column has a `header`; otherwise the body starts here."
         },
         "rows": {
           "allOf": [
@@ -1755,13 +1755,20 @@
           "markdownDescription": "**Required.** Letters, digits and `_`, or any non-ASCII character, not starting with a digit. Unique on the sheet."
         },
         "header": {
-          "allOf": [
+          "anyOf": [
             {
-              "$ref": "#/definitions/scalar"
+              "$ref": "#/definitions/cell_value"
+            },
+            {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/definitions/cell_value"
+              }
             }
           ],
-          "description": "The header cell's value: text or a number.",
-          "markdownDescription": "The header cell's value: text or a number."
+          "description": "A cell (§3), or a list of them, one per header row, top first. `null` in the list is a blank.",
+          "markdownDescription": "A cell (§3), or a list of them, one per header row, top first. `null` in the list is a blank."
         },
         "formula": {
           "allOf": [

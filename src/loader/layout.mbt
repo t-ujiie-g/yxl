@@ -106,7 +106,26 @@ fn load_layout(
     names[column.name] = context
     in_layout[column.name] = column.col
   }
-  let has_header = columns.iter().any(column => column.header is Some(_))
+  let headers = columns.map(column => {
+    match column.header {
+      Some(node) =>
+        load_header_levels(
+          node,
+          file~,
+          defs~,
+          context="\{context} column '\{column.name}' header",
+        )
+      None => []
+    }
+  })
+  let depth = headers.fold(init=0, (deepest, levels) => {
+    if levels.length() > deepest {
+      levels.length()
+    } else {
+      deepest
+    }
+  })
+  let has_header = depth > 0
   let header_style = combine_style(
     header_style_node,
     None,
@@ -120,7 +139,7 @@ fn load_layout(
       "\{context} has a 'header_style' but no column has a 'header' to wear it",
     )
   }
-  let body_first = if has_header { at.row + 1 } else { at.row }
+  let body_first = at.row + depth
   let body_last = body_first + rows - 1
   guard body_last <= max_sheet_row else {
     raise schema_error(
@@ -128,6 +147,7 @@ fn load_layout(
       "\{context} body ends at row \{body_last}, past Excel's last row (\{max_sheet_row})",
     )
   }
+  write_headers(sheet, headers, at~, depth~, header_style~)
   for column in columns {
     let where_ = "\{context} column '\{column.name}'"
     let body : @model.CellRange = {
@@ -159,13 +179,6 @@ fn load_layout(
         width?=band.size,
         hidden?=band.hidden,
         outline_level?=band.outline_level,
-      )
-    }
-    if column.header is Some(header) {
-      sheet.set(
-        @units.CellRef(col=column.col, row=at.row),
-        scalar_value(header, file~, context="\{where_} header"),
-        style?=header_style,
       )
     }
     if column.formula is Some(formula) {
@@ -356,4 +369,127 @@ fn expand_column_refs(
     i += 1
   }
   out.to_string()
+}
+
+///|
+/// One header cell as written: its value and its own style. `None` in a level
+/// list is a `null`, a cell deliberately left blank.
+priv struct HeaderCell {
+  value : @model.CellValue
+  style : @model.Style?
+} derive(Eq)
+
+///|
+/// A column's `header:` as its levels, top first: a single cell is one level, a
+/// sequence is one per row, and `null` is a blank that merges with nothing.
+fn load_header_levels(
+  node : @yaml.Node,
+  file~ : String,
+  defs~ : Defs,
+  context~ : String,
+) -> Array[HeaderCell?] raise @diag.SchemaError {
+  let items = match node {
+    @yaml.Seq(items) => items
+    single => [single]
+  }
+  guard !items.is_empty() else {
+    raise schema_error(file~, "\{context} is an empty list")
+  }
+  items.map(item => {
+    match item {
+      @yaml.Null => None
+      @yaml.Seq(_) =>
+        raise schema_error(file~, "\{context} levels are cells, not lists")
+      cell => {
+        let (value, style) = load_cell(cell, file~, reference=context, defs~)
+        Some({ value, style, })
+      }
+    }
+  })
+}
+
+///|
+/// Lay out every column's header levels over `depth` rows from `at`. A column
+/// with fewer levels than `depth` stretches its last one down; adjacent columns
+/// whose level holds the same cell under the same parents share one merge.
+/// Every cell of a merge, and every blank, wears the header style, so a fill
+/// or a border runs unbroken across the block.
+fn write_headers(
+  sheet : @model.Sheet,
+  headers : Array[Array[HeaderCell?]],
+  at~ : @units.CellRef,
+  depth~ : Int,
+  header_style~ : @model.Style?,
+) -> Unit {
+  fn look(cell : HeaderCell) -> @model.Style? {
+    match (cell.style, header_style) {
+      (Some(own), Some(base)) => Some(own.over(base))
+      (Some(own), None) => Some(own)
+      (None, base) => base
+    }
+  }
+
+  fn place(col : Int, row : Int) -> @units.CellRef {
+    @units.CellRef(col=at.col + col, row=at.row + row)
+  }
+
+  fn blank(col : Int, row : Int, style : @model.Style?) -> Unit {
+    if style is Some(style) {
+      sheet.set(place(col, row), Blank, style~)
+    }
+  }
+
+  // A level stretches when it is its column's last and rows remain below it.
+  fn stretches(col : Int, row : Int) -> Bool {
+    row == headers[col].length() - 1 && row < depth - 1
+  }
+
+  fn same_parents(left : Int, right : Int, row : Int) -> Bool {
+    headers[right].length() > row &&
+    (0).until(row).all(level => headers[left][level] == headers[right][level])
+  }
+
+  for row in 0..<depth {
+    let mut col = 0
+    while col < headers.length() {
+      let levels = headers[col]
+      if row >= levels.length() {
+        col += 1
+        continue
+      }
+      guard levels[row] is Some(cell) else {
+        let below = if stretches(col, row) { depth - 1 } else { row }
+        for blank_row in row..<=below {
+          blank(col, blank_row, header_style)
+        }
+        col += 1
+        continue
+      }
+      let style = look(cell)
+      if stretches(col, row) {
+        sheet.set(place(col, row), cell.value, style?)
+        for covered in (row + 1)..<depth {
+          blank(col, covered, style)
+        }
+        sheet.merge(place(col, row), place(col, depth - 1))
+        col += 1
+        continue
+      }
+      let mut last = col
+      while last + 1 < headers.length() &&
+            same_parents(col, last + 1, row) &&
+            headers[last + 1][row] == Some(cell) &&
+            !stretches(last + 1, row) {
+        last += 1
+      }
+      sheet.set(place(col, row), cell.value, style?)
+      for covered in (col + 1)..<=last {
+        blank(covered, row, style)
+      }
+      if last > col {
+        sheet.merge(place(col, row), place(last, row))
+      }
+      col = last + 1
+    }
+  }
 }

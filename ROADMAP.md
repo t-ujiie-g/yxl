@@ -1059,8 +1059,17 @@ the first item changes what a spec looks like.
             - Column names are unique across the **sheet**, not only across one
               layout. That is the stricter rule, and it can be relaxed. Slice 4
               needs it to name a column from outside a layout.
-            - A header is a scalar, and `header_style` styles all of them. One
-              header that looks different is an override.
+            - ~~A header is a scalar, and `header_style` styles all of them.~~
+              Superseded the same day, once the example was opened in Excel:
+              a report's header is usually two rows with merged group labels,
+              so a one-row header left layouts fit for almost nothing. A header
+              is now a cell or a list of them, one per header row. A shared
+              parent merges across its columns, a short column merges down,
+              and `null` is a blank that merges with nothing. That last rule
+              is for a header that wants blanks rather than a merge. The
+              expanded cell form lays its own style over `header_style`.
+              Omitting every `header` still leaves the header rows to
+              `cells:`, for a header too irregular to describe.
             - A `header_style` with no header, and two layouts banding the same
               column, are both refused.
       - [ ] **Slice 2 — rows from data.** `values:` / `csv:` / `json:` on a
@@ -1070,7 +1079,8 @@ the first item changes what a spec looks like.
             columns still means rewriting every data row.
       - [ ] **Slice 3 — `defs.blocks`.** A named group of columns, instanced as
             `{ block: yoy, as: sales, header: 売上 }`; the instance's `header`
-            is merged over its columns. `{{cy}}` inside a block resolves in the
+            becomes the top level of each of its columns' headers, so the
+            level rules above merge it over them. `{{cy}}` inside a block resolves in the
             instance, then in the layout; `{{sales.cy}}` reaches another
             instance. One level of nesting.
       - [ ] **Slice 4 — names from outside a layout.** `overrides:`, a totals
@@ -2256,6 +2266,20 @@ taken.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-09-23** — **A layout's header may have levels.** Opened in Excel, the
+  first `layouts:` example exposed the gap: a year-on-year report heads
+  `当年 / 前年 / 前年比` with a merged `売上` above them, and a one-row header
+  could not say so. A column's `header:` now takes a list, one cell per header
+  row, and the layout's header is as deep as its deepest column. Neighbours
+  holding the same cell under the same parents merge across. A column with
+  fewer levels stretches its last one down, and a stretched cell never also
+  merges across. A `null` is a blank that merges with nothing, so a header
+  that wants blanks rather than a merge says so. Every cell of the block
+  wears `header_style`, the blanks inside a merge included, so fills and
+  borders run unbroken. The expanded cell form lays a column's own style over
+  it. `examples/columns.yxl.yaml` now has the two-row header that prompted
+  this. `docs/spec.md` §25 and the JSON Schema are updated.
 
 - **2026-09-23** — **Fix: a column band with no `width` opened at width 0.**
   The backend writes such a `<col>` with no `width` attribute, and Excel reads
