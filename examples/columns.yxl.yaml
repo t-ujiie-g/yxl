@@ -18,7 +18,7 @@ defs:
 
 sheets:
   - name: 実績
-    freeze: B3
+    freeze: B4
     cells:
       A1: 2026年度 上期 前年比
     layouts:
@@ -26,21 +26,23 @@ sheets:
         rows: 4
         header_style: header
         columns:
+          # A list is one header row per level. A shared parent is merged
+          # across its columns, and a column with fewer levels is merged down.
           - { name: item, header: 部門, width: 16 }
-          - { name: sales_cy, header: 売上 当年, width: 12, format: "#,##0" }
-          - { name: sales_py, header: 売上 前年, width: 12, format: "#,##0" }
+          - { name: sales_cy, header: [売上, 当年], width: 12, format: "#,##0" }
+          - { name: sales_py, header: [売上, 前年], width: 12, format: "#,##0" }
           # `{{sales_cy}}` is this row's cell of that column, so the formula
           # never names a letter and survives a column inserted before it.
           - name: sales_ratio
-            header: 売上 前年比
+            header: [売上, 前年比]
             format: "0.0%"
             formula: 'IFERROR({{sales_cy}}/{{sales_py}}-1,"")'
             conditional:
               - { cell: { less_than: 0 }, style: fall }
-          - { name: gross_cy, header: 粗利 当年, width: 12, format: "#,##0" }
-          - { name: gross_py, header: 粗利 前年, width: 12, format: "#,##0" }
+          - { name: gross_cy, header: [粗利, 当年], width: 12, format: "#,##0" }
+          - { name: gross_py, header: [粗利, 前年], width: 12, format: "#,##0" }
           - name: gross_ratio
-            header: 粗利 前年比
+            header: [粗利, 前年比]
             format: "0.0%"
             formula: 'IFERROR({{gross_cy}}/{{gross_py}}-1,"")'
             conditional:
@@ -49,7 +51,7 @@ sheets:
     # The rows still land by position: a `null` leaves each ratio cell to its
     # formula.
     data:
-      - at: A3
+      - at: A4
         values:
           - [東日本, 5200000, 4800000, null, 1560000, 1500000]
           - [西日本, 4100000, 4300000, null, 1150000, 1240000]

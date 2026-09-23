@@ -1634,7 +1634,7 @@ layouts:
 
 | Key | Notes |
 |---|---|
-| `at` | **Required.** The top-left cell. The header row is here when any column has a `header`; otherwise the body starts here. |
+| `at` | **Required.** The top-left cell. The header rows start here when any column has a `header`; otherwise the body starts here. |
 | `rows` | **Required.** How many body rows, at least 1. |
 | `header_style` | A style (bareword or inline) for every header cell. Needs at least one `header`. |
 | `columns` | **Required.** The columns, left to right from `at`. At least one. |
@@ -1644,10 +1644,33 @@ Each column:
 | Key | Notes |
 |---|---|
 | `name` | **Required.** Letters, digits and `_`, or any non-ASCII character, not starting with a digit. Unique on the sheet. |
-| `header` | The header cell's value: text or a number. |
+| `header` | A cell (§3), or a list of them, one per header row, top first. `null` in the list is a blank. |
 | `formula` | Filled down the body as a formula range (§3), written for the body's first row. |
 | `conditional` | Conditional formats (§10) over the body, written without `at`. |
 | `width`, `style`, `format`, `hidden`, `group` | The column's band, exactly as in §4. |
+
+**A header may have levels.** Written as a list, a column's header takes one
+row per entry, and the layout's header is as deep as its deepest column:
+
+```yaml
+columns:
+  - { name: item,  header: 部門 }             # merged down both rows
+  - { name: cy,    header: [売上, 当年] }      # 売上 merged across the three
+  - { name: py,    header: [売上, 前年] }
+  - { name: ratio, header: [売上, 前年比] }
+```
+
+- Neighbouring columns merge across a row when they hold the same cell there
+  and the same cells in every row above it. `当年` under `売上` stays apart from
+  `当年` under `粗利`.
+- A column with fewer levels than the header has rows stretches its last one
+  down to the body. A stretched cell never also merges across.
+- `null` is a blank cell and merges with nothing. So `[null, 部門]` puts `部門`
+  in the bottom row, and `[売上, 当年]` beside `[null, 前年]` leaves the cell
+  above `前年` blank rather than merging `売上` over it.
+- Every header cell wears `header_style`, the blanks inside a merge and the
+  `null`s included, so a fill or a border runs unbroken. A header written in
+  the expanded form (`{ value: 部門, style: key }`) lays its own style over it.
 
 **`{{name}}` is that column's cell in the same row.** It is read in a column's
 `formula` and in a conditional rule's `formula`, and nowhere else: a `{{`

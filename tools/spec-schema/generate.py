@@ -1140,7 +1140,12 @@ def build(doc: Reference) -> dict:
     define["layout_column"] = obj(
         {
             "name": ref("text"),
-            "header": ref("scalar"),
+            "header": {
+                "anyOf": [
+                    ref("cell_value"),
+                    {"type": "array", "minItems": 1, "items": ref("cell_value")},
+                ]
+            },
             "formula": ref("text"),
             "conditional": seq(
                 obj(
@@ -1325,7 +1330,7 @@ ACCEPTED = {
     ),
     "a layout of named columns": (
         "sheets: [{name: S, layouts: [{at: A2, rows: 3, header_style: {font: {bold: true}},"
-        " columns: [{name: cy, header: 当年, width: 12}, {name: ratio, formula: '{{cy}}*2',"
+        " columns: [{name: cy, header: [売上, 当年], width: 12}, {name: ratio, header: [null, {value: 比, style: {font: {bold: true}}}], formula: '{{cy}}*2',"
         " conditional: [{cell: {less_than: 0}, style: {font: {bold: true}}}]}]}]}]"
     ),
 }
