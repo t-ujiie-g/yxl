@@ -1,0 +1,89 @@
+# Subtotals beneath the rows: per branch, and per channel within each branch.
+# Build it with:
+#
+#   yxl build examples/subtotals.yxl.yaml -o subtotals.xlsx
+#
+# The rows are a store list whose length changes every month, so nothing below
+# them has a fixed row. `footer:` places the totals straight after whatever
+# the data turned out to be, and every amount in them is a live formula.
+
+defs:
+  styles:
+    header:
+      font: { bold: true, color: "FFFFFF" }
+      fill: "1F3864"
+      align: { horizontal: center }
+    channel_total:
+      fill: "F2F2F2"
+    branch_total:
+      font: { bold: true }
+      fill: "DDEBF7"
+    grand_total:
+      font: { bold: true, color: "FFFFFF" }
+      fill: "1F3864"
+    fall:
+      font: { color: "9C0006" }
+
+sheets:
+  - name: 店舗別
+    freeze: A3
+    cells:
+      A1: 2026年度 上期 店舗別実績
+    layouts:
+      - at: A2
+        header_style: header
+        values:
+          - [東京, 直営, 銀座, 5200000, 4800000]
+          - [東京, FC, 新宿, 3100000, 3300000]
+          - [大阪, 直営, 梅田, 4100000, 3900000]
+          - [東京, 直営, 渋谷, 2800000, 2500000]
+          - [大阪, FC, 難波, 1900000, 2000000]
+          - [福岡, 直営, 天神, 2200000, 2100000]
+        columns:
+          - { name: branch, header: 支店, width: 10 }
+          - { name: channel, header: 区分, width: 8 }
+          - { name: store, header: 店舗, width: 16 }
+          - { name: cy, header: 当年, width: 12, format: "#,##0" }
+          - { name: py, header: 前年, width: 12, format: "#,##0" }
+          - name: ratio
+            header: 前年比
+            width: 10
+            format: "0.0%"
+            formula: 'IFERROR({{cy}}/{{py}}-1,"")'
+            conditional:
+              - { cell: { less_than: 0 }, style: fall }
+        footer:
+          # A branch at a time, in a fixed order: its channels first, then the
+          # branch itself. A branch the data holds but this list leaves out is
+          # an error rather than a missing subtotal.
+          - by: branch
+            order: [東京, 大阪, 福岡]
+            rows:
+              - by: channel
+                order: [直営, FC]
+                rows:
+                  # The labels spell the group's values, in whichever columns
+                  # suit: the branch in its own column, the channel's label
+                  # merged across to the store's. The amounts are SUMIFS over
+                  # the rows of this branch *and* this channel.
+                  - row:
+                      branch: "{{branch}}"
+                      channel: { value: "{{channel}} 計", merge_to: store }
+                      cy: { total: sum }
+                      py: { total: sum }
+                      ratio: { formula: 'IFERROR({{cy}}/{{py}}-1,"")' }
+                    style: channel_total
+              - row:
+                  branch: { value: "{{branch}} 計", merge_to: store }
+                  cy: { total: sum }
+                  py: { total: sum }
+                  ratio: { formula: 'IFERROR({{cy}}/{{py}}-1,"")' }
+                style: branch_total
+          - row:
+              branch: { value: 総合計, merge_to: store }
+              cy: { total: sum }
+              py: { total: sum }
+              # This row's cy over this row's py: the ratio of the totals,
+              # which is what a totals row should show, not a sum of ratios.
+              ratio: { formula: 'IFERROR({{cy}}/{{py}}-1,"")' }
+            style: grand_total

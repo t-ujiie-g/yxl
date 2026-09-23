@@ -1088,6 +1088,21 @@ the first item changes what a spec looks like.
             decided that `rows:`, given with a source, may reserve a body
             longer than the data, with the formulas filled beyond it, but never
             a shorter one. `field:` is refused wherever nothing would read it.
+      - [x] **Slice 2b — footer rows and grouped totals (ADR-024).** Rows
+            placed straight after the body, which follows the data's length.
+            A row cell may be `{ total: sum }` over its column's body. A
+            `by:` group repeats its rows once per value of a column, nested to
+            any depth, and its totals become `SUMIFS`-family formulas over the
+            enclosing groups' values. `order:` is `data`, `asc`, `desc`, or an
+            explicit list. A label spells the group values as `{{branch}}`.
+            Taken before blocks: the case comes from a real workbook, one that
+            lists subtotals per 支店, and per 直営/FC within each 支店, beneath
+            its rows. Blocks will want a per-block total too.
+            **Shipped** (`docs/spec.md` §25, `examples/subtotals.yxl.yaml`) in
+            `src/loader/footer.mbt`, which sits beside `layout.mbt` because the
+            grouping is a pass of its own. The example reproduces that
+            workbook's shape: 支店 in a fixed order, 直営/FC within each, a grand
+            total, each with its own row style.
       - [ ] **Slice 3 — `defs.blocks`.** A named group of columns, instanced as
             `{ block: yoy, as: sales, header: 売上 }`; the instance's `header`
             becomes the top level of each of its columns' headers, so the
@@ -1745,6 +1760,51 @@ Rows stay positional: `overrides:` and anything else outside a layout still
 counts rows. Row-axis groups are the same design turned 90°, deliberately not
 taken.
 
+### ADR-024 — A layout's footer: totals and grouped totals, as live formulas
+
+**Status:** accepted 2026-09-23.
+
+**Context:** Once a layout's body follows its data (slice 2 of ADR-023),
+nothing below it has a fixed row, so a totals row cannot be written with
+`cells:`. The case that forced the question is a real workbook. Beneath its
+rows it lists a subtotal per 支店, one per 直営/FC within each 支店, and a
+grand total. Excel's native answer is a pivot table (§14), which yxl already
+emits, but a pivot cannot reproduce a report's own shape.
+
+**Decision:** a layout's `footer:` is a list of entries placed right after the
+body. An entry is a **row** or a **group**.
+- A row is `{ row: { column: cell, … }, style: … }`. The explicit `row:`
+  wrapper keeps column names out of the entry's own key space, so a column
+  may be called `by` or `rows`.
+- A group is `{ by: column, order: …, rows: [entries] }`. It repeats its
+  entries once per value of `column`. It nests, and the author orders a
+  subtotal before or after its children by where the row sits in `rows:`.
+- The values come from the layout's data: the ones present within the
+  enclosing groups, in `order` (`data`, `asc`, `desc`). An explicit list
+  instead gives a row for every value, present or not. A value the data holds
+  that the list omits is an error, because a subtotal silently dropped is the
+  worst outcome a total can have.
+- `{ total: sum | count | average | min | max }` is an aggregate over the
+  column's body. Inside groups it becomes the `…IFS` form, with one criterion
+  per enclosing group.
+- The criteria are **literals** (`"=東京支店"`, with `~ * ?` escaped), not
+  references to a label cell. So a label may sit in any column, in any
+  wording, and the amounts stay live formulas.
+- `{{name}}` keeps its one meaning: this row's `name`. Inside a formula it is
+  the cell. Inside a footer row's *text* it is the value, which is known only
+  for a group's column, so `"{{branch}} {{channel}} 計"` is a label, and
+  `{{cy}}` in text is an error.
+
+**Trade-offs / consequences:** The group rows are fixed when the spec
+compiles. A value the data holds is covered, but a value typed into the
+workbook afterwards gets no row until the next build: yxl emits, Excel
+computes. `min` and `max` compile to `MINIFS`/`MAXIFS`, which need Excel 2019
+and are written with the `_xlfn.` prefix, which Excel expects on a function
+newer than the file format. A footer cell is not part of the column's conditional
+formats, which cover the body. Subtotal rows *interleaved* with the data, as
+in Excel's Subtotal command, are a different operation: they reorder and
+split the body. They are not taken here.
+
 ## 8. Open questions
 
 - **Q1 — YAML parser.** ✅ **Decided (ADR-009), refined (ADR-010):** depend on
@@ -2276,6 +2336,35 @@ taken.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-09-23** — **A layout's footer: totals and subtotals per group
+  (ADR-024).** `footer:` places rows straight after a layout's body, so a
+  totals row follows the data wherever it ends.
+  - A cell may be `{ total: sum | count | average | min | max }` over its
+    column's body.
+  - A `by:` group repeats its rows once per value of a column, nested to any
+    depth. Its totals become `SUMIFS`-family formulas with one criterion per
+    enclosing group, so 東京 直営 計 sums the rows of that branch *and* that
+    channel.
+  - `order:` is `data`, `asc`, `desc`, or a list. A list gives every value it
+    names a row, and refuses a value the data holds but the list omits.
+  - A label spells group values as `{{branch}}`. That is still `{{name}}`'s
+    one meaning, "this row's name", which in text is the value.
+  - A row's `style:` spans the layout's width.
+  - A cell's `merge_to:` merges it across to a column on its right. So a label
+    can stand alone in the first column, or be merged over the columns a
+    group leaves empty.
+  - `min` and `max` are written as `_xlfn.MINIFS` / `_xlfn.MAXIFS`, the names
+    Excel reads.
+
+  Raised by a real workbook that keeps its subtotals beneath its rows.
+  `examples/subtotals.yxl.yaml` reproduces its shape. `docs/spec.md` §25 and
+  the JSON Schema are updated.
+
+  **Found on the way, not fixed here:** a formula a spec writes itself is
+  emitted verbatim. A function newer than the file format, such as `XLOOKUP`,
+  `FILTER` or `LET`, therefore reaches Excel without the `_xlfn.` prefix, and
+  Excel shows `#NAME?` until the cell is re-entered.
 
 - **2026-09-23** — **A layout reads its own rows (#89, slice 2 of ADR-023).**
   `values:`, `csv:` or `json:` on a layout fill only the columns without a
