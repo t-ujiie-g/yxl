@@ -1638,6 +1638,7 @@ layouts:
 | `at` | **Required.** The top-left cell. The header rows start here when any column has a `header`; otherwise the body starts here. |
 | `rows` | How many body rows, at least 1. With a source it defaults to the rows read, and may only reserve more. **Required** without one. |
 | `values` / `csv` / `json` | Where the body's rows come from, as in §9. **At most one.** They fill only the columns without a `formula`. |
+| `footer` | Rows placed straight after the body: totals, and totals per group. See below. |
 | `header_style` | A style (bareword or inline) for every header cell. Needs at least one `header`. |
 | `columns` | **Required.** The columns, left to right from `at`. At least one. |
 
@@ -1717,4 +1718,57 @@ layouts:
 A monthly file of a different length needs no edit: the body, and every
 formula range down it, follows the rows read. Set `rows:` to reserve a fixed
 body instead, with the formula filled beyond the data.
+
+### Footer rows and grouped totals
+
+A body that follows its data has no fixed last row, so a totals row beneath it
+cannot be written with `cells:`. `footer:` places rows straight after the body,
+and a footer row's cells are named by column, like everything else here.
+
+```yaml
+footer:
+  - by: branch                  # once per 支店
+    order: asc
+    rows:
+      - by: channel             # once per 直営/FC within it
+        order: [直営, FC]
+        rows:
+          - row: { store: "{{branch}} {{channel}} 計", cy: { total: sum } }
+      - row: { store: "{{branch}} 計", cy: { total: sum } }
+        style: subtotal
+  - row:
+      store: 総合計
+      cy: { total: sum }
+      ratio: { formula: "{{cy}}/{{py}}-1" }
+    style: total
+```
+
+Each footer entry is a row or a group:
+
+| Key | Notes |
+|---|---|
+| `row` | A row: column name → cell. A cell is written as in §3, or as `{ total: … }`. Columns it leaves out stay blank. |
+| `style` | With `row`: the row's style, worn by every cell of the layout's width. A cell's own style is laid over it. |
+| `by` | A group: the column whose values it repeats over. The data must fill that column. |
+| `order` | With `by`: `data` (as the rows list them, the default), `asc`, `desc`, or a list of the values. |
+| `rows` | With `by`: **required**. The entries repeated for each value, which may be groups themselves. |
+
+- **`{ total: sum }`** aggregates the column's body. The choices are `sum`,
+  `count` (non-blank cells), `average`, `min` and `max`. Inside groups it
+  becomes `SUMIFS`, `COUNTIFS`, `AVERAGEIFS`, `MINIFS` or `MAXIFS`, with one
+  criterion per enclosing group. So `東京 直営 計` sums the rows whose branch
+  is 東京 *and* whose channel is 直営. The criterion is the value itself, with
+  Excel's wildcards escaped, so a label may sit in any column. `MINIFS` and
+  `MAXIFS` need Excel 2019 or later.
+- **A group's values** are those the data holds within the enclosing groups,
+  taken in `order`. `asc` puts numbers before text, and text in code-point
+  order, not in reading order. A listed order gives a row to *every* value
+  listed, present or not. A value the data holds that the list leaves out is
+  an error: its rows would silently fall outside every subtotal.
+- **`{{name}}` is still this row's `name`.** In a formula it is the cell, so
+  `{{cy}}/{{py}}-1` in a totals row is the ratio of the totals. In a footer
+  row's text it is the value, which only a group's column has while the spec
+  compiles. So `"{{branch}} 計"` is a label, and `{{cy}}` in text is an error.
+- The group rows are fixed when the spec is built. A value typed into the
+  workbook later gets no subtotal row until the next build.
 

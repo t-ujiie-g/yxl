@@ -1163,6 +1163,50 @@ def build(doc: Reference) -> dict:
         description="One named column of a layout (§25).",
         where="a layout column",
     )
+    footer = doc.keys("Footer rows and grouped totals")
+    define["footer_cell"] = {
+        "anyOf": [
+            ref("cell_value"),
+            obj(
+                {"total": enum(["sum", "count", "average", "min", "max"])},
+                documented={"total": footer["row"]},
+                required=("total",),
+                where="a footer total",
+            ),
+        ]
+    }
+    define["footer_entry"] = {
+        "anyOf": [
+            obj(
+                {
+                    "row": node(
+                        {"type": "object", "additionalProperties": ref("footer_cell")}
+                    ),
+                    "style": ref("style"),
+                },
+                documented={k: footer[k] for k in ("row", "style")},
+                required=("row",),
+                description="A footer row, by column name (§25).",
+                where="a footer row",
+            ),
+            obj(
+                {
+                    "by": ref("text"),
+                    "order": {
+                        "anyOf": [
+                            enum(["data", "asc", "desc"]),
+                            seq(ref("scalar")),
+                        ]
+                    },
+                    "rows": seq(ref("footer_entry")),
+                },
+                documented={k: footer[k] for k in ("by", "order", "rows")},
+                required=("by", "rows"),
+                description="Footer entries repeated per value of a column (§25).",
+                where="a footer group",
+            ),
+        ]
+    }
     define["layout"] = obj(
         {
             "at": ref("cell"),
@@ -1172,6 +1216,7 @@ def build(doc: Reference) -> dict:
             "values": seq(seq(ref("scalar"))),
             "csv": ref("path"),
             "json": ref("path"),
+            "footer": seq(ref("footer_entry")),
         },
         documented=doc.keys(layouts),
         required=("at", "columns"),
@@ -1332,6 +1377,11 @@ ACCEPTED = {
     "the format shorthand cleared with null": (
         "sheets: [{name: S, cells: {A1: {value: 1, format: null}}}]"
     ),
+    "a layout with nested grouped totals": (
+        "sheets: [{name: S, layouts: [{at: A1, csv: s.csv, columns: [{name: b}, {name: c}, {name: v}],"
+        " footer: [{by: b, order: asc, rows: [{by: c, order: [直営, FC], rows: [{row: {v: {total: sum}}}]},"
+        " {row: {c: '{{b}} 計', v: {total: sum}}, style: {font: {bold: true}}}]}]}]}]"
+    ),
     "a layout reading a CSV by field": (
         "sheets: [{name: S, layouts: [{at: A1, csv: data/sales.csv,"
         " columns: [{name: cy, field: 売上金額}, {name: x, formula: '{{cy}}*2'}]}]}]"
@@ -1344,6 +1394,10 @@ ACCEPTED = {
 }
 
 REFUSED = {
+    "a footer total Excel has no function for": (
+        "sheets: [{name: S, layouts: [{at: A1, rows: 1, columns: [{name: v}],"
+        " footer: [{row: {v: {total: median}}}]}]}]"
+    ),
     "a layout column addressed by letter": (
         "sheets: [{name: S, layouts: [{at: A1, rows: 1, columns: [{name: a, at: B}]}]}]"
     ),

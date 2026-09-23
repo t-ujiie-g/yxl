@@ -65,6 +65,7 @@ fn load_layout(
   let mut header_style_node = None
   let mut columns_node = None
   let mut source = None
+  let mut footer_node = None
   for entry in entries {
     let (key, value) = entry
     match key {
@@ -72,6 +73,7 @@ fn load_layout(
       "rows" => rows = Some(expect_body_rows(value, file~, context~))
       "header_style" => header_style_node = Some(value)
       "columns" => columns_node = Some(value)
+      "footer" => footer_node = Some(value)
       "values" | "csv" | "json" => {
         guard source is None else {
           raise schema_error(
@@ -84,7 +86,7 @@ fn load_layout(
       _ =>
         raise schema_error(
           file~,
-          "unknown key '\{key}' in \{context} (expected 'at', 'rows', 'header_style', 'columns', 'values', 'csv', or 'json')",
+          "unknown key '\{key}' in \{context} (expected 'at', 'rows', 'header_style', 'columns', 'values', 'csv', 'json', or 'footer')",
         )
     }
   }
@@ -287,6 +289,36 @@ fn load_layout(
         )
       }
     }
+  }
+  if footer_node is Some(footer_node) {
+    let scope : FooterScope = {
+      sheet,
+      columns: columns.map(column => (column.name, column.col)),
+      cols: in_layout,
+      inputs: Map::from_array(
+        inputs.mapi((index, column) => (column.name, index)),
+      ),
+      data,
+      body_first,
+      body_last,
+      context,
+      file,
+      defs,
+    }
+    let entries = load_footer_entries(
+      footer_node,
+      scope,
+      groups=[],
+      has_data=source is Some(_),
+    )
+    write_footer(
+      entries,
+      scope,
+      keys=[],
+      members=(0).until(data.length()).collect(),
+      row=body_last + 1,
+    )
+    |> ignore
   }
 }
 

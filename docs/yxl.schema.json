@@ -1506,6 +1506,187 @@
         }
       }
     },
+    "footer_cell": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/cell_value"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "total": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "sum",
+                    "count",
+                    "average",
+                    "min",
+                    "max"
+                  ]
+                },
+                {
+                  "$ref": "#/definitions/parameterized"
+                }
+              ],
+              "description": "A row: column name → cell. A cell is written as in §3, or as `{ total: … }`. Columns it leaves out stay blank.",
+              "markdownDescription": "A row: column name → cell. A cell is written as in §3, or as `{ total: … }`. Columns it leaves out stay blank."
+            },
+            "$include": {
+              "type": "string",
+              "description": "Another document, pasted in place of this node (§8)."
+            }
+          },
+          "anyOf": [
+            {
+              "required": [
+                "total"
+              ]
+            },
+            {
+              "required": [
+                "$include"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "footer_entry": {
+      "anyOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "A footer row, by column name (§25).",
+          "properties": {
+            "row": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": {
+                    "$ref": "#/definitions/footer_cell"
+                  }
+                },
+                {
+                  "$ref": "#/definitions/include"
+                }
+              ],
+              "description": "A row: column name → cell. A cell is written as in §3, or as `{ total: … }`. Columns it leaves out stay blank.",
+              "markdownDescription": "A row: column name → cell. A cell is written as in §3, or as `{ total: … }`. Columns it leaves out stay blank."
+            },
+            "style": {
+              "allOf": [
+                {
+                  "$ref": "#/definitions/style"
+                }
+              ],
+              "description": "With `row`: the row's style, worn by every cell of the layout's width. A cell's own style is laid over it.",
+              "markdownDescription": "With `row`: the row's style, worn by every cell of the layout's width. A cell's own style is laid over it."
+            },
+            "$include": {
+              "type": "string",
+              "description": "Another document, pasted in place of this node (§8)."
+            }
+          },
+          "anyOf": [
+            {
+              "required": [
+                "row"
+              ]
+            },
+            {
+              "required": [
+                "$include"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Footer entries repeated per value of a column (§25).",
+          "properties": {
+            "by": {
+              "allOf": [
+                {
+                  "$ref": "#/definitions/text"
+                }
+              ],
+              "description": "A group: the column whose values it repeats over. The data must fill that column.",
+              "markdownDescription": "A group: the column whose values it repeats over. The data must fill that column."
+            },
+            "order": {
+              "anyOf": [
+                {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "data",
+                        "asc",
+                        "desc"
+                      ]
+                    },
+                    {
+                      "$ref": "#/definitions/parameterized"
+                    }
+                  ]
+                },
+                {
+                  "anyOf": [
+                    {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/definitions/scalar"
+                      }
+                    },
+                    {
+                      "$ref": "#/definitions/include"
+                    }
+                  ]
+                }
+              ],
+              "description": "With `by`: `data` (as the rows list them, the default), `asc`, `desc`, or a list of the values.",
+              "markdownDescription": "With `by`: `data` (as the rows list them, the default), `asc`, `desc`, or a list of the values."
+            },
+            "rows": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/footer_entry"
+                  }
+                },
+                {
+                  "$ref": "#/definitions/include"
+                }
+              ],
+              "description": "With `by`: **required**. The entries repeated for each value, which may be groups themselves.",
+              "markdownDescription": "With `by`: **required**. The entries repeated for each value, which may be groups themselves."
+            },
+            "$include": {
+              "type": "string",
+              "description": "Another document, pasted in place of this node (§8)."
+            }
+          },
+          "anyOf": [
+            {
+              "required": [
+                "by",
+                "rows"
+              ]
+            },
+            {
+              "required": [
+                "$include"
+              ]
+            }
+          ]
+        }
+      ]
+    },
     "formula_range": {
       "type": "object",
       "additionalProperties": false,
@@ -1738,6 +1919,21 @@
           ],
           "description": "Where the body's rows come from, as in §9. **At most one.** They fill only the columns without a `formula`.",
           "markdownDescription": "Where the body's rows come from, as in §9. **At most one.** They fill only the columns without a `formula`."
+        },
+        "footer": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/footer_entry"
+              }
+            },
+            {
+              "$ref": "#/definitions/include"
+            }
+          ],
+          "description": "Rows placed straight after the body: totals, and totals per group. See below.",
+          "markdownDescription": "Rows placed straight after the body: totals, and totals per group. See below."
         },
         "header_style": {
           "allOf": [
