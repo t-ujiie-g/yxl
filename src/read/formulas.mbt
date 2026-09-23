@@ -39,7 +39,10 @@ fn fold_shared_formulas(
       ) else {
         continue
       }
-      sheet.add_formula({ at: range, formula: info.formula, })
+      sheet.add_formula({
+        at: range,
+        formula: @model.from_file_formula(info.formula),
+      })
       for r in range.top_left.row..<=range.bottom_right.row {
         for c in range.top_left.col..<=range.bottom_right.col {
           covered.add(@units.CellRef(col=c, row=r).to_a1())

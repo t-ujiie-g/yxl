@@ -131,7 +131,7 @@ test "a row's style reaches every column of the layout" {
 }
 
 ///|
-test "the other totals, and min and max under their _xlfn names" {
+test "the other totals: average, min and max" {
   let cells = footer_cells(
     (
       #|          - row: { cy: { total: average }, py: { total: min } }
@@ -141,10 +141,7 @@ test "the other totals, and min and max under their _xlfn names" {
   )
   assert_eq(formula_at(cells, "D6"), Some("AVERAGE(D2:D5)"))
   assert_eq(formula_at(cells, "E6"), Some("MIN(E2:E5)"))
-  assert_eq(
-    formula_at(cells, "D7"),
-    Some("_xlfn.MAXIFS(D2:D5,A2:A5,\"=大阪\")"),
-  )
+  assert_eq(formula_at(cells, "D7"), Some("MAXIFS(D2:D5,A2:A5,\"=大阪\")"))
   assert_eq(
     formula_at(cells, "E7"),
     Some("AVERAGEIFS(E2:E5,A2:A5,\"=大阪\")"),

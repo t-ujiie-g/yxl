@@ -392,8 +392,7 @@ fn check_footer_merges(
 
 ///|
 /// `{ total: … }` as a formula over the column's body, filtered by every
-/// enclosing group. `MINIFS`/`MAXIFS` postdate the file format, so Excel reads
-/// them only under their `_xlfn.` names.
+/// enclosing group.
 fn total_formula(
   node : @yaml.Node,
   col : Int,
@@ -426,13 +425,13 @@ fn total_formula(
       }
     @yaml.Str("min") =>
       if grouped {
-        "_xlfn.MINIFS(\{body}\{criteria})"
+        "MINIFS(\{body}\{criteria})"
       } else {
         "MIN(\{body})"
       }
     @yaml.Str("max") =>
       if grouped {
-        "_xlfn.MAXIFS(\{body}\{criteria})"
+        "MAXIFS(\{body}\{criteria})"
       } else {
         "MAX(\{body})"
       }

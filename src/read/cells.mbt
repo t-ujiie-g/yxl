@@ -56,14 +56,14 @@ fn read_value(
     // The cached result is left behind: Excel recomputes it on open, so carrying
     // it would put a stale number in the spec that reads like an assertion about
     // the formula's answer.
-    return Some(Formula(formula~, cached=None))
+    return Some(Formula(formula=@model.from_file_formula(formula), cached=None))
   }
   // A shared formula's followers store no text of their own: the file says only
   // which master they follow, and the formula is that master's with its relative
   // references shifted. Leaving them out turned a calculated cell into the stale
   // number cached beside it (#52).
   if shared_follower_formula(source, at, notes) is Some(formula) {
-    return Some(Formula(formula~, cached=None))
+    return Some(Formula(formula=@model.from_file_formula(formula), cached=None))
   }
   // The backend answers `get_cell_rich_text` for *every* shared string, since a
   // plain one is a single run with no font. Recovering that as `rich:` would

@@ -28,7 +28,7 @@ fn apply_formula_range(
   backend.set_cell_formula_opts(
     sheet_name,
     range.at.top_left.to_a1(),
-    range.formula,
+    @model.to_file_formula(range.formula),
     opts=@xlsx.FormulaOpts::shared(range.at.to_a1()),
   )
   // Nothing to lay down when the sheet declares no bands at all — worth the

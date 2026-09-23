@@ -2439,6 +2439,26 @@ readers cannot.
 
 Reverse-chronological. One entry per user-visible or structural change.
 
+- **2026-09-24** — **Fix: a newer function opened as `#NAME?` (#96).** A
+  formula went to the file exactly as the spec wrote it. Excel reads a
+  function added after the file format, such as `XLOOKUP`, `FILTER` or
+  `MAXIFS`, only under its stored name `_xlfn.XLOOKUP` (`_xlfn._xlws.FILTER`
+  for the two worksheet functions), so those cells opened as `#NAME?`.
+  - `@model.to_file_formula` now adds the prefix at every place `emit` hands
+    a formula to the backend: cells, formula ranges, conditional formats and
+    defined names.
+  - `@model.from_file_formula` takes it off wherever `read` recovers one, so
+    an extracted spec reads like the formula bar.
+  - Both walk the formula's function calls only. They skip string literals
+    and quoted sheet names, and they rename only names on one list, kept
+    once in `model`. A name already prefixed, and one Excel spells as an
+    operator (`_xlfn.SINGLE` is `@`), pass through unchanged.
+  - The footer's `min` / `max` now write plain `MINIFS` / `MAXIFS` and leave
+    the prefix to `emit`.
+  - **Not covered:** `LET` / `LAMBDA` parameter names, which the file stores
+    as `_xlpm.x`. Recognizing them needs the formula's argument structure,
+    not only its tokens. `docs/spec.md` §3 says so.
+
 - **2026-09-23** — **A layout's name wherever a range or an anchor is read (#89,
   slice 4b, ADR-026).**
   - **Ranges:** a chart series (`values: 店舗.cy`), a validation list

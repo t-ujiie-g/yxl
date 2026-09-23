@@ -460,3 +460,45 @@ test "Style::layer lays one optional style over another" {
     Some(percent.over(bold)),
   )
 }
+
+///|
+test "a newer function gains its _xlfn prefix in the file, and loses it back" {
+  // (as written, as stored, as read back): a name is read back in capitals,
+  // which is how Excel's own formula bar shows it.
+  let cases = [
+    ("XLOOKUP(A2,B:B,C:C)", "_xlfn.XLOOKUP(A2,B:B,C:C)", "XLOOKUP(A2,B:B,C:C)"),
+    ("xlookup(A2,B:B,C:C)", "_xlfn.XLOOKUP(A2,B:B,C:C)", "XLOOKUP(A2,B:B,C:C)"),
+    (
+      "SUM(FILTER(A:A,B:B>0))", "SUM(_xlfn._xlws.FILTER(A:A,B:B>0))", "SUM(FILTER(A:A,B:B>0))",
+    ),
+    ("NORM.S.DIST(1,TRUE)", "_xlfn.NORM.S.DIST(1,TRUE)", "NORM.S.DIST(1,TRUE)"),
+    (
+      "IFERROR(MAXIFS(D2:D9,A2:A9,\"=x\"),0)", "IFERROR(_xlfn.MAXIFS(D2:D9,A2:A9,\"=x\"),0)",
+      "IFERROR(MAXIFS(D2:D9,A2:A9,\"=x\"),0)",
+    ),
+  ]
+  for case in cases {
+    let (written, stored, read) = case
+    assert_eq(@model.to_file_formula(written), stored)
+    assert_eq(@model.from_file_formula(stored), read)
+  }
+}
+
+///|
+test "only a called function in the list is renamed, and never inside quotes" {
+  for
+    formula in [
+      "SUM(A1:A9)", "\"XLOOKUP(\"&A1", "'XLOOKUP('!A1+1", "SUM(店舗.cy)", "_xlfn.XLOOKUP(A1,B:B,C:C)",
+      "_xlfn.SINGLE(A1:A9)", "LOG10(100)",
+    ] {
+    assert_eq(@model.to_file_formula(formula), formula)
+  }
+  assert_eq(
+    @model.from_file_formula("_xlfn.SINGLE(A1:A9)"),
+    "_xlfn.SINGLE(A1:A9)",
+  )
+  assert_eq(
+    @model.from_file_formula("\"_xlfn.XLOOKUP(\""),
+    "\"_xlfn.XLOOKUP(\"",
+  )
+}
