@@ -1140,6 +1140,7 @@ def build(doc: Reference) -> dict:
     define["layout_column"] = obj(
         {
             "name": ref("text"),
+            "field": ref("text"),
             "header": {
                 "anyOf": [
                     ref("cell_value"),
@@ -1168,9 +1169,12 @@ def build(doc: Reference) -> dict:
             "rows": ref("integer"),
             "header_style": ref("style"),
             "columns": seq(ref("layout_column")),
+            "values": seq(seq(ref("scalar"))),
+            "csv": ref("path"),
+            "json": ref("path"),
         },
         documented=doc.keys(layouts),
-        required=("at", "rows", "columns"),
+        required=("at", "columns"),
         description="A region of named columns (§25).",
         where="a layout",
     )
@@ -1327,6 +1331,10 @@ ACCEPTED = {
     ),
     "the format shorthand cleared with null": (
         "sheets: [{name: S, cells: {A1: {value: 1, format: null}}}]"
+    ),
+    "a layout reading a CSV by field": (
+        "sheets: [{name: S, layouts: [{at: A1, csv: data/sales.csv,"
+        " columns: [{name: cy, field: 売上金額}, {name: x, formula: '{{cy}}*2'}]}]}]"
     ),
     "a layout of named columns": (
         "sheets: [{name: S, layouts: [{at: A2, rows: 3, header_style: {font: {bold: true}},"

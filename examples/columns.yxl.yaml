@@ -23,8 +23,14 @@ sheets:
       A1: 2026年度 上期 前年比
     layouts:
       - at: A2
-        rows: 4
         header_style: header
+        # The rows fill the columns without a formula, in order, so no row
+        # holds a placeholder for a ratio. The body is as long as the rows.
+        values:
+          - [東日本, 5200000, 4800000, 1560000, 1500000]
+          - [西日本, 4100000, 4300000, 1150000, 1240000]
+          - [九州, 1900000, 1700000, 610000, 540000]
+          - [海外, 2600000, 2100000, 700000, 690000]
         columns:
           # A list is one header row per level. A shared parent is merged
           # across its columns, and a column with fewer levels is merged down.
@@ -47,13 +53,3 @@ sheets:
             formula: 'IFERROR({{gross_cy}}/{{gross_py}}-1,"")'
             conditional:
               - { cell: { less_than: 0 }, style: fall }
-
-    # The rows still land by position: a `null` leaves each ratio cell to its
-    # formula.
-    data:
-      - at: A4
-        values:
-          - [東日本, 5200000, 4800000, null, 1560000, 1500000]
-          - [西日本, 4100000, 4300000, null, 1150000, 1240000]
-          - [九州, 1900000, 1700000, null, 610000, 540000]
-          - [海外, 2600000, 2100000, null, 700000, 690000]
