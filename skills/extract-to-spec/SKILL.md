@@ -1,6 +1,6 @@
 ---
 name: extract-to-spec
-description: Turn an existing Excel workbook (.xlsx) into a maintainable yxl spec. Use when the user wants a workbook under version control, wants to migrate a hand-maintained .xlsx to YAML, or has run `yxl extract` and asks what to do with its output. Covers classifying report sheets against data sheets, restoring formula ranges the file could not keep, naming styles, moving pasted data out to CSV, and verifying the rewrite compiles back to the workbook it came from.
+description: Turn an existing Excel workbook (.xlsx) into a maintainable yxl spec. Use when the user wants a workbook under version control, wants to migrate a hand-maintained .xlsx to YAML, or has run `yxl extract` and asks what to do with its output. Covers classifying report sheets against data sheets, rebuilding each table as a layout of named columns (rows from CSV, derived columns, totals and subtotals as footers, repeated column groups as blocks), naming styles, and verifying the rewrite compiles back to the workbook it came from.
 ---
 
 # extract-to-spec: from a workbook to a spec you can maintain
@@ -22,9 +22,9 @@ finished spec are the **yxl-authoring** skill's territory, and once the rewrite
 below is verified, hand over to it.
 
 **The destination is that skill's *default architecture*** — an entry file that
-is a table of contents, one file per sheet, the look named once, shared data
-held in one master every other sheet references, and per-issue values in
-`params:`. Read it before starting, and rewrite *towards* it: a migration that
+is a table of contents, one file per sheet, the look named once, **every table
+a layout** (§25) whose rows come from a CSV, shared data held in one named
+master every other sheet reaches by name, and per-issue values in `params:`. Read it before starting, and rewrite *towards* it: a migration that
 lands somewhere else has spent its one chance to restructure. Unless the user
 asks for a different shape, in which case build theirs.
 
@@ -32,9 +32,9 @@ asks for a different shape, in which case build theirs.
 
 1. Extract, and read the loss report before the YAML.
 2. Classify each sheet: **report** (designed) or **data** (pasted).
-3. Data sheets become `data:` + CSV.
-4. Report sheets get their structure back: `formulas:` ranges, named styles,
-   bands.
+3. Data sheets become named layouts fed by CSV.
+4. Report sheets get their structure back: tables as layouts with derived
+   columns, footers and blocks; named styles; names instead of addresses.
 5. Decide what the workbook-level leftovers mean: defined names, properties.
 6. Verify: compile, re-extract, compare, and open the result in Excel.
 
@@ -82,74 +82,85 @@ treatments.
   merges, per-cell styling, print-shaped layout.
 
 A sheet that mixes both (a data rectangle plus a derived column) is a data
-sheet whose derived column moves into the spec as a `formulas:` range over the
-table's region.
+sheet whose derived column becomes a layout column with a `formula:`.
 
-## 3. Data sheets → `data:` + CSV (§9)
+## 3. Data sheets → a named layout fed by CSV (§25)
 
-For each data sheet, replace its inline `cells:` block with an anchored table:
+For each data sheet, replace its inline `cells:` block with a layout whose rows
+come from a file:
 
 ```yaml
 - name: Visitors
-  data:
-    - { at: A1, csv: data/visitors.csv }
+  layouts:
+    - at: A1
+      name: visitors
+      header_style: header
+      csv: data/visitors.csv          # its first line names the fields
+      columns:
+        - { name: date, header: 日付 }
+        - { name: store, header: 店舗 }
+        - { name: count, header: 来店数, format: "#,##0" }
 ```
 
-- Write the CSV from the extracted values (or better, from the source system's
-  own export, which is what will refresh it next month).
+- Write the CSV **with a header row** — the extracted header cells are its first
+  line — or better, take the source system's own export, which is what will
+  refresh it next month. The columns match its fields by name, so a column the
+  export orders differently needs only a `field:`.
 - CSV fields are typed by what they look like; quote text that would read as a
-  number or boolean (`"007"`). Small tables can stay inline as `values:` rows,
-  which keep YAML's types and diff line-per-row.
-- Headers with styling stay in `cells:`; sheet keys apply in written order, so
-  put the `data:` entry after any `cells:` it should not overwrite (§2).
-- If the sheet needs column widths or a frozen header row, that is `columns:`
-  bands and `freeze:` (§4, §2) — three lines, not a reason to keep the sheet
-  inline.
+  number or boolean (`"007"`). A handful of rows can stay inline as `values:`.
+- A data sheet with a derived column keeps it as a layout column with a
+  `formula:` — it fills the body, whatever length next month's file has.
+- If it was an Excel table, `tables: [{ at: visitors, name: … }]` declares the
+  layout one again. Widths and a frozen header row are the columns' `width` and
+  the sheet's `freeze:`.
 - **Look for the same list in more than one sheet** before writing the CSVs:
   the store names, the account codes, the region list. A hand-maintained
   workbook copies them, and drift between the copies is usually one of the bugs
   the migration is meant to fix. They become **one** master sheet with one CSV,
-  declared an Excel table; the sheets that used a copy get a lookup against its
-  name, or a drop-down sourced `from:` its cells. Confirm the copies really are
-  the same list — where they differ, say which one you kept.
+  as a named layout; the sheets that used a copy look it up by name
+  (`INDEX(stores.name, MATCH({{code}}, stores.code, 0))`) or take a drop-down
+  `from: stores.code`. Confirm the copies really are the same list — where they
+  differ, say which one you kept.
 
 ## 4. Report sheets: put the structure back
 
-Rewrite these by hand, using the extracted YAML as the answer sheet.
+Rewrite these by hand, using the extracted YAML as the answer sheet. Most of a
+report sheet is a table or two with a designed header and total rows; each
+becomes a layout.
 
-- **Fold the remaining formula runs into ranges (§3).** Extract already writes
-  a `formulas:` range wherever the file stored a shared formula over an
-  unstyled block. What it leaves cell by cell is a run whose cells carry their
-  own style — a `formulas:` range holds no styling, so it cannot fold one —
-  and any column Excel wrote out formula by formula in the first place. Both
-  look the same in the output: a column of `formula:` entries that differ only
-  by row.
-
-  ```yaml
-  formulas:
-    - { at: E2:E500, formula: "IFERROR(C2*D2, \"\")" }
-  ```
-
-  Move the styling to a `columns:` band (§4), which reaches every cell the
-  range fills, then declare the fill. Spot-check two or three rows against the
-  original workbook before deleting the per-cell entries.
+- **Formula runs become layout columns.** A column of `formula:` entries that
+  differ only by row — or a `formulas:` range extract already folded — is one
+  column with `formula: '{{amount}}/{{count}}'`. Translate each cell reference
+  to the column it means; spot-check two or three rows against the original
+  before deleting the per-cell entries.
+- **Merged header rows become header levels.** `header: [売上, 当年]` on each
+  column rebuilds a two-row header, merges included; `null` keeps a deliberate
+  blank.
+- **Columns that repeat per item become a block.** 当年 / 前年 / 前年比 written
+  out for 売上, then 粗利, then 営業利益 is one `defs.blocks` entry placed three
+  times. Check the copies really are identical first — a difference between
+  them is either a bug the migration fixes or an override to keep.
+- **Total and subtotal rows become a footer.** A grand total is
+  `{ total: sum }`; subtotals per 支店, or per 直営/FC within each, are nested
+  `by:` groups with a fixed `order:` and labels like `"{{branch}} 計"`. Compare
+  the rebuilt totals with the original's cached values.
+- **Addresses into another sheet become names.** A formula reading
+  `Visitors!C2:C400`, a chart series, a drop-down's source — name the layout
+  and use `visitors.count`, so the reference follows the data's length.
 - **Name the styles (§6).** Extract has already interned duplicates into
   `defs.styles` under neutral names (`style`, `style_2`, …) and descriptive
   ones where the evidence was strong (`header`, `percent`). Rename the ones
   the sheet's design actually means (`kpi_good`, `section_title`) — renaming
   means updating every reference, so do it before the spec grows. Delete
   entries nothing references.
-- **Bands, not per-cell layout (§4).** Column widths, row heights, hidden
-  ranges, and outline levels are `columns:` / `rows:` bands; extract already
-  collapsed equal neighbours, so mostly this is keeping what it wrote. One
-  thing to trim: a `width:` extract wrote for a column the original left at
-  Excel's default (§22) — keeping it stops Excel auto-fitting that column.
-  Suspect any band that is a bare `width:` on a column whose look is otherwise
-  untouched.
+- **What is not a table stays as it is.** Titles, a KPI box, scattered labels
+  are `cells:`; a genuinely irregular grid keeps `formulas:` ranges and
+  `columns:` / `rows:` bands (§3, §4). One thing to trim there: a `width:`
+  extract wrote for a column the original left at Excel's default (§22).
 - **Keep the decorations declarative.** Conditional formats, validations,
   merges, filters, and freeze panes all have spec forms (§10); extract
-  recovers them, so review rather than rewrite. Re-add the dropped `print:`
-  blocks here.
+  recovers them. A rule over a table's column moves onto the layout column's
+  `conditional:`. Re-add the dropped `print:` blocks here.
 
 ## 5. Workbook-level leftovers
 
@@ -165,9 +176,11 @@ Rewrite these by hand, using the extracted YAML as the answer sheet.
 - **The cells that resist becoming a rule are `overrides:` (§23)**, not the
   reason to abandon the rule. Every migration turns up a few: the row somebody
   hard-coded over a formula column, the one cell that ignores the parameter.
-  Write the range or the parameter as the rule really is, then lift each holdout
-  into a top-level `{ at: Sheet!E37, …, reason: … }` — with the reason you found
-  in the original workbook, or a note that you could not find one. That block is
+  Write the column or the parameter as the rule really is, then lift each
+  holdout into a top-level override — by meaning inside a named layout,
+  `{ at: { layout: sales, column: amount, where: { store: 渋谷 } }, …, reason: … }`,
+  so it stays on its row when rows move — with the reason you found in the
+  original workbook, or a note that you could not find one. That block is
   the migration's own decision list, and it stays legible after you have gone.
 - **Split the spec into the house layout (§8)**: `{ $include: path }` moves a
   sheet or a `defs:` block into its own file, leaving an entry spec that is a
@@ -185,8 +198,8 @@ yxl extract rebuilt.xlsx -o check.yxl.yaml   # should verify clean
 - Compare `check.yxl.yaml` against an extraction of the original where the
   rewrite claims equivalence — values and formulas should match; deliberate
   cleanups (dead names, do-nothing rules) are the diff you expect to see.
-- Formula ranges compile to *shared* formulas, so the rebuilt file stores one
-  formula where the original stored one — but no cached values, so every
+- Layout columns and formula ranges compile to *shared* formulas, so the rebuilt
+  file stores one formula per column — but no cached values, so every
   calculated cell is empty until Excel opens the file. **Open `rebuilt.xlsx` in
   Excel** (or LibreOffice) once: formulas recompute, lookups resolve, nothing
   shows `#REF!` or a repair dialog.

@@ -1,24 +1,19 @@
-# The store list, held once for the whole workbook. Every other sheet reaches
-# it through the table name below — `StoreMaster[store_name]` — so a store that
-# is renamed here is renamed everywhere, and no sheet carries a second copy.
+# The store list, held once for the whole workbook. Naming the layout makes each
+# column a defined name — `stores.code`, `stores.name` — so every other sheet
+# reaches the list by name, and no sheet carries a second copy to drift.
 name: Masters
 # Plumbing rather than a page to read. `hidden` is undoable from Excel's UI;
 # `very_hidden` would need VBA.
 visibility: hidden
-columns:
-  - { at: A, width: 12 }
-  - { at: B, width: 18 }
-  - { at: C, width: 12 }
-cells:
-  A1: { value: store_code, style: header }
-  B1: { value: store_name, style: header }
-  C1: { value: region, style: header }
-data:
-  # A `data:` path resolves against the spec `yxl build` was given, *not*
-  # against this file — so it reads the same from wherever a sheet is included.
-  - at: A2
+layouts:
+  - at: A1
+    name: stores
+    header_style: header
+    # A `data:` or layout path resolves against the spec `yxl build` was given,
+    # *not* against this file, so it reads the same from wherever it is included.
+    # The CSV's header row names the fields; the columns take them by name.
     csv: workbook/masters/stores.csv
-tables:
-  # A table's range must match its rows exactly, so it reads the parameter.
-  - at: "A1:C${store_rows}"
-    name: StoreMaster
+    columns:
+      - { name: code, header: store_code, width: 12 }
+      - { name: name, header: store_name, width: 18 }
+      - { name: region, header: region, width: 12 }
