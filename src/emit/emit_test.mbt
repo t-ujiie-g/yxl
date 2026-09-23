@@ -468,3 +468,24 @@ test "a backend failure surfaces as an EmitError, not a backend error" {
   guard caught is Some(message) else { fail("expected an emit error") }
   assert_true(message.has_prefix("Excel backend: "))
 }
+
+///|
+/// Excel draws a `<col>` without a width at width 0, which hid the ratio
+/// columns of `examples/columns.yxl.yaml` when opened in Excel.
+test "a band that sets no width keeps Excel's standard width, not zero" {
+  let wb = @model.Workbook()
+  let sheet = wb.add_sheet("S")
+  sheet.set_column_band(
+    first=2,
+    last=2,
+    style=@model.Style::number_format("0%"),
+  )
+  sheet.set_column_band(first=3, last=3, hidden=true)
+  sheet.set_column_band(first=4, last=5, width=18.0)
+  sheet.set_column_band(first=5, last=5, outline_level=1)
+  let reopened = reopen(wb)
+  assert_eq(reopened.get_col_width("S", 2), Some(9.140625))
+  assert_eq(reopened.get_col_width("S", 3), Some(9.140625))
+  assert_eq(reopened.get_col_width("S", 4), Some(18.0))
+  assert_eq(reopened.get_col_width("S", 5), Some(18.0))
+}

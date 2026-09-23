@@ -138,6 +138,11 @@ fn deflate_archive(archive : @zip.Archive) -> Bytes raise {
 }
 
 ///|
+/// Excel's standard column width — 8.43 characters of 11-point Calibri — as
+/// Excel itself stores it in a `<col>` (ECMA-376 §18.3.1.13 counts the padding).
+let standard_column_width : Double = 9.140625
+
+///|
 /// Write one sheet into the backend: its column and row bands, its cells, then
 /// everything layered over them (merges, panes, view, tab color, page setup).
 /// The sheet must already exist in `backend`.
@@ -151,9 +156,11 @@ fn emit_sheet(
 ) -> Unit raise {
   // A band's default style shares the cell style cache, so a column style equal
   // to a cell style reuses the same id (ADR-004).
+  let unsized : Set[Int] = Set([])
   for band in sheet.columns {
     let style_id = band_style_id(backend, style_ids, band)
     for col in band.first..<=band.last {
+      unsized.add(col)
       if style_id is Some(id) {
         backend.set_col_style(sheet.name, col, id)
       }
@@ -167,6 +174,17 @@ fn emit_sheet(
         backend.set_col_outline_level(sheet.name, col, level)
       }
     }
+  }
+  for band in sheet.columns {
+    if band.size is Some(_) {
+      for col in band.first..<=band.last {
+        unsized.remove(col)
+      }
+    }
+  }
+  // The backend writes a `<col>` with no `width`, which Excel draws at width 0.
+  for col in unsized {
+    backend.set_col_width(sheet.name, col, standard_column_width)
   }
   for band in sheet.rows {
     let style_id = band_style_id(backend, style_ids, band)
