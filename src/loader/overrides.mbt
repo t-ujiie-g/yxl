@@ -25,25 +25,34 @@ fn load_override(
   defs~ : Defs,
 ) -> @model.Override raise @diag.SchemaError {
   let entries = expect_map(node, file~, context="an override")
-  let text = expect_string(
-    required_at(entries, file~, subject="an override"),
-    file~,
-    context="override 'at'",
-  )
-  let (sheet, reference) = split_sheet_prefix(text, file~, what="override 'at'")
-  guard sheet is Some(sheet) else {
-    raise schema_error(
-      file~,
-      "override 'at' must name the sheet it lands on: '\{text}' (write 'Sheet!\{text}')",
-    )
+  let (sheet, at, text) = match
+    required_at(entries, file~, subject="an override") {
+    @yaml.Map(target) => {
+      let (sheet, at) = resolve_layout_cell(target, defs~, file~)
+      (sheet, at, "\{sheet}!\{at.to_a1()}")
+    }
+    node => {
+      let text = expect_string(node, file~, context="override 'at'")
+      let (sheet, reference) = split_sheet_prefix(
+        text,
+        file~,
+        what="override 'at'",
+      )
+      guard sheet is Some(sheet) else {
+        raise schema_error(
+          file~,
+          "override 'at' must name the sheet it lands on: '\{text}' (write 'Sheet!\{text}')",
+        )
+      }
+      guard !reference.contains(":") else {
+        raise schema_error(
+          file~,
+          "override 'at' takes a single cell, not the range '\{text}'; write one entry per cell",
+        )
+      }
+      (sheet, expect_cell_ref(reference, file~, what="override 'at'"), text)
+    }
   }
-  guard !reference.contains(":") else {
-    raise schema_error(
-      file~,
-      "override 'at' takes a single cell, not the range '\{text}'; write one entry per cell",
-    )
-  }
-  let at = expect_cell_ref(reference, file~, what="override 'at'")
   let mut reason = None
   // The facets are the cell grammar and are read by it below; `at` and `reason`
   // are the override's own, and would be unknown keys to it.

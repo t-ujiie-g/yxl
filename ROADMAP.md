@@ -1127,11 +1127,23 @@ the first item changes what a spec looks like.
               blocks, or an override.
             - A footer names an instance's column by its qualified name, and
               `{{sales.cy}}` works there too.
-      - [ ] **Slice 4 — names from outside a layout.** `overrides:`, a totals
+      - [x] **Slice 4 — names from outside a layout.** `overrides:`, a totals
             row, a chart series, a validation. The syntax is decided in that
             slice under two constraints from ADR-023: it cannot be read as an
             A1 reference, and it has one meaning (not `{{…}}`, which already
             means "same-row cell").
+            **Shipped** (ADR-025, `docs/spec.md` §25). No new syntax was
+            needed. A layout's `name:` turns each column's body into a
+            workbook defined name, `店舗.cy`, which any formula uses as Excel
+            itself would. An override finds its cell by meaning, with
+            `{ layout, column, where: { store: 渋谷 } }` matching exactly one
+            data row. The totals row came earlier, as the footer (ADR-024).
+      - [ ] **Slice 4b — a layout's name where a range is read at load time.**
+            A chart series, a validation's `from:` list, a sparkline, and
+            content placed *below* a layout whose length follows its data.
+            Each needs the range while the spec loads, possibly before the
+            sheet holding the layout, so this needs every layout's position
+            settled in a pass ahead of the sheets.
 
       Open, to settle inside the slices: whether `yxl extract` should
       *propose* a block when it finds a repeated column group, which is a guess
@@ -1823,6 +1835,40 @@ formats, which cover the body. Subtotal rows *interleaved* with the data, as
 in Excel's Subtotal command, are a different operation: they reorder and
 split the body. They are not taken here.
 
+### ADR-025 — Outside a layout, its columns are Excel defined names
+
+**Status:** accepted 2026-09-23.
+
+**Context:** Slice 4 of ADR-023 needed a way to name a layout's column from
+outside it. The cases are a summary on another sheet, an override for one
+store, and a chart series. ADR-023 constrained the syntax: it must not read as
+an A1 reference, and it must have one meaning. A new yxl-only reference syntax
+would have to be taught, parsed inside every formula, and resolved in load
+order, since a summary sheet often comes before the data sheet it sums.
+
+**Decision:** No new syntax.
+- A layout may take a `name:`. Each of its columns' bodies then becomes a
+  **workbook defined name**, `name.column`, which refers to the absolute body
+  range. Formulas use it the way Excel users already do (`=SUM(店舗.cy)`).
+  Excel resolves it, so load order does not matter, and Excel keeps it in step
+  when rows are inserted in the workbook. This is ADR-004's rule, a thing
+  named once compiles to Excel's own sharing, applied to layouts.
+- An override's `at:` may instead be `{ layout, column, where | row }`. `where`
+  matches the data's values in input columns and must find exactly one row.
+  An ambiguous key or a vanished row is therefore a diagnostic (ADR-006), not
+  a patch on the wrong store. Overrides now load after the sheets, which their
+  "applied last" rule (ADR-018) already implied.
+- Defined names and table names share Excel's namespace and are compared
+  without case. That was never checked: two defs differing only in case
+  opened as a broken workbook. It is now one check over every name.
+
+**Trade-offs / consequences:**
+- Only named layouts produce defined names, because a layout of twenty columns
+  adds twenty entries to Name Manager. `name:` is the opt-in.
+- A chart series, a validation list and a sparkline read their ranges while
+  loading, so they cannot use the names yet (slice 4b).
+- `where` sees the data only, so a formula column cannot be a key.
+
 ## 8. Open questions
 
 - **Q1 — YAML parser.** ✅ **Decided (ADR-009), refined (ADR-010):** depend on
@@ -2354,6 +2400,18 @@ split the body. They are not taken here.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-09-23** — **A layout reached from outside by name (#89, slice 4,
+  ADR-025).** `name: 店舗` on a layout makes each column's body a workbook
+  defined name, `店舗.cy` → `'店舗別'!$D$3:$D$8`. A summary on another sheet
+  writes `=SUM(店舗.cy)`, or `SUMIFS(店舗.cy,店舗.branch,"東京")`. An override
+  finds its cell by meaning, `{ layout: 店舗, column: ratio, where: { store:
+  渋谷 } }`, and it must match exactly one row. Overrides now load after the
+  sheets, so one written above them still finds a layout. Defined names and
+  table names are now checked as one case-insensitive namespace. Two defs
+  that differ only in case used to produce a workbook Excel repairs.
+  `examples/subtotals.yxl.yaml` gains a サマリ sheet and an override for 渋谷.
+  Charts, validation lists and sparklines are left to slice 4b.
 
 - **2026-09-23** — **`defs.blocks`: a group of columns written once (#89,
   slice 3 of ADR-023).** A block declares layout columns, and a layout places

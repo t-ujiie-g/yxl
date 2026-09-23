@@ -1126,8 +1126,24 @@ def build(doc: Reference) -> dict:
 
     # -- §23 overrides -----------------------------------------------------
 
+    define["layout_cell"] = obj(
+        {
+            "layout": ref("text"),
+            "column": ref("text"),
+            "where": node({"type": "object", "additionalProperties": ref("scalar")}),
+            "row": ref("integer"),
+        },
+        documented=["layout", "column", "where", "row"],
+        required=("layout", "column"),
+        description="A cell of a named layout, found by meaning (§25).",
+        where="an override's layout cell",
+    )
     define["override"] = obj(
-        {"at": ref("qualified_cell"), "reason": ref("text"), **cell_facets},
+        {
+            "at": {"anyOf": [ref("qualified_cell"), ref("layout_cell")]},
+            "reason": ref("text"),
+            **cell_facets,
+        },
         documented=doc.keys("23. Overrides"),
         required=("at",),
         description="A deliberate one-off deviation, applied last (§23).",
@@ -1234,6 +1250,7 @@ def build(doc: Reference) -> dict:
     define["layout"] = obj(
         {
             "at": ref("cell"),
+            "name": ref("text"),
             "rows": ref("integer"),
             "header_style": ref("style"),
             "columns": seq(
@@ -1414,6 +1431,11 @@ ACCEPTED = {
     ),
     "the format shorthand cleared with null": (
         "sheets: [{name: S, cells: {A1: {value: 1, format: null}}}]"
+    ),
+    "a named layout reached by a name and an override": (
+        "sheets: [{name: S, layouts: [{at: A1, name: 店舗, rows: 2, columns: [{name: store}, {name: cy}]}],"
+        " cells: {D1: {formula: 'SUM(店舗.cy)'}}}]\n"
+        "overrides: [{at: {layout: 店舗, column: cy, where: {store: 銀座}}, value: 1}]"
     ),
     "a block placed twice": (
         "defs: {blocks: {yoy: {columns: [{name: cy, header: 当年}, {name: r, formula: '{{cy}}*2'}]}}}\n"

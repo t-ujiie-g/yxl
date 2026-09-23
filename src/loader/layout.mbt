@@ -65,6 +65,7 @@ fn load_layout(
   let mut columns_node = None
   let mut source = None
   let mut footer_node = None
+  let mut name = None
   for entry in entries {
     let (key, value) = entry
     match key {
@@ -73,6 +74,15 @@ fn load_layout(
       "header_style" => header_style_node = Some(value)
       "columns" => columns_node = Some(value)
       "footer" => footer_node = Some(value)
+      "name" =>
+        name = Some(
+          check_layout_name(
+            expect_string(value, file~, context="\{context} 'name'"),
+            defs~,
+            file~,
+            context~,
+          ),
+        )
       "values" | "csv" | "json" => {
         guard source is None else {
           raise schema_error(
@@ -85,7 +95,7 @@ fn load_layout(
       _ =>
         raise schema_error(
           file~,
-          "unknown key '\{key}' in \{context} (expected 'at', 'rows', 'header_style', 'columns', 'values', 'csv', 'json', or 'footer')",
+          "unknown key '\{key}' in \{context} (expected 'at', 'name', 'rows', 'header_style', 'columns', 'values', 'csv', 'json', or 'footer')",
         )
     }
   }
@@ -133,6 +143,18 @@ fn load_layout(
       file~,
       "\{context} body ends at row \{body_last}, past Excel's last row (\{max_sheet_row})",
     )
+  }
+  if name is Some(name) {
+    defs.layouts[name] = {
+      sheet: sheet.name,
+      columns: columns.map(column => (column.name, column.col)),
+      input_of: Map::from_array(
+        inputs.mapi((index, column) => (column.name, index)),
+      ),
+      data,
+      body_first,
+      body_last,
+    }
   }
   write_headers(sheet, headers, at~, depth~, header_style~)
   write_body_rows(sheet, data, inputs, body_first~)

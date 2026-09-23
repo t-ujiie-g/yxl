@@ -78,6 +78,8 @@ fn promises() -> Array[Promise] {
     promise("subtotals.yxl.yaml", "店舗別", "A16", "福岡"),
     promise("subtotals.yxl.yaml", "店舗別", "A17", "福岡 計"),
     promise("subtotals.yxl.yaml", "店舗別", "A18", "総合計"),
+    promise("subtotals.yxl.yaml", "店舗別", "F6", "改装"),
+    promise("subtotals.yxl.yaml", "サマリ", "A3", "直営 当年"),
     promise("workbook.yxl.yaml", "Summary", "A1", "Store revenue — 2026-07"),
     promise("workbook.yxl.yaml", "Masters", "B2", "Shinjuku"),
     promise("workbook.yxl.yaml", "Sales", "B2", "2400000"),

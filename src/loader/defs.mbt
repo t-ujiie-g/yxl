@@ -8,12 +8,19 @@ priv struct Defs {
   values : Map[String, @model.CellValue]
   formulas : Map[String, String]
   blocks : Map[String, Array[@yaml.Node]]
+  layouts : Map[String, NamedLayout]
 }
 
 ///|
 /// The empty definition set — no names in any namespace.
 fn Defs::empty() -> Defs {
-  { styles: Map([]), values: Map([]), formulas: Map([]), blocks: Map([]), }
+  {
+    styles: Map([]),
+    values: Map([]),
+    formulas: Map([]),
+    blocks: Map([]),
+    layouts: Map([]),
+  }
 }
 
 ///|
