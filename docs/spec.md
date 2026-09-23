@@ -1619,7 +1619,7 @@ rewrite every letter to the right of it.
 ```yaml
 layouts:
   - at: A2                     # the header's top-left; the only letter here
-    rows: 12                   # body rows, beneath the header
+    csv: data/sales.csv        # the rows, matched to columns by name
     header_style: header
     columns:
       - { name: item, header: 部門, width: 16 }
@@ -1636,7 +1636,8 @@ layouts:
 | Key | Notes |
 |---|---|
 | `at` | **Required.** The top-left cell. The header rows start here when any column has a `header`; otherwise the body starts here. |
-| `rows` | **Required.** How many body rows, at least 1. |
+| `rows` | How many body rows, at least 1. With a source it defaults to the rows read, and may only reserve more. **Required** without one. |
+| `values` / `csv` / `json` | Where the body's rows come from, as in §9. **At most one.** They fill only the columns without a `formula`. |
 | `header_style` | A style (bareword or inline) for every header cell. Needs at least one `header`. |
 | `columns` | **Required.** The columns, left to right from `at`. At least one. |
 
@@ -1645,6 +1646,7 @@ Each column:
 | Key | Notes |
 |---|---|
 | `name` | **Required.** Letters, digits and `_`, or any non-ASCII character, not starting with a digit. Unique on the sheet. |
+| `field` | The CSV or JSON field this column reads, when it differs from `name`. Only for a `csv`, or `json` of objects. |
 | `header` | A cell (§3), or a list of them, one per header row, top first. `null` in the list is a blank. |
 | `formula` | Filled down the body as a formula range (§3), written for the body's first row. |
 | `conditional` | Conditional formats (§10) over the body, written without `at`. |
@@ -1688,6 +1690,31 @@ one row that differs is an override (§23).
 A sheet may hold several layouts. Two layouts may not both give one sheet
 column a band.
 
-The rows are still addressed by number. A `data:` block (§9) fills a layout's
-input columns by position, and leaves a formula column's cells as `null`.
+**Rows come from data without addressing a column either.** A layout's
+source fills its *input* columns, the ones without a `formula`. A formula
+column is skipped rather than reserved with `null`, so adding a derived column
+changes no data row.
+
+- `values:` and a JSON array of arrays fill the input columns in order. A row
+  may stop short. A row longer than the input columns is an error.
+- A `csv:` **must start with a header row**. Each input column takes the field
+  named like its `field`, or like its `name` when it has none. The CSV's field
+  order does not matter, and fields no column asks for are ignored. A field a
+  column asks for that is not in the header is an error.
+- A `json:` array of objects is matched the same way, by key.
+
+```yaml
+layouts:
+  - at: A1
+    csv: data/sales.csv          # 部門名,売上金額,前年売上 …
+    columns:
+      - { name: item, header: 部門, field: 部門名 }
+      - { name: cy,   header: 当年, field: 売上金額 }
+      - { name: py,   header: 前年, field: 前年売上 }
+      - { name: ratio, header: 前年比, formula: "{{cy}}/{{py}}-1" }
+```
+
+A monthly file of a different length needs no edit: the body, and every
+formula range down it, follows the rows read. Set `rows:` to reserve a fixed
+body instead, with the formula filled beyond the data.
 

@@ -8,18 +8,19 @@ fn load_layouts(
   sheet : @model.Sheet,
   file~ : String,
   defs~ : Defs,
-) -> Unit raise @diag.SchemaError {
+  resolve~ : IncludeResolver,
+) -> Unit raise {
   let names : Map[String, String] = Map([])
   let banded : Map[Int, String] = Map([])
   for item in expect_seq(node, file~, context="'layouts'") {
-    load_layout(item, sheet, file~, defs~, names~, banded~)
+    load_layout(item, sheet, file~, defs~, resolve~, names~, banded~)
   }
 }
 
 ///|
 /// The keys a layout column reads itself; the rest are its band's (§4).
 let layout_column_keys : Array[String] = [
-  "name", "header", "formula", "conditional",
+  "name", "header", "field", "formula", "conditional",
 ]
 
 ///|
@@ -41,6 +42,7 @@ priv struct LayoutColumn {
   name : String
   col : Int
   header : @yaml.Node?
+  field : String?
   formula : @yaml.Node?
   conditional : @yaml.Node?
   band : Array[(String, @yaml.Node)]
@@ -52,15 +54,17 @@ fn load_layout(
   sheet : @model.Sheet,
   file~ : String,
   defs~ : Defs,
+  resolve~ : IncludeResolver,
   names~ : Map[String, String],
   banded~ : Map[Int, String],
-) -> Unit raise @diag.SchemaError {
+) -> Unit raise {
   let entries = expect_map(node, file~, context="a layout")
   let at = anchor_cell(entries, file~, subject="a layout", noun="layout")
   let context = "layout '\{at.to_a1()}'"
   let mut rows = None
   let mut header_style_node = None
   let mut columns_node = None
+  let mut source = None
   for entry in entries {
     let (key, value) = entry
     match key {
@@ -68,15 +72,21 @@ fn load_layout(
       "rows" => rows = Some(expect_body_rows(value, file~, context~))
       "header_style" => header_style_node = Some(value)
       "columns" => columns_node = Some(value)
+      "values" | "csv" | "json" => {
+        guard source is None else {
+          raise schema_error(
+            file~,
+            "\{context} sets more than one source of rows ('values', 'csv', or 'json')",
+          )
+        }
+        source = Some((key, value))
+      }
       _ =>
         raise schema_error(
           file~,
-          "unknown key '\{key}' in \{context} (expected 'at', 'rows', 'header_style', or 'columns')",
+          "unknown key '\{key}' in \{context} (expected 'at', 'rows', 'header_style', 'columns', 'values', 'csv', or 'json')",
         )
     }
-  }
-  guard rows is Some(rows) else {
-    raise schema_error(file~, "\{context} is missing required key 'rows'")
   }
   guard columns_node is Some(columns_node) else {
     raise schema_error(file~, "\{context} is missing required key 'columns'")
@@ -94,6 +104,47 @@ fn load_layout(
   let columns = items.mapi((index, item) => {
     load_layout_column(item, col=at.col + index, file~, context~)
   })
+  let inputs = columns.filter(column => column.formula is None)
+  let data = match source {
+    Some((key, value)) =>
+      load_layout_rows(key, value, inputs, file~, resolve~, context~)
+    None => {
+      for column in columns {
+        if column.field is Some(_) {
+          raise schema_error(
+            file~,
+            "\{context} column '\{column.name}' has a 'field' but the layout reads no 'csv' or 'json'",
+          )
+        }
+      }
+      []
+    }
+  }
+  let rows = match (rows, source) {
+    (Some(rows), _) => {
+      guard rows >= data.length() else {
+        raise schema_error(
+          file~,
+          "\{context} 'rows' is \{rows}, fewer than the \{data.length()} rows its data holds",
+        )
+      }
+      rows
+    }
+    (None, Some(_)) => {
+      guard !data.is_empty() else {
+        raise schema_error(
+          file~,
+          "\{context} reads no rows from its data, and sets no 'rows' to reserve",
+        )
+      }
+      data.length()
+    }
+    (None, None) =>
+      raise schema_error(
+        file~,
+        "\{context} needs 'rows', or a 'values', 'csv', or 'json' to count them from",
+      )
+  }
   let in_layout : Map[String, Int] = Map([])
   for column in columns {
     let where_ = "\{context} column '\{column.name}'"
@@ -148,6 +199,19 @@ fn load_layout(
     )
   }
   write_headers(sheet, headers, at~, depth~, header_style~)
+  for row_index, row in data {
+    for field_index, value in row {
+      if value is Some(value) {
+        sheet.set(
+          @units.CellRef(
+            col=inputs[field_index].col,
+            row=body_first + row_index,
+          ),
+          value,
+        )
+      }
+    }
+  }
   for column in columns {
     let where_ = "\{context} column '\{column.name}'"
     let body : @model.CellRange = {
@@ -271,6 +335,7 @@ fn load_layout_column(
   check_column_name(name, file~, context~)
   let where_ = "\{context} column '\{name}'"
   let mut header = None
+  let mut field = None
   let mut formula = None
   let mut conditional = None
   let band = []
@@ -279,6 +344,8 @@ fn load_layout_column(
     match key {
       "name" => ()
       "header" => header = Some(value)
+      "field" =>
+        field = Some(expect_string(value, file~, context="\{where_} 'field'"))
       "formula" => formula = Some(value)
       "conditional" => conditional = Some(value)
       _ if layout_band_keys.contains(key) => band.push(entry)
@@ -289,7 +356,13 @@ fn load_layout_column(
         )
     }
   }
-  { name, col, header, formula, conditional, band, }
+  guard !(field is Some(_) && formula is Some(_)) else {
+    raise schema_error(
+      file~,
+      "\{where_} has both a 'field' and a 'formula'; a formula column takes no data",
+    )
+  }
+  { name, col, header, field, formula, conditional, band, }
 }
 
 ///|
@@ -490,6 +563,98 @@ fn write_headers(
         sheet.merge(place(col, row), place(last, row))
       }
       col = last + 1
+    }
+  }
+}
+
+///|
+/// A layout's `values:`, `csv:` or `json:`, as rows over its input columns (the
+/// ones without a formula). Positional rows fill them in order. A CSV's header
+/// row and a JSON object's keys are matched by each column's `field`, which
+/// defaults to its `name`, so the source may reorder or add fields freely.
+fn load_layout_rows(
+  key : String,
+  node : @yaml.Node,
+  inputs : Array[LayoutColumn],
+  file~ : String,
+  resolve~ : IncludeResolver,
+  context~ : String,
+) -> Rows raise {
+  fn field_of(column : LayoutColumn) -> String {
+    column.field.unwrap_or(column.name)
+  }
+
+  fn positional(rows : Rows, source : String) -> Rows raise {
+    for column in inputs {
+      if column.field is Some(_) {
+        raise schema_error(
+          file~,
+          "\{context} column '\{column.name}' has a 'field', but \{source} rows are matched by position",
+        )
+      }
+    }
+    for index, row in rows {
+      guard row.length() <= inputs.length() else {
+        raise schema_error(
+          file~,
+          "row \{index + 1} of \{context} has \{row.length()} fields, but the layout has \{inputs.length()} columns without a formula to take them",
+        )
+      }
+    }
+    rows
+  }
+
+  match key {
+    "values" => positional(load_inline_rows(node, file~), "'values'")
+    "csv" => {
+      let path = expect_string(node, file~, context="\{context} 'csv'")
+      let table = resolve(file, path)
+      let records = parse_csv_fields(table.source, file=table.name)
+      guard records is [header, .. body] else {
+        raise schema_error(
+          file=table.name,
+          "a CSV read by a layout starts with a header row naming its fields, and this one is empty",
+        )
+      }
+      let names = header.map(field => field.0)
+      let picks = inputs.map(column => {
+        guard names.search(field_of(column)) is Some(index) else {
+          raise schema_error(
+            file=table.name,
+            "the header row has no field '\{field_of(column)}' for \{context} column '\{column.name}' (fields: \{or_list(names.map(name => "'\{name}'"))})",
+          )
+        }
+        index
+      })
+      body.map(record => {
+        picks.map(index => {
+          match record.get(index) {
+            Some((text, quoted)) => csv_field(text, quoted)
+            None => None
+          }
+        })
+      })
+    }
+    _ => {
+      let path = expect_string(node, file~, context="\{context} 'json'")
+      let table = resolve(file, path)
+      let document = @json.parse(table.source) catch {
+        err => raise schema_error(file=table.name, "invalid JSON: \{err}")
+      }
+      let named = document is Array(items) &&
+        items.iter().any(item => item is Object(_))
+      if named {
+        parse_json_table(
+          table.source,
+          file=table.name,
+          columns=Some(inputs.map(field_of)),
+        )
+      } else {
+        positional(
+          parse_json_table(table.source, file=table.name, columns=None),
+          "JSON array",
+        )
+      }
     }
   }
 }

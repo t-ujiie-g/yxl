@@ -209,9 +209,21 @@ fn write_rows(
 /// tolerated so CRLF files load. A trailing newline ends the last record rather
 /// than starting an empty one.
 fn parse_csv(source : String, file~ : String) -> Rows raise @diag.SchemaError {
+  parse_csv_fields(source, file~).map(row => {
+    row.map(field => csv_field(field.0, field.1))
+  })
+}
+
+///|
+/// The records of a CSV as written: each field's text, and whether it was
+/// quoted. A header row is read from here, before any field is typed.
+fn parse_csv_fields(
+  source : String,
+  file~ : String,
+) -> Array[Array[(String, Bool)]] raise @diag.SchemaError {
   let chars = source.iter().to_array()
-  let rows : Rows = []
-  let mut row : Array[@model.CellValue?] = []
+  let rows = []
+  let mut row = []
   let field = StringBuilder()
   let mut in_quotes = false
   // Whether this field was quoted — a quoted field stays text, so a CSV can
@@ -221,7 +233,7 @@ fn parse_csv(source : String, file~ : String) -> Rows raise @diag.SchemaError {
   // it a trailing newline would add an empty row.
   let mut started = false
   fn end_field() -> Unit {
-    row.push(csv_field(field.to_string(), quoted))
+    row.push((field.to_string(), quoted))
     field.reset()
     quoted = false
   }

@@ -1072,11 +1072,22 @@ the first item changes what a spec looks like.
               `cells:`, for a header too irregular to describe.
             - A `header_style` with no header, and two layouts banding the same
               column, are both refused.
-      - [ ] **Slice 2 — rows from data.** `values:` / `csv:` / `json:` on a
+      - [x] **Slice 2 — rows from data.** `values:` / `csv:` / `json:` on a
             layout fill the columns *without* a `formula:`, in declared order,
             and `rows:` defaults to their count. Without it slice 1 keeps a
             positional coupling: inserting a derived column between two input
             columns still means rewriting every data row.
+            **Shipped** (`docs/spec.md` §25). The open question below was
+            decided by name. A CSV read by a layout must start with a header
+            row, and each input column takes the field named like its `field:`
+            (which defaults to its `name`). A JSON array of objects is matched
+            the same way, by key. `values:` and JSON arrays of arrays stay
+            positional, since they have no names to match. So a source system
+            that reorders its export, or adds a field, breaks nothing. That is
+            the same guarantee layouts give the spec's own columns. It also
+            decided that `rows:`, given with a source, may reserve a body
+            longer than the data, with the formulas filled beyond it, but never
+            a shorter one. `field:` is refused wherever nothing would read it.
       - [ ] **Slice 3 — `defs.blocks`.** A named group of columns, instanced as
             `{ block: yoy, as: sales, header: 売上 }`; the instance's `header`
             becomes the top level of each of its columns' headers, so the
@@ -1089,8 +1100,7 @@ the first item changes what a spec looks like.
             A1 reference, and it has one meaning (not `{{…}}`, which already
             means "same-row cell").
 
-      Open, to settle inside the slices: whether a CSV's header row maps fields
-      by name rather than order (slice 2); whether `yxl extract` should
+      Open, to settle inside the slices: whether `yxl extract` should
       *propose* a block when it finds a repeated column group, which is a guess
       and so ADR-017 territory; how yxl-vscode maps "insert a column" or "edit
       one instance's cell" back — change the block, or add an override; and a
@@ -2266,6 +2276,19 @@ taken.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-09-23** — **A layout reads its own rows (#89, slice 2 of ADR-023).**
+  `values:`, `csv:` or `json:` on a layout fill only the columns without a
+  `formula`. A derived column is skipped rather than reserved with `null`, so
+  adding one touches no data row. The body is as long as the rows read, and
+  every formula range and conditional format down it follows a monthly file of
+  a different length. `rows:` may still reserve more. A CSV must start with a
+  header row, and it is matched by name, like a JSON array of objects: each
+  input column takes the field its `field:` names, or its own `name`. Source
+  fields can therefore be reordered or added without an edit. `values:` and
+  JSON arrays of arrays fill by position. The CSV parser now hands over each
+  field's raw text before typing it, so a header row is read as written.
+  `examples/columns.yxl.yaml` has lost its `data:` block and its `null`s.
 
 - **2026-09-23** — **A layout's header may have levels.** Opened in Excel, the
   first `layouts:` example exposed the gap: a year-on-year report heads

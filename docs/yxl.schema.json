@@ -1693,8 +1693,51 @@
               "$ref": "#/definitions/integer"
             }
           ],
-          "description": "**Required.** How many body rows, at least 1.",
-          "markdownDescription": "**Required.** How many body rows, at least 1."
+          "description": "How many body rows, at least 1. With a source it defaults to the rows read, and may only reserve more. **Required** without one.",
+          "markdownDescription": "How many body rows, at least 1. With a source it defaults to the rows read, and may only reserve more. **Required** without one."
+        },
+        "values": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/definitions/scalar"
+                    }
+                  },
+                  {
+                    "$ref": "#/definitions/include"
+                  }
+                ]
+              }
+            },
+            {
+              "$ref": "#/definitions/include"
+            }
+          ],
+          "description": "Where the body's rows come from, as in §9. **At most one.** They fill only the columns without a `formula`.",
+          "markdownDescription": "Where the body's rows come from, as in §9. **At most one.** They fill only the columns without a `formula`."
+        },
+        "csv": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/path"
+            }
+          ],
+          "description": "Where the body's rows come from, as in §9. **At most one.** They fill only the columns without a `formula`.",
+          "markdownDescription": "Where the body's rows come from, as in §9. **At most one.** They fill only the columns without a `formula`."
+        },
+        "json": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/path"
+            }
+          ],
+          "description": "Where the body's rows come from, as in §9. **At most one.** They fill only the columns without a `formula`.",
+          "markdownDescription": "Where the body's rows come from, as in §9. **At most one.** They fill only the columns without a `formula`."
         },
         "header_style": {
           "allOf": [
@@ -1729,7 +1772,6 @@
         {
           "required": [
             "at",
-            "rows",
             "columns"
           ]
         },
@@ -1753,6 +1795,15 @@
           ],
           "description": "**Required.** Letters, digits and `_`, or any non-ASCII character, not starting with a digit. Unique on the sheet.",
           "markdownDescription": "**Required.** Letters, digits and `_`, or any non-ASCII character, not starting with a digit. Unique on the sheet."
+        },
+        "field": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/text"
+            }
+          ],
+          "description": "The CSV or JSON field this column reads, when it differs from `name`. Only for a `csv`, or `json` of objects.",
+          "markdownDescription": "The CSV or JSON field this column reads, when it differs from `name`. Only for a `csv`, or `json` of objects."
         },
         "header": {
           "anyOf": [
