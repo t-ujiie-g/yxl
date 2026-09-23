@@ -1137,16 +1137,32 @@ def build(doc: Reference) -> dict:
     # -- §25 layouts -------------------------------------------------------
 
     layouts = "25. Layouts"
+    define["header_levels"] = {
+        "anyOf": [
+            ref("cell_value"),
+            {"type": "array", "minItems": 1, "items": ref("cell_value")},
+        ],
+        "description": "A header cell, or one per header row, top first (§25).",
+    }
+    define["block_instance"] = obj(
+        {
+            "block": ref("text"),
+            "as": ref("text"),
+            "header": ref("header_levels"),
+            "fields": node(
+                {"type": "object", "additionalProperties": ref("text")}
+            ),
+        },
+        documented=doc.keys("Blocks: a group of columns written once"),
+        required=("block",),
+        description="A block of `defs.blocks`, placed as columns (§25).",
+        where="a block instance",
+    )
     define["layout_column"] = obj(
         {
             "name": ref("text"),
             "field": ref("text"),
-            "header": {
-                "anyOf": [
-                    ref("cell_value"),
-                    {"type": "array", "minItems": 1, "items": ref("cell_value")},
-                ]
-            },
+            "header": ref("header_levels"),
             "formula": ref("text"),
             "conditional": seq(
                 obj(
@@ -1220,7 +1236,9 @@ def build(doc: Reference) -> dict:
             "at": ref("cell"),
             "rows": ref("integer"),
             "header_style": ref("style"),
-            "columns": seq(ref("layout_column")),
+            "columns": seq(
+                {"anyOf": [ref("layout_column"), ref("block_instance")]}
+            ),
             "values": seq(seq(ref("scalar"))),
             "csv": ref("path"),
             "json": ref("path"),
@@ -1324,6 +1342,18 @@ def build(doc: Reference) -> dict:
             "formulas": node(
                 {"type": "object", "additionalProperties": ref("text")}
             ),
+            "blocks": node(
+                {
+                    "type": "object",
+                    "additionalProperties": obj(
+                        {"columns": seq(ref("layout_column"))},
+                        documented=["columns"],
+                        required=("columns",),
+                        description="A group of layout columns (§25).",
+                        where="a block",
+                    ),
+                }
+            ),
         },
         documented=doc.example("6. Definitions and references", "defs"),
         description="Declared once, referenced by name (§6).",
@@ -1385,6 +1415,11 @@ ACCEPTED = {
     "the format shorthand cleared with null": (
         "sheets: [{name: S, cells: {A1: {value: 1, format: null}}}]"
     ),
+    "a block placed twice": (
+        "defs: {blocks: {yoy: {columns: [{name: cy, header: 当年}, {name: r, formula: '{{cy}}*2'}]}}}\n"
+        "sheets: [{name: S, layouts: [{at: A1, rows: 2, columns: [{name: item},"
+        " {block: yoy, as: sales, header: 売上}, {block: yoy, as: gross, fields: {cy: 粗利}}]}]}]"
+    ),
     "a layout with nested grouped totals": (
         "sheets: [{name: S, layouts: [{at: A1, csv: s.csv, columns: [{name: b}, {name: c}, {name: v}],"
         " footer: [{by: b, order: asc, rows: [{by: c, order: [直営, FC], rows: [{row: {v: {total: sum}}}]},"
@@ -1402,6 +1437,10 @@ ACCEPTED = {
 }
 
 REFUSED = {
+    "a block instance with a band of its own": (
+        "defs: {blocks: {yoy: {columns: [{name: cy}]}}}\n"
+        "sheets: [{name: S, layouts: [{at: A1, rows: 1, columns: [{block: yoy, width: 9}]}]}]"
+    ),
     "a footer total Excel has no function for": (
         "sheets: [{name: S, layouts: [{at: A1, rows: 1, columns: [{name: v}],"
         " footer: [{row: {v: {total: median}}}]}]}]"

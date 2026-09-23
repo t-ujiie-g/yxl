@@ -40,6 +40,7 @@ priv struct LayoutColumn {
   name : String
   col : Int
   header : @yaml.Node?
+  scope : String?
   field : String?
   formula : @yaml.Node?
   conditional : @yaml.Node?
@@ -95,15 +96,19 @@ fn load_layout(
   guard !items.is_empty() else {
     raise schema_error(file~, "\{context} has no columns")
   }
-  guard at.col + items.length() - 1 <= max_sheet_column else {
+  let columns = expand_layout_columns(
+    items,
+    at_col=at.col,
+    file~,
+    defs~,
+    context~,
+  )
+  guard at.col + columns.length() - 1 <= max_sheet_column else {
     raise schema_error(
       file~,
-      "\{context} has \{items.length()} columns, which run past Excel's last column (XFD)",
+      "\{context} has \{columns.length()} columns, which run past Excel's last column (XFD)",
     )
   }
-  let columns = items.mapi((index, item) => {
-    load_layout_column(item, col=at.col + index, file~, context~)
-  })
   let inputs = columns.filter(column => column.formula is None)
   let data = load_body_data(source, columns, inputs, file~, resolve~, context~)
   let rows = body_rows(
@@ -219,7 +224,14 @@ fn write_layout_column(
     bottom_right: @units.CellRef(col=column.col, row=body_last),
   }
   let expand = text => {
-    expand_column_refs(text, col_of, row=body_first, file~, context=where_)
+    expand_column_refs(
+      text,
+      col_of,
+      row=body_first,
+      scope?=column.scope,
+      file~,
+      context=where_,
+    )
   }
   let band = load_axis_spec(
     column.band,
@@ -355,7 +367,7 @@ fn load_layout_column(
       "\{where_} has both a 'field' and a 'formula'; a formula column takes no data",
     )
   }
-  { name, col, header, field, formula, conditional, band, }
+  { name, col, header, scope: None, field, formula, conditional, band, }
 }
 
 ///|
@@ -387,16 +399,23 @@ fn check_column_name(
 }
 
 ///|
-/// Replace each `{{name}}` in a formula with that column's cell in `row`.
+/// Replace each `{{name}}` in a formula with that column's cell in `row`. A
+/// bare name inside a block instance (`scope`) means the instance's column first.
 fn expand_column_refs(
   text : String,
   columns : Map[String, Int],
   row~ : Int,
+  scope? : String,
   file~ : String,
   context~ : String,
 ) -> String raise @diag.SchemaError {
   substitute_names(text, in_formula=true, file~, context="\{context} formula", name => {
-    guard columns.get(name) is Some(col) else {
+    let found = match scope {
+      Some(instance) if !name.contains(".") &&
+        columns.get("\{instance}.\{name}") is Some(col) => Some(col)
+      _ => columns.get(name)
+    }
+    guard found is Some(col) else {
       let known = columns.keys().map(k => "'\{k}'").collect()
       raise schema_error(
         file~,

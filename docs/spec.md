@@ -358,11 +358,14 @@ defs:
     tax_rate: 0.085
   formulas:
     subtotal: "SUM(B2:B10)"
+  blocks:
+    yoy: { columns: [...] }  # a group of layout columns → §25
 ```
 
 - A **style** is referenced by bareword: `style: header`.
 - A **value** or **formula** is referenced by `{ $ref: name }`.
-- The three namespaces are separate; the same name may exist in each.
+- A **block** is placed in a layout's `columns:` by `{ block: name }` (§25).
+- The four namespaces are separate; the same name may exist in each.
 - A reference to an undeclared name is an error, and so is a cycle.
 
 ### Style attributes
@@ -1718,6 +1721,55 @@ layouts:
 A monthly file of a different length needs no edit: the body, and every
 formula range down it, follows the rows read. Set `rows:` to reserve a fixed
 body instead, with the formula filled beyond the data.
+
+### Blocks: a group of columns written once
+
+A report often repeats one *meaning* across items: `当年 / 前年 / 前年比` for
+sales, then again for gross profit. `defs.blocks` declares the group once; a
+layout places it as many times as it needs.
+
+```yaml
+defs:
+  blocks:
+    yoy:
+      columns:
+        - { name: cy, header: 当年, format: "#,##0" }
+        - { name: py, header: 前年, format: "#,##0" }
+        - name: ratio
+          header: 前年比
+          formula: 'IFERROR({{cy}}/{{py}}-1,"")'
+          conditional: [{ cell: { less_than: 0 }, style: weak }]
+
+sheets:
+  - name: 実績
+    layouts:
+      - at: A2
+        columns:
+          - { name: item, header: 部門 }
+          - { block: yoy, as: sales, header: 売上 }
+          - { block: yoy, as: gross, header: 粗利 }
+```
+
+A block's `columns` take everything a layout column does (the table above), and
+nothing places a block inside a block. Where a layout column is `{ block: … }`,
+these keys apply:
+
+| Key | Notes |
+|---|---|
+| `block` | **Required.** A name `defs.blocks` declares. |
+| `as` | The instance's name, which qualifies its columns: `sales.cy`. Defaults to the block's name; unique within the layout. |
+| `header` | A cell, or a list of them, laid above each column's own header levels, so it merges across the instance (see header levels above). |
+| `fields` | Column name → CSV or JSON field, for this instance's input columns. Without it a column reads the field named like its qualified name. |
+
+- The instance's columns take its place, left to right, and are named
+  `as.name`. That is the name a footer row, `field` defaults and `{{…}}`
+  outside the instance use.
+- Inside the block, `{{cy}}` is the instance's own `cy`. A bare name the block
+  does not declare falls through to the layout's other columns, so a block may
+  use a shared `{{rate}}`. `{{sales.cy}}` reaches any instance by name.
+- The block and its instances compile to exactly the columns they stand for,
+  written out. The formula, the format and the rule exist once in the spec, so
+  "one instance references the wrong column" cannot be written.
 
 ### Footer rows and grouped totals
 

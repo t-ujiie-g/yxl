@@ -1105,12 +1105,28 @@ the first item changes what a spec looks like.
             grouping is a pass of its own. The example reproduces that
             workbook's shape: 支店 in a fixed order, 直営/FC within each, a grand
             total, each with its own row style.
-      - [ ] **Slice 3 — `defs.blocks`.** A named group of columns, instanced as
+      - [x] **Slice 3 — `defs.blocks`.** A named group of columns, instanced as
             `{ block: yoy, as: sales, header: 売上 }`; the instance's `header`
             becomes the top level of each of its columns' headers, so the
             level rules above merge it over them. `{{cy}}` inside a block resolves in the
             instance, then in the layout; `{{sales.cy}}` reaches another
             instance. One level of nesting.
+            **Shipped** (`docs/spec.md` §25, `src/loader/layout_block.mbt`).
+            An instance expands in the loader into the layout columns it
+            stands for, so everything below the column list is unchanged. A
+            test asserts that two instances and their six columns written out
+            load to equal models. Decided while building it:
+            - `as` defaults to the block's name, so a block placed once needs
+              none. Two instances with one name are refused, as is a column
+              named like an instance.
+            - `fields:` on an instance maps its input columns to CSV or JSON
+              fields. Without it a column reads the field named like its
+              qualified name (`sales.cy`), which a real export rarely has.
+            - A block defines `columns` and nothing else. An instance takes no
+              band keys of its own: a width that differs per instance is two
+              blocks, or an override.
+            - A footer names an instance's column by its qualified name, and
+              `{{sales.cy}}` works there too.
       - [ ] **Slice 4 — names from outside a layout.** `overrides:`, a totals
             row, a chart series, a validation. The syntax is decided in that
             slice under two constraints from ADR-023: it cannot be read as an
@@ -2338,6 +2354,24 @@ split the body. They are not taken here.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-09-23** — **`defs.blocks`: a group of columns written once (#89,
+  slice 3 of ADR-023).** A block declares layout columns, and a layout places
+  it with `{ block: yoy, as: sales, header: 売上 }`.
+  - The instance's columns are named `sales.cy` and so on.
+  - Its `header` sits above theirs and merges across them, through the header
+    level rules.
+  - Inside the block, `{{cy}}` means the instance's own column first and the
+    layout's otherwise. `{{gross.cy}}` reaches another instance.
+  - `fields:` maps an instance's input columns to a CSV or JSON source.
+  - A footer totals `sales.cy` like any column.
+  - The instance compiles to exactly the columns it stands for, so the
+    formula, the format and the rule a report repeats per item exist once in
+    the spec.
+
+  `examples/columns.yxl.yaml` is now the RFC's own example: two instances of
+  one `yoy` block and a totals row. `docs/spec.md` §6 and §25 and the JSON
+  Schema are updated.
 
 - **2026-09-23** — **Refactor after layouts (AGENTS.md §8).** No behaviour
   changes. Each lens, in order:

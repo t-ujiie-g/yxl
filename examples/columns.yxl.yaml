@@ -5,7 +5,8 @@
 # A year-on-year report: this year, last year, and the ratio, for sales and for
 # gross profit. Written with `columns:`, `formulas:` and `conditional:`, every
 # entry would carry a letter, and inserting a column would rewrite all of them.
-# Here the only letter is the layout's `at:`; the columns follow in order.
+# Here the only letter is the layout's `at:`; the columns follow in order, and
+# the three columns that repeat per item are written once, as a block.
 
 defs:
   styles:
@@ -15,6 +16,21 @@ defs:
       align: { horizontal: center }
     fall:
       font: { color: "9C0006" }
+  blocks:
+    # This year, last year, and the ratio: one definition, so the formula, the
+    # formats and the rule cannot drift apart between items. `{{cy}}` is this
+    # row's cell of the instance's own `cy`, never a letter.
+    yoy:
+      columns:
+        - { name: cy, header: 当年, width: 12, format: "#,##0" }
+        - { name: py, header: 前年, width: 12, format: "#,##0" }
+        - name: ratio
+          header: 前年比
+          width: 10
+          format: "0.0%"
+          formula: 'IFERROR({{cy}}/{{py}}-1,"")'
+          conditional:
+            - { cell: { less_than: 0 }, style: fall }
 
 sheets:
   - name: 実績
@@ -32,24 +48,19 @@ sheets:
           - [九州, 1900000, 1700000, 610000, 540000]
           - [海外, 2600000, 2100000, 700000, 690000]
         columns:
-          # A list is one header row per level. A shared parent is merged
-          # across its columns, and a column with fewer levels is merged down.
           - { name: item, header: 部門, width: 16 }
-          - { name: sales_cy, header: [売上, 当年], width: 12, format: "#,##0" }
-          - { name: sales_py, header: [売上, 前年], width: 12, format: "#,##0" }
-          # `{{sales_cy}}` is this row's cell of that column, so the formula
-          # never names a letter and survives a column inserted before it.
-          - name: sales_ratio
-            header: [売上, 前年比]
-            format: "0.0%"
-            formula: 'IFERROR({{sales_cy}}/{{sales_py}}-1,"")'
-            conditional:
-              - { cell: { less_than: 0 }, style: fall }
-          - { name: gross_cy, header: [粗利, 当年], width: 12, format: "#,##0" }
-          - { name: gross_py, header: [粗利, 前年], width: 12, format: "#,##0" }
-          - name: gross_ratio
-            header: [粗利, 前年比]
-            format: "0.0%"
-            formula: 'IFERROR({{gross_cy}}/{{gross_py}}-1,"")'
-            conditional:
-              - { cell: { less_than: 0 }, style: fall }
+          # Each instance's `header` sits above the block's own headers and
+          # merges across its three columns. Its columns are `sales.cy` and so
+          # on. Adding an item is one more line here.
+          - { block: yoy, as: sales, header: 売上 }
+          - { block: yoy, as: gross, header: 粗利 }
+        footer:
+          - row:
+              item: 合計
+              sales.cy: { total: sum }
+              sales.py: { total: sum }
+              sales.ratio: { formula: 'IFERROR({{sales.cy}}/{{sales.py}}-1,"")' }
+              gross.cy: { total: sum }
+              gross.py: { total: sum }
+              gross.ratio: { formula: 'IFERROR({{gross.cy}}/{{gross.py}}-1,"")' }
+            style: header
