@@ -1032,6 +1032,47 @@ the first item changes what a spec looks like.
       starter spec is a statement about the format, and the format is ours
       (ADR-011): kept anywhere else it is a second copy that drifts, and it is
       out of reach for anyone using the CLI without that editor.
+- [ ] **Position-free columns (`layouts:`) and reusable column groups
+      (`defs.blocks`).** Raised as an RFC (#89). A report that repeats one
+      *meaning* across items — `当年 | 前年 | 前年比` for 売上, 粗利, 営業利益 —
+      is written today as a band, a `formulas:` range and a `conditional:` rule
+      per column, each addressed by letter, so **inserting one column rewrites
+      every `at:` and every formula to its right**: the column-axis twin of the
+      row problem `values:` solved above. Taken before the freeze because it
+      adds a sheet key and a `defs:` namespace (the ADR-018 argument). The
+      shape is ADR-023, which keeps the RFC's core and changes its surface;
+      four slices, each shippable alone:
+      - [ ] **Slice 1 — `layouts:`.** A sheet key holding a list of anchored
+            regions (`at: A1`, `rows: N`), each a sequence of named columns
+            carrying their own `header`, `width`, `style`, `format`, `formula`
+            and `conditional`. `{{name}}` inside a column's formula means *that
+            column's cell in the same row*. The header depth follows from the
+            columns, the body starts beneath it. Output equals the hand-written
+            bands, cells, `formulas:` ranges and `conditional:` rules, byte for
+            byte — the test is exactly that equivalence.
+      - [ ] **Slice 2 — rows from data.** `values:` / `csv:` / `json:` on a
+            layout fill the columns *without* a `formula:`, in declared order,
+            and `rows:` defaults to their count. Without it slice 1 keeps a
+            positional coupling: inserting a derived column between two input
+            columns still means rewriting every data row.
+      - [ ] **Slice 3 — `defs.blocks`.** A named group of columns, instanced as
+            `{ block: yoy, as: sales, header: 売上 }`; the instance's `header`
+            is merged over its columns. `{{cy}}` inside a block resolves in the
+            instance, then in the layout; `{{sales.cy}}` reaches another
+            instance. One level of nesting.
+      - [ ] **Slice 4 — names from outside a layout.** `overrides:`, a totals
+            row, a chart series, a validation. The syntax is decided in that
+            slice under two constraints from ADR-023: it cannot be read as an
+            A1 reference, and it has one meaning (not `{{…}}`, which already
+            means "same-row cell").
+
+      Open, to settle inside the slices: whether a CSV's header row maps fields
+      by name rather than order (slice 2); whether `yxl extract` should
+      *propose* a block when it finds a repeated column group, which is a guess
+      and so ADR-017 territory; how yxl-vscode maps "insert a column" or "edit
+      one instance's cell" back — change the block, or add an override; and a
+      layout also declared an Excel table when its header is one row of unique
+      names. Row-axis groups and emitting `LAMBDA` are not in scope.
 
 
 ### v1.0 — Stability gate
@@ -1611,6 +1652,66 @@ into the `.mbti`. Declining keeps every `.mbti` byte-identical, which is what
 makes the diff of a language migration reviewable. Adding a derived type now
 costs an `extends.mbt` entry; the compiler names the missing one.
 
+### ADR-023 — Columns get names inside a `layouts:` region, and the names stay there
+
+**Status:** accepted 2026-09-23 (design; implementation is the Phase 11 item).
+
+**Context:** #89 asks for columns addressed by meaning rather than by letter,
+and for a repeated group of columns to be written once. The motivation stands.
+Every sheet key that takes a column takes a letter, and one inserted column
+therefore rewrites `columns:`, `formulas:`, `conditional:`, `data:` and every
+formula to its right. The RFC's surface was reviewed against the current
+loader, the house schema shape, and what has to stay unambiguous after the
+freeze. Six changes follow.
+
+**Decision:**
+- **A name does not go into `at:`.** The RFC let every `at:` take a name as
+  well as a letter. But labels run to `XFD`, so `cy`, `py`, `tax` and `abc` are
+  already columns, and every `at:` parser and schema pattern would change.
+  Instead a layout column **carries its own** width, style, format, formula and
+  conditional rules. Nothing outside the layout names it until slice 4.
+- **`{{name}}` has one meaning: the named column's cell in the same row.** It is
+  expanded only in a layout column's `formula:` and in its conditional rules'
+  `formula:`. Elsewhere `{{` stays literal text, as it is today, so no existing
+  spec changes meaning. Inside a formula's `"…"` string literal it is skipped.
+  An unknown name is a diagnostic, never literal text (ADR-006). Scope is
+  lexical: the block instance first, then the layout; `inst.col` is qualified.
+  So the RFC's `実績!{{gross.ratio}}37` is refused: it would give `{{…}}` a
+  second meaning, a column letter, inside the address grammar.
+- **No block arguments.** The RFC's `args: [label]` / `{{label}}` shared the
+  column-reference syntax, and `args: [cy]` would be ambiguous. Its only use
+  was the group header, so the instance supplies that: `header: 売上`. A
+  template language waits for a case that needs one.
+- **An anchor and a count, not row ranges.** The RFC had `header_rows: 1-2`
+  and `body: 3-200`. Here it is `at: A1`, `rows: N`: header depth follows from
+  the columns (one row, or two once a block has a group header), and the body
+  starts beneath it. Adding a group header then renumbers nothing, and rows
+  above the anchor stay free for a title.
+- **`layouts:` is a list.** `data:`, `tables:` and `formulas:` are lists of
+  anchored entries, and a sheet with two regions side by side or stacked is
+  ordinary. Two layouts that give one sheet column different widths or styles
+  are refused.
+- **The expansion happens in the loader, not a YAML→YAML pass.** A `layouts`
+  arm in the sheet loader generates the entries the hand-written keys would
+  make, through those keys' own validation. Then there is one validator, and a
+  diagnostic names `column 'sales.ratio'` rather than a letter the author never
+  wrote (ADR-016). A text-level pass would lose both.
+
+**Not an Excel table.** A ListObject has structured references
+(`[@当年]`), which are position-free natively, and ADR-004 prefers the native
+mechanism. It cannot hold this shape, though: its header is one row, it has no
+merged cells, and its names are unique, while `当年` repeats once per block. A
+layout that fits may later *also* be declared a table.
+
+**Trade-offs / consequences:** The output is byte-identical to the hand-written
+spec, so nothing downstream of the loader changes, and equivalence with the
+spec an author would write by hand is the test. `extract` keeps writing the
+hand form and cannot recover a layout. A workbook does not record that its
+columns were ever grouped, so proposing one is a guess (ADR-017), left open.
+Rows stay positional: `overrides:` and anything else outside a layout still
+counts rows. Row-axis groups are the same design turned 90°, deliberately not
+taken.
+
 ## 8. Open questions
 
 - **Q1 — YAML parser.** ✅ **Decided (ADR-009), refined (ADR-010):** depend on
@@ -2142,6 +2243,16 @@ costs an `extends.mbt` entry; the compiler names the missing one.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-09-23** — **Position-free columns are planned (#89, ADR-023).** A new
+  Phase 11 item, in four slices: `layouts:` (named columns that carry their
+  own formatting and formulas, with `{{name}}` for the same-row cell), rows
+  filled from data, `defs.blocks` for a repeated group of columns, and names
+  reachable from outside a layout. The RFC's core is kept. Its surface changes
+  in six places, and ADR-023 records why for each: names stay out of `at:`,
+  `{{…}}` has one meaning, blocks take no arguments, a region is an anchor plus
+  a count, `layouts:` is a list, and the expansion runs in the loader. No code
+  yet.
 
 - **2026-09-21** — **`mbtexcel@0.2.0`, and one waiver fewer.** The backend pin
   moves to `0.2.0` (and with it `moonbitlang/x@0.5.5` and
