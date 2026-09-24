@@ -109,6 +109,40 @@ test "a group's values come in data order, ascending, or descending" {
 }
 
 ///|
+test "ascending text is in code-point order, whatever its length" {
+  let sheet = load_ok(
+      (
+        #|sheets:
+        #|  - name: S
+        #|    layouts:
+        #|      - at: A1
+        #|        values: [[aa, 1], [b, 2], [東京, 3], [大阪, 4]]
+        #|        columns: [{ name: k }, { name: n }]
+        #|        footer:
+        #|          - by: k
+        #|            order: asc
+        #|            rows:
+        #|              - row: { k: "{{k}}", n: { total: sum } }
+      ),
+    ).sheets[0]
+  let labels = (5)
+    .until(9)
+    .map(row => {
+      sheet.cells
+      .iter()
+      .find_first(cell => cell.pos.to_a1() == "A\{row}")
+      .map(cell => cell.value)
+    })
+    .collect()
+  assert_eq(labels, [
+    Some(Text("aa")),
+    Some(Text("b")),
+    Some(Text("大阪")),
+    Some(Text("東京")),
+  ])
+}
+
+///|
 test "a listed order gives a row to every value, present or not" {
   let cells = footer_cells(
     "          - by: branch\n            order: [東京, 大阪, 福岡]\n            rows: [{ row: { store: \"{{branch}}\", cy: { total: count } } }]\n",

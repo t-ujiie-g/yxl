@@ -13,7 +13,7 @@ pub let exit_usage : Int = 2
 ///|
 /// The version this binary reports. Kept in step with `moon.mod`'s `version`;
 /// CI fails the build if the two drift.
-pub let version : String = "0.5.0"
+pub let version : String = "0.5.1"
 
 ///|
 /// What the command line asked for. `params` carries the `--set name=value`

@@ -2439,6 +2439,13 @@ readers cannot.
 
 Reverse-chronological. One entry per user-visible or structural change.
 
+- **2026-09-24** — **Fix: a footer's `order: asc` sorts text by code point
+  (#104).** Group values were compared with `String::compare`, which puts the
+  shorter string first and only then compares UTF-16 code units, so `b` came
+  before `aa`, and U+10000 before U+E000. They are now compared code point by
+  code point, as `docs/spec.md` always said; `desc` is the reverse. A spec
+  whose `asc` groups mix lengths gets its footer rows in a different order.
+
 - **2026-09-24** — **0.5.0: layouts, and the skills and the reference workbook
   built on them.** The version moves to `0.5.0` in `moon.mod` and in
   `yxl version`, ready for the `v0.5.0` tag.
