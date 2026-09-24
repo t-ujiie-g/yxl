@@ -24,3 +24,23 @@ test "group values sort numbers, then text, then a blank" {
     None,
   ])
 }
+
+///|
+test "text sorts by code point, not by length or UTF-16 code unit" {
+  let values : Array[@model.CellValue?] = [
+    Some(Text("\u{10000}")),
+    Some(Text("b")),
+    Some(Text("\u{E000}")),
+    Some(Text("aa")),
+    Some(Text("a")),
+  ]
+  values.sort_by(compare_group_values)
+  assert_eq(values, [
+    Some(Text("a")),
+    Some(Text("aa")),
+    Some(Text("b")),
+    Some(Text("\u{E000}")),
+    Some(Text("\u{10000}")),
+  ])
+  assert_eq(compare_code_points("ab", "ab"), 0)
+}

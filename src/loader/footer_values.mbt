@@ -213,8 +213,25 @@ fn compare_group_values(a : @model.CellValue?, b : @model.CellValue?) -> Int {
 
   match (a, b) {
     (Some(Number(x)), Some(Number(y))) => x.compare(y)
-    (Some(Text(x)), Some(Text(y))) => x.compare(y)
+    (Some(Text(x)), Some(Text(y))) => compare_code_points(x, y)
     _ => rank(a).compare(rank(b))
+  }
+}
+
+///|
+/// `String::compare` puts the shorter string first and then compares UTF-16
+/// code units, so neither `aa` < `b` nor U+E000 < U+10000 would hold (#104).
+fn compare_code_points(x : String, y : String) -> Int {
+  let ys = y.iter()
+  for cx in x {
+    guard ys.next() is Some(cy) else { return 1 }
+    let cmp = cx.compare(cy)
+    guard cmp == 0 else { return cmp }
+  }
+  if ys.next() is Some(_) {
+    -1
+  } else {
+    0
   }
 }
 
