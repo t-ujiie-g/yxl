@@ -41,7 +41,7 @@ excelize の MoonBit 移植）が生成します。`yxl` はその上に乗る�
 > あります。** フェーズ計画と変更履歴は [`ROADMAP.md`](./ROADMAP.md) を参照して
 > ください。
 
-## お試し
+## 簡単な例
 
 ```yaml
 # report.yxl.yaml
