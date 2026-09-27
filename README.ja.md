@@ -118,7 +118,8 @@ YXL_VERSION=0.1.0 YXL_INSTALL_DIR=/usr/local/bin \
   curl -fsSL https://raw.githubusercontent.com/t-ujiie-g/yxl/main/install.sh | sh
 ```
 
-ビルド済みバイナリは **Linux x86_64** と **macOS arm64**（Apple シリコン）向けです。
+ビルド済みバイナリは **Linux x86_64**、**macOS arm64**（Apple シリコン）、
+**Windows x86_64** 向けです。
 Intel Mac やその他のプラットフォームでは、下記の手順でソースからビルドしてください。
 スクリプトをシェルにパイプするのは慎重に行うべきことです — 気になる場合は先に
 [`install.sh` を読む](./install.sh)か、リリースのアセットから手動で入れるか、

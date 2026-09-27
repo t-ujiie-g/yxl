@@ -2442,7 +2442,8 @@ Reverse-chronological. One entry per user-visible or structural change.
 - **2026-09-27** — **Docs: a Japanese README.** `README.ja.md` translates
   `README.md`, and each links to the other at the top. `AGENTS.md §1` makes it
   a translation kept in step with `README.md` in the same change, not a new
-  home for documentation; `docs/spec.md` stays English-only.
+  home for documentation; `docs/spec.md` stays English-only. Both READMEs
+  now list the Windows x86_64 binary every release has shipped since 0.4.0.
 
 - **2026-09-24** — **Fix: a footer's `order: asc` sorts text by code point
   (#104).** Group values were compared with `String::compare`, which puts the

@@ -117,7 +117,8 @@ YXL_VERSION=0.1.0 YXL_INSTALL_DIR=/usr/local/bin \
   curl -fsSL https://raw.githubusercontent.com/t-ujiie-g/yxl/main/install.sh | sh
 ```
 
-Prebuilt binaries cover **Linux x86_64** and **macOS arm64** (Apple silicon).
+Prebuilt binaries cover **Linux x86_64**, **macOS arm64** (Apple silicon), and
+**Windows x86_64**.
 On an Intel Mac, or any other platform, build from source below. Piping
 a script into a shell is worth doing deliberately — [read
 `install.sh`](./install.sh) first if you would rather, or install by hand from
