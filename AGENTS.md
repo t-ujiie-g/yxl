@@ -41,7 +41,8 @@ format reference), and `examples/` (the worked cookbook, compiled by CI — §6)
 Keep them in step with the code in the same change; a doc that lies is worse
 than a missing one. `docs/yxl.schema.json` is not a fourth home: it is
 *generated* from `docs/spec.md` (ADR-019) — edit the reference and regenerate,
-never the JSON.
+never the JSON. Nor is `README.ja.md`: it is the Japanese translation of
+`README.md`, and a change to one changes the other in the same PR.
 
 ## 2. MoonBit skills
 
