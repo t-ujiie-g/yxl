@@ -261,6 +261,17 @@ The **active phase** is the first phase with any unchecked box.
       preinstalled — no MSVC setup), the artifact sits at the same relative path
       as everywhere else, and the whole suite passes. Path resolution now takes
       either separator. CI covers all three platforms.
+- [ ] **Publish to mooncakes, runnable with `moonx` (ADR-027).** Before the first
+      `moon publish`:
+      - narrow the public surface to `@cli.compile` / `@cli.extract`. First
+        check against the current toolchain how a module hides a package.
+      - a CI job builds `cmd/main` for `wasm` and checks that its output
+        matches the native binary for `examples/`.
+      - fill `repository` in `moon.mod`.
+      - adopt the next `mbtexcel` release, which carries the fixes for our
+        upstream reports.
+      Then publish at a release tag, run the published package through
+      `moonx`, and document it in both READMEs.
 
 ### Phase 9 — Richer Excel features (leverage mbtexcel, additive)
 The items here are independent, so they land in whatever order pays best rather
@@ -1907,6 +1918,46 @@ readers cannot.
 - A broken layout is now reported before the sheets' other errors.
 - The model is unchanged: a resolved name is an ordinary range.
 
+### ADR-027 — Publish to mooncakes; `moonx` runs the CLI as wasm
+
+**Status:** accepted 2026-10-10. Resolves §8 Q6. Extends ADR-003: the native
+binary stays the primary distribution, and `preferred_target` stays `native`.
+
+**Context:** `moonx user/module/package` runs a registry package without
+installing it, on the linear-memory `wasm` backend (its `native` target is
+deprecated). Q6 assumed a wasm CLI would need a lighter backend behind the
+ADR-002 seam. That premise no longer holds:
+- `moon check` passes for `wasm`, `wasm-gc` and `js` with no change.
+- `moon run src/cmd/main --target wasm -- build` produces the same bytes as
+  the native binary for all 14 `examples/`.
+- Under `moonx`'s default policy, `x/fs` reads and writes paths relative to
+  the working directory (checked with a `.mbtx` probe; not yet with a
+  published package).
+
+**Decision:**
+- Publish the `t-ujiie-g/yxl` module to mooncakes, so that
+  `moonx t-ujiie-g/yxl/cmd/main build spec.yxl.yaml` works with no install, and
+  `moon install` builds the same entry point.
+- The supported library surface is `@cli.compile` and `@cli.extract`, which
+  are I/O-free (ADR-003). The other packages are implementation, and are taken
+  out of the public surface or marked unsupported before the first publish.
+- CI builds `cmd/main` for `wasm` and checks that its output matches the
+  native binary for `examples/`. That keeps the wasm path from drifting.
+- The first publish waits for the next `mbtexcel` release, which carries
+  the fixes for our upstream reports. It also waits until yxl has adopted
+  that release.
+- The module's version stays the one in `moon.mod`. A mooncakes publish
+  happens at the same tag as the GitHub release.
+
+**Trade-offs / consequences:**
+- Publishing cannot be undone version by version: `moon deprecate` covers
+  every existing version at once. A bad release is fixed by a newer one.
+- Every publicly reachable package becomes something another module can
+  depend on. Narrowing the surface first is what keeps internal refactors
+  free of semver cost.
+- `js` builds, but a browser or editor build of `compile` is a separate
+  question and not part of this decision.
+
 ## 8. Open questions
 
 - **Q1 — YAML parser.** ✅ **Decided (ADR-009), refined (ADR-010):** depend on
@@ -1990,6 +2041,9 @@ readers cannot.
 
 - **Q6 — Distribution.** Native binary only, or also a wasm CLI? A wasm target
   would favor a lighter backend (`moon-xlsx`) via the ADR-002 seam.
+  ✅ **Decided (ADR-027):** both. The module is published to mooncakes and
+  `moonx` runs the CLI as wasm. The current backend builds for wasm unchanged,
+  so no lighter one is needed.
 
 - **Q12 — Can a spec say "this one cell is an exception"?** ✅ **Decided
   (ADR-018): yes, as a top-level `overrides:` layer.** Raised from downstream by
@@ -2438,6 +2492,13 @@ readers cannot.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-10-10** — **Decision: yxl will be published to mooncakes (ADR-027,
+  closes Q6).** `moonx` runs registry packages as wasm. yxl already builds for
+  `wasm` with its current backend, and writes the same bytes as the native
+  binary for every example. So the module will be published and run that way,
+  and the native binary stays the primary distribution. The work is a new
+  Phase 8 item. Its first publish waits for the next `mbtexcel` release.
 
 - **2026-09-27** — **Docs: a Japanese README.** `README.ja.md` translates
   `README.md`, and each links to the other at the top. `AGENTS.md §1` makes it
