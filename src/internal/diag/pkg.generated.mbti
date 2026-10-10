@@ -1,5 +1,5 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "t-ujiie-g/yxl/diag"
+package "t-ujiie-g/yxl/internal/diag"
 
 import {
   "moonbitlang/core/debug",

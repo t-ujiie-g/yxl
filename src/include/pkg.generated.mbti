@@ -1,13 +1,7 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "t-ujiie-g/yxl/loader"
-
-import {
-  "t-ujiie-g/yxl/model",
-  "t-ujiie-g/yxl/yaml",
-}
+package "t-ujiie-g/yxl/include"
 
 // Values
-pub fn load(@yaml.Node, file~ : String, resolve? : (String, String) -> Included raise, read_bytes? : (String, String) -> IncludedBytes raise, params? : Map[String, String]) -> @model.Workbook raise
 
 // Errors
 

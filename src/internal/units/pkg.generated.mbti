@@ -1,5 +1,5 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "t-ujiie-g/yxl/units"
+package "t-ujiie-g/yxl/internal/units"
 
 import {
   "moonbitlang/core/debug",

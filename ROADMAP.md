@@ -90,6 +90,8 @@ the README too) costs nothing and saves a mismatch later; `yxl import` (Phase
 
 Target layout under `src/` (Phase 1 restructures the flat `moon new` scaffold —
 ADR-008). Dependencies point *downward*; lower packages never import higher.
+The compiler packages live under `src/internal/`, so no other module can import
+them; only `cli`, `include` and `cmd/main` are public (ADR-028).
 
 | Package | Purpose |
 |---|---|
@@ -103,6 +105,7 @@ ADR-008). Dependencies point *downward*; lower packages never import higher.
 | `read` | `.xlsx` bytes → `model` through the reader seam (ADR-017); with `emit`, the only package importing the backend |
 | `render` | `model` → document tree, the inverse of `loader`; where `extract` invents names for what the file shared |
 | `cli` (`cmd/main`) | Argument parsing, file read/write, `--check`, `--set`, exit codes, help |
+| `include` | The resolver types a caller of `@cli.compile` implements (`Included`, `IncludedBytes`); public because another module must construct them (ADR-028) |
 | `examples` | No product code: the tier-2 test that compiles the `examples/` cookbook and asserts on its output (§5) |
 
 ## 5. Verification tiers
@@ -272,6 +275,11 @@ The **active phase** is the first phase with any unchecked box.
         upstream reports.
       Then publish at a release tag, run the published package through
       `moonx`, and document it in both READMEs.
+      **Done so far:** the first three. The compiler is under `src/internal/`,
+      with the resolver types in `include` (ADR-028). CI's Linux leg builds
+      `cmd/main` for `wasm`, runs it with `moonrun`, and `cmp`s each example
+      against the native binary's output. `repository` is filled in. What
+      remains is the `mbtexcel` bump and the publish.
 
 ### Phase 9 — Richer Excel features (leverage mbtexcel, additive)
 The items here are independent, so they land in whatever order pays best rather
@@ -1266,7 +1274,7 @@ mismatches are diagnostics with source spans, never silently dropped or guessed.
 (AGENTS.md §8.8). Deprecated blocks live in `deprecated.mbt`.
 
 ### ADR-008 — `src/` sub-package layout
-**Status:** Accepted.
+**Status:** Accepted; refined by ADR-028 (compiler packages under `internal/`).
 **Decision:** Restructure the flat `moon new` scaffold into the `src/` package
 map of §4 in Phase 1, so `moon.mod` uses `source = "src"` and packages have
 clear, acyclic boundaries.
@@ -1958,6 +1966,38 @@ ADR-002 seam. That premise no longer holds:
 - `js` builds, but a browser or editor build of `compile` is a separate
   question and not part of this decision.
 
+### ADR-028 — The compiler packages are `internal`; `include` holds the resolver types
+
+**Status:** accepted 2026-10-11. Implements ADR-027's narrowed surface; refines
+ADR-008.
+
+**Context:** ADR-027 limits the supported surface to `@cli.compile` and
+`@cli.extract`. `moon` enforces Go-style `internal/` visibility. Another module
+cannot import `t-ujiie-g/yxl/internal/loader`, and the build plan refuses it by
+name. A re-export does not get around this. A type that `pub using` re-exports
+from an internal package can be named outside the module, but not constructed.
+Both rules were checked with a two-module workspace on `moon 0.1.20260920`.
+`compile`'s resolver callbacks return `Included` / `IncludedBytes`, which a
+caller must construct.
+
+**Decision:**
+- `diag`, `units`, `yaml`, `model`, `loader`, `emit`, `read` and `render` move
+  to `src/internal/`. Their `@alias` names do not change, so only `moon.pkg`
+  import paths moved.
+- `Included`, `IncludedBytes`, `IncludeResolver` and `BytesResolver` move from
+  `loader` to a new public package, `include`. `loader` brings them in with a
+  private `using`, so its code is unchanged.
+- The public packages are `cli`, `include`, `cmd/main`, and `examples`, which
+  is test-only and has no API.
+
+**Trade-offs / consequences:**
+- `@cli.parse_args` raises `@diag.CliError`, and `@cli.error_message` is the
+  way an outside caller reads any error. The caller can catch these errors but
+  cannot match on their variants. That is intended: the message is the
+  contract.
+- A caller of `compile` imports two packages, `cli` and `include`, rather than
+  one.
+
 ## 8. Open questions
 
 - **Q1 — YAML parser.** ✅ **Decided (ADR-009), refined (ADR-010):** depend on
@@ -2492,6 +2532,16 @@ ADR-002 seam. That premise no longer holds:
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-10-11** — **Structure: the compiler packages are `internal`
+  (ADR-028).** `diag`, `units`, `yaml`, `model`, `loader`, `emit`, `read` and
+  `render` moved under `src/internal/`, so once yxl is on mooncakes no other
+  module can depend on them. The resolver types `@cli.compile` takes moved from
+  `loader` to a new public `include` package. Code that called
+  `@cli.compile(…, resolve=…)` now builds `@include.Included` instead of
+  `@loader.Included`. A new CI step compiles every example with the wasm build
+  and checks that the bytes match the native binary's. `moon.mod` now names the
+  repository. The CLI is unchanged.
 
 - **2026-10-10** — **Decision: yxl will be published to mooncakes (ADR-027,
   closes Q6).** `moonx` runs registry packages as wasm. yxl already builds for

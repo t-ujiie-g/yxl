@@ -94,14 +94,14 @@ fn promises() -> Array[Promise] {
 ///|
 /// Read an included file through `@cli.resolve_path` — the same rule the CLI
 /// applies, so the corpus exercises the real resolution instead of a copy.
-fn included(from : String, path : String) -> @loader.Included raise {
+fn included(from : String, path : String) -> @include.Included raise {
   let name = @cli.resolve_path(from, path)
   { name, source: @fs.read_file_to_string(name), }
 }
 
 ///|
 /// The same, for a file the spec names but cannot hold as text: an image.
-fn included_bytes(from : String, path : String) -> @loader.IncludedBytes raise {
+fn included_bytes(from : String, path : String) -> @include.IncludedBytes raise {
   let name = @cli.resolve_path(from, path)
   { name, data: @fs.read_file_to_bytes(name), }
 }

@@ -45,7 +45,7 @@ fn load_ok(
 ///|
 /// An include resolver over an in-memory file map: the loader resolves includes
 /// without touching the disk (ADR-003), so these tests need no fixtures.
-fn memory_files(files : Map[String, String]) -> @loader.IncludeResolver {
+fn memory_files(files : Map[String, String]) -> @include.IncludeResolver {
   (_from, path) => {
     match files.get(path) {
       Some(source) => { name: path, source, }
@@ -59,7 +59,7 @@ fn memory_files(files : Map[String, String]) -> @loader.IncludeResolver {
 
 ///|
 /// The same, for the files a spec cannot hold as text: an image's bytes.
-fn memory_binaries(files : Map[String, Bytes]) -> @loader.BytesResolver {
+fn memory_binaries(files : Map[String, Bytes]) -> @include.BytesResolver {
   (_from, path) => {
     match files.get(path) {
       Some(data) => { name: path, data, }

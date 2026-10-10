@@ -266,8 +266,8 @@ fn parse_setting(argument : String) -> (String, String) raise @diag.CliError {
 pub fn compile(
   source : String,
   file~ : String,
-  resolve? : @loader.IncludeResolver,
-  read_bytes? : @loader.BytesResolver,
+  resolve? : @include.IncludeResolver,
+  read_bytes? : @include.BytesResolver,
   params? : Map[String, String],
 ) -> Bytes raise {
   @emit.to_bytes(

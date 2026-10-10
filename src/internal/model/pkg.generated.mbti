@@ -1,9 +1,9 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "t-ujiie-g/yxl/model"
+package "t-ujiie-g/yxl/internal/model"
 
 import {
   "moonbitlang/core/debug",
-  "t-ujiie-g/yxl/units",
+  "t-ujiie-g/yxl/internal/units",
 }
 
 // Values

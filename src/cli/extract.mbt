@@ -95,7 +95,7 @@ fn verify(
   for companion in companions {
     by_path[companion.path] = companion.content
   }
-  let resolve : @loader.IncludeResolver = fn(_from, path) {
+  let resolve : @include.IncludeResolver = fn(_from, path) {
     {
       name: path,
       source: match by_path.get(path) {
@@ -106,7 +106,7 @@ fn verify(
   }
   // A picture is read through the other resolver, as bytes, because that is what
   // it is; decoding it as text and back would not survive.
-  let read_bytes : @loader.BytesResolver = fn(_from, path) {
+  let read_bytes : @include.BytesResolver = fn(_from, path) {
     { name: path, data: by_path.get(path).unwrap_or(b""), }
   }
   let rebuilt = @read.from_bytes(

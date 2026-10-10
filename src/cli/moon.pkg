@@ -3,13 +3,14 @@
 // the `cmd/main` executable, not here (ADR-003), so this package unit-tests
 // without touching the disk.
 import {
-  "t-ujiie-g/yxl/yaml",
-  "t-ujiie-g/yxl/loader",
-  "t-ujiie-g/yxl/emit",
-  "t-ujiie-g/yxl/read",
-  "t-ujiie-g/yxl/render",
-  "t-ujiie-g/yxl/model",
-  "t-ujiie-g/yxl/diag",
+  "t-ujiie-g/yxl/include",
+  "t-ujiie-g/yxl/internal/yaml",
+  "t-ujiie-g/yxl/internal/loader",
+  "t-ujiie-g/yxl/internal/emit",
+  "t-ujiie-g/yxl/internal/read",
+  "t-ujiie-g/yxl/internal/render",
+  "t-ujiie-g/yxl/internal/model",
+  "t-ujiie-g/yxl/internal/diag",
   // A companion file is bytes, whatever it holds; a CSV is text encoded once.
   "moonbitlang/core/encoding/utf8",
   // `extends.mbt` names `@debug.Debug` to decline its promotion.
@@ -22,7 +23,7 @@ import {
 import {
   "moonbitlang/mbtexcel/xlsx",
   "moonbitlang/core/bench",
-  "t-ujiie-g/yxl/yaml",
-  "t-ujiie-g/yxl/loader",
-  "t-ujiie-g/yxl/emit",
+  "t-ujiie-g/yxl/internal/yaml",
+  "t-ujiie-g/yxl/internal/loader",
+  "t-ujiie-g/yxl/internal/emit",
 } for "test"

@@ -2,10 +2,11 @@
 // `model.Workbook`, rejecting unknown keys, wrong types, and bad cell
 // references as `@diag.SchemaError`s (ADR-006). Pure: no filesystem access.
 import {
-  "t-ujiie-g/yxl/yaml",
-  "t-ujiie-g/yxl/model",
-  "t-ujiie-g/yxl/units",
-  "t-ujiie-g/yxl/diag",
+  "t-ujiie-g/yxl/include",
+  "t-ujiie-g/yxl/internal/yaml",
+  "t-ujiie-g/yxl/internal/model",
+  "t-ujiie-g/yxl/internal/units",
+  "t-ujiie-g/yxl/internal/diag",
   "moonbitlang/core/string",
   // JSON data tables; the format has a parser in core, unlike CSV.
   "moonbitlang/core/json",
@@ -14,4 +15,5 @@ import {
 // `debug_inspect` renders the workbook model (which derives `Debug`) in tests.
 import {
   "moonbitlang/core/debug",
+  "t-ujiie-g/yxl/include",
 } for "test"

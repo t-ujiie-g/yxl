@@ -196,7 +196,7 @@ fn read_source(input : String) -> String? {
 /// Read the file an `$include` names, relative to the file containing it, so a
 /// spec can be moved as a directory. This is the disk half of includes; the
 /// loader itself never opens a file (ADR-003).
-fn read_included(from : String, path : String) -> @loader.Included raise {
+fn read_included(from : String, path : String) -> @include.Included raise {
   let name = @cli.resolve_path(from, path)
   let source = @fs.read_file_to_string(name) catch {
     @fs.IOError(reason) => raise read_error(from, name, reason)
@@ -211,7 +211,7 @@ fn read_included(from : String, path : String) -> @loader.Included raise {
 fn read_included_bytes(
   from : String,
   path : String,
-) -> @loader.IncludedBytes raise {
+) -> @include.IncludedBytes raise {
   let name = @cli.resolve_path(from, path)
   let data = @fs.read_file_to_bytes(name) catch {
     @fs.IOError(reason) => raise read_error(from, name, reason)
