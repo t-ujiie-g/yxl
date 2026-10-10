@@ -141,6 +141,21 @@ jobs:
             "$yxl" build "$spec" -o "_build/examples/$(basename "$spec" .yxl.yaml).xlsx"
           done
 
+      # `moonx` runs the published CLI as wasm (ADR-027); it must write the same
+      # bytes as the native binary. Linux alone: the bytes do not differ by runner.
+      - name: Examples compile to the same bytes under wasm
+        if: runner.os == 'Linux'
+        run: |
+          moon build --target wasm --release
+          wasm=_build/wasm/release/build/cmd/main/main.wasm
+          mkdir -p _build/examples-wasm
+          for spec in examples/*.yxl.yaml; do
+            name=$(basename "$spec" .yxl.yaml)
+            echo "--- $spec"
+            moonrun "$wasm" build "$spec" -o "_build/examples-wasm/$name.xlsx"
+            cmp "_build/examples/$name.xlsx" "_build/examples-wasm/$name.xlsx"
+          done
+
       # The corpus that exists only to be validated. `examples/` above is the
       # cookbook — written to be read, one lesson at a time — so the validator
       # was only ever judging the handful of variants a lesson happened to

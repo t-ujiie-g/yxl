@@ -3,12 +3,12 @@ package "t-ujiie-g/yxl/cli"
 
 import {
   "moonbitlang/core/debug",
-  "t-ujiie-g/yxl/diag",
-  "t-ujiie-g/yxl/loader",
+  "t-ujiie-g/yxl/include",
+  "t-ujiie-g/yxl/internal/diag",
 }
 
 // Values
-pub fn compile(String, file~ : String, resolve? : (String, String) -> @loader.Included raise, read_bytes? : (String, String) -> @loader.IncludedBytes raise, params? : Map[String, String]) -> Bytes raise
+pub fn compile(String, file~ : String, resolve? : (String, String) -> @include.Included raise, read_bytes? : (String, String) -> @include.IncludedBytes raise, params? : Map[String, String]) -> Bytes raise
 
 pub fn directory_of(String) -> String?
 

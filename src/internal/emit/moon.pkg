@@ -2,9 +2,9 @@
 // Excel backend (`moonbitlang/mbtexcel`); it lives behind the `Emitter` seam so the
 // rest of the pipeline never calls the backend directly (ADR-002).
 import {
-  "t-ujiie-g/yxl/model",
-  "t-ujiie-g/yxl/units",
-  "t-ujiie-g/yxl/diag",
+  "t-ujiie-g/yxl/internal/model",
+  "t-ujiie-g/yxl/internal/units",
+  "t-ujiie-g/yxl/internal/diag",
   "moonbitlang/mbtexcel/xlsx",
   // Compressing the package the backend hands over as a ZIP archive.
   "moonbit-community/flate/zip",

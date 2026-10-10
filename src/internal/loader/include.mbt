@@ -1,27 +1,17 @@
 ///|
+using @include {
+  type Included,
+  type IncludedBytes,
+  type IncludeResolver,
+  type BytesResolver,
+}
+
+///|
 /// The mapping key that marks an include. `$` marks it as a directive rather
 /// than spec data, matching `$ref` (ADR-012); a YAML `!include` tag is not an
 /// option, because the parser drops unknown tags silently, which would turn a
 /// typo into a plain string instead of a diagnostic (ADR-010, ADR-014).
 const INCLUDE_KEY : String = "$include"
-
-///|
-/// What an `$include` resolved to: the document's source text, and the name to
-/// call it in diagnostics — the path the resolver actually opened, so an error
-/// inside an included file points at that file, and a nested relative include
-/// resolves against the right directory.
-pub(all) struct Included {
-  name : String
-  source : String
-}
-
-///|
-/// How the loader obtains an included document: given the name of the file
-/// containing the `$include` and the path as written in it, return the source.
-/// The CLI passes one that reads the disk; a test passes one backed by a map.
-/// Failing to find or read the file should raise (a `@diag.SchemaError` names
-/// the including file).
-pub type IncludeResolver = (String, String) -> Included raise
 
 ///|
 /// The resolver a caller that cannot read files gets. Reaching it means the spec
@@ -32,21 +22,6 @@ fn no_includes(from : String, path : String) -> Included raise {
     "cannot resolve '\{INCLUDE_KEY}: \{path}' — this caller provides no way to read files",
   )
 }
-
-///|
-/// What a binary file resolved to: its bytes, and the name to call it in
-/// diagnostics — again the path the resolver actually opened.
-pub(all) struct IncludedBytes {
-  name : String
-  data : Bytes
-}
-
-///|
-/// How the loader obtains a file it cannot read as text — today only an image.
-/// The same seam as `IncludeResolver` and for the same reason: the compiler core
-/// opens nothing itself (ADR-003). Kept apart from it because a text resolver
-/// has no bytes to give and a binary one no source text.
-pub type BytesResolver = (String, String) -> IncludedBytes raise
 
 ///|
 /// The binary resolver a caller that cannot read files gets. Reaching it means

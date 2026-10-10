@@ -5,7 +5,7 @@
 // (ADR-010), so per-node positions wait for a parser swap. Depends only on `diag`
 // and the parser library.
 import {
-  "t-ujiie-g/yxl/diag",
+  "t-ujiie-g/yxl/internal/diag",
   // Aliased so it does not clash with this package's own name (`yaml`).
   "moonbit-community/yaml" @yamllib,
   // `extends.mbt` names `@debug.Debug` to decline its promotion.

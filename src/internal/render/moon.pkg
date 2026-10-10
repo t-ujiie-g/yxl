@@ -7,9 +7,9 @@
 // arrives here as one style and no word for it; naming it is the last thing
 // between a recovered spec and one somebody would keep.
 import {
-  "t-ujiie-g/yxl/model",
-  "t-ujiie-g/yxl/units",
-  "t-ujiie-g/yxl/yaml",
+  "t-ujiie-g/yxl/internal/model",
+  "t-ujiie-g/yxl/internal/units",
+  "t-ujiie-g/yxl/internal/yaml",
   // Sets of the addresses and names already spoken for.
   "moonbitlang/core/set",
 }

@@ -5,9 +5,9 @@
 //
 // Pure: bytes in, model out. Opening the file is the CLI's job (ADR-003).
 import {
-  "t-ujiie-g/yxl/model",
-  "t-ujiie-g/yxl/units",
-  "t-ujiie-g/yxl/diag",
+  "t-ujiie-g/yxl/internal/model",
+  "t-ujiie-g/yxl/internal/units",
+  "t-ujiie-g/yxl/internal/diag",
   "moonbitlang/mbtexcel/xlsx",
   // Parsing a validation bound out of the formula the file stores it as.
   "moonbitlang/core/string",
@@ -20,5 +20,5 @@ import {
 // The tests build a model, compile it with `emit`, and read the bytes back —
 // the only way to assert on a real `.xlsx` without carrying a fixture file.
 import {
-  "t-ujiie-g/yxl/emit",
+  "t-ujiie-g/yxl/internal/emit",
 } for "test"

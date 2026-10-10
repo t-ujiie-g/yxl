@@ -10,7 +10,7 @@ version = "0.5.1"
 
 readme = "README.mbt.md"
 
-repository = ""
+repository = "https://github.com/t-ujiie-g/yxl"
 
 license = "Apache-2.0"
 
@@ -20,8 +20,8 @@ keywords = [ "yaml", "excel", "xlsx", "spreadsheet", "cli", "compiler" ]
 
 preferred_target = "native"
 
-// Packages live under src/ (ADR-008): diag, units, yaml, model, loader,
-// resolve, emit, and the cli entry at cmd/main.
+// Packages live under src/ (ADR-008). Only cli, include and cmd/main are
+// importable by other modules; the compiler is under internal/ (ADR-028).
 
 source = "src"
 

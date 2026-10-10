@@ -4,9 +4,9 @@
 // the I/O-free `cli` (ADR-003) nor the executable entry point should host.
 import {
   "t-ujiie-g/yxl/cli",
-  "t-ujiie-g/yxl/yaml",
+  "t-ujiie-g/yxl/internal/yaml",
   // For the include resolver's return type.
-  "t-ujiie-g/yxl/loader",
+  "t-ujiie-g/yxl/include",
   // Reading the corpus, and re-opening what it compiles to.
   "moonbitlang/x/fs",
   "moonbitlang/mbtexcel/xlsx",

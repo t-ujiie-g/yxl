@@ -1,0 +1,19 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "t-ujiie-g/yxl/internal/loader"
+
+import {
+  "t-ujiie-g/yxl/include",
+  "t-ujiie-g/yxl/internal/model",
+  "t-ujiie-g/yxl/internal/yaml",
+}
+
+// Values
+pub fn load(@yaml.Node, file~ : String, resolve? : (String, String) -> @include.Included raise, read_bytes? : (String, String) -> @include.IncludedBytes raise, params? : Map[String, String]) -> @model.Workbook raise
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits

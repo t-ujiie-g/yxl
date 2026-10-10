@@ -1,0 +1,2 @@
+// The resolver types a caller of `@cli.compile` implements. Public, unlike the
+// compiler packages under `internal/`, because another module must construct them.

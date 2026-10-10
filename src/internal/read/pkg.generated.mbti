@@ -1,9 +1,9 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "t-ujiie-g/yxl/read"
+package "t-ujiie-g/yxl/internal/read"
 
 import {
-  "t-ujiie-g/yxl/diag",
-  "t-ujiie-g/yxl/model",
+  "t-ujiie-g/yxl/internal/diag",
+  "t-ujiie-g/yxl/internal/model",
 }
 
 // Values
