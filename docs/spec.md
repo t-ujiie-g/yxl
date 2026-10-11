@@ -303,11 +303,53 @@ A band that sets nothing contributes nothing. A column band that sets no
 `width` keeps Excel's standard width, 8.43 characters. `group` must be a whole number
 between 0 and 7; `0` means ungrouped, which is distinct from omitting the key.
 
+### When bands on one axis overlap
+
+Two `columns:` bands, or two `rows:` bands, may cover the same column or row.
+The later band in the list wins, but what it replaces differs by key:
+
+- **`style` / `format` is replaced whole.** The column (or row) takes its look
+  from the last band that sets either key. It is not merged with an earlier
+  band's look attribute by attribute.
+- **`width`, `height`, `hidden` and `group` are replaced one key at a time.**
+  Each comes from the last band that sets *that* key. A later band that leaves
+  a key out keeps the earlier band's value.
+
+```yaml
+columns:
+  - at: A-C
+    style: { fill: "DDEEFF", format: "#,##0" }
+  - at: B
+    style: { font: { italic: true } }   # B is italic only: no fill, no format
+  - at: E-F
+    width: 30
+  - at: F
+    hidden: true                        # F is hidden, and still 30 wide
+```
+
+To add to an earlier band's look rather than replace it, name the look in
+`defs.styles` and `extends` it (§6):
+
+```yaml
+defs:
+  styles:
+    money: { fill: "DDEEFF", format: "#,##0" }
+sheets:
+  - name: S
+    columns:
+      - at: A-C
+        style: money
+      - at: B
+        style: { extends: money, font: { italic: true } }   # fill, format and italic
+```
+
 ### How a band's styling reaches a cell
 
 A band's `style` / `format` applies to every cell in its span, written or not.
 Where several apply, they **layer**, innermost last: the column band, then the
-row band over it, then the cell's own `style` / `format` over both. Layering is
+row band over it, then the cell's own `style` / `format` over both. (The column
+band and the row band here are each the one that wins on its axis, as described
+above.) Layering is
 per attribute, as `extends` is (§6), so a column can set the number format while
 the cell sets the font and both survive.
 
