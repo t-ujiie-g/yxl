@@ -2533,6 +2533,13 @@ caller must construct.
 
 Reverse-chronological. One entry per user-visible or structural change.
 
+- **2026-10-11** — **Docs: what happens when bands on one axis overlap (#109).**
+  `docs/spec.md` §4 now states the rule the compiler already followed. A later
+  band's `style` / `format` replaces an earlier one's whole. `width`, `height`,
+  `hidden` and `group` are replaced one key at a time. To add to an earlier
+  look, name it in `defs.styles` and `extends` it. The text was silent here,
+  and yxl-vscode's preview had read it the other way (yxl-vscode#208).
+
 - **2026-10-11** — **Structure: the compiler packages are `internal`
   (ADR-028).** `diag`, `units`, `yaml`, `model`, `loader`, `emit`, `read` and
   `render` moved under `src/internal/`, so once yxl is on mooncakes no other
