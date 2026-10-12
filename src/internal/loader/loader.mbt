@@ -86,12 +86,13 @@ pub fn load(
       "calc" => workbook.set_calc(load_calc(value, file~))
       "protect" =>
         workbook.set_protection(load_workbook_protection(value, file~))
+      "output" => workbook.set_output(load_output(value, file~))
       PARAMS_KEY => () // consumed by the substitution pass
       OVERRIDES_KEY => () // loaded below, once every layout has a place
       _ =>
         raise schema_error(
           file~,
-          "unknown top-level key '\{key}' (expected 'sheets', 'active', 'params', 'overrides', 'date1904', 'default_font', 'defs', 'properties', 'calc', or 'protect')",
+          "unknown top-level key '\{key}' (expected 'sheets', 'output', 'active', 'params', 'overrides', 'date1904', 'default_font', 'defs', 'properties', 'calc', or 'protect')",
         )
     }
   }
@@ -172,6 +173,23 @@ fn read_default_font(
 ) -> String? raise @diag.SchemaError {
   guard find_key(root, "default_font") is Some(value) else { return None }
   Some(expect_string(value, file~, context="'default_font'"))
+}
+
+///|
+/// The top-level `output:` path. Anything but a `.xlsx` name would write a file
+/// Excel refuses to open, so it is caught here rather than on open.
+fn load_output(
+  value : @yaml.Node,
+  file~ : String,
+) -> String raise @diag.SchemaError {
+  let path = expect_string(value, file~, context="'output'")
+  guard path.to_lower().has_suffix(".xlsx") else {
+    raise schema_error(
+      file~,
+      "'output' must name a .xlsx file, but is '\{path}'",
+    )
+  }
+  path
 }
 
 ///|

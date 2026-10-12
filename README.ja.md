@@ -21,8 +21,8 @@
   できます。結果はどれも同じです。
 - **1 つのスペックから複数のブック** — `params:` を宣言し、ビルドごとに
   `--set region=EMEA` で上書きします。
-- **ネイティブコマンド 1 つ** — 最初のスペックは `yxl init`、あとは
-  `yxl build report.yxl.yaml -o report.xlsx`。
+- **ネイティブコマンド 1 つ** — 最初のスペックは `yxl init`、あとはその
+  ディレクトリで `yxl build`。
 
 `.xlsx` のバイト列は、成熟したライブラリ
 [`moonbitlang/mbtexcel`](https://mooncakes.io/docs/moonbitlang/mbtexcel)（Go の
@@ -156,7 +156,9 @@ macOS はダウンロードしたバイナリに隔離属性を付けます。Ga
 
 ```bash
 yxl init -o sheet.yxl.yaml                   # 最初のスペック: 空のシートが 1 枚
-yxl build report.yxl.yaml -o report.xlsx     # コンパイル
+yxl build                                    # ここにある唯一の *.yxl.yaml をコンパイル
+yxl build report.yxl.yaml                    # コンパイル → report.xlsx
+yxl build report.yxl.yaml -o out.xlsx        # … 出力先を指定して
 yxl build report.yxl.yaml --check            # 検証のみ、何も書き出さない
 yxl build report.yxl.yaml -o r.xlsx --set region=EMEA
 yxl extract legacy.xlsx -o legacy.yxl.yaml   # 既存のブック → たたき台のスペック
@@ -167,6 +169,10 @@ yxl help                                     # 使い方の全体
 `init` は書き始めるための場所を用意します — 空のシート 1 枚だけで、先に消す必要の
 ある作例ではありません。生成ファイルに入るビルドコマンドには指定したファイル名が
 入り、既存のスペックは `--force` を付けない限り上書きしません。
+
+`-o` がなければ、`build` はスペック自身の `output:` キーが指す場所に、それも
+なければスペックの隣に同じ名前で書き出します。スペックを指定しなければ、カレント
+ディレクトリにある唯一の `*.yxl.yaml` をビルドします。
 
 スキーマの全体は [`docs/spec.md`](./docs/spec.md)（英語）にあります。`extract` は
 一方向の移行補助で往復変換ではなく、その §22 で説明しています。

@@ -1,5 +1,5 @@
 ///|
-/// Entry point: `yxl build <in.yaml> -o <out.xlsx>`. Filesystem access and the
+/// Entry point: `yxl build [<in.yaml>] [-o <out.xlsx>]`. Filesystem access and the
 /// process exit code live only here (ADR-003); the compile pipeline behind
 /// `@cli` is I/O-free.
 fn main {
@@ -18,8 +18,14 @@ fn run() -> Int {
     }
   }
   match command {
-    Build(input~, output~, params~) => build(input, output, params)
-    Check(input~, params~) => check(input, params)
+    Build(input~, output~, params~) => {
+      guard spec_or_found(input) is Some(input) else { return @cli.exit_usage }
+      build(input, output, params)
+    }
+    Check(input~, params~) => {
+      guard spec_or_found(input) is Some(input) else { return @cli.exit_usage }
+      check(input, params)
+    }
     Extract(input~, output~, flat~) => extract(input, output, flat)
     Init(output~, force~) => init_spec(output, force)
     Version => {
@@ -29,6 +35,27 @@ fn run() -> Int {
     Help => {
       println(@cli.usage)
       @cli.exit_ok
+    }
+  }
+}
+
+///|
+/// The spec the command line named, or else the one in the current directory.
+/// `None` once the reason there is none has been reported.
+fn spec_or_found(input : String?) -> String? {
+  if input is Some(_) {
+    return input
+  }
+  let names = @fs.read_dir(".") catch {
+    @fs.IOError(reason) => {
+      report("cannot list the current directory: \{reason}")
+      return None
+    }
+  }
+  Some(@cli.find_spec(names)) catch {
+    @diag.CliError(d) => {
+      report(d.render())
+      None
     }
   }
 }
@@ -46,18 +73,24 @@ fn check(input : String, params : Map[String, String]) -> Int {
 }
 
 ///|
-/// Read `input`, compile it, and write the `.xlsx` bytes to `output`.
-fn build(input : String, output : String, params : Map[String, String]) -> Int {
+/// Read `input`, compile it, and write the `.xlsx` bytes to `output` — or,
+/// without one, to wherever the spec says (`@cli.Compiled`).
+fn build(input : String, output : String?, params : Map[String, String]) -> Int {
   guard read_source(input) is Some(source) else { return @cli.exit_error }
-  guard compile(input, source, params) is Some(bytes) else {
-    return @cli.exit_error
-  }
-  @fs.write_bytes_to_file(output, bytes) catch {
-    @fs.IOError(reason) => {
-      report("cannot write \{output}: \{reason}")
+  let compiled = @cli.build(
+    source,
+    file=input,
+    resolve=read_included,
+    read_bytes=read_included_bytes,
+    params~,
+  ) catch {
+    err => {
+      report(@cli.error_message(err, source~))
       return @cli.exit_error
     }
   }
+  let output = output.unwrap_or(compiled.output)
+  guard write_file(output, compiled.bytes) else { return @cli.exit_error }
   report("wrote \{output}")
   @cli.exit_ok
 }
@@ -65,8 +98,7 @@ fn build(input : String, output : String, params : Map[String, String]) -> Int {
 ///|
 /// Run the whole pipeline over a spec already read, wiring in the two disk-side
 /// resolvers. A failure is reported against the source — so the offending line
-/// is quoted — and returns `None`. `build` and `check` differ only in what they
-/// do with the bytes that come back.
+/// is quoted — and returns `None`.
 fn compile(
   input : String,
   source : String,
@@ -138,9 +170,7 @@ fn extract(input : String, output : String, flat : Bool) -> Int {
   // to land for `yxl build` to find them again.
   for companion in extracted.companions {
     let path = @cli.resolve_path(output, companion.path)
-    guard write_companion(path, companion.content) else {
-      return @cli.exit_error
-    }
+    guard write_file(path, companion.content) else { return @cli.exit_error }
     report("     + \{path}")
   }
   for note in extracted.dropped {
@@ -160,16 +190,12 @@ fn extract(input : String, output : String, flat : Bool) -> Int {
 }
 
 ///|
-/// Write one of the files an extracted spec names, making the directory it sits
-/// in first — the spec puts its tables under `data/`, which will not exist in a
-/// directory nobody has extracted into before.
-fn write_companion(path : String, content : Bytes) -> Bool {
+/// Write `content` to `path`, making the directory it sits in first: an
+/// extracted spec puts its tables under `data/`, and a spec's `output:` may
+/// name a `dist/` nobody has built into before.
+fn write_file(path : String, content : Bytes) -> Bool {
   if @cli.directory_of(path) is Some(directory) {
-    @fs.create_dir(directory) catch {
-      // Already there is the ordinary case, not a failure; a directory that
-      // genuinely cannot be made shows up as the write failing next.
-      _ => ()
-    }
+    make_directories(directory)
   }
   @fs.write_bytes_to_file(path, content) catch {
     @fs.IOError(reason) => {
@@ -178,6 +204,22 @@ fn write_companion(path : String, content : Bytes) -> Bool {
     }
   }
   true
+}
+
+///|
+/// Make `directory` and any parent it lacks, outermost first.
+fn make_directories(directory : String) -> Unit {
+  let trimmed = directory[:directory.length() - 1].to_owned()
+  if trimmed.is_empty() || @fs.path_exists(trimmed) {
+    return
+  }
+  if @cli.directory_of(trimmed) is Some(parent) {
+    make_directories(parent)
+  }
+  @fs.create_dir(trimmed) catch {
+    // One that genuinely cannot be made shows up as the write failing next.
+    _ => ()
+  }
 }
 
 ///|

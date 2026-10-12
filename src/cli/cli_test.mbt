@@ -20,9 +20,75 @@ test "parse_args accepts build with input and -o output, in either order" {
     guard @cli.parse_args(args) is Build(input~, output~, ..) else {
       fail("expected a Build command")
     }
-    assert_eq(input, "in.yaml")
-    assert_eq(output, "out.xlsx")
+    assert_eq(input, Some("in.yaml"))
+    assert_eq(output, Some("out.xlsx"))
   }
+}
+
+///|
+test "parse_args leaves the input and the output to be found" {
+  assert_eq(
+    @cli.parse_args(["build"]),
+    Build(input=None, output=None, params={}),
+  )
+  assert_eq(
+    @cli.parse_args(["build", "in.yaml"]),
+    Build(input=Some("in.yaml"), output=None, params={}),
+  )
+  assert_eq(
+    @cli.parse_args(["build", "-o", "out.xlsx"]),
+    Build(input=None, output=Some("out.xlsx"), params={}),
+  )
+  assert_eq(@cli.parse_args(["build", "--check"]), Check(input=None, params={}))
+}
+
+///|
+test "find_spec picks the one spec among a directory's files" {
+  assert_eq(
+    @cli.find_spec(["notes.md", "report.yxl.yaml", "data.yaml", "old.xlsx"]),
+    "report.yxl.yaml",
+  )
+  assert_eq(@cli.find_spec(["report.yxl.yml"]), "report.yxl.yml")
+}
+
+///|
+test "find_spec refuses a directory with no spec, or more than one" {
+  let message = (names : Array[String]) => {
+    try {
+      @cli.find_spec(names) |> ignore
+      None
+    } catch {
+      @diag.CliError(d) => Some(d.render())
+    }
+  }
+  assert_eq(
+    message(["data.yaml", "report.xlsx"]),
+    Some("no input file given, and there is no *.yxl.yaml here to build"),
+  )
+  assert_eq(
+    message(["b.yxl.yaml", "a.yxl.yml"]),
+    Some(
+      "no input file given, and more than one spec is here (a.yxl.yml, b.yxl.yaml); name the one to build",
+    ),
+  )
+}
+
+///|
+test "build writes beside the spec unless its output says otherwise" {
+  let plain = "sheets:\n  - name: S\n"
+  assert_eq(@cli.build(plain, file="report.yxl.yaml").output, "report.xlsx")
+  assert_eq(@cli.build(plain, file="specs/q3.yxl.yaml").output, "specs/q3.xlsx")
+  let named = "output: dist/out-${n}.xlsx\nparams:\n  n: 1\n" + plain
+  assert_eq(
+    @cli.build(named, file="specs/q3.yxl.yaml", params={ "n": "2" }).output,
+    "specs/dist/out-2.xlsx",
+  )
+  assert_eq(
+    @cli.build("output: /tmp/a.xlsx\n" + plain, file="specs/q3.yxl.yaml").output,
+    "/tmp/a.xlsx",
+  )
+  let built = @cli.build(named, file="q3.yxl.yaml")
+  assert_eq(@xlsx.read(built.bytes[:]).get_sheet_list(), ["S"])
 }
 
 ///|
@@ -32,14 +98,6 @@ test "parse_args rejects malformed command lines" {
     Some(
       "unknown command 'serve' (expected 'build', 'extract', 'init', 'help', or 'version')",
     ),
-  )
-  assert_eq(
-    usage_message(["build", "-o", "out.xlsx"]),
-    Some("no input file given"),
-  )
-  assert_eq(
-    usage_message(["build", "in.yaml"]),
-    Some("no output file given (use -o <out.xlsx>)"),
   )
   assert_eq(
     usage_message(["build", "in.yaml", "-o"]),
@@ -132,7 +190,7 @@ test "parse_args recognises help, version, and --check" {
   }
   assert_eq(
     @cli.parse_args(["build", "in.yaml", "--check", "--set", "a=1"]),
-    Check(input="in.yaml", params={ "a": "1" }),
+    Check(input=Some("in.yaml"), params={ "a": "1" }),
   )
 }
 
@@ -142,10 +200,6 @@ test "parse_args rejects --check with an output path" {
   assert_eq(
     usage_message(["build", "in.yaml", "--check", "-o", "out.xlsx"]),
     Some("'--check' writes nothing, so it cannot take '-o'"),
-  )
-  assert_eq(
-    usage_message(["build", "in.yaml"]),
-    Some("no output file given (use -o <out.xlsx>)"),
   )
 }
 
@@ -302,7 +356,7 @@ test "compile surfaces a schema error carrying the file name" {
   assert_eq(
     caught,
     Some(
-      "spec.yaml: unknown top-level key 'title' (expected 'sheets', 'active', 'params', 'overrides', 'date1904', 'default_font', 'defs', 'properties', 'calc', or 'protect')",
+      "spec.yaml: unknown top-level key 'title' (expected 'sheets', 'output', 'active', 'params', 'overrides', 'date1904', 'default_font', 'defs', 'properties', 'calc', or 'protect')",
     ),
   )
 }
@@ -459,7 +513,7 @@ test "starter_spec names the file it was written to, and the workbook it builds"
     @cli.starter_spec(output="sheet.yxl.yaml"),
     (
       $|# A yxl spec: a workbook as text.
-      $|# Build it with `yxl build sheet.yxl.yaml -o sheet.xlsx`.
+      $|# Build it with `yxl build sheet.yxl.yaml`, which writes sheet.xlsx.
       $|# The format: docs/spec.md
       $|sheets:
       $|  - name: Sheet1
@@ -467,7 +521,7 @@ test "starter_spec names the file it was written to, and the workbook it builds"
     ),
   )
   // Every spelling yxl uses for a spec loses its suffix; a path it does not
-  // recognise keeps what it has, so the `-o` argument is always usable.
+  // recognise keeps what it has, so the default output is always a .xlsx.
   for
     pair in [
       ("report.yxl.yaml", "report.xlsx"),
@@ -481,7 +535,7 @@ test "starter_spec names the file it was written to, and the workbook it builds"
     let (spec, workbook) = pair
     assert_true(
       @cli.starter_spec(output=spec).contains(
-        "`yxl build \{spec} -o \{workbook}`",
+        "`yxl build \{spec}`, which writes \{workbook}.",
       ),
     )
   }

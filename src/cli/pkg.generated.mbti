@@ -8,6 +8,8 @@ import {
 }
 
 // Values
+pub fn build(String, file~ : String, resolve? : (String, String) -> @include.Included raise, read_bytes? : (String, String) -> @include.IncludedBytes raise, params? : Map[String, String]) -> Compiled raise
+
 pub fn compile(String, file~ : String, resolve? : (String, String) -> @include.Included raise, read_bytes? : (String, String) -> @include.IncludedBytes raise, params? : Map[String, String]) -> Bytes raise
 
 pub fn directory_of(String) -> String?
@@ -21,6 +23,8 @@ pub let exit_ok : Int
 pub let exit_usage : Int
 
 pub fn extract(Bytes, file~ : String, flat? : Bool) -> Extracted raise
+
+pub fn find_spec(ArrayView[String]) -> String raise @diag.CliError
 
 pub fn parse_args(ArrayView[String]) -> Command raise @diag.CliError
 
@@ -36,8 +40,8 @@ pub let version : String
 
 // Types and methods
 pub(all) enum Command {
-  Build(input~ : String, output~ : String, params~ : Map[String, String])
-  Check(input~ : String, params~ : Map[String, String])
+  Build(input~ : String?, output~ : String?, params~ : Map[String, String])
+  Check(input~ : String?, params~ : Map[String, String])
   Extract(input~ : String, output~ : String, flat~ : Bool)
   Init(output~ : String, force~ : Bool)
   Version
@@ -47,6 +51,11 @@ pub(all) enum Command {
 pub struct Companion {
   path : String
   content : Bytes
+}
+
+pub struct Compiled {
+  bytes : Bytes
+  output : String
 }
 
 pub struct Extracted {
