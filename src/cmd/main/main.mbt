@@ -18,14 +18,16 @@ fn run() -> Int {
     }
   }
   match command {
-    Build(input~, output~, params~) => {
-      guard spec_or_found(input) is Some(input) else { return @cli.exit_usage }
-      build(input, output, params)
-    }
-    Check(input~, params~) => {
-      guard spec_or_found(input) is Some(input) else { return @cli.exit_usage }
-      check(input, params)
-    }
+    Build(input~, output~, params~) =>
+      match spec_or_found(input) {
+        Ok(input) => build(input, output, params)
+        Err(code) => code
+      }
+    Check(input~, params~) =>
+      match spec_or_found(input) {
+        Ok(input) => check(input, params)
+        Err(code) => code
+      }
     Extract(input~, output~, flat~) => extract(input, output, flat)
     Init(output~, force~) => init_spec(output, force)
     Version => {
@@ -41,21 +43,21 @@ fn run() -> Int {
 
 ///|
 /// The spec the command line named, or else the one in the current directory.
-/// `None` once the reason there is none has been reported.
-fn spec_or_found(input : String?) -> String? {
-  if input is Some(_) {
-    return input
+/// `Err` carries the exit code, once the reason there is none has been reported.
+fn spec_or_found(input : String?) -> Result[String, Int] {
+  if input is Some(input) {
+    return Ok(input)
   }
   let names = @fs.read_dir(".") catch {
     @fs.IOError(reason) => {
       report("cannot list the current directory: \{reason}")
-      return None
+      return Err(@cli.exit_error)
     }
   }
-  Some(@cli.find_spec(names)) catch {
+  Ok(@cli.find_spec(names)) catch {
     @diag.CliError(d) => {
       report(d.render())
-      None
+      Err(@cli.exit_usage)
     }
   }
 }

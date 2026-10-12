@@ -4,11 +4,14 @@
 # once and reached by name from everywhere, and the month's numbers in a CSV
 # the source system writes.
 #
-#   yxl build examples/workbook.yxl.yaml -o july.xlsx
-#   yxl build examples/workbook.yxl.yaml -o august.xlsx --set month=2026-08
+#   yxl build examples/workbook.yxl.yaml
+#   yxl build examples/workbook.yxl.yaml --set month=2026-08
 #
 # Next month is that second line: drop `workbook/data/sales-2026-09.csv` beside
-# its siblings and set `month`. Nothing else moves.
+# its siblings and set `month`. Nothing else moves — not even the file name,
+# which `output` takes from the month: `workbook/out/store-revenue-2026-08.xlsx`.
+output: workbook/out/store-revenue-${month}.xlsx
+
 params:
   month: "2026-07"
 

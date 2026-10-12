@@ -2575,7 +2575,8 @@ Reverse-chronological. One entry per user-visible or structural change.
   either it, or `-o`, `yxl build report.yxl.yaml` writes `report.xlsx` beside
   the spec. A bare `yxl build` builds the one `*.yxl.yaml` in the current
   directory. Missing output directories are created. `yxl init`'s starter now
-  says `yxl build sheet.yxl.yaml`. Existing command lines work as before.
+  says `yxl build sheet.yxl.yaml`, and `examples/workbook.yxl.yaml` names its
+  file by month. Existing command lines work as before.
 
 - **2026-10-11** — **Docs: what happens when bands on one axis overlap (#109).**
   `docs/spec.md` §4 now states the rule the compiler already followed. A later
