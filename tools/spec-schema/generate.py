@@ -1349,6 +1349,7 @@ def build(doc: Reference) -> dict:
     document = obj(
         {
             "sheets": seq(ref("sheet")),
+            "output": ref("text"),
             "active": ref("text"),
             "params": node(
                 {

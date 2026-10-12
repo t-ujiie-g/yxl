@@ -17,11 +17,12 @@ pub let version : String = "0.5.1"
 
 ///|
 /// What the command line asked for. `params` carries the `--set name=value`
-/// overrides. `Check` validates a spec and writes nothing, so — unlike `Build` —
-/// it has no output path to carry.
+/// overrides. An `input` of `None` means the one spec in the current directory
+/// (`find_spec`); an `output` of `None` means the one the spec names
+/// (`Compiled`). `Check` writes nothing, so it has no output path to carry.
 pub(all) enum Command {
-  Build(input~ : String, output~ : String, params~ : Map[String, String])
-  Check(input~ : String, params~ : Map[String, String])
+  Build(input~ : String?, output~ : String?, params~ : Map[String, String])
+  Check(input~ : String?, params~ : Map[String, String])
   /// Read a workbook and write the spec that would rebuild it (ADR-017).
   Extract(input~ : String, output~ : String, flat~ : Bool)
   /// Write `starter_spec` to a file someone can build straight away (#77).
@@ -38,7 +39,7 @@ pub fn starter_spec(output~ : String) -> String {
   let workbook = workbook_name(output)
   (
     $|# A yxl spec: a workbook as text.
-    $|# Build it with `yxl build \{output} -o \{workbook}`.
+    $|# Build it with `yxl build \{output}`, which writes \{workbook}.
     $|# The format: docs/spec.md
     $|sheets:
     $|  - name: Sheet1
@@ -52,8 +53,8 @@ pub let usage : String =
   #|yxl — compile a YAML workbook spec into a real .xlsx
   #|
   #|Usage:
-  #|  yxl build <spec.yaml> -o <out.xlsx> [--set name=value]...
-  #|  yxl build <spec.yaml> --check [--set name=value]...
+  #|  yxl build [<spec.yaml>] [-o <out.xlsx>] [--set name=value]...
+  #|  yxl build [<spec.yaml>] --check [--set name=value]...
   #|  yxl extract <book.xlsx> -o <spec.yxl.yaml> [--flat]
   #|  yxl init -o <spec.yxl.yaml> [--force]
   #|  yxl help | --help | -h
@@ -65,6 +66,10 @@ pub let usage : String =
   #|      --set name=value  override a parameter the spec declares (repeatable)
   #|      --flat            extract into one file, writing no CSV beside it
   #|      --force           let `init` overwrite a file that already exists
+  #|
+  #|`build` without a spec builds the one *.yxl.yaml in the current directory.
+  #|Without -o it writes where the spec's `output:` says, or else beside the
+  #|spec under the same name: report.yxl.yaml -> report.xlsx.
   #|
   #|`init` writes a spec holding one empty sheet — somewhere to start typing,
   #|not a worked example. It refuses to overwrite an existing file.
@@ -141,7 +146,6 @@ fn parse_build(args : ArrayView[String]) -> Command raise @diag.CliError {
       }
     }
   }
-  guard input is Some(input) else { raise usage_error("no input file given") }
   if check {
     // `--check` writes nothing, so naming an output would promise a file that
     // never appears.
@@ -150,10 +154,32 @@ fn parse_build(args : ArrayView[String]) -> Command raise @diag.CliError {
     }
     return Check(input~, params~)
   }
-  guard output is Some(output) else {
-    raise usage_error("no output file given (use -o <out.xlsx>)")
-  }
   Build(input~, output~, params~)
+}
+
+///|
+/// The spec a bare `yxl build` means, picked from the file `names` in the
+/// current directory: the one ending `.yxl.yaml` or `.yxl.yml`. None, or more
+/// than one, is a usage error that says which.
+pub fn find_spec(names : ArrayView[String]) -> String raise @diag.CliError {
+  let specs = names
+    .iter()
+    .filter(name => name.has_suffix(".yxl.yaml") || name.has_suffix(".yxl.yml"))
+    .to_array()
+  specs.sort()
+  match specs {
+    [spec] => spec
+    [] =>
+      raise usage_error(
+        "no input file given, and there is no *.yxl.yaml here to build",
+      )
+    _ => {
+      let listed = specs.join(", ")
+      raise usage_error(
+        "no input file given, and more than one spec is here (\{listed}); name the one to build",
+      )
+    }
+  }
 }
 
 ///|
@@ -270,15 +296,40 @@ pub fn compile(
   read_bytes? : @include.BytesResolver,
   params? : Map[String, String],
 ) -> Bytes raise {
-  @emit.to_bytes(
-    @loader.load(
-      @yaml.parse(source, file~),
-      file~,
-      resolve?,
-      read_bytes?,
-      params?,
-    ),
+  build(source, file~, resolve?, read_bytes?, params?).bytes
+}
+
+///|
+/// A compiled workbook and the path it belongs at: the spec's `output:`,
+/// resolved against the spec's own directory, or else the spec's name with
+/// `.xlsx` in place of its suffix.
+pub struct Compiled {
+  bytes : Bytes
+  output : String
+}
+
+///|
+/// `compile`, also deciding where the result goes — the whole of `yxl build`
+/// short of writing the file. Raises what `compile` raises.
+pub fn build(
+  source : String,
+  file~ : String,
+  resolve? : @include.IncludeResolver,
+  read_bytes? : @include.BytesResolver,
+  params? : Map[String, String],
+) -> Compiled raise {
+  let workbook = @loader.load(
+    @yaml.parse(source, file~),
+    file~,
+    resolve?,
+    read_bytes?,
+    params?,
   )
+  let output = match workbook.output {
+    Some(path) => resolve_path(file, path)
+    None => workbook_name(file)
+  }
+  { bytes: @emit.to_bytes(workbook), output, }
 }
 
 ///|

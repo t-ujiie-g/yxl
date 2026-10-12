@@ -18,7 +18,8 @@ references, and type errors are hard errors with a diagnostic naming the file
 and the construct. If a key might not exist, check the spec first.
 
 ```bash
-yxl build report.yxl.yaml -o report.xlsx     # compile
+yxl build report.yxl.yaml                    # compile → report.xlsx (or the spec's `output:`)
+yxl build report.yxl.yaml -o report.xlsx     # … to an explicit path
 yxl build report.yxl.yaml --check            # validate only, write nothing
 yxl build report.yxl.yaml -o r.xlsx --set month=2026-07
 yxl extract legacy.xlsx -o legacy.yxl.yaml   # existing workbook → starting spec

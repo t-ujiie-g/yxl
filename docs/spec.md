@@ -17,6 +17,7 @@ and never silently drops part of a spec.
 A spec is a YAML mapping. Only `sheets` is required.
 
 ```yaml
+output: report.xlsx    # where `yxl build` writes it (default: beside the spec)
 sheets: [...]          # the workbook's sheets, in tab order
 active: Summary        # the sheet Excel opens on (default: the first)
 params: {...}          # named values substituted as ${name}   → §7
@@ -32,6 +33,7 @@ default_font: Calibri  # the workbook's default font face
 | Key | Type | Notes |
 |---|---|---|
 | `sheets` | sequence | **Required.** Order here is tab order. |
+| `output` | text | A `.xlsx` path, relative to the spec. See below. |
 | `active` | text | Must name a declared, **visible** sheet. |
 | `params` | mapping | §7. |
 | `defs` | mapping | §6. |
@@ -43,6 +45,14 @@ default_font: Calibri  # the workbook's default font face
 | `default_font` | text | Face name only; size and colour are per-style. |
 
 Any node may instead be `{ $include: path }` — see §8.
+
+`output` lets a spec say where it builds to, so `yxl build report.yxl.yaml`
+needs no `-o`. It resolves against the spec's directory, as an include does
+(§8), and may use parameters (§7): `output: dist/report-${month}.xlsx`. A
+directory it names is created if missing. `-o` on the command line wins; with
+neither, the workbook goes beside the spec under the spec's name
+(`report.yxl.yaml` → `report.xlsx`). And `yxl build` with no spec at all builds
+the only `*.yxl.yaml` in the current directory — none, or several, is an error.
 
 The smallest document that compiles is one sheet with nothing in it, which is
 what `yxl init -o sheet.yxl.yaml` writes when you want somewhere to start:

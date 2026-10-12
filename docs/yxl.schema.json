@@ -21,6 +21,15 @@
       "description": "**Required.** Order here is tab order.",
       "markdownDescription": "**Required.** Order here is tab order."
     },
+    "output": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/text"
+        }
+      ],
+      "description": "A `.xlsx` path, relative to the spec. See below.",
+      "markdownDescription": "A `.xlsx` path, relative to the spec. See below."
+    },
     "active": {
       "allOf": [
         {

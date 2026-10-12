@@ -42,7 +42,8 @@ pub(all) struct Override {
 /// emission is deterministic; a reference cell holds `=name` and Excel resolves
 /// it. `active_sheet` names the tab Excel opens on, which the emitter resolves
 /// to an `activeTab` index. `overrides` are workbook-level because they apply
-/// after every sheet's cells, whichever sheet they land on. Every optional field
+/// after every sheet's cells, whichever sheet they land on. `output` is where
+/// the spec asks to be written; the emitter never reads it. Every optional field
 /// unset keeps Excel's or the backend's default.
 pub(all) struct Workbook {
   sheets : Array[Sheet]
@@ -54,6 +55,7 @@ pub(all) struct Workbook {
   mut properties : DocumentProperties?
   mut calc : CalcSettings?
   mut protection : WorkbookProtection?
+  mut output : String?
 } derive(Eq, Debug)
 
 ///|
@@ -80,6 +82,7 @@ pub fn Workbook::Workbook(
     properties: None,
     calc: None,
     protection: None,
+    output: None,
   }
 }
 
@@ -106,6 +109,12 @@ pub fn Workbook::set_protection(
   protection : WorkbookProtection,
 ) -> Unit {
   self.protection = Some(protection)
+}
+
+///|
+/// Record the path, as the spec wrote it, that the workbook should be built to.
+pub fn Workbook::set_output(self : Workbook, path : String) -> Unit {
+  self.output = Some(path)
 }
 
 ///|

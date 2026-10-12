@@ -27,7 +27,7 @@ Spreadsheets-as-code, with the properties code has:
   shared formulas, a single style id). Change it once, it changes everywhere.
 - **Flexible structure.** Keep data and formatting in separate files for large
   workbooks, or inline everything in one file for simple ones — same result.
-- **A single native command.** `yxl build report.yxl.yaml -o report.xlsx`.
+- **A single native command.** `yxl build` — the spec can say where it goes.
 
 The engine that writes the actual `.xlsx` bytes is
 [`moonbitlang/mbtexcel`](https://mooncakes.io/docs/moonbitlang/mbtexcel) (a mature
@@ -264,6 +264,12 @@ The **active phase** is the first phase with any unchecked box.
       preinstalled — no MSVC setup), the artifact sits at the same relative path
       as everywhere else, and the whole suite passes. Path resolution now takes
       either separator. CI covers all three platforms.
+- [x] **`yxl build` without `-o`, and without a spec (ADR-029).** A spec may
+      name its own `output:` path, resolved against the spec and open to
+      `${param}`; `-o` still wins, and with neither the workbook lands beside
+      the spec as `<name>.xlsx`. A bare `yxl build` builds the one `*.yxl.yaml`
+      in the current directory, and refuses when there are none or several.
+      Kept in the spec, not a project file, so one file stays the whole story
 - [ ] **Publish to mooncakes, runnable with `moonx` (ADR-027).** Before the first
       `moon publish`:
       - narrow the public surface to `@cli.compile` / `@cli.extract`. First
@@ -1998,6 +2004,36 @@ caller must construct.
 - A caller of `compile` imports two packages, `cli` and `include`, rather than
   one.
 
+### ADR-029 — A spec may name its output; `yxl build` may name nothing
+
+**Status:** accepted 2026-10-12.
+
+**Context:** every build had to repeat `-o`, though the destination is nearly
+always the same per spec. A separate project file (`yxl.config.yaml` with
+build targets) was considered and declined: a single self-contained spec is a
+selling point, and a second file to keep in step undercuts it.
+
+**Decision:**
+- A top-level `output:` names a `.xlsx` path. It resolves against the spec's
+  directory, like an include, and is substituted like any string, so
+  `--set` can vary it. Any other extension is a schema error.
+- Precedence: `-o`, then `output:`, then the spec's name with `.xlsx`
+  (`report.yxl.yaml` → `report.xlsx`) beside it.
+- `yxl build` / `yxl build --check` with no spec builds the only `*.yxl.yaml`
+  (or `.yxl.yml`) in the current directory; none or several is a usage error
+  (exit 2) naming what it found. The directory listing stays in `cmd/main`;
+  choosing among the names is the pure `@cli.find_spec`.
+- `output` rides on `@model.Workbook`, and the emitter ignores it. `@cli.build`
+  returns the bytes with the resolved path; `@cli.compile` is unchanged.
+- The directories an output path names are created if missing.
+
+**Trade-offs / consequences:**
+- The model carries one field that is about the build rather than the
+  workbook. The alternative — a second loader entry point — would have parsed
+  the spec twice or duplicated the include and parameter passes.
+- `yxl extract` does not write `output:`: the default already rebuilds
+  `book.yxl.yaml` to `book.xlsx`.
+
 ## 8. Open questions
 
 - **Q1 — YAML parser.** ✅ **Decided (ADR-009), refined (ADR-010):** depend on
@@ -2532,6 +2568,15 @@ caller must construct.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-10-12** — **CLI: `-o` is optional, and so is the spec (ADR-029).** A
+  spec's new top-level `output:` key says where it builds to
+  (`output: dist/report-${month}.xlsx`), resolved against the spec. Without
+  either it, or `-o`, `yxl build report.yxl.yaml` writes `report.xlsx` beside
+  the spec. A bare `yxl build` builds the one `*.yxl.yaml` in the current
+  directory. Missing output directories are created. `yxl init`'s starter now
+  says `yxl build sheet.yxl.yaml`, and `examples/workbook.yxl.yaml` names its
+  file by month. Existing command lines work as before.
 
 - **2026-10-11** — **Docs: what happens when bands on one axis overlap (#109).**
   `docs/spec.md` §4 now states the rule the compiler already followed. A later

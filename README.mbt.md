@@ -22,7 +22,7 @@ Spreadsheets-as-code, with the properties code has:
 - **One spec, many workbooks** — declare `params:` and override them per build
   with `--set region=EMEA`.
 - **A single native command** — `yxl init` for a first spec, then
-  `yxl build report.yxl.yaml -o report.xlsx`.
+  `yxl build` in its directory.
 
 The `.xlsx` bytes are produced by the mature
 [`moonbitlang/mbtexcel`](https://mooncakes.io/docs/moonbitlang/mbtexcel) library (a
@@ -154,7 +154,9 @@ be in any script.
 
 ```bash
 yxl init -o sheet.yxl.yaml                   # a first spec: one empty sheet
-yxl build report.yxl.yaml -o report.xlsx     # compile
+yxl build                                    # compile the one *.yxl.yaml here
+yxl build report.yxl.yaml                    # compile → report.xlsx
+yxl build report.yxl.yaml -o out.xlsx        # … to a path of your choosing
 yxl build report.yxl.yaml --check            # validate, write nothing
 yxl build report.yxl.yaml -o r.xlsx --set region=EMEA
 yxl extract legacy.xlsx -o legacy.yxl.yaml   # existing workbook → starting spec
@@ -165,6 +167,10 @@ yxl help                                     # full usage
 `init` writes somewhere to start typing — one empty sheet, not a worked example
 you would have to delete first. It names your own file in the build line it
 carries, and refuses to overwrite an existing spec unless you pass `--force`.
+
+Without `-o`, `build` writes where the spec's own `output:` key says, or else
+beside the spec under its name. Without a spec, it builds the only `*.yxl.yaml`
+in the current directory.
 
 The full schema is in [`docs/spec.md`](./docs/spec.md); `extract` — a one-way
 migration aid, not a round trip — is its §22.

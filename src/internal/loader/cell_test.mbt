@@ -283,6 +283,7 @@ test "load builds sheets and typed cells from a minimal spec" {
       #|  properties: None,
       #|  calc: None,
       #|  protection: None,
+      #|  output: None,
       #|}
     ),
   )

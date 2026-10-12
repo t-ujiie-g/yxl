@@ -126,6 +126,25 @@ test "every example compiles and holds what it promises" {
 }
 
 ///|
+test "the workbook example names its own output, by month" {
+  let path = "\{EXAMPLES}/workbook.yxl.yaml"
+  let build = (params : Map[String, String]) => {
+    @cli.build(
+      @fs.read_file_to_string(path),
+      file=path,
+      resolve=included,
+      read_bytes=included_bytes,
+      params~,
+    ).output
+  }
+  assert_eq(build({}), "examples/workbook/out/store-revenue-2026-07.xlsx")
+  assert_eq(
+    build({ "month": "2026-08" }),
+    "examples/workbook/out/store-revenue-2026-08.xlsx",
+  )
+}
+
+///|
 /// The decorations are not cell values, so the promise table above cannot carry
 /// them. This asserts the `interactive` example produces the filter, drop-downs,
 /// and links its comments describe.

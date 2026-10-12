@@ -74,7 +74,7 @@ test "load rejects an unknown top-level key" {
   assert_eq(
     schema_message("sheetz:\n  - name: S\n"),
     Some(
-      "spec.yaml: unknown top-level key 'sheetz' (expected 'sheets', 'active', 'params', 'overrides', 'date1904', 'default_font', 'defs', 'properties', 'calc', or 'protect')",
+      "spec.yaml: unknown top-level key 'sheetz' (expected 'sheets', 'output', 'active', 'params', 'overrides', 'date1904', 'default_font', 'defs', 'properties', 'calc', or 'protect')",
     ),
   )
 }
@@ -84,12 +84,44 @@ test "load requires the sheets key" {
   assert_eq(
     schema_message("title: report\n"),
     Some(
-      "spec.yaml: unknown top-level key 'title' (expected 'sheets', 'active', 'params', 'overrides', 'date1904', 'default_font', 'defs', 'properties', 'calc', or 'protect')",
+      "spec.yaml: unknown top-level key 'title' (expected 'sheets', 'output', 'active', 'params', 'overrides', 'date1904', 'default_font', 'defs', 'properties', 'calc', or 'protect')",
     ),
   )
   assert_eq(
     schema_message("{}\n"),
     Some("spec.yaml: missing required key 'sheets'"),
+  )
+}
+
+///|
+test "load records the output path, after parameters are substituted" {
+  assert_eq(load_ok("sheets:\n  - name: S\n").output, None)
+  assert_eq(
+    load_ok("output: out/report.xlsx\nsheets:\n  - name: S\n").output,
+    Some("out/report.xlsx"),
+  )
+  assert_eq(
+    load_ok(
+      "params:\n  month: \"2026-09\"\noutput: report-${month}.xlsx\nsheets:\n  - name: S\n",
+      params={ "month": "2026-10" },
+    ).output,
+    Some("report-2026-10.xlsx"),
+  )
+}
+
+///|
+test "load rejects an output that is not a .xlsx name" {
+  assert_eq(
+    schema_message("output: report\nsheets:\n  - name: S\n"),
+    Some("spec.yaml: 'output' must name a .xlsx file, but is 'report'"),
+  )
+  assert_eq(
+    schema_message("output: [a.xlsx]\nsheets:\n  - name: S\n"),
+    Some("spec.yaml: 'output' must be text"),
+  )
+  assert_eq(
+    load_ok("output: R.XLSX\nsheets:\n  - name: S\n").output,
+    Some("R.XLSX"),
   )
 }
 
