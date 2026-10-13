@@ -612,3 +612,29 @@ test "a cleared attribute survives the round trip through the file" {
   assert_true(styles["C1"].unwrap().fill is Some(_))
   assert_eq(styles["C2"].unwrap().cleared, @model.StyleAttrs::of([Fill]))
 }
+
+///|
+/// The minimal `chartSpace` part the backend will store for a chart sheet.
+fn chart_xml() -> String {
+  (
+    #|<?xml version="1.0" encoding="UTF-8"?>
+    #|<c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart"><c:chart><c:plotArea><c:layout/><c:barChart><c:barDir val="col"/></c:barChart></c:plotArea></c:chart></c:chartSpace>
+  )
+}
+
+///|
+test "a chart sheet is skipped and named, not walked as a grid" {
+  // A chart sheet is listed but `SheetNotFound` to every per-sheet accessor; it
+  // used to fail the whole extraction.
+  let backend = @xlsx.Workbook::new()
+  let _ = backend.new_sheet("Data")
+  backend.set_cell_str("Data", "A1", "Region")
+  let _ = backend.add_chart_sheet("Picture", chart_xml())
+  let recovered = @read.from_bytes(backend.write_to_buffer())
+  assert_eq(recovered.workbook.sheets.map(sheet => sheet.name), ["Data"])
+  assert_true(
+    recovered.dropped
+    .iter()
+    .any(note => note.contains("chart sheet rather than a grid")),
+  )
+}

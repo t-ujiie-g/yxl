@@ -312,7 +312,7 @@ test "a geometry the schema does not name is reported as a loss" {
 }
 
 ///|
-test "shape text comes back, and the font on it does not" {
+test "shape text comes back with the font on each line" {
   let (wb, sheet) = fixture()
   sheet.set(at("A1"), Text("x"))
   sheet.add_shape({
@@ -341,11 +341,25 @@ test "shape text comes back, and the font on it does not" {
   assert_eq(
     shapes[0].text,
     Some(
-      Lines([{ text: "Next", font: None, }, { text: "quarter", font: None, }]),
+      Lines([
+        {
+          text: "Next",
+          font: Some({
+            name: None,
+            size: None,
+            bold: Some(true),
+            italic: None,
+            underline: None,
+            strike: None,
+            color: None,
+          }),
+        },
+        { text: "quarter", font: None, },
+      ]),
     ),
   )
   assert_eq(shapes[1].text, Some(Plain("Approved")))
-  assert_true(noted(recovered, "any font on a line of shape text"))
+  assert_true(recovered.dropped.is_empty())
 }
 
 ///|
@@ -508,4 +522,25 @@ test "a one-sheet workbook says nothing about a sparkline's sheet" {
   let recovered = round_trip(wb)
   assert_eq(recovered.workbook.sheets[0].sparklines.length(), 1)
   assert_true(!noted(recovered, "comes back plotting this one"))
+}
+
+///|
+test "one styled line of shape text keeps its font" {
+  let (wb, sheet) = fixture()
+  sheet.set(at("A1"), Text("x"))
+  let line : @model.RichRun = {
+    text: "Approved",
+    font: Some({
+      name: None,
+      size: Some(14.0),
+      bold: None,
+      italic: Some(true),
+      underline: None,
+      strike: None,
+      color: None,
+    }),
+  }
+  sheet.add_shape({ ..bare_shape("plus", "D2"), text: Some(Lines([line])), })
+  let shape = round_trip(wb).workbook.sheets[0].shapes[0]
+  assert_eq(shape.text, Some(Lines([line])))
 }

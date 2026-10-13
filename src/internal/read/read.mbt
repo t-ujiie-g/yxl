@@ -114,7 +114,7 @@ fn recover(bytes : Bytes) -> Recovered raise {
     )
     read_pivots(backend, sheet, declared=worksheets, notes)
     read_sheet_protection(backend, sheet, notes)
-    read_unsupported(backend, sheet, notes)
+    read_page_setup(backend, sheet, notes)
   }
   // The tab Excel opens on. Index 0 is the default, and saying so adds nothing —
   // and a chart sheet that was skipped above is no longer a tab this spec has,

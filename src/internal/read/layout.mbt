@@ -207,18 +207,3 @@ const LAST_SHEET_VIEW : Int32 = -1
 /// constant of the same name did, and for the same reason it lives in both
 /// packages: they are the only two that speak to the backend.
 const TWIPS_PER_POINT : Double = 20.0
-
-///|
-/// **Page setup is not recovered**, and this is where it would be.
-///
-/// The backend cannot answer per sheet: `page_layout_with_defaults` (and its
-/// margins twin) aliases a module-level default rather than copying it, then
-/// writes the sheet's own values into it — so reading one sheet's setup leaves
-/// every later sheet, and every later workbook read in the same process,
-/// reporting that sheet's orientation and scaling. A spec built on that would
-/// put `orientation: landscape` on sheets that print portrait.
-///
-/// So it is refused by name rather than guessed at, as the workbook-level
-/// `protect:` was. `render` still writes a `print:` block for any model that
-/// carries one; it is only this direction that has nothing trustworthy to fill
-/// it with. Becomes a plain read again the day the alias is a copy.
