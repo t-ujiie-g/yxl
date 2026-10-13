@@ -8,15 +8,84 @@ fn sheet_spec(body : String) -> String {
 ///|
 test "filter loads as a canonical range" {
   let wb = load_ok(sheet_spec("    filter: A1:C50\n"))
-  let filter = wb.sheets[0].filter.unwrap()
+  let filter = wb.sheets[0].filter.unwrap().at
   assert_eq(filter.top_left.to_a1(), "A1")
   assert_eq(filter.bottom_right.to_a1(), "C50")
 }
 
 ///|
+fn filter_spec(columns : String) -> String {
+  sheet_spec("    filter:\n      at: A1:D20\n      columns:\n" + columns)
+}
+
+///|
+test "filter columns load as value lists and comparisons" {
+  let wb = load_ok(
+    filter_spec(
+      (
+        #|        - { at: A, values: [North America, EMEA, APAC, 2024] }
+        #|        - { at: C, between: [100, 200] }
+        #|        - { at: D, equals: "Paid" }
+      ),
+    ),
+  )
+  let filter = wb.sheets[0].filter.unwrap()
+  assert_eq(filter.at.to_a1(), "A1:D20")
+  assert_eq(filter.columns, [
+    { column: 1, criterion: Values(["North America", "EMEA", "APAC", "2024"]), },
+    { column: 3, criterion: Compare(Between(Number(100.0), Number(200.0))), },
+    { column: 4, criterion: Compare(Equal(Text("Paid"))), },
+  ])
+}
+
+///|
+test "a filter written as a mapping without columns is the plain range" {
+  let wb = load_ok(sheet_spec("    filter: { at: A1:D20 }\n"))
+  assert_eq(wb.sheets[0].filter.unwrap().columns, [])
+}
+
+///|
+test "a filter column that cannot be written is refused with the reason" {
+  let cases = [
+    ("        - { values: [a] }\n", "needs 'at'"),
+    (
+      "        - { at: F, values: [a] }\n", "outside the filter's range 'A1:D20'",
+    ),
+    ("        - { at: a1, values: [a] }\n", "must be a column letter"),
+    (
+      "        - { at: A, values: [a] }\n        - { at: A, at_least: 1 }\n", "'A' is given twice",
+    ),
+    ("        - { at: A, values: [a], at_least: 1 }\n", "exactly one criterion"),
+    ("        - { at: A }\n", "exactly one criterion"),
+    ("        - { at: A, values: [] }\n", "'values' is empty"),
+    ("        - { at: A, values: [1.5] }\n", "text or whole numbers"),
+    ("        - { at: A, top: 10 }\n", "asks for a 'top' filter"),
+    ("        - { at: A, color: red }\n", "asks for a 'color' filter"),
+    ("        - { at: A, around: 3 }\n", "unknown comparison 'around'"),
+  ]
+  for case in cases {
+    let (columns, expected) = case
+    guard schema_message(filter_spec(columns)) is Some(message) else {
+      fail("expected a diagnostic for \{columns}")
+    }
+    assert_true(message.contains(expected), msg="\{message}")
+  }
+  guard schema_message(sheet_spec("    filter: { columns: [] }\n"))
+    is Some(message) else {
+    fail("expected a diagnostic for a filter with no range")
+  }
+  assert_true(message.contains("filter needs 'at'"))
+  guard schema_message(sheet_spec("    filter: { at: A1:B2, sort: true }\n"))
+    is Some(message) else {
+    fail("expected a diagnostic for an unknown filter key")
+  }
+  assert_true(message.contains("unknown key 'sort' in filter"))
+}
+
+///|
 test "filter corners may be written in either order" {
   let wb = load_ok(sheet_spec("    filter: C50:A1\n"))
-  let filter = wb.sheets[0].filter.unwrap()
+  let filter = wb.sheets[0].filter.unwrap().at
   assert_eq(filter.top_left.to_a1(), "A1")
   assert_eq(filter.bottom_right.to_a1(), "C50")
 }

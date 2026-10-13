@@ -5,8 +5,8 @@ fn decorations(
   sheet : @model.Sheet,
   entries : Array[(String, @yaml.Node)],
 ) -> Unit {
-  if sheet.filter is Some(range) {
-    entries.push(("filter", @yaml.Str(range.to_a1())))
+  if sheet.filter is Some(filter) {
+    entries.push(("filter", auto_filter(filter)))
   }
   if !sheet.validations.is_empty() {
     let rendered = []
@@ -163,19 +163,24 @@ fn validation_kind(kind : @model.ValidationKind) -> String {
 }
 
 ///|
-/// A comparison as its one-key mapping: `{ between: [a, b] }`, `{ ">": x }`.
+/// A comparison as its one-key mapping: `{ between: [a, b] }`.
 fn comparison(check : @model.Comparison) -> @yaml.Node {
+  @yaml.Map([comparison_entry(check)])
+}
+
+///|
+/// A comparison's one key and its bound(s).
+fn comparison_entry(check : @model.Comparison) -> (String, @yaml.Node) {
   match check {
-    Between(low, high) =>
-      @yaml.Map([("between", @yaml.Seq([bound(low), bound(high)]))])
+    Between(low, high) => ("between", @yaml.Seq([bound(low), bound(high)]))
     NotBetween(low, high) =>
-      @yaml.Map([("not_between", @yaml.Seq([bound(low), bound(high)]))])
-    Equal(value) => @yaml.Map([("equals", bound(value))])
-    NotEqual(value) => @yaml.Map([("not_equals", bound(value))])
-    AtLeast(value) => @yaml.Map([("at_least", bound(value))])
-    AtMost(value) => @yaml.Map([("at_most", bound(value))])
-    GreaterThan(value) => @yaml.Map([("greater_than", bound(value))])
-    LessThan(value) => @yaml.Map([("less_than", bound(value))])
+      ("not_between", @yaml.Seq([bound(low), bound(high)]))
+    Equal(value) => ("equals", bound(value))
+    NotEqual(value) => ("not_equals", bound(value))
+    AtLeast(value) => ("at_least", bound(value))
+    AtMost(value) => ("at_most", bound(value))
+    GreaterThan(value) => ("greater_than", bound(value))
+    LessThan(value) => ("less_than", bound(value))
   }
 }
 
@@ -271,4 +276,23 @@ fn one_conditional(format : @model.ConditionalFormat) -> @yaml.Node {
     entries.push(("stop_if_true", @yaml.Bool(true)))
   }
   @yaml.Map(entries)
+}
+
+///|
+/// A filter as its bare range, or as `{ at, columns }` when it keeps criteria.
+fn auto_filter(filter : @model.AutoFilter) -> @yaml.Node {
+  let at = @yaml.Str(filter.at.to_a1())
+  guard !filter.columns.is_empty() else { return at }
+  let columns = filter.columns.map(entry => {
+    let column = ("at", @yaml.Str(@units.column_letters(entry.column)))
+    match entry.criterion {
+      Values(values) =>
+        @yaml.Map([
+          column,
+          ("values", @yaml.Seq(values.map(value => @yaml.Str(value)))),
+        ])
+      Compare(check) => @yaml.Map([column, comparison_entry(check)])
+    }
+  })
+  @yaml.Map([("at", at), ("columns", @yaml.Seq(columns))])
 }

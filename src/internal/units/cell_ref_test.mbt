@@ -88,3 +88,14 @@ test "CellRef stores column and row and compares by value" {
   assert_eq(a, @units.CellRef(col=3, row=7))
   assert_not_eq(a, @units.CellRef(col=7, row=3))
 }
+
+///|
+test "column_letters is the inverse of parse_column" {
+  assert_eq(@units.column_letters(1), "A")
+  assert_eq(@units.column_letters(26), "Z")
+  assert_eq(@units.column_letters(27), "AA")
+  assert_eq(@units.column_letters(16384), "XFD")
+  for col in [1, 26, 27, 52, 53, 702, 703, 16384] {
+    assert_eq(@units.parse_column(@units.column_letters(col)), Some(col))
+  }
+}

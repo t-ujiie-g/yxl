@@ -233,3 +233,27 @@ pub(all) struct Link {
   target : LinkTarget
   tip : String?
 } derive(Eq, Debug)
+
+///|
+/// A sheet's auto filter: the range whose top row carries the dropdowns, and
+/// the criteria saved on its columns, at most one per column.
+pub(all) struct AutoFilter {
+  at : CellRange
+  columns : Array[FilterColumn]
+} derive(Eq, Debug)
+
+///|
+/// The criterion saved on one filter column; `column` is the sheet's 1-based
+/// column, inside the filter's range.
+pub(all) struct FilterColumn {
+  column : Int32
+  criterion : FilterCriterion
+} derive(Eq, Debug)
+
+///|
+/// What a filter column keeps: Excel's checkbox list of displayed values, or
+/// one comparison ("Custom Filter").
+pub(all) enum FilterCriterion {
+  Values(Array[String])
+  Compare(Comparison)
+} derive(Eq, Debug)

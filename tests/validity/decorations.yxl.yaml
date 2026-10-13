@@ -67,7 +67,15 @@ sheets:
       C2: "Bulk order — check stock."
       B1: { text: "Sourced from Lookup.", author: Finance }
     merges: [A10:C10, A12:A14]
-    filter: A1:F1
+    filter:
+      at: A1:F20
+      columns:
+        - { at: A, values: [North America, EMEA, APAC] }
+        - { at: B, between: [10, 20] }
+        - { at: C, not_between: [1, 9] }
+        - { at: D, equals: "Say \"no\"" }
+        - { at: E, less_than: "2026-01-31" }
+        - { at: F, not_equals: 0 }
   - name: Lookup
     cells:
       A1: Draft

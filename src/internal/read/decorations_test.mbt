@@ -118,7 +118,39 @@ test "the auto filter comes back as its range" {
   let (wb, sheet) = fixture()
   sheet.set(at("A1"), Text("Region"))
   sheet.set_filter({ top_left: at("A1"), bottom_right: at("C1"), })
-  assert_true(only_sheet(wb).filter is Some(range) && range.to_a1() == "A1:C1")
+  assert_true(
+    only_sheet(wb).filter is Some({ at, columns: [], }) && at.to_a1() == "A1:C1",
+  )
+}
+
+///|
+test "filter criteria come back, value lists and comparisons on one filter" {
+  let (wb, sheet) = fixture()
+  sheet.set(at("A1"), Text("Region"))
+  let columns : Array[@model.FilterColumn] = [
+    { column: 1, criterion: Values(["North America", "EMEA", "APAC"]), },
+    { column: 2, criterion: Compare(Between(Number(10.0), Number(20.5))), },
+    { column: 3, criterion: Compare(NotBetween(Number(1.0), Number(9.0))), },
+    { column: 4, criterion: Compare(AtLeast(Number(1000.0))), },
+    { column: 5, criterion: Compare(NotEqual(Text("Say \"no\""))), },
+  ]
+  sheet.set_filter(@model.CellRange::parse("A1:E20").unwrap(), columns~)
+  let recovered = round_trip(wb)
+  assert_eq(recovered.workbook.sheets[0].filter.unwrap().columns, columns)
+  assert_eq(recovered.dropped, [])
+}
+
+///|
+test "a date in a filter comparison comes back as its serial" {
+  let (wb, sheet) = fixture()
+  sheet.set(at("A1"), Text("Due"))
+  let due = @units.DateTime::parse("2026-01-31").unwrap()
+  sheet.set_filter(@model.CellRange::parse("A1:A20").unwrap(), columns=[
+    { column: 1, criterion: Compare(LessThan(Date(due))), },
+  ])
+  assert_eq(only_sheet(wb).filter.unwrap().columns, [
+    { column: 1, criterion: Compare(LessThan(Number(46053.0))), },
+  ])
 }
 
 ///|

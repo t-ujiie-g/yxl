@@ -159,9 +159,12 @@ test "the interactive example decorates the cells it says it does" {
     )[:],
   )
   guard workbook.get_auto_filter("Orders") is Some(filter) else {
-    fail("expected an auto filter over the header row")
+    fail("expected an auto filter over the orders")
   }
-  assert_eq(filter.range_ref, "A1:D1")
+  assert_eq(filter.range_ref, "A1:D3")
+  assert_eq(filter.columns.length(), 1)
+  assert_eq(filter.columns[0].col, 2)
+  assert_eq(filter.columns[0].filters, Some(["Sent", "Paid"]))
 
   let validations = workbook.get_data_validations("Orders")
   assert_eq(validations.length(), 4)

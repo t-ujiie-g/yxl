@@ -1,13 +1,88 @@
 ///|
-/// Put Excel's filter dropdowns over a range. No per-column criteria are passed:
-/// the spec has no way to express them yet, and an empty list is how the backend
-/// spells "just the dropdowns".
+/// Attach the sheet's auto filter with its saved criteria.
 fn apply_filter(
   backend : @xlsx.Workbook,
   sheet_name : String,
-  range : @model.CellRange,
+  filter : @model.AutoFilter,
+  date_system : @units.DateSystem,
 ) -> Unit raise {
-  backend.set_auto_filter(sheet_name, range.to_a1(), [])
+  let range = filter.at.to_a1()
+  let lists : Array[@xlsx.AutoFilterValuesOption] = []
+  let comparisons : Array[@xlsx.AutoFilterOption] = []
+  for entry in filter.columns {
+    let column = @units.column_letters(entry.column)
+    match entry.criterion {
+      Values(values) => lists.push({ column, values, })
+      Compare(comparison) =>
+        comparisons.push({
+          column,
+          expression: filter_expression(comparison, date_system),
+        })
+    }
+  }
+  backend.set_auto_filter(sheet_name, range, comparisons)
+  guard !lists.is_empty() else { return }
+  // Each backend entry point replaces the whole filter, so the comparison
+  // columns are carried over into the one the value lists build.
+  guard backend.sheet(sheet_name) is Some(worksheet) &&
+    worksheet.auto_filter is Some(compared) else {
+    return
+  }
+  let carried = compared.columns.copy()
+  backend.set_auto_filter_values(sheet_name, range, lists)
+  if worksheet.auto_filter is Some(merged) {
+    merged.columns.append(carried)
+    merged.columns.sort_by_key(column => column.col)
+  }
+}
+
+///|
+/// A comparison in the backend's filter grammar: `x >= 10`, joined by `and` or
+/// `or` for the two-sided ones.
+fn filter_expression(
+  comparison : @model.Comparison,
+  date_system : @units.DateSystem,
+) -> String raise @diag.EmitError {
+  let term = (operator : String, bound : @model.Bound) => {
+    "x \{operator} \{filter_operand(bound, date_system)}"
+  }
+  match comparison {
+    Equal(bound) => term("==", bound)
+    NotEqual(bound) => term("!=", bound)
+    AtLeast(bound) => term(">=", bound)
+    AtMost(bound) => term("<=", bound)
+    GreaterThan(bound) => term(">", bound)
+    LessThan(bound) => term("<", bound)
+    Between(low, high) => term(">=", low) + " and " + term("<=", high)
+    NotBetween(low, high) => term("<", low) + " or " + term(">", high)
+  }
+}
+
+///|
+/// One filter operand. The grammar reads a bare or quoted `blanks`/`nonblanks`
+/// as the empty-cell filter, so text spelling either is refused.
+fn filter_operand(
+  bound : @model.Bound,
+  date_system : @units.DateSystem,
+) -> String raise @diag.EmitError {
+  let number = match bound {
+    Number(number) => number
+    Date(datetime) => datetime.to_serial(date_system)
+    Text(text) => {
+      if text.to_lower() is ("blanks" | "nonblanks") {
+        raise @diag.EmitError(
+          @diag.Diagnostic(
+            "a filter comparison against the text '\{text}' cannot be written: the Excel backend reads it as its empty-cell filter",
+          ),
+        )
+      }
+      return quote_literal(text)
+    }
+  }
+  match exact_int(number) {
+    Some(whole) => whole.to_string()
+    None => number.to_string()
+  }
 }
 
 ///|

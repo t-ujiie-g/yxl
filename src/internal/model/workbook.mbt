@@ -162,7 +162,7 @@ pub(all) struct Sheet {
   mut panes : Panes?
   mut gridlines : Bool?
   mut tab_color : @units.Color?
-  mut filter : CellRange?
+  mut filter : AutoFilter?
   validations : Array[Validation]
   links : Array[Link]
   conditional_formats : Array[ConditionalFormat]
@@ -242,10 +242,14 @@ pub fn Sheet::set_tab_color(self : Sheet, color : @units.Color) -> Unit {
 
 ///|
 /// Put Excel's filter dropdowns over a range, whose top row is read as the
-/// header. Replaces any previous one: Excel keeps a single auto filter per
-/// sheet.
-pub fn Sheet::set_filter(self : Sheet, range : CellRange) -> Unit {
-  self.filter = Some(range)
+/// header, with any saved criteria. Replaces any previous one: Excel keeps a
+/// single auto filter per sheet.
+pub fn Sheet::set_filter(
+  self : Sheet,
+  range : CellRange,
+  columns~ : Array[FilterColumn] = [],
+) -> Unit {
+  self.filter = Some({ at: range, columns, })
 }
 
 ///|

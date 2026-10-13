@@ -620,10 +620,35 @@ filter: A1:D1        # the header row Excel hangs its dropdowns off
 ```
 
 One per sheet. Excel reads the range's top row as the header and filters what
-lies beneath it. Per-column criteria are not expressible yet: the backend takes
-them only as an expression whose grammar caps a value list at two, so the
-ordinary checkbox list of three or more cannot be written
-([office.mbt#478](https://github.com/moonbitlang/office.mbt/issues/478)).
+lies beneath it. To save the filter *with criteria*, write the range as `at:`
+and give `columns:`:
+
+```yaml
+filter:
+  at: A1:D200
+  columns:
+    - { at: B, values: [North America, EMEA, APAC] }   # the checkbox list
+    - { at: C, at_least: 1000 }                        # a custom filter
+```
+
+Each column names its letter, inside the range, once, and exactly one
+criterion:
+
+- `values:` — the ticked boxes, as the cells **display** them: text, or a whole
+  number written as its digits.
+- one of the eight comparisons `validations:` and `conditional:`'s `cell:`
+  spell (`equals`, `not_equals`, `greater_than`, `less_than`, `at_least`,
+  `at_most`, `between`, `not_between`). A bound is a number, a date, or text;
+  text may use Excel's `*` and `?` wildcards with `equals`.
+
+`top`, `dynamic`, `color` and `icon` filters are refused by name. So is a
+comparison against the text `blanks` or `nonblanks`, which the Excel backend
+reads as its empty-cell filter.
+
+> **Excel does not re-run a saved filter when it opens the file.** The criteria
+> are what the dropdowns show ticked; the rows they leave out are hidden only if
+> the spec hides them too, under `rows:` (§4). `examples/interactive.yxl.yaml`
+> does both.
 
 ### Validations
 
@@ -1459,9 +1484,11 @@ its workbook-protection record opaque, so `extract` cannot see what was locked.
   a spec the loader refuses (§10). It is dropped and reported instead; so is a
   style found on a scale, a bar, or an icon set, which draw their own
   appearance and give a style no place.
-- **A filter's saved criteria are not kept**, only the range it covers: which
-  rows somebody last chose to hide is a view of the sheet, not a description
-  of it.
+- **A filter's saved criteria come back** as `values:` or a comparison (§10).
+  A top-ten, dynamic, colour or icon filter, or two comparisons other than a
+  `between`/`not_between` pair, is reported instead. A date criterion comes back
+  as its serial number, as a date in a cell does. The rows the filter hid come
+  back under `rows:`, as any hidden row does.
 - **Print setup comes back as far as §5 reaches.** Paper size, a first page
   number, black-and-white printing, page order, centring, and a separate
   first-page or even-page header are reported rather than kept. A value equal to

@@ -1577,6 +1577,175 @@
         }
       }
     },
+    "filter": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/range"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "at": {
+              "$ref": "#/definitions/range"
+            },
+            "columns": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/filter_column"
+                  }
+                },
+                {
+                  "$ref": "#/definitions/include"
+                }
+              ]
+            },
+            "$include": {
+              "type": "string",
+              "description": "Another document, pasted in place of this node (§8)."
+            }
+          },
+          "anyOf": [
+            {
+              "required": [
+                "at"
+              ]
+            },
+            {
+              "required": [
+                "$include"
+              ]
+            }
+          ]
+        }
+      ],
+      "description": "Excel's auto filter, with any saved criteria (§10)."
+    },
+    "filter_column": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "One column's saved criterion: values, or a comparison (§10).",
+      "properties": {
+        "at": {
+          "type": "string",
+          "pattern": "^[A-Z]{1,3}$"
+        },
+        "values": {
+          "type": "array",
+          "items": {
+            "type": [
+              "string",
+              "integer"
+            ]
+          },
+          "minItems": 1
+        },
+        "between": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/scalar"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "not_between": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/scalar"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "equals": {
+          "$ref": "#/definitions/scalar"
+        },
+        "not_equals": {
+          "$ref": "#/definitions/scalar"
+        },
+        "at_least": {
+          "$ref": "#/definitions/scalar"
+        },
+        "at_most": {
+          "$ref": "#/definitions/scalar"
+        },
+        "greater_than": {
+          "$ref": "#/definitions/scalar"
+        },
+        "less_than": {
+          "$ref": "#/definitions/scalar"
+        },
+        "$include": {
+          "type": "string",
+          "description": "Another document, pasted in place of this node (§8)."
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "at"
+          ]
+        },
+        {
+          "required": [
+            "$include"
+          ]
+        }
+      ],
+      "oneOf": [
+        {
+          "required": [
+            "values"
+          ]
+        },
+        {
+          "required": [
+            "between"
+          ]
+        },
+        {
+          "required": [
+            "not_between"
+          ]
+        },
+        {
+          "required": [
+            "equals"
+          ]
+        },
+        {
+          "required": [
+            "not_equals"
+          ]
+        },
+        {
+          "required": [
+            "at_least"
+          ]
+        },
+        {
+          "required": [
+            "at_most"
+          ]
+        },
+        {
+          "required": [
+            "greater_than"
+          ]
+        },
+        {
+          "required": [
+            "less_than"
+          ]
+        },
+        {
+          "required": [
+            "$include"
+          ]
+        }
+      ]
+    },
     "fit": {
       "type": "object",
       "additionalProperties": false,
@@ -4063,7 +4232,7 @@
         "filter": {
           "allOf": [
             {
-              "$ref": "#/definitions/range"
+              "$ref": "#/definitions/filter"
             }
           ],
           "description": "Excel's auto filter. §10.",

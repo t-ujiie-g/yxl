@@ -57,6 +57,11 @@ pub(all) struct Alignment {
 } derive(Eq, Hash, @debug.Debug)
 pub fn Alignment::empty() -> Self
 
+pub(all) struct AutoFilter {
+  at : CellRange
+  columns : Array[FilterColumn]
+} derive(Eq, @debug.Debug)
+
 pub(all) struct AxisBand {
   first : Int
   last : Int
@@ -246,6 +251,16 @@ pub fn DocumentProperties::empty() -> Self
 pub(all) struct Fill {
   color : @units.Color
 } derive(Eq, Hash, @debug.Debug)
+
+pub(all) struct FilterColumn {
+  column : Int
+  criterion : FilterCriterion
+} derive(Eq, @debug.Debug)
+
+pub(all) enum FilterCriterion {
+  Values(Array[String])
+  Compare(Comparison)
+} derive(Eq, @debug.Debug)
 
 pub(all) struct Font {
   bold : Bool?
@@ -463,7 +478,7 @@ pub(all) struct Sheet {
   mut panes : Panes?
   mut gridlines : Bool?
   mut tab_color : @units.Color?
-  mut filter : CellRange?
+  mut filter : AutoFilter?
   validations : Array[Validation]
   links : Array[Link]
   conditional_formats : Array[ConditionalFormat]
@@ -499,7 +514,7 @@ pub fn Sheet::merge(Self, @units.CellRef, @units.CellRef) -> Unit
 pub fn Sheet::set(Self, @units.CellRef, CellValue, format? : String, style? : Style) -> Unit
 pub fn Sheet::set_background(Self, SheetBackground) -> Unit
 pub fn Sheet::set_column_band(Self, first~ : Int, last~ : Int, style? : Style, width? : Double, hidden? : Bool, outline_level? : Int) -> Unit
-pub fn Sheet::set_filter(Self, CellRange) -> Unit
+pub fn Sheet::set_filter(Self, CellRange, columns? : Array[FilterColumn]) -> Unit
 pub fn Sheet::set_gridlines(Self, Bool) -> Unit
 pub fn Sheet::set_page_setup(Self, PageSetup) -> Unit
 pub fn Sheet::set_panes(Self, Panes) -> Unit

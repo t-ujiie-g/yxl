@@ -32,7 +32,16 @@ sheets:
       allow:
         sort: true
         auto_filter: true
-    filter: A1:D1            # Excel's filter dropdowns, over the header
+    # Excel's filter dropdowns over the orders, saved showing only what has
+    # gone out. Excel does not re-run a saved filter on open, so the row it
+    # leaves out is hidden under `rows:` too.
+    filter:
+      at: A1:D3
+      columns:
+        - { at: B, values: [Sent, Paid] }
+    rows:
+      - at: 3
+        hidden: true
     columns:
       - at: A
         width: 12

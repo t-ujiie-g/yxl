@@ -208,7 +208,7 @@ fn check_tables(
           )
         }
       }
-      if sheet.filter is Some(filter) && overlaps(table.at, filter) {
+      if sheet.filter is Some({ at: filter, .. }) && overlaps(table.at, filter) {
         raise schema_error(
           file~,
           "\{context} overlaps the sheet's filter at '\{filter.to_a1()}'; a table carries its own filter buttons",

@@ -249,8 +249,8 @@ fn emit_sheet(
   if sheet.page is Some(page) {
     apply_page_setup(backend, sheet.name, page)
   }
-  if sheet.filter is Some(range) {
-    apply_filter(backend, sheet.name, range)
+  if sheet.filter is Some(filter) {
+    apply_filter(backend, sheet.name, filter, date_system)
   }
   // Tables come after the cells: the backend takes each column's name from the
   // header cell already written there.
