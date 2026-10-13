@@ -68,8 +68,8 @@ fn build_workbook(wb : @model.Workbook) -> Bytes raise {
   // One cache each for the whole workbook, so a style shared across sheets is
   // registered once (ADR-004). Cell styles and conditional formats live in
   // separate Excel tables, so they cannot share a cache.
-  let style_ids : Map[@model.Style, Int] = Map([])
-  let dxf_ids : Map[@model.Style, Int] = Map([])
+  let style_ids : Map[@model.Style, Int32] = Map([])
+  let dxf_ids : Map[@model.Style, Int32] = Map([])
   for sheet in wb.sheets {
     backend.new_sheet(sheet.name) |> ignore
     emit_sheet(
@@ -150,13 +150,13 @@ fn emit_sheet(
   backend : @xlsx.Workbook,
   sheet : @model.Sheet,
   overrides : Array[@model.Override],
-  style_ids : Map[@model.Style, Int],
-  dxf_ids : Map[@model.Style, Int],
+  style_ids : Map[@model.Style, Int32],
+  dxf_ids : Map[@model.Style, Int32],
   date_system : @units.DateSystem,
 ) -> Unit raise {
   // A band's default style shares the cell style cache, so a column style equal
   // to a cell style reuses the same id (ADR-004).
-  let unsized : Set[Int] = Set([])
+  let unsized : Set[Int32] = Set([])
   for band in sheet.columns {
     let style_id = band_style_id(backend, style_ids, band)
     for col in band.first..<=band.last {
@@ -306,7 +306,7 @@ fn emit_cell(
   backend : @xlsx.Workbook,
   sheet_name : String,
   cell : @model.Cell,
-  style_ids : Map[@model.Style, Int],
+  style_ids : Map[@model.Style, Int32],
   date_system : @units.DateSystem,
   style~ : @model.Style?,
 ) -> Unit raise {
@@ -373,7 +373,7 @@ fn refers_to(
 /// workbook we build ourselves, only) one. `read` reads the same index back and
 /// keeps its own copy — the two packages are the only ones that speak to the
 /// backend, and there is no third place for a constant they share.
-const LAST_SHEET_VIEW : Int = -1
+const LAST_SHEET_VIEW : Int32 = -1
 
 ///|
 /// Twips — 1/20 of a point — are the unit OOXML gives a split position in
@@ -415,7 +415,7 @@ fn build_panes(panes : @model.Panes) -> @xlsx.Panes {
 ///|
 /// Which pane Excel puts the cursor in: the scrolling one, named by where it
 /// sits relative to the split(s).
-fn active_pane(x_split : Int, y_split : Int) -> String {
+fn active_pane(x_split : Int32, y_split : Int32) -> String {
   match (x_split > 0, y_split > 0) {
     (true, true) => "bottomRight"
     (true, false) => "topRight"

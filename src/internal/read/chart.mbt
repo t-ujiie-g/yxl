@@ -9,16 +9,16 @@ const DRAWING_NS : String = "http://schemas.openxmlformats.org/drawingml/2006/ma
 ///|
 /// EMU per pixel at the 96 dpi Excel positions drawings against: the file
 /// records a chart's size in EMU and the spec names it in pixels.
-const EMU_PER_PIXEL : Int = 9525
+const EMU_PER_PIXEL : Int32 = 9525
 
 ///|
 /// The size the backend gives a chart that named none. Recovering it would put
 /// an explicit `size:` on every extracted chart, saying what the default
 /// already says.
-const DEFAULT_CHART_WIDTH : Int = 480
+const DEFAULT_CHART_WIDTH : Int32 = 480
 
 ///|
-const DEFAULT_CHART_HEIGHT : Int = 260
+const DEFAULT_CHART_HEIGHT : Int32 = 260
 
 ///|
 /// The charts on a sheet.
@@ -288,7 +288,7 @@ fn read_axes(
   let ids = group
     .children_named(CHART_NS, "axId")
     .filter_map(element => element.attribute("val"))
-  fn axis(index : Int) -> @model.ChartAxis? {
+  fn axis(index : Int32) -> @model.ChartAxis? {
     guard index < ids.length() else { return None }
     for candidate in plot.children {
       guard candidate.ns == CHART_NS && candidate.name.has_suffix("Ax") else {

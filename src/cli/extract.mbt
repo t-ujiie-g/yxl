@@ -43,7 +43,7 @@ pub struct Companion {
 pub fn extract(
   bytes : Bytes,
   file~ : String,
-  flat? : Bool = false,
+  flat~ : Bool = false,
 ) -> Extracted raise {
   let recovered = @read.from_bytes(bytes)
   // A block of plain values reads better as a table beside the spec than as a
@@ -172,4 +172,4 @@ fn compare_cells(before : @model.Sheet, after : @model.Sheet) -> Array[String] {
 ///|
 /// How many mismatches to name before saying "and more". One is a bug worth
 /// chasing; a thousand is the same bug, listed a thousand times.
-const MAX_REPORTED_DIFFERENCES : Int = 5
+const MAX_REPORTED_DIFFERENCES : Int32 = 5

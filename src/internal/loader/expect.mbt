@@ -293,8 +293,8 @@ fn expect_pixels(
   node : @yaml.Node,
   file~ : String,
   what~ : String,
-  min~ : Int,
-) -> Int raise @diag.SchemaError {
+  min~ : Int32,
+) -> Int32 raise @diag.SchemaError {
   guard node is @yaml.Int(pixels) else {
     raise schema_error(file~, "\{what} must be a whole number of pixels")
   }

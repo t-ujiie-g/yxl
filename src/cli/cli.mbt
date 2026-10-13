@@ -1,14 +1,14 @@
 ///|
 /// Success.
-pub let exit_ok : Int = 0
+pub let exit_ok : Int32 = 0
 
 ///|
 /// A run-time failure: a bad spec (YAML/schema), an emit failure, or file I/O.
-pub let exit_error : Int = 1
+pub let exit_error : Int32 = 1
 
 ///|
 /// A usage error: the command line itself was wrong.
-pub let exit_usage : Int = 2
+pub let exit_usage : Int32 = 2
 
 ///|
 /// The version this binary reports. Kept in step with `moon.mod`'s `version`;

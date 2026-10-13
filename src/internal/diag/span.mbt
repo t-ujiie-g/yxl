@@ -3,13 +3,13 @@
 /// first character; this matches how editors and the ECMA-376 tooling report
 /// locations, so a `yxl` diagnostic can be clicked straight to the source.
 pub struct Pos {
-  line : Int
-  col : Int
+  line : Int32
+  col : Int32
 } derive(Eq, Debug)
 
 ///|
 /// Build a position from a 1-based line and column.
-pub fn Pos::Pos(line : Int, col : Int) -> Pos {
+pub fn Pos::Pos(line : Int32, col : Int32) -> Pos {
   { line, col, }
 }
 

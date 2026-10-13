@@ -1,7 +1,7 @@
 ///|
 /// A style used more than once is worth declaring; one used once is inlined at
 /// its cell, where it reads as what it is.
-const SHARED_AT_LEAST : Int = 2
+const SHARED_AT_LEAST : Int32 = 2
 
 ///|
 /// The names given to the styles a workbook shares, and the counts they were
@@ -17,7 +17,7 @@ priv struct StyleNames {
 fn StyleNames::of(wb : @model.Workbook) -> StyleNames {
   // Count every use, cells and bands alike: a look worn by one cell and one
   // column band is shared, and writing it twice would lose that.
-  let counts : Map[@model.Style, Int] = Map([])
+  let counts : Map[@model.Style, Int32] = Map([])
   fn count(style : @model.Style?) -> Unit {
     if style is Some(style) {
       counts[style] = counts.get(style).unwrap_or(0) + 1

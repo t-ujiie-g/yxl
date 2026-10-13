@@ -61,11 +61,11 @@ const FALLBACK_STEM : String = "sheet"
 fn file_stem(sheet_name : String) -> String {
   let out = StringBuilder()
   for ch in sheet_name {
-    if ch is ('a'..='z' | '0'..='9') {
+    if ch is ('a'..<='z' | '0'..<='9') {
       out.write_char(ch)
-    } else if ch is ('A'..='Z') {
+    } else if ch is ('A'..<='Z') {
       out.write_char(ch.to_ascii_lowercase())
-    } else if ch is ('\u{00}'..='\u{7f}') ||
+    } else if ch is ('\u{00}'..<='\u{7f}') ||
       ch.is_whitespace() ||
       ch.is_control() {
       // The rest of ASCII is the punctuation the flattening exists for; past

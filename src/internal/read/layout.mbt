@@ -15,7 +15,7 @@ fn read_bands(
   // The `<col>` and `<row>` records themselves, rather than a scan of the used
   // range: a hidden column past the last cell is exactly the kind of thing a
   // scan would miss, and it is the kind of thing a spec has to keep.
-  let column_records : Array[(Int, Track)] = []
+  let column_records : Array[(Int32, Track)] = []
   for index, dimension in source.col_dimensions {
     column_records.push(
       (
@@ -40,7 +40,7 @@ fn read_bands(
       style?,
     )
   }
-  let row_records : Array[(Int, Track)] = []
+  let row_records : Array[(Int32, Track)] = []
   for index, dimension in source.row_dimensions {
     row_records.push(
       (
@@ -94,7 +94,7 @@ fn record_band_deviations(sheet : @model.Sheet) -> Unit {
 /// The style a column or row record carries, if any.
 fn read_band_style(
   backend : @xlsx.Workbook,
-  id : Int?,
+  id : Int32?,
   styles : StyleTable,
   notes : Notes,
 ) -> @model.Style? raise {
@@ -106,11 +106,11 @@ fn read_band_style(
 
 ///|
 /// What one column or row says about itself, before it is grouped into a band.
-type Track = (Double?, Bool, Int, @model.Style?)
+type Track = (Double?, Bool, Int32, @model.Style?)
 
 ///|
 /// A band as the model wants it: the span, then the four properties.
-type Band = (Int, Int, Double?, Bool?, Int?, @model.Style?)
+type Band = (Int32, Int32, Double?, Bool?, Int32?, @model.Style?)
 
 ///|
 /// Sort the records by index, drop the ones that say nothing, and collapse a run
@@ -119,7 +119,7 @@ type Band = (Int, Int, Double?, Bool?, Int?, @model.Style?)
 /// The collapsing is what keeps the result readable: a file records every column
 /// separately, and the fact that twenty of them were declared together in one
 /// line is exactly what compiling threw away.
-fn tracks(records : Array[(Int, Track)]) -> Array[Band] {
+fn tracks(records : Array[(Int32, Track)]) -> Array[Band] {
   let ordered = records
   ordered.sort_by((left, right) => left.0 - right.0)
   let bands = []
@@ -218,7 +218,7 @@ fn read_presentation(
 /// The backend indexes a sheet's views; `-1` addresses the last one. This has to
 /// match the index `emit` writes to — the two packages are the only ones that
 /// speak to the backend, and there is no third place for a constant they share.
-const LAST_SHEET_VIEW : Int = -1
+const LAST_SHEET_VIEW : Int32 = -1
 
 ///|
 /// Twips — 1/20 of a point — are the unit OOXML gives a split position in

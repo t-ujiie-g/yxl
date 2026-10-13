@@ -30,7 +30,7 @@ let cell_keys : Array[String] = [
 ///|
 /// Those keys as a diagnostic's expected-list, after any its own construct adds
 /// in front of them.
-fn expected_cell_keys(before? : Array[String] = []) -> String {
+fn expected_cell_keys(before~ : Array[String] = []) -> String {
   or_list([..before, ..cell_keys].map(key => "'\{key}'"))
 }
 

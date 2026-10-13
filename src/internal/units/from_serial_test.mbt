@@ -1,5 +1,5 @@
 ///|
-fn civil(year : Int, month : Int, day : Int) -> @units.DateTime {
+fn civil(year : Int32, month : Int32, day : Int32) -> @units.DateTime {
   { year, month, day, hour: 0, minute: 0, second: 0, }
 }
 

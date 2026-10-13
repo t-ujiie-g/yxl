@@ -50,9 +50,9 @@ fn band_style_at(sheet : @model.Sheet, at : @units.CellRef) -> @model.Style? {
 /// sets no style. Interned once per band, not once per column/row it covers.
 fn band_style_id(
   backend : @xlsx.Workbook,
-  cache : Map[@model.Style, Int],
+  cache : Map[@model.Style, Int32],
   band : @model.AxisBand,
-) -> Int? raise {
+) -> Int32? raise {
   match band.style {
     Some(style) => Some(intern_style(backend, cache, style))
     None => None
@@ -66,9 +66,9 @@ fn band_style_id(
 /// which compares and hashes structurally.
 fn intern_style(
   backend : @xlsx.Workbook,
-  cache : Map[@model.Style, Int],
+  cache : Map[@model.Style, Int32],
   style : @model.Style,
-) -> Int raise {
+) -> Int32 raise {
   let style = style.settled()
   match cache.get(style) {
     Some(id) => id
@@ -87,9 +87,9 @@ fn intern_style(
 /// nothing in the other.
 fn intern_conditional_style(
   backend : @xlsx.Workbook,
-  cache : Map[@model.Style, Int],
+  cache : Map[@model.Style, Int32],
   style : @model.Style,
-) -> Int raise {
+) -> Int32 raise {
   let style = style.settled()
   match cache.get(style) {
     Some(id) => id
@@ -238,7 +238,7 @@ fn vertical_code(align : @model.VAlign) -> String {
 
 ///|
 /// The excelize border line-style code for a model `BorderStyle`.
-fn border_style_code(style : @model.BorderStyle) -> Int {
+fn border_style_code(style : @model.BorderStyle) -> Int32 {
   match style {
     Thin => 1
     Medium => 2

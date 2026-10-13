@@ -14,7 +14,7 @@ fn apply_override(
   backend : @xlsx.Workbook,
   sheet_name : String,
   entry : @model.Override,
-  style_ids : Map[@model.Style, Int],
+  style_ids : Map[@model.Style, Int32],
   date_system : @units.DateSystem,
 ) -> Unit raise {
   match entry.value {

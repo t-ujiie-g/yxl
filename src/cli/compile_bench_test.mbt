@@ -1,12 +1,12 @@
 ///|
 /// Rows in the generated spec. Five columns each, so `rows * 5` cells.
-let bench_rows : Int = 400
+let bench_rows : Int32 = 400
 
 ///|
 /// A spec of `rows` × 5 cells: two text columns, two numbers, and a formula
 /// over the row — a shape close to a real sheet, and one that exercises the
 /// shared-string table (the region names repeat) as well as the number path.
-fn bench_spec(rows : Int) -> String {
+fn bench_spec(rows : Int32) -> String {
   let regions = ["APAC", "EMEA", "AMER", "LATAM"]
   let out = StringBuilder()
   out.write_string("sheets:\n  - name: Sales\n    cells:\n")

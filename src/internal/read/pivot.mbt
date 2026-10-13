@@ -240,7 +240,7 @@ fn read_pivot_values(
 
 ///|
 /// A `<field x>` / `<dataField fld>` index, if the cache describes that field.
-fn field_index(written : String, cache_fields : Array[String]) -> Int? {
+fn field_index(written : String, cache_fields : Array[String]) -> Int32? {
   let index = @string.parse_int(written) catch { _ => return None }
   if index >= 0 && index < cache_fields.length() {
     Some(index)
@@ -252,7 +252,11 @@ fn field_index(written : String, cache_fields : Array[String]) -> Int? {
 ///|
 /// The display name a `<pivotField>` gives the field at `index`, or `None`
 /// where it is the source column's own name and the spec would say nothing.
-fn relabel(display : Array[XmlElement], index : Int, field : String) -> String? {
+fn relabel(
+  display : Array[XmlElement],
+  index : Int32,
+  field : String,
+) -> String? {
   guard index < display.length() else { return None }
   relabelled(display[index].attribute("name"), field)
 }

@@ -6,8 +6,8 @@
 /// this straight back (which is what `yxl extract` does — ADR-017).
 pub fn workbook(
   wb : @model.Workbook,
-  tables? : Array[DataTable] = [],
-  pictures? : Array[Picture] = [],
+  tables~ : Array[DataTable] = [],
+  pictures~ : Array[Picture] = [],
 ) -> @yaml.Node {
   let by_sheet : Map[String, DataTable] = Map([])
   for table in tables {
@@ -311,11 +311,11 @@ fn date_text(datetime : @units.DateTime) -> String {
 }
 
 ///|
-fn pad2(value : Int) -> String {
+fn pad2(value : Int32) -> String {
   value.to_string().pad_start(2, '0')
 }
 
 ///|
-fn pad4(value : Int) -> String {
+fn pad4(value : Int32) -> String {
   value.to_string().pad_start(4, '0')
 }

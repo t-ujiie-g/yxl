@@ -3,13 +3,13 @@
 /// columns, header, body and footer landed, and the rows its data held.
 priv struct NamedLayout {
   sheet : String
-  columns : Array[(String, Int)]
-  input_of : Map[String, Int]
+  columns : Array[(String, Int32)]
+  input_of : Map[String, Int32]
   data : Rows
-  header_row : Int?
-  body_first : Int
-  body_last : Int
-  last_row : Int
+  header_row : Int32?
+  body_first : Int32
+  body_last : Int32
+  last_row : Int32
 }
 
 ///|
@@ -160,7 +160,7 @@ fn match_where(
   layout : NamedLayout,
   file~ : String,
   context~ : String,
-) -> Int raise @diag.SchemaError {
+) -> Int32 raise @diag.SchemaError {
   guard !conditions.is_empty() else {
     raise schema_error(file~, "\{context} 'where' names no column")
   }

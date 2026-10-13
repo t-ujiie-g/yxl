@@ -103,12 +103,12 @@ fn load_footer_entries(
 /// enclosing group.
 fn total_formula(
   node : @yaml.Node,
-  col : Int,
+  col : Int32,
   scope : FooterScope,
   keys~ : Array[(String, @model.CellValue?)],
   context~ : String,
 ) -> String raise @diag.SchemaError {
-  let range = (col : Int) => {
+  let range = (col : Int32) => {
     let top = @units.CellRef(col~, row=scope.body_first).to_a1()
     let bottom = @units.CellRef(col~, row=scope.body_last).to_a1()
     "\{top}:\{bottom}"
@@ -201,8 +201,8 @@ fn group_label(value : @model.CellValue?) -> String {
 
 ///|
 /// Numbers before text before anything else, a blank last; text by code point.
-fn compare_group_values(a : @model.CellValue?, b : @model.CellValue?) -> Int {
-  fn rank(value : @model.CellValue?) -> Int {
+fn compare_group_values(a : @model.CellValue?, b : @model.CellValue?) -> Int32 {
+  fn rank(value : @model.CellValue?) -> Int32 {
     match value {
       Some(Number(_)) => 0
       Some(Text(_)) => 1
@@ -221,7 +221,7 @@ fn compare_group_values(a : @model.CellValue?, b : @model.CellValue?) -> Int {
 ///|
 /// `String::compare` puts the shorter string first and then compares UTF-16
 /// code units, so neither `aa` < `b` nor U+E000 < U+10000 would hold (#104).
-fn compare_code_points(x : String, y : String) -> Int {
+fn compare_code_points(x : String, y : String) -> Int32 {
   let ys = y.iter()
   for cx in x {
     guard ys.next() is Some(cy) else { return 1 }

@@ -1,13 +1,13 @@
 ///|
 /// The small end of the comparison. The same size the benchmark reports, so its
 /// recorded figures describe this run too.
-let scaling_base_rows : Int = bench_rows
+let scaling_base_rows : Int32 = bench_rows
 
 ///|
 /// How much larger the second spec is. Wide enough that a quadratic term shows
 /// through the linear work around it (see `max_scaling_ratio`), narrow enough
 /// that the whole check is under a second.
-let scaling_factor : Int = 16
+let scaling_factor : Int32 = 16
 
 ///|
 /// The ratio above which the curve is no longer linear enough to pass.
@@ -26,7 +26,7 @@ let max_scaling_ratio : Double = 26.0
 /// shared machine can only ever *add* time, so the minimum is the closest thing
 /// to the cost without it, and taking it is what makes a single unlucky sample
 /// harmless rather than a failed build.
-let scaling_runs : Int = 3
+let scaling_runs : Int32 = 3
 
 ///|
 test "compile cost stays linear in the size of the spec" {

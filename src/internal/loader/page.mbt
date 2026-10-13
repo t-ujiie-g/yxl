@@ -126,7 +126,7 @@ fn expect_page_count(
   node : @yaml.Node,
   file~ : String,
   what~ : String,
-) -> Int raise @diag.SchemaError {
+) -> Int32 raise @diag.SchemaError {
   guard node is @yaml.Int(pages) && pages >= 0L else {
     raise schema_error(
       file~,

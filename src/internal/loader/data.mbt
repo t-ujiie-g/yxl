@@ -385,7 +385,7 @@ fn parse_json_table(
 fn json_field(
   value : Json,
   file~ : String,
-  row~ : Int,
+  row~ : Int32,
 ) -> @model.CellValue? raise @diag.SchemaError {
   match value {
     String(text) => Some(@model.Text(text))

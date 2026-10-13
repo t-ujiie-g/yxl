@@ -17,13 +17,13 @@ pub(all) struct FormControl {
   text : String?
   checked : Bool?
   link : @units.CellRef?
-  width : Int?
-  height : Int?
-  min : Int?
-  max : Int?
-  step : Int?
-  page : Int?
-  value : Int?
+  width : Int32?
+  height : Int32?
+  min : Int32?
+  max : Int32?
+  step : Int32?
+  page : Int32?
+  value : Int32?
   horizontal : Bool?
 } derive(Eq, Debug)
 
@@ -43,7 +43,7 @@ pub(all) enum FormControlKind {
 ///|
 /// The largest value, bound, step, or page a control accepts — the limit
 /// Excel's own "Format Control" dialog enforces.
-pub let max_form_control_value : Int = 30000
+pub let max_form_control_value : Int32 = 30000
 
 ///|
 /// Place a form control on the sheet.

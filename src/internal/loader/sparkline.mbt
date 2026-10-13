@@ -274,7 +274,7 @@ fn expect_manual_bound(
   node : @yaml.Node,
   file~ : String,
   what~ : String,
-) -> Int raise @diag.SchemaError {
+) -> Int32 raise @diag.SchemaError {
   guard node is @yaml.Int(bound) else {
     raise schema_error(
       file~,

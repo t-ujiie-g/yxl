@@ -11,7 +11,7 @@ pub(all) struct DefinedName {
 ///|
 /// The longest name Excel accepts for a defined name — and for a table name,
 /// which shares the same namespace and the same limit.
-pub let max_defined_name_length : Int = 255
+pub let max_defined_name_length : Int32 = 255
 
 ///|
 /// One cell held apart from the rules that produced it (ADR-018): a deliberate,
@@ -69,7 +69,7 @@ pub fn Workbook::sheet(self : Workbook, name : String) -> Sheet? {
 /// A new, empty workbook. Defaults to the 1900 date system, the backend's
 /// default font, and the first sheet active.
 pub fn Workbook::Workbook(
-  date_system? : @units.DateSystem = Date1900,
+  date_system~ : @units.DateSystem = Date1900,
   default_font? : String,
 ) -> Workbook {
   {
@@ -157,7 +157,7 @@ pub fn Workbook::sheet_overrides(
 pub fn Workbook::add_sheet(
   self : Workbook,
   name : String,
-  visibility? : SheetVisibility = Visible,
+  visibility~ : SheetVisibility = Visible,
 ) -> Sheet {
   let sheet = Sheet(name, visibility~)
   self.sheets.push(sheet)
@@ -218,7 +218,7 @@ pub(all) struct Sheet {
 /// A new, empty sheet with the given name, visible unless told otherwise.
 pub fn Sheet::Sheet(
   name : String,
-  visibility? : SheetVisibility = Visible,
+  visibility~ : SheetVisibility = Visible,
 ) -> Sheet {
   {
     name,
@@ -385,7 +385,7 @@ pub fn Sheet::band_style_at(self : Sheet, at : @units.CellRef) -> Style? {
 /// The last band covering `index`, or `None`. Later bands win, matching the
 /// "whichever comes last wins" rule the sheet keys already follow when two
 /// declarations overlap.
-fn band_covering(bands : Array[AxisBand], index : Int) -> Style? {
+fn band_covering(bands : Array[AxisBand], index : Int32) -> Style? {
   let mut found = None
   for band in bands {
     if index >= band.first && index <= band.last && band.style is Some(style) {
@@ -401,12 +401,12 @@ fn band_covering(bands : Array[AxisBand], index : Int) -> Style? {
 /// properties leave Excel's default.
 pub fn Sheet::set_column_band(
   self : Sheet,
-  first~ : Int,
-  last~ : Int,
+  first~ : Int32,
+  last~ : Int32,
   style? : Style,
   width? : Double,
   hidden? : Bool,
-  outline_level? : Int,
+  outline_level? : Int32,
 ) -> Unit {
   self.columns.push({ first, last, style, size: width, hidden, outline_level, })
 }
@@ -417,12 +417,12 @@ pub fn Sheet::set_column_band(
 /// leave Excel's default.
 pub fn Sheet::set_row_band(
   self : Sheet,
-  first~ : Int,
-  last~ : Int,
+  first~ : Int32,
+  last~ : Int32,
   style? : Style,
   height? : Double,
   hidden? : Bool,
-  outline_level? : Int,
+  outline_level? : Int32,
 ) -> Unit {
   self.rows.push({ first, last, style, size: height, hidden, outline_level, })
 }

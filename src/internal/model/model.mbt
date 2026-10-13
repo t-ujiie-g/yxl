@@ -42,7 +42,7 @@ pub(all) struct Cell {
 ///|
 /// The deepest outline (grouping) level Excel accepts on a column or row;
 /// level 0 means ungrouped (ECMA-376 §18.3.1.13, §18.3.1.73).
-pub let max_outline_level : Int = 7
+pub let max_outline_level : Int32 = 7
 
 ///|
 /// One band of columns or rows: an inclusive 1-based span (`first == last` for a
@@ -58,12 +58,12 @@ pub let max_outline_level : Int = 7
 ///
 /// Whether the band is columns or rows is fixed by which `Sheet` list holds it.
 pub(all) struct AxisBand {
-  first : Int
-  last : Int
+  first : Int32
+  last : Int32
   style : Style?
   size : Double?
   hidden : Bool?
-  outline_level : Int?
+  outline_level : Int32?
 } derive(Eq, Debug)
 
 ///|
@@ -156,4 +156,4 @@ pub(all) struct FormulaRange {
 /// point of the construct, so the whole of one is allowed; beyond that the range
 /// is a typo, and without a ceiling a mistyped `A1:A99999999` would sit there
 /// building cells until the machine gave up.
-pub let max_formula_range_cells : Int = 1048576
+pub let max_formula_range_cells : Int32 = 1048576

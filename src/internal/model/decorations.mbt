@@ -139,7 +139,7 @@ pub(all) struct Validation {
 /// Excel's limit on a validation formula, which for an inline drop-down is the
 /// comma-joined list of choices. Exceeding it is rejected with a diagnostic
 /// rather than being passed to the backend, which would fail far from the spec.
-pub let max_validation_list_length : Int = 255
+pub let max_validation_list_length : Int32 = 255
 
 ///|
 /// How a conditional format decides which cells it applies to (ECMA-376
@@ -160,7 +160,7 @@ pub(all) enum ConditionalRule {
   /// The cell's text against a substring: `containsText` and its relatives.
   Text(match_~ : TextMatch, value~ : String)
   /// The highest, or with `bottom` the lowest, cells or percentage: `top10`.
-  Rank(count~ : Int, bottom~ : Bool, percent~ : Bool)
+  Rank(count~ : Int32, bottom~ : Bool, percent~ : Bool)
   /// Cells whose value appears more than once in the range: `duplicateValues`.
   Duplicate
   /// Cells whose value appears exactly once: `uniqueValues`.
@@ -214,11 +214,11 @@ pub let unwritable_icon_set_styles : Array[String] = [
 
 ///|
 /// Excel's cap on a `Rank` rule by count, as its own dialog enforces it.
-pub let max_rank_count : Int = 1000
+pub let max_rank_count : Int32 = 1000
 
 ///|
 /// Excel's cap on a `Rank` rule by percentage.
-pub let max_rank_percent : Int = 100
+pub let max_rank_percent : Int32 = 100
 
 ///|
 /// A conditional format over a range: what decides it, and how a matching cell

@@ -19,12 +19,12 @@ priv enum GroupOrder {
 /// What a footer needs to know about the layout above it.
 priv struct FooterScope {
   sheet : @model.Sheet
-  columns : Array[(String, Int)]
-  col_of : Map[String, Int]
-  input_of : Map[String, Int]
+  columns : Array[(String, Int32)]
+  col_of : Map[String, Int32]
+  input_of : Map[String, Int32]
   data : Rows
-  body_first : Int
-  body_last : Int
+  body_first : Int32
+  body_last : Int32
   context : String
   file : String
   defs : Defs
@@ -74,9 +74,9 @@ fn write_footer(
   entries : Array[FooterEntry],
   scope : FooterScope,
   keys~ : Array[(String, @model.CellValue?)],
-  members~ : Array[Int],
-  row~ : Int,
-) -> Int raise @diag.SchemaError {
+  members~ : Array[Int32],
+  row~ : Int32,
+) -> Int32 raise @diag.SchemaError {
   let mut row = row
   for entry in entries {
     match entry {
@@ -93,7 +93,7 @@ fn write_footer(
       FooterGroup(by, order, nested) => {
         let where_ = "\{scope.context} footer group '\{by}'"
         let field = scope.input_of[by]
-        let value_of = (index : Int) => {
+        let value_of = (index : Int32) => {
           scope.data[index].get(field).unwrap_or(None)
         }
         let present : Array[@model.CellValue?] = []
@@ -148,7 +148,7 @@ fn write_footer_row(
   row_style : @model.Style?,
   scope : FooterScope,
   keys~ : Array[(String, @model.CellValue?)],
-  row~ : Int,
+  row~ : Int32,
 ) -> Unit raise @diag.SchemaError {
   let file = scope.file
   let mut covered_to = 0

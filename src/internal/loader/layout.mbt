@@ -8,10 +8,10 @@ fn load_layouts(
   file~ : String,
   defs~ : Defs,
   resolve~ : IncludeResolver,
-  settle? : Bool = false,
+  settle~ : Bool = false,
 ) -> Unit raise {
   let names : Map[String, String] = Map([])
-  let banded : Map[Int, String] = Map([])
+  let banded : Map[Int32, String] = Map([])
   for item in expect_seq(node, file~, context="'layouts'") {
     load_layout(item, sheet, file~, defs~, resolve~, names~, banded~, settle~)
   }
@@ -31,16 +31,16 @@ let layout_band_keys : Array[String] = [
 
 ///|
 /// Excel's grid: rows run to 1048576, columns to XFD.
-let max_sheet_row : Int = 1048576
+let max_sheet_row : Int32 = 1048576
 
 ///|
-let max_sheet_column : Int = 16384
+let max_sheet_column : Int32 = 16384
 
 ///|
 /// One column of a layout as written, before it is placed.
 priv struct LayoutColumn {
   name : String
-  col : Int
+  col : Int32
   header : @yaml.Node?
   scope : String?
   field : String?
@@ -57,7 +57,7 @@ fn load_layout(
   defs~ : Defs,
   resolve~ : IncludeResolver,
   names~ : Map[String, String],
-  banded~ : Map[Int, String],
+  banded~ : Map[Int32, String],
   settle~ : Bool,
 ) -> Unit raise {
   let entries = expect_map(node, file~, context="a layout")
@@ -230,8 +230,8 @@ fn register_names(
   sheet~ : @model.Sheet,
   file~ : String,
   context~ : String,
-) -> Map[String, Int] raise @diag.SchemaError {
-  let col_of : Map[String, Int] = Map([])
+) -> Map[String, Int32] raise @diag.SchemaError {
+  let col_of : Map[String, Int32] = Map([])
   for column in columns {
     if names.get(column.name) is Some(first) {
       raise schema_error(
@@ -250,10 +250,10 @@ fn register_names(
 fn write_layout_column(
   column : LayoutColumn,
   sheet : @model.Sheet,
-  col_of : Map[String, Int],
-  body_first~ : Int,
-  body_last~ : Int,
-  banded~ : Map[Int, String],
+  col_of : Map[String, Int32],
+  body_first~ : Int32,
+  body_last~ : Int32,
+  banded~ : Map[Int32, String],
   file~ : String,
   defs~ : Defs,
   context~ : String,
@@ -341,7 +341,7 @@ fn expect_body_rows(
   node : @yaml.Node,
   file~ : String,
   context~ : String,
-) -> Int raise @diag.SchemaError {
+) -> Int32 raise @diag.SchemaError {
   guard node is @yaml.Int(rows) && rows >= 1L else {
     raise schema_error(
       file~,
@@ -361,7 +361,7 @@ fn expect_body_rows(
 /// Split one layout column into what the layout reads and what its band reads.
 fn load_layout_column(
   node : @yaml.Node,
-  col~ : Int,
+  col~ : Int32,
   file~ : String,
   context~ : String,
 ) -> LayoutColumn raise @diag.SchemaError {

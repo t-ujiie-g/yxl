@@ -1,6 +1,6 @@
 ///|
 /// A sheet of `rows` × `columns` plain values, filled from `A1`.
-fn literal_sheet(rows : Int, columns : Int) -> @model.Workbook {
+fn literal_sheet(rows : Int32, columns : Int32) -> @model.Workbook {
   let wb = @model.Workbook()
   let sheet = wb.add_sheet("Sales")
   for row in 1..<=rows {

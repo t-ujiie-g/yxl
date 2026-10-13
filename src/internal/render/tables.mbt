@@ -5,12 +5,12 @@
 /// three values, and a three-line `cells:` block was never the problem `data:`
 /// solves. The number is a judgement, not a measurement, which is why the flat
 /// form stays one flag away.
-pub let min_csv_rows : Int = 8
+pub let min_csv_rows : Int32 = 8
 
 ///|
 /// The fewest columns, for the same reason. A single column of numbers is a
 /// list, and a list reads fine inline.
-pub let min_csv_columns : Int = 2
+pub let min_csv_columns : Int32 = 2
 
 ///|
 /// A region of a sheet that will be written as a CSV file rather than as cells:
@@ -195,5 +195,5 @@ fn needs_csv_quoting(text : String) -> Bool {
     return true
   }
   guard text.iter().head() is Some(first) else { return false }
-  first is ('0'..='9' | '+' | '-' | '.')
+  first is ('0'..<='9' | '+' | '-' | '.')
 }

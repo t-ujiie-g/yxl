@@ -216,7 +216,7 @@ fn interpolate(
 
 ///|
 /// The index of the `}` closing a placeholder opened before `start`.
-fn find_close(chars : Array[Char], start : Int) -> Int? {
+fn find_close(chars : Array[Char], start : Int32) -> Int32? {
   for index in start..<chars.length() {
     if chars[index] == '}' {
       return Some(index)
@@ -227,7 +227,7 @@ fn find_close(chars : Array[Char], start : Int) -> Int? {
 
 ///|
 /// The characters in `[start, end)` as a string.
-fn collect_chars(chars : Array[Char], start : Int, end : Int) -> String {
+fn collect_chars(chars : Array[Char], start : Int32, end : Int32) -> String {
   let built = StringBuilder()
   for index in start..<end {
     built.write_char(chars[index])

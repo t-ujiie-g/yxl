@@ -62,7 +62,7 @@ fn range_follows(
   backend : @xlsx.Workbook,
   sheet_name : String,
   range : @model.CellRange,
-  index : UInt,
+  index : UInt32,
   styles : StyleTable,
   notes : Notes,
 ) -> Bool raise {

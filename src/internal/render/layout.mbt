@@ -46,7 +46,7 @@ fn span(band : @model.AxisBand, down~ : Bool) -> String {
 /// A 1-based column index as its Excel letters. `units` renders a whole cell
 /// reference; a band's `at` is the column alone, so the row is dropped from a
 /// reference in row 1 rather than repeating the base-26 arithmetic here.
-fn column_label(col : Int) -> String {
+fn column_label(col : Int32) -> String {
   let reference = @units.CellRef(col~, row=1).to_a1()
   reference[:reference.length() - 1].to_owned()
 }

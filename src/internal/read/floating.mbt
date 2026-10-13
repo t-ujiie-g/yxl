@@ -198,7 +198,7 @@ fn slicer_caches(backend : @xlsx.Workbook) -> @set.Set[String] {
 
 ///|
 /// The panel size the backend gives a slicer that asks for none.
-let default_slicer_size : Int = 200
+let default_slicer_size : Int32 = 200
 
 ///|
 /// A size worth writing down, as the pair the schema takes.
@@ -208,10 +208,10 @@ let default_slicer_size : Int = 200
 /// that default in *both* dimensions is dropped, and one that differs in either
 /// is kept whole.
 fn both_or_neither(
-  width : Int,
-  height : Int,
-  default_size : Int,
-) -> (Int?, Int?) {
+  width : Int32,
+  height : Int32,
+  default_size : Int32,
+) -> (Int32?, Int32?) {
   if width == default_size && height == default_size {
     (None, None)
   } else {
@@ -328,7 +328,7 @@ fn read_shape_text(shape : @xlsx.Shape, notes : Notes) -> @model.ShapeText? {
 ///|
 /// The backend's default shape size in pixels, and its default outline width in
 /// points.
-let default_shape_size : Int = 160
+let default_shape_size : Int32 = 160
 
 ///|
 let default_shape_line_width : Double = 1.0

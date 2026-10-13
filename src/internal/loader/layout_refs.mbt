@@ -3,8 +3,8 @@
 /// bare name inside a block instance (`scope`) means the instance's column first.
 fn expand_column_refs(
   text : String,
-  columns : Map[String, Int],
-  row~ : Int,
+  columns : Map[String, Int32],
+  row~ : Int32,
   scope? : String,
   file~ : String,
   context~ : String,

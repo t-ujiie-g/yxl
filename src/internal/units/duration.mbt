@@ -4,9 +4,9 @@
 /// under an elapsed format like `[h]:mm:ss`; `to_serial` renders that
 /// fraction. Kept as components so what the spec wrote stays inspectable.
 pub(all) struct Duration {
-  hours : Int
-  minutes : Int
-  seconds : Int
+  hours : Int32
+  minutes : Int32
+  seconds : Int32
 } derive(Eq, Debug)
 
 ///|

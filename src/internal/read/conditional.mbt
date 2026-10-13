@@ -60,7 +60,7 @@ fn draws_itself(rule : @model.ConditionalRule) -> Bool {
 /// rather than the one cells use.
 fn read_conditional_style(
   backend : @xlsx.Workbook,
-  id : Int?,
+  id : Int32?,
   notes : Notes,
 ) -> @model.Style? raise {
   guard id is Some(id) else { return None }

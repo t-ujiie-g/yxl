@@ -3,7 +3,7 @@
 fn with_rule(
   rule : @model.ConditionalRule,
   style? : @model.Style,
-  stop_if_true? : Bool = false,
+  stop_if_true~ : Bool = false,
 ) -> @model.Workbook {
   let (wb, sheet) = fixture()
   sheet.add_conditional_format({

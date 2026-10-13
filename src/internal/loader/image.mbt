@@ -193,7 +193,7 @@ fn load_offset(
   node : @yaml.Node,
   file~ : String,
   context~ : String,
-) -> (Int, Int) raise @diag.SchemaError {
+) -> (Int32, Int32) raise @diag.SchemaError {
   let what = "\{context} 'offset'"
   // Zero is the floor: a negative offset would place the image outside the
   // cell it is anchored to, which OOXML's anchor cannot express
