@@ -303,9 +303,9 @@ keystroke.
   are the half the compiler cannot check.
 - Run `yxl build --check` after every meaningful edit. Diagnostics name the file
   and the construct (`sheet 'Sales' cell 'B2' …`) — trust them over guessing.
-  Some refusals are deliberate and documented: three icon sets the backend
-  writes into the wrong attribute (§10), sparkline markers it cannot switch on
-  (§19), a style carrying both a number format and cell protection (§16). Do
+  Some refusals are deliberate and documented: three Excel 2010 icon sets the
+  backend cannot write (§10), sparkline markers it cannot switch on (§19), a
+  `top`/`dynamic`/`color`/`icon` filter column (§10). Do
   not work around a refusal by dropping the feature silently — tell the user
   what was refused and why.
 

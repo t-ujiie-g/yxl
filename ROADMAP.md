@@ -285,7 +285,11 @@ The **active phase** is the first phase with any unchecked box.
       with the resolver types in `include` (ADR-028). CI's Linux leg builds
       `cmd/main` for `wasm`, runs it with `moonrun`, and `cmp`s each example
       against the native binary's output. `repository` is filled in, and the
-      backend is `mbtexcel@0.3.0`. What remains is the publish.
+      backend is `mbtexcel@0.3.0`. What remains is the publish, at `v0.6.0`:
+      `moon publish` from a clean checkout of the tag, then `moonx` against
+      the published package, then both READMEs. `moon publish --dry-run`
+      passes the server's checks for 0.6.0 (it exits non-zero after the
+      server's `202 Accepted`, which is the CLI, not the package).
 
 ### Phase 9 — Richer Excel features (leverage mbtexcel, additive)
 The items here are independent, so they land in whatever order pays best rather
@@ -2569,6 +2573,16 @@ selling point, and a second file to keep in step undercuts it.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-10-14** — **0.6.0: `mbtexcel@0.3.0`, filter criteria, and the first
+  mooncakes publish.** The version moves to `0.6.0` in `moon.mod` and in
+  `yxl version`, ready for the `v0.6.0` tag. The release carries the backend
+  bump and everything it closed (#81, #82, #86), filter criteria (#75), print
+  setup and shape-text fonts in `extract`, and the comment pass. The skills
+  follow: `extract-to-spec` no longer tells an agent to re-add `print:` by hand
+  and keeps a filter's hidden rows under `rows:`; `yxl-authoring` lists the
+  refusals as they now stand. It is also the first version published to
+  mooncakes (ADR-027).
 
 - **2026-10-14** — **`extract` recovers print setup and shape-text fonts.**
   Both were blocked on the backend and `mbtexcel@0.3.0` unblocked them, which

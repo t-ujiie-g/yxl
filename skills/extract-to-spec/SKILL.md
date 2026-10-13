@@ -54,8 +54,9 @@ yxl extract workbook.xlsx -o spec.yxl.yaml
   formula-bearing sheets stay inline.
 - **Every `dropped:` line is a decision the rewrite must make**, not noise.
   Typical drops and what to do:
-  - *print setup* — not recoverable; re-add a `print:` block (§5) by hand where
-    a sheet is actually printed.
+  - *paper size, first page number, centring, a first-page or even-page
+    header* — print settings §5 has no key for; the rest of `print:` comes
+    back. Tell the user which sheets lose them.
   - *theme/palette colour* — fonts and fills resolve theirs to RGB
     automatically; this line means a colour the workbook's own theme does not
     define. Pick the concrete `RRGGBB` the workbook shows and put it in the
@@ -160,7 +161,9 @@ becomes a layout.
 - **Keep the decorations declarative.** Conditional formats, validations,
   merges, filters, and freeze panes all have spec forms (§10); extract
   recovers them. A rule over a table's column moves onto the layout column's
-  `conditional:`. Re-add the dropped `print:` blocks here.
+  `conditional:`. A filter's saved criteria come back under `filter.columns`;
+  keep the rows it hid under `rows:`, since Excel does not re-run a filter on
+  open.
 
 ## 5. Workbook-level leftovers
 
@@ -209,9 +212,8 @@ yxl extract rebuilt.xlsx -o check.yxl.yaml   # should verify clean
 ## Scope honesty
 
 Things that do not survive extraction and are not restored by this skill:
-VBA/macros (out of yxl's scope entirely) and the exact saved state of filters
-(a view, not a description). Say so in the handover rather than leaving them to
-be discovered.
+VBA/macros (out of yxl's scope entirely), and whatever the `dropped:` lines
+name. Say so in the handover rather than leaving them to be discovered.
 
 **Pivots do come back**, and like charts they are refused whole where the
 schema cannot describe one — an external or table source, a calculated field,
