@@ -1,14 +1,132 @@
 ///|
-/// A sheet's `filter: <range>` — Excel's auto filter, whose top row is read as
-/// the header. A sheet has at most one, and a spec cannot ask for two: a
-/// repeated mapping key is a parse error before this is reached.
+/// A sheet's `filter:` — a range, or `{ at, columns }` with saved criteria
+/// (`docs/spec.md` §10). A repeated key is a parse error, so one per sheet.
 fn load_filter(
   node : @yaml.Node,
   sheet : @model.Sheet,
   file~ : String,
 ) -> Unit raise @diag.SchemaError {
-  let text = expect_string(node, file~, context="sheet 'filter'")
-  sheet.set_filter(parse_range(text, file~, what="filter range"))
+  guard node is @yaml.Map(entries) else {
+    let text = expect_string(node, file~, context="sheet 'filter'")
+    sheet.set_filter(parse_range(text, file~, what="filter range"))
+    return
+  }
+  let mut range = None
+  let mut columns = []
+  for entry in entries {
+    match entry {
+      ("at", value) => {
+        let text = expect_string(value, file~, context="filter 'at'")
+        range = Some(parse_range(text, file~, what="filter range"))
+      }
+      ("columns", value) =>
+        columns = expect_seq(value, file~, context="filter 'columns'")
+      (key, _) =>
+        raise schema_error(
+          file~,
+          "unknown key '\{key}' in filter (expected 'at' or 'columns')",
+        )
+    }
+  }
+  guard range is Some(range) else {
+    raise schema_error(file~, "filter needs 'at', the range it covers")
+  }
+  let loaded : Array[@model.FilterColumn] = []
+  for column in columns {
+    let (filter_column, letters) = load_filter_column(column, range, file~)
+    if loaded.iter().any(earlier => earlier.column == filter_column.column) {
+      raise schema_error(
+        file~,
+        "filter column '\{letters}' is given twice; Excel keeps one criterion per column",
+      )
+    }
+    loaded.push(filter_column)
+  }
+  sheet.set_filter(range, columns=loaded)
+}
+
+///|
+/// One `filter.columns` entry: `at:` and either `values:` or one comparison.
+fn load_filter_column(
+  node : @yaml.Node,
+  range : @model.CellRange,
+  file~ : String,
+) -> (@model.FilterColumn, String) raise @diag.SchemaError {
+  let entries = expect_map(node, file~, context="filter column")
+  let mut column = None
+  let criteria = []
+  for entry in entries {
+    if entry is ("at", value) {
+      let text = expect_string(value, file~, context="filter column 'at'")
+      guard @units.parse_column(text) is Some(index) else {
+        raise schema_error(
+          file~,
+          "filter column 'at' must be a column letter, got '\{text}'",
+        )
+      }
+      guard index >= range.top_left.col && index <= range.bottom_right.col else {
+        raise schema_error(
+          file~,
+          "filter column '\{text}' is outside the filter's range '\{range.to_a1()}'",
+        )
+      }
+      column = Some((index, text))
+    } else {
+      criteria.push(entry)
+    }
+  }
+  guard column is Some((index, letters)) else {
+    raise schema_error(file~, "filter column needs 'at', the column it filters")
+  }
+  let context = "filter column '\{letters}'"
+  guard criteria is [(key, value)] else {
+    raise schema_error(
+      file~,
+      "\{context} takes exactly one criterion: 'values' or a comparison (\{COMPARISONS})",
+    )
+  }
+  let criterion : @model.FilterCriterion = match key {
+    "values" => Values(load_filter_values(value, file~, context~))
+    "top" | "bottom" | "dynamic" | "color" | "icon" =>
+      raise schema_error(
+        file~,
+        "\{context} asks for a '\{key}' filter, which the Excel backend cannot write; use 'values' or a comparison",
+      )
+    _ =>
+      Compare(
+        load_comparison(
+          @yaml.Map(criteria),
+          file~,
+          read_bound=(node, what) => infer_bound(node, file~, what~),
+          context~,
+        ),
+      )
+  }
+  ({ column: index, criterion, }, letters)
+}
+
+///|
+/// A checkbox list: the values as cells display them, so text or whole numbers.
+fn load_filter_values(
+  node : @yaml.Node,
+  file~ : String,
+  context~ : String,
+) -> Array[String] raise @diag.SchemaError {
+  let items = expect_seq(node, file~, context="\{context} 'values'")
+  guard !items.is_empty() else {
+    raise schema_error(file~, "\{context} 'values' is empty; list at least one")
+  }
+  items.map(item => {
+    match item {
+      @yaml.Str(text) => text
+      @yaml.Int(number) => number.to_string()
+      _ =>
+        raise schema_error(
+          file~,
+          "\{context} 'values' holds text or whole numbers, as the cells display them",
+        )
+    }
+  })
 }
 
 ///|

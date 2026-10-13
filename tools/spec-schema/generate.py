@@ -707,6 +707,48 @@ def build(doc: Reference) -> dict:
         description="A bound, or a pair of them (§10).",
         where="a comparison",
     )
+    filters = doc.section("Auto filter")
+    filter_keys = ["at", "columns"]
+    filter_column_keys = ["at", "values", *comparisons]
+    undocumented = [
+        key for key in filter_keys + filter_column_keys if f"`{key}" not in filters
+    ]
+    if undocumented:
+        raise Drift(f"'Auto filter' no longer names {', '.join(undocumented)}")
+    define["filter_column"] = obj(
+        {
+            "at": {"type": "string", "pattern": "^[A-Z]{1,3}$"},
+            "values": {
+                "type": "array",
+                "items": {"type": ["string", "integer"]},
+                "minItems": 1,
+            },
+            **{
+                key: pair if key.endswith("between") else ref("scalar")
+                for key in comparisons
+            },
+        },
+        documented=filter_column_keys,
+        required=("at",),
+        description="One column's saved criterion: values, or a comparison (§10).",
+        where="a filter column",
+    )
+    # Exactly one criterion; an include stands in for the whole column.
+    define["filter_column"]["oneOf"] = [
+        {"required": [key]} for key in ["values", *comparisons, "$include"]
+    ]
+    define["filter"] = {
+        "anyOf": [
+            ref("range"),
+            obj(
+                {"at": ref("range"), "columns": seq(ref("filter_column"))},
+                documented=filter_keys,
+                required=("at",),
+                where="a filter",
+            ),
+        ],
+        "description": "Excel's auto filter, with any saved criteria (§10).",
+    }
     define["validation"] = obj(
         {
             "at": ref("layout_range"),
@@ -1310,7 +1352,7 @@ def build(doc: Reference) -> dict:
             "gridlines": ref("boolean"),
             "tab_color": ref("color"),
             "print": ref("print"),
-            "filter": ref("range"),
+            "filter": ref("filter"),
             "validations": seq(ref("validation")),
             "links": node(
                 {
@@ -1428,6 +1470,10 @@ def render(reference: Path) -> str:
 # quietly become `{}` still passes every corpus there is; only a refusal proves
 # it is doing anything. Each refusal is a mistake an author actually makes.
 ACCEPTED = {
+    "a filter with saved criteria": (
+        "sheets: [{name: S, filter: {at: A1:B9, columns:"
+        " [{at: A, values: [EMEA, 2024]}, {at: B, between: [1, 9]}]}}]"
+    ),
     "a parameter where a number goes": "sheets: [{name: S, columns: [{at: B, width: '${w}'}]}]",
     "a row band selected by number": "sheets: [{name: S, rows: [{at: 1, height: 28}]}]",
     "a null field in a data block": "sheets: [{name: S, data: [{at: A1, values: [[1, null]]}]}]",
@@ -1487,6 +1533,9 @@ ACCEPTED = {
 }
 
 REFUSED = {
+    "a filter column given two criteria": (
+        "sheets: [{name: S, filter: {at: A1:B9, columns: [{at: A, values: [x], equals: y}]}}]"
+    ),
     "a block instance with a band of its own": (
         "defs: {blocks: {yoy: {columns: [{name: cy}]}}}\n"
         "sheets: [{name: S, layouts: [{at: A1, rows: 1, columns: [{block: yoy, width: 9}]}]}]"

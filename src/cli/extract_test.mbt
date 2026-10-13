@@ -327,6 +327,31 @@ test "the four things that float over a sheet come back as themselves" {
 }
 
 ///|
+test "filter criteria survive extraction and rebuild the same workbook" {
+  let result = extracted(
+    (
+      #|sheets:
+      #|  - name: Orders
+      #|    cells:
+      #|      A1: Region
+      #|      B1: Amount
+      #|      A2: EMEA
+      #|      B2: 1200
+      #|    filter:
+      #|      at: A1:B2
+      #|      columns:
+      #|        - { at: A, values: [North America, EMEA, APAC] }
+      #|        - { at: B, between: [1000, 5000] }
+      #|
+    ),
+  )
+  assert_eq(result.warnings, [])
+  assert_eq(result.dropped, [])
+  assert_true(result.spec.contains("- North America"))
+  assert_true(result.spec.contains("between:"))
+}
+
+///|
 test "a slicer does not bring its own defined name back with it" {
   // The backend writes `Slicer_Region` as a defined name when it places a
   // slicer. Recovering that name *and* the slicer would make the spec ask for

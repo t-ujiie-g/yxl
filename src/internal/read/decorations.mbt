@@ -277,9 +277,7 @@ fn add_table(
 }
 
 ///|
-/// The sheet's auto filter. The schema names the range and leaves the criteria
-/// to whoever opens the file, since a saved filter state is a view rather than
-/// a description of the sheet.
+/// The sheet's auto filter and the criteria saved on it.
 fn read_filter(
   backend : @xlsx.Workbook,
   sheet : @model.Sheet,
@@ -287,12 +285,69 @@ fn read_filter(
 ) -> Unit raise {
   guard backend.get_auto_filter(sheet.name) is Some(filter) else { return }
   guard @model.CellRange::parse(filter.range_ref) is Some(range) else { return }
-  if !filter.columns.is_empty() {
-    notes.drop(
-      "a filter with criteria already applied, kept as the plain filter over its range",
-    )
+  let columns : Array[@model.FilterColumn] = []
+  for column in filter.columns {
+    match filter_criterion(column) {
+      Some(criterion) => columns.push({ column: column.col, criterion, })
+      None =>
+        notes.drop(
+          "a filter criterion the spec has no word for (a top-ten, dynamic, colour, or icon filter, or a pair of comparisons other than between)",
+        )
+    }
   }
-  sheet.set_filter(range)
+  sheet.set_filter(range, columns~)
+}
+
+///|
+fn filter_criterion(column : @xlsx.AutoFilterColumn) -> @model.FilterCriterion? {
+  if column.filters is Some(values) && !values.is_empty() {
+    return Some(Values(values))
+  }
+  guard column.custom_filters is Some({ and_filter, filters, }) else {
+    return None
+  }
+  let comparison : @model.Comparison? = match filters {
+    [{ operator, value, }] =>
+      filter_bound(value).bind(bound => {
+        match operator {
+          "" | "equal" => Some(Equal(bound))
+          "notEqual" => Some(NotEqual(bound))
+          "greaterThan" => Some(GreaterThan(bound))
+          "greaterThanOrEqual" => Some(AtLeast(bound))
+          "lessThan" => Some(LessThan(bound))
+          "lessThanOrEqual" => Some(AtMost(bound))
+          _ => None
+        }
+      })
+    [
+      { operator: "greaterThanOrEqual", value: low, },
+      { operator: "lessThanOrEqual", value: high, },
+    ] if and_filter =>
+      match (filter_bound(low), filter_bound(high)) {
+        (Some(low), Some(high)) => Some(Between(low, high))
+        _ => None
+      }
+    [
+      { operator: "lessThan", value: low, },
+      { operator: "greaterThan", value: high, },
+    ] if !and_filter =>
+      match (filter_bound(low), filter_bound(high)) {
+        (Some(low), Some(high)) => Some(NotBetween(low, high))
+        _ => None
+      }
+    _ => None
+  }
+  comparison.map(comparison => Compare(comparison))
+}
+
+///|
+/// A custom filter's value: a number where it reads as one, else text. A date
+/// is stored as its serial and stays a number, as `read_scalar` keeps it.
+fn filter_bound(value : String) -> @model.Bound? {
+  guard !value.is_empty() else { return None }
+  Some(Number(@string.parse_double(value))) catch {
+    _ => Some(Text(value))
+  }
 }
 
 ///|

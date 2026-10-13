@@ -55,6 +55,39 @@ test "an auto filter round-trips as a range over the sheet" {
 }
 
 ///|
+test "filter columns are written in column order, values verbatim" {
+  let (wb, sheet) = fixture()
+  sheet.set(@units.CellRef(col=1, row=1), Text("Region"))
+  sheet.set_filter(range("A1", "C50"), columns=[
+    { column: 3, criterion: Compare(AtLeast(Number(1000.0))), },
+    { column: 1, criterion: Values(["North America", "EMEA", "APAC"]), },
+  ])
+  let xml = part(wb, "xl/worksheets/sheet1.xml")
+  let first = xml.find("<filterColumn colId=\"0\"").unwrap()
+  let third = xml.find("<filterColumn colId=\"2\"").unwrap()
+  assert_true(first < third)
+  assert_true(xml.contains("<filter val=\"North America\"/>"))
+  assert_true(
+    xml.contains("<customFilter operator=\"greaterThanOrEqual\" val=\"1000\"/>"),
+  )
+}
+
+///|
+test "a filter comparison against the text 'blanks' is refused" {
+  let (wb, sheet) = fixture()
+  sheet.set_filter(range("A1", "A5"), columns=[
+    { column: 1, criterion: Compare(Equal(Text("Blanks"))), },
+  ])
+  let message = try {
+    @emit.to_bytes(wb) |> ignore
+    None
+  } catch {
+    @diag.EmitError(diagnostic) => Some(diagnostic.render())
+  }
+  assert_true(message is Some(text) && text.contains("empty-cell filter"))
+}
+
+///|
 test "an inline drop-down round-trips as a comma-joined list" {
   let (wb, sheet) = fixture()
   sheet.add_validation({

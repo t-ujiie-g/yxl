@@ -367,6 +367,35 @@ test "the decorations render in the schema's own vocabulary" {
 }
 
 ///|
+test "a filter with criteria renders as at and columns" {
+  let (wb, sheet) = fixture()
+  sheet.set(at("A1"), Text("x"))
+  sheet.set_filter({ top_left: at("A1"), bottom_right: at("C9"), }, columns=[
+    { column: 1, criterion: Values(["EMEA", "APAC"]), },
+    { column: 3, criterion: Compare(AtLeast(Number(1000.0))), },
+  ])
+  inspect(
+    spec(wb),
+    content=(
+      #|sheets:
+      #|  - name: S
+      #|    cells:
+      #|      A1: x
+      #|    filter:
+      #|      at: A1:C9
+      #|      columns:
+      #|        - at: A
+      #|          values:
+      #|            - EMEA
+      #|            - APAC
+      #|        - at: C
+      #|          at_least: 1000
+      #|
+    ),
+  )
+}
+
+///|
 test "a table renders only the toggles that differ from Excel's defaults" {
   let (wb, sheet) = fixture()
   sheet.set(at("A1"), Text("Region"))

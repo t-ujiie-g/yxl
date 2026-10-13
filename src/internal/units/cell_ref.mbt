@@ -76,7 +76,7 @@ pub fn CellRef::to_absolute_a1(self : CellRef) -> String {
 ///|
 /// A 1-based column index as its Excel letters: 1 -> `A`, 27 -> `AA`. The
 /// inverse of `parse_column`.
-fn column_letters(col : Int32) -> String {
+pub fn column_letters(col : Int32) -> String {
   // Letters come out least-significant first, so collect and reverse.
   let letters : Array[Char] = []
   let mut n = col

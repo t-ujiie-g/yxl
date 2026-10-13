@@ -231,7 +231,7 @@ Helix も VS Code と同じように読みます。ローカルのチェック�
 | [`layout.yxl.yaml`](./examples/layout.yxl.yaml) | セル結合、見出しの固定、行・列のサイズ指定とグループ化、シートの表示状態、印刷設定、文書プロパティ、画像、透かしの背景 |
 | [`modular.yxl.yaml`](./examples/modular.yxl.yaml) | `$include`、CSV / JSON の `data:`、それで埋まる範囲に置いた Excel テーブル、それを絞り込むスライサー |
 | [`parameters.yxl.yaml`](./examples/parameters.yxl.yaml) | `${}` と `--set` を使った `params:` |
-| [`interactive.yxl.yaml`](./examples/interactive.yxl.yaml) | ドロップダウンなどの入力規則、オートフィルター、ハイパーリンク、メモ、シートの保護、チェックボックスとスピンボタン |
+| [`interactive.yxl.yaml`](./examples/interactive.yxl.yaml) | ドロップダウンなどの入力規則、条件を保存したオートフィルター、ハイパーリンク、メモ、シートの保護、チェックボックスとスピンボタン |
 | [`charts.yxl.yaml`](./examples/charts.yxl.yaml) | 縦棒・円・横棒グラフ、セルから名前を取る系列、別シートを描くグラフ |
 | [`pivots.yxl.yaml`](./examples/pivots.yxl.yaml) | 2 つのピボットテーブル: 行、列、`filters:` 軸、2 種類の集計 |
 | [`shapes.yxl.yaml`](./examples/shapes.yxl.yaml) | 雲形のスタンプ、2 行のテキストを持つ山形矢印、固定配置の星 |
