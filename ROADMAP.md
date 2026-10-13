@@ -277,15 +277,15 @@ The **active phase** is the first phase with any unchecked box.
       - a CI job builds `cmd/main` for `wasm` and checks that its output
         matches the native binary for `examples/`.
       - fill `repository` in `moon.mod`.
-      - adopt the next `mbtexcel` release, which carries the fixes for our
-        upstream reports.
+      - ~~adopt the next `mbtexcel` release, which carries the fixes for our
+        upstream reports.~~ Done: `mbtexcel@0.3.0`.
       Then publish at a release tag, run the published package through
       `moonx`, and document it in both READMEs.
       **Done so far:** the first three. The compiler is under `src/internal/`,
       with the resolver types in `include` (ADR-028). CI's Linux leg builds
       `cmd/main` for `wasm`, runs it with `moonrun`, and `cmp`s each example
-      against the native binary's output. `repository` is filled in. What
-      remains is the `mbtexcel` bump and the publish.
+      against the native binary's output. `repository` is filled in, and the
+      backend is `mbtexcel@0.3.0`. What remains is the publish.
 
 ### Phase 9 — Richer Excel features (leverage mbtexcel, additive)
 The items here are independent, so they land in whatever order pays best rather
@@ -485,17 +485,15 @@ feature that already works, and any can be pulled forward on request — none is
 gate, which is why none carries a box:
 
 - **per-column auto-filter criteria** — asked for by
-  [#75](https://github.com/t-ujiie-g/yxl/issues/75), and still **blocked on the
-  backend** rather than on the schema. Of the two defects measured and reported,
-  `mbtexcel@0.1.10` fixed the quoting
-  ([office.mbt#477](https://github.com/moonbitlang/office.mbt/issues/477)), so a
-  value with a space in it now reaches the file intact; the grammar still caps a
-  checkbox list at two values
-  ([office.mbt#478](https://github.com/moonbitlang/office.mbt/issues/478)), so
-  `values: [North America, EMEA, APAC]` — the ordinary case — remains
-  unwritable. Shipping the comparison half alone is the "backend's subset" this
-  entry already rejected once, so the schema still waits. See §9. The
-  schema shape is settled meanwhile: `filter:` grows `at:` and `columns:`, each
+  [#75](https://github.com/t-ujiie-g/yxl/issues/75), and **no longer blocked on
+  the backend**: `mbtexcel@0.1.10` fixed the quoting
+  ([office.mbt#477](https://github.com/moonbitlang/office.mbt/issues/477)) and
+  `mbtexcel@0.3.0` added `set_auto_filter_values`, which takes a checkbox list
+  of any length as data rather than as an expression
+  ([office.mbt#478](https://github.com/moonbitlang/office.mbt/issues/478);
+  three values with spaces in them round-trip, checked against `0.3.0`). What
+  remains is ours: the schema. Its shape is settled: `filter:` grows `at:` and
+  `columns:`, each
   column naming `values:` or reusing the eight comparisons `validations:` and
   `conditional:`'s `cell:` already spell, with dynamic, colour, and icon filters
   refused *by name*. **Hidden rows stay separate** — Excel does not re-apply a
@@ -517,18 +515,14 @@ gate, which is why none carries a box:
   slicer may name, and how it refers to a pivot the spec identifies by `name:`
   or not at all. The backend's `SlicerOptions` takes the pivot's name where a
   table slicer takes the table's, so the emitter side is one branch
-- **form controls Excel actually draws.** Found by opening a built workbook
-  rather than by reading its bytes: the backend writes only the *legacy* half of
-  a control — the VML shape and its `x:ClientData` — and not the worksheet's
-  `<controls>` element or the per-control `ctrlProps` parts current Excel needs
-  to render one. The control is in the file, the linked cell holds its value,
-  and Excel shows nothing. No spec can work around it; it is an upstream fix or
-  a part the emitter writes itself. `docs/spec.md` §20 says so meanwhile.
-  **Reported 2026-08-09 as [office.mbt#401](https://github.com/moonbitlang/office.mbt/issues/401)**, with the part Excel writes for
-  the same control and the note that `shapeId` ties it back to the `<v:shape>`
-  the existing VML writer already emits, so most of what the new part needs is
-  in hand. `mbtexcel@0.2.0` writes no `ctrlProps` part and no `<controls>`
-  element either
+- ~~**form controls Excel actually draws.**~~ **Closed by `mbtexcel@0.3.0`**,
+  which writes the worksheet's `<controls>` element and a `ctrlProps` part per
+  control beside the legacy VML
+  ([office.mbt#401](https://github.com/moonbitlang/office.mbt/issues/401));
+  `controls.yxl.yaml` validates clean. One slip remains in that VML: its shape
+  style is `position:absolute;73.5pt;…`, a value with no property name — the
+  comment defect below, in the form-control writer (`form_control.mbt:460`).
+  Excel positions a control from its anchor, so nothing shows; unreported
 - **a shape with no explicit colour is invisible**, for a neighbouring reason:
   the backend writes no `fillRef`/`lnRef` theme style reference, so a shape
   given neither `fill:` nor `line:` gets no fill and no outline rather than
@@ -2213,8 +2207,10 @@ selling point, and a second file to keep in step undercuts it.
   `formula_builtins_financial.mbt` and `formula_builtins_stats.mbt` already use
   — which is roughly the shape the fix took.
 
-- **The backend's auto filter has a front door too narrow for Excel's own
-  files.** Criteria reach `set_auto_filter` only as an expression string, and
+- ~~**The backend's auto filter has a front door too narrow for Excel's own
+  files.**~~ **Closed 2026-10-14** by `mbtexcel@0.3.0`'s
+  `set_auto_filter_values`, which takes the value list as data; the schema
+  work is the "Not scheduled" auto-filter entry in Phase 9. Kept for the record: Criteria reach `set_auto_filter` only as an expression string, and
   two defects in that one seam put the common case out of reach. **One is now
   fixed** (see the note below); the other is not. The grammar is
   exactly three tokens, or seven with a conjunction, so a checkbox list of three
@@ -2239,10 +2235,8 @@ selling point, and a second file to keep in step undercuts it.
   that has no criteria at all.
   **`mbtexcel@0.1.10` fixed #477**: the tokenizer no longer keeps a quoted
   token's quote characters, and an unclosed quote raises rather than silently
-  mangling the value. #478 stands through `0.2.0` — the grammar is still three
-  tokens, or seven with a conjunction — so the two-value ceiling stands with
-  it, and so does the decision above, since the comparison half alone is that
-  same rejected subset.
+  mangling the value. #478 stood through `0.2.0`, and `0.3.0` answered it with
+  the structured entry point the report asked for.
 
 - **`extract`'s self-check compares cells, not their looks.** It recompiles the
   spec it wrote and asserts the *values* match, so a styling inference that goes
@@ -2272,8 +2266,11 @@ selling point, and a second file to keep in step undercuts it.
   workbook that is schema-valid and still wrong — the pivot in the wrong place,
   the `#SPILL!` below — so the manual Tier-3 pass stays at the v1.0 gate.
   Raised in the post-v0.1.0 review.
-- **A line feed in an attribute value is written raw, so a two-line table
-  heading breaks the workbook.** Both attribute escapers — `xlsx/write.mbt`'s
+- ~~**A line feed in an attribute value is written raw, so a two-line table
+  heading breaks the workbook.**~~ **Closed 2026-10-14** by `mbtexcel@0.3.0`,
+  whose attribute escaper writes `&#10;`, `&#13;` and `&#9;`;
+  `emit/table_test.mbt` pins it on the table part, since the validator cannot
+  see this class. `docs/spec.md` §3's warning is gone. Kept for the record: Both attribute escapers — `xlsx/write.mbt`'s
   `LimitedXmlBuilder::write_xml_attr` and the shared `@ooxml.escape_xml_attr`,
   whose own comment calls itself *"a single implementation to keep correct"* —
   handle `& < > " '` and stop, so a tab, line feed or carriage return goes out
@@ -2287,7 +2284,7 @@ selling point, and a second file to keep in step undercuts it.
   **Reported 2026-09-11 as
   [office.mbt#533](https://github.com/moonbitlang/office.mbt/issues/533)**;
   ours is [#86](https://github.com/t-ujiie-g/yxl/issues/86). Both escapers
-  still stop at the five in `mbtexcel@0.2.0`.
+  stopped at the five through `mbtexcel@0.2.0`.
 
   **Not worked around**, on the same reasoning as the `<dxf>` order below: the
   fix upstream is three character references, and refusing a line break in a
@@ -2304,8 +2301,13 @@ selling point, and a second file to keep in step undercuts it.
   reason this entry is longer than the defect deserves. If #533 goes quiet, a
   check is the answer.
 
-- **A conditional look with a number format or an alignment makes Excel throw
-  away every style in the workbook.** `<dxf>`'s children go out as `numFmt,
+- ~~**A conditional look with a number format or an alignment makes Excel throw
+  away every style in the workbook.**~~ **Closed 2026-10-14** by
+  `mbtexcel@0.3.0`, which writes `<dxf>` in CT_Dxf order. The waiver failed as
+  designed — the run no longer made the finding it expected — and is gone from
+  `known-defects.txt`, which is now empty; `conditional-dxf-order.yxl.yaml`
+  stays as the corpus row that pins the order. `docs/spec.md` §10's warning is
+  gone. Kept for the record: `<dxf>`'s children go out as `numFmt,
   font, fill, border, alignment`, where `CT_Dxf` (ECMA-376 §18.8.14) is the
   sequence `font, numFmt, fill, alignment, border, protection`. `styles.xml` is
   load-bearing, so Excel does not ignore the part — it calls the workbook
@@ -2313,8 +2315,7 @@ selling point, and a second file to keep in step undercuts it.
   cell's fill, border, font and number format with it. **Reported 2026-09-10 as
   [office.mbt#531](https://github.com/moonbitlang/office.mbt/issues/531)**;
   ours is [#81](https://github.com/t-ujiie-g/yxl/issues/81), which has the
-  bisection. `mbtexcel@0.2.0` still writes the same order, and
-  `conditional-dxf-order.xlsx` is still the one waiver left.
+  bisection.
 
   **Nothing is worked around here, by decision** — the combination is refused
   neither in the loader nor in `emit`, because the fix is one reordering
@@ -2333,7 +2334,10 @@ selling point, and a second file to keep in step undercuts it.
   that combination, waived by name so the waiver fails the day upstream fixes
   it.
 
-- **A comment's VML shape style carries a value with no property name.**
+- ~~**A comment's VML shape style carries a value with no property name.**~~
+  **Closed 2026-10-14** by `mbtexcel@0.3.0`, which writes `margin-left:` and
+  `margin-top:`. The form-control writer has the same slip (Phase 9's
+  "Not scheduled"). Kept for the record:
   `write_comments_vml.mbt:95` writes
   `style="position:absolute;73.5pt;width:108pt;…"` — `margin-left:` and
   `margin-top:` are missing, so `73.5pt` is not a declaration at all. Excel
@@ -2343,9 +2347,7 @@ selling point, and a second file to keep in step undercuts it.
   so it is a slip in the comment path alone. Every comment also shares one
   fixed geometry, with only `<x:Anchor>` varying. **Reported 2026-09-10 as
   [office.mbt#532](https://github.com/moonbitlang/office.mbt/issues/532)**;
-  ours is [#82](https://github.com/t-ujiie-g/yxl/issues/82). Unchanged in
-  `mbtexcel@0.2.0`. Not worked around: there is nothing a spec could say
-  differently.
+  ours is [#82](https://github.com/t-ujiie-g/yxl/issues/82).
 
 - ~~**The backend writes a table slicer's cache extension in the wrong
   namespace.**~~ **Closed 2026-09-21** by `mbtexcel@0.2.0`, which writes
@@ -2379,8 +2381,9 @@ selling point, and a second file to keep in step undercuts it.
   `unwritable_icon_set_styles`, apart from the seventeen, and a test pins that
   the two lists stay disjoint and add to twenty. `extract` names them apart
   too, since "the spec does not name it" would send a reader hunting a typo.
-  They become plain schema additions the day #403 lands — not `mbtexcel@0.2.0`,
-  which still writes all twenty into the base attribute.
+  **Closed upstream 2026-10-08 by refusal**: `mbtexcel@0.3.0` rejects the three
+  rather than writing their `x14` form, so the refusal here is now the
+  backend's too and stays. The diagnostic no longer says to wait for a fix.
 
 - **A link into a sheet whose name needs quoting went out unquoted.**
   `links: { A2: { to: "Q1 Sales!B2" } }` reached the file as
@@ -2498,7 +2501,12 @@ selling point, and a second file to keep in step undercuts it.
   Not reported: it is one of a family of small gaps, and the upstream batch
   was kept to three.
 
-- **A style cannot carry both a number format and cell protection.** The
+- ~~**A style cannot carry both a number format and cell protection.**~~
+  **Closed 2026-10-14** by `mbtexcel@0.3.0`'s `with_number_format` and
+  `with_protection`; `emit/style.mbt` seeds from the format and layers
+  protection like the rest, the refusal and `docs/spec.md` §16's note are gone,
+  and `cells.yxl.yaml`'s `boxed` style carries both so the validator judges the
+  pair. Kept for the record: The
   backend builds a `Style` by seeding it from one attribute and layering the
   rest with `with_*` builders, and it has `with_font`, `with_fill`,
   `with_border` and `with_alignment` but no `with_protection` and no
@@ -2512,9 +2520,7 @@ selling point, and a second file to keep in step undercuts it.
   and says to split it into its own style, and layering (§4 of the spec's
   styling keys) makes that work in practice. **Reported 2026-09-11 as
   [office.mbt#534](https://github.com/moonbitlang/office.mbt/issues/534)**; the
-  fix upstream is two builders beside the four that exist. Still four in
-  `mbtexcel@0.2.0`, re-checked the only way that counts — by compiling
-  `with_protection` and reading the *"has no method"*.
+  fix upstream is two builders beside the four that exist.
 - **MSVC cannot compile the backend's formula evaluator.** MoonBit's native
   backend hands each test executable to the platform C compiler as one
   translation unit, and `mbtexcel`'s formula dispatch — a `match` with a
@@ -2568,6 +2574,29 @@ selling point, and a second file to keep in step undercuts it.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-10-14** — **`mbtexcel@0.3.0`, and every upstream report closed.** The
+  backend pin moves from `0.2.0` (and `flate` to the `0.9.0` it requires). What
+  that changes for a spec:
+  - **a style may carry a number format and cell protection together** — the
+    unlocked currency cell a protected form is made of. The build no longer
+    refuses it (office.mbt#534).
+  - **a conditional look may have `format:` and `align:`** without Excel
+    discarding the workbook's styles (#531). The last Open XML waiver is gone;
+    `known-defects.txt` lists nothing.
+  - **a line break in a table's header cell is safe**, and a validation's
+    `prompt:`/`error:` keeps its line breaks (#533).
+  - **form controls are drawn by Excel**: the backend now writes `<controls>`
+    and the `ctrlProps` parts (#401).
+  - a comment's VML style is well-formed (#532).
+  - `3Stars`, `3Triangles` and `5Boxes` stay refused — upstream closed #403 by
+    refusing them too — and the diagnostic no longer says to wait for a fix.
+  - #478 gave the auto filter a structured value list, so per-column criteria
+    (#75) are now a schema task rather than a backend one; not built here.
+
+  `docs/spec.md` loses the four warnings these made necessary. Found on the
+  way: the form-control VML has #532's slip (`form_control.mbt:460`), noted in
+  Phase 9.
 
 - **2026-10-12** — **CLI: `-o` is optional, and so is the spec (ADR-029).** A
   spec's new top-level `output:` key says where it builds to

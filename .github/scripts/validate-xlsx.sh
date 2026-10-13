@@ -64,7 +64,8 @@ if duplicates=$(sort "$names" | uniq -d) && [ -n "$duplicates" ]; then
   exit 2
 fi
 
-grep -v -e '^#' -e '^[[:space:]]*$' "$known" |
+# An empty waiver is the goal, not an error: grep exits 1 when nothing is left.
+{ grep -v -e '^#' -e '^[[:space:]]*$' "$known" || true; } |
   awk '
     NR == FNR { validated[$0] = 1; next }
     /^[^[:space:]]/ { keep = ($0 in validated) }

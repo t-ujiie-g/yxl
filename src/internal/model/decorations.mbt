@@ -198,16 +198,9 @@ pub let icon_set_styles : Array[String] = [
 
 ///|
 /// Icon sets Excel offers and the backend cannot write: added in Excel 2010,
-/// they live only in the `x14` extension schema, and the backend puts the name
-/// straight into the base `<iconSet iconSet="…">` attribute — whose enumeration
-/// (ECMA-376 §18.18.42) has seventeen values and none of these. A workbook
-/// naming one is schema-invalid and Excel offers to repair it.
-///
-/// Refused by name, with the reason, until that is fixed upstream
-/// (moonbitlang/office.mbt#403) — the same arrangement as the camel-case shape
-/// presets. The backend accepts all twenty, so this list cannot be derived from
-/// it: trusting the backend's acceptance for the set of legal values is what
-/// let these ship in the first place.
+/// they live only in the `x14` extension schema, and the backend writes only
+/// the base `<iconSet>` attribute (ECMA-376 §18.18.42), so it refuses them
+/// (moonbitlang/office.mbt#403). Named here so the loader can say why.
 pub let unwritable_icon_set_styles : Array[String] = [
   "3Stars", "3Triangles", "5Boxes",
 ]

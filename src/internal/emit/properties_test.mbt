@@ -199,10 +199,26 @@ test "cell protection round-trips through the style" {
 }
 
 ///|
-/// Excel locks every cell and hides no formula by default, so a style asking
-/// for exactly that changes nothing — and the backend gives us only one seed
-/// slot, which such a style must not occupy.
-test "a style asking only for Excel's defaults leaves the seed slot free" {
+test "a style carries both a number format and cell protection" {
+  let (wb, sheet) = fixture()
+  let entry : @model.Style = {
+    ..@model.Style::number_format("0.0%"),
+    protection: Some({ locked: Some(false), hidden: None, }),
+  }
+  sheet.set(@units.CellRef(col=1, row=1), Number(0.085), style=entry)
+  let reopened = reopen(wb)
+  guard reopened.get_cell_style("S", "A1") is Some(id) else {
+    fail("expected a style on A1")
+  }
+  guard reopened.get_style(id).protection is Some(protection) else {
+    fail("expected the style to carry protection")
+  }
+  assert_eq(protection.locked, Some(false))
+  assert_eq(reopened.get_cell_value("S", "A1", raw=false), Some("8.5%"))
+}
+
+///|
+test "a style asking only for Excel's default protection writes none" {
   let (wb, sheet) = fixture()
   let default_protection : @model.Style = {
     ..@model.Style::number_format("0.0%"),
@@ -213,38 +229,12 @@ test "a style asking only for Excel's defaults leaves the seed slot free" {
     Number(0.085),
     style=default_protection,
   )
-  // Would raise if the redundant protection had taken the number format's place.
   let reopened = reopen(wb)
-  assert_true(reopened.get_cell_style("S", "A1") is Some(_))
+  guard reopened.get_cell_style("S", "A1") is Some(id) else {
+    fail("expected a style on A1")
+  }
+  assert_true(reopened.get_style(id).protection is None)
   assert_eq(reopened.get_cell_value("S", "A1", raw=false), Some("8.5%"))
-}
-
-///|
-/// The backend seeds a style from one attribute and layers the rest with
-/// `with_*` builders, and it has no `with_protection` — so protection can only
-/// be the seed, and a style needing a number format as well cannot be built.
-/// Refused with something the author can act on rather than silently dropped.
-test "a style cannot carry both a number format and real cell protection" {
-  let (wb, sheet) = fixture()
-  let clash : @model.Style = {
-    ..@model.Style::number_format("0.0%"),
-    protection: Some({ locked: Some(false), hidden: None, }),
-  }
-  sheet.set(@units.CellRef(col=1, row=1), Number(0.085), style=clash)
-  let message = try {
-    @emit.to_bytes(wb) |> ignore
-    None
-  } catch {
-    @diag.EmitError(diagnostic) => Some(diagnostic.render())
-  }
-  guard message is Some(message) else { fail("expected an emit error") }
-  assert_true(
-    message.has_prefix(
-      "the Excel backend cannot put a number format and cell protection in one style",
-    ),
-  )
-  // And it names the format, so the author can find the style that clashed.
-  assert_true(message.contains("'0.0%'"))
 }
 
 ///|

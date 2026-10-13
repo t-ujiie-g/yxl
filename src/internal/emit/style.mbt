@@ -52,7 +52,7 @@ fn band_style_id(
   backend : @xlsx.Workbook,
   cache : Map[@model.Style, Int32],
   band : @model.AxisBand,
-) -> Int32? raise {
+) -> Int32? {
   match band.style {
     Some(style) => Some(intern_style(backend, cache, style))
     None => None
@@ -68,7 +68,7 @@ fn intern_style(
   backend : @xlsx.Workbook,
   cache : Map[@model.Style, Int32],
   style : @model.Style,
-) -> Int32 raise {
+) -> Int32 {
   let style = style.settled()
   match cache.get(style) {
     Some(id) => id
@@ -89,7 +89,7 @@ fn intern_conditional_style(
   backend : @xlsx.Workbook,
   cache : Map[@model.Style, Int32],
   style : @model.Style,
-) -> Int32 raise {
+) -> Int32 {
   let style = style.settled()
   match cache.get(style) {
     Some(id) => id
@@ -102,23 +102,14 @@ fn intern_conditional_style(
 }
 
 ///|
-/// Translate a model style into the backend's `Style`. A number format, if any,
-/// seeds the style; font, fill, borders, and alignment are layered on.
-fn build_style(style : @model.Style) -> @xlsx.Style raise @diag.EmitError {
-  let mut backend = match (style.number_format, protection_to_set(style)) {
-    // The backend builds a style by seeding it from one attribute and layering
-    // the rest with `with_*` builders — and it has no `with_protection`, so
-    // protection can only be the seed. A style needing both cannot be built.
-    (Some(code), Some(_)) =>
-      raise @diag.EmitError(
-        @diag.Diagnostic(
-          "the Excel backend cannot put a number format and cell protection in one style; " +
-          "split the number format ('\{code}') into a separate style, or drop it from this one",
-        ),
-      )
-    (None, Some(protection)) => @xlsx.Style::protection(protection)
-    (Some(code), None) => @xlsx.Style::number_format(code)
-    (None, None) => @xlsx.Style::new()
+/// Translate a model style into the backend's `Style`.
+fn build_style(style : @model.Style) -> @xlsx.Style {
+  let mut backend = match style.number_format {
+    Some(code) => @xlsx.Style::number_format(code)
+    None => @xlsx.Style::new()
+  }
+  if protection_to_set(style) is Some(protection) {
+    backend = backend.with_protection(protection)
   }
   if style.font is Some(font) {
     backend = backend.with_font(build_font(font))
@@ -137,9 +128,8 @@ fn build_style(style : @model.Style) -> @xlsx.Style raise @diag.EmitError {
 
 ///|
 /// The backend protection a style actually needs written, or `None` when it
-/// asks only for Excel's own defaults. Excel locks every cell and hides no
-/// formula, so a style saying exactly that changes nothing and need not occupy
-/// the one seed slot the backend gives us.
+/// asks only for Excel's own defaults (locked, formula shown), which an
+/// explicit `<protection>` would merely repeat.
 fn protection_to_set(style : @model.Style) -> @xlsx.Protection? {
   guard style.protection is Some(protection) else { return None }
   let locked = protection.locked.unwrap_or(true)
