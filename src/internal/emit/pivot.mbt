@@ -1,9 +1,6 @@
 ///|
-/// Place a pivot table on a sheet.
-///
-/// The backend takes each field's *name* and looks it up in the source's header
-/// row, so the cells must already be written — `emit_sheet` runs this after
-/// them, and the loader has already checked that every field is a column there.
+/// Place a pivot table. The backend finds fields by header name, so the source
+/// cells must already be written.
 fn apply_pivot(
   backend : @xlsx.Workbook,
   sheet_name : String,
@@ -43,12 +40,8 @@ fn apply_pivot(
 }
 
 ///|
-/// A range as the backend's pivot options want one: `Orders!A1:D7`, with the
-/// sheet name bare. Unlike a chart's, this string is *split* on its `!` and the
-/// halves written into the pivot's XML as they are, so quoting the name — the
-/// way Excel itself would — would name a sheet that does not exist. The loader
-/// keeps a `!` out of a sheet name a pivot mentions, since nothing here could
-/// tell one apart from the separator.
+/// A range as the backend's pivot options want it, sheet name *unquoted*: it is
+/// split on `!` and written as is (the loader keeps `!` out of the name).
 fn sheet_range(sheet_name : String, range : @model.CellRange) -> String {
   sheet_name + "!" + range.to_a1()
 }

@@ -19,13 +19,8 @@ fn load_sheets(
 }
 
 ///|
-/// Excel's own rules for a sheet's name (ECMA-376 §18.4.7 and the constraints
-/// its UI enforces), checked here so a broken one is a diagnostic naming the
-/// sheet and the rule rather than the backend's bare `InvalidSheetName`.
-///
-/// The backend refuses these too — but by the time it does, the spec's own
-/// vocabulary is gone, and "InvalidSheetName" tells an author neither which
-/// sheet nor which rule (ADR-006).
+/// Excel's sheet-name rules (ECMA-376 §18.4.7 and its UI), checked here so the
+/// diagnostic names the sheet and rule, not `InvalidSheetName` (ADR-006).
 fn check_sheet_name(
   name : String,
   file~ : String,

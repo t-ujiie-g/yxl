@@ -177,12 +177,9 @@ fn check_numbered_style(
 }
 
 ///|
-/// Everything about a table that only the finished workbook can answer: that its
-/// name is unique, that it does not overlap another table or the sheet's auto
-/// filter, and that its header row names every column.
-///
-/// Excel repairs — or refuses — a workbook that breaks any of these, and a
-/// repair is silent about what it dropped, so each is a diagnostic here instead.
+/// The table checks only the finished workbook can answer — unique names, no
+/// overlap with a table or the filter, a full header row — since Excel's repair
+/// would drop them silently.
 fn check_tables(
   workbook : @model.Workbook,
   file~ : String,
@@ -223,13 +220,8 @@ fn check_tables(
 }
 
 ///|
-/// A table's header row must name every column: Excel identifies a column by its
-/// header, and the backend would invent `Column1`, `Column2`, … for the cells
-/// left empty — writing them into the sheet, over a spec that never asked for
-/// them.
-///
-/// The name must be text. A number reads as data rather than as a column name,
-/// and quoting it says which was meant.
+/// A table's header row must name every column with text; the backend would
+/// otherwise write `Column1`… into the sheet.
 fn check_header_row(
   sheet : @model.Sheet,
   table : @model.Table,
@@ -259,13 +251,8 @@ fn check_header_row(
 }
 
 ///|
-/// The column names written across the top row of `range`, keyed by column. A
-/// table, a pivot's source, and the table a slicer filters all identify their
-/// columns this way, so all three read the row through here.
-///
-/// Only a non-empty *text* cell names a column: a number there reads as data,
-/// and an empty string names nothing. Columns the row leaves out are simply
-/// absent from the map — what to say about them is each caller's own rule.
+/// The column names across `range`'s top row, keyed by column, as tables, pivot
+/// sources and slicers all read them. Only non-empty text names a column.
 fn header_row(
   sheet : @model.Sheet,
   range : @model.CellRange,

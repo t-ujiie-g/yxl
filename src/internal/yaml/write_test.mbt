@@ -52,12 +52,8 @@ test "text carrying YAML's own punctuation survives" {
 
 ///|
 test "control characters survive, including the ones YAML gives a letter" {
-  // The parser's escape table decodes `\r` to U+13, `\v` to U+11, `\f` to
-  // U+12, and `\e` to U+27 — decimal code points written as hex — so the
-  // writer spells every control character but `\n` and `\t` as `\u00XX`,
-  // which the parser does read right. A cell holding Windows line breaks is
-  // the case that found this: `\r\n` written the friendly way came back as
-  // a different string in every multi-line cell of a real workbook.
+  // The parser misdecodes `\r`, `\v`, `\f`, `\e` (yaml.mbt#14); Windows line
+  // breaks in a real workbook found it.
   for text in ["a\r\nb", "bell\u{07}", "vt\u{0b}", "ff\u{0c}", "esc\u{1b}"] {
     survives(@yaml.Map([("a", @yaml.Str(text))]))
   }

@@ -211,11 +211,7 @@ fn slicers(sheet : @model.Sheet) -> @yaml.Node {
 }
 
 ///|
-/// A `size:` block, or `None` where there is nothing to say.
-///
-/// The schema takes both dimensions together or neither, since one alone would
-/// pair silently with a backend default — and both the loader and the reader
-/// hold to that, so a half-set size is a model nothing builds.
+/// A `size:` block, which the schema takes whole or not at all.
 fn size(width~ : Int32?, height~ : Int32?) -> @yaml.Node? {
   guard width is Some(width) && height is Some(height) else { return None }
   Some(

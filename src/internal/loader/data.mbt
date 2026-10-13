@@ -1,11 +1,6 @@
 ///|
-/// Where one table's rows come from. Exactly one form may be given per entry.
-///
-/// `Inline` is the odd one out: it is not a path but the rows themselves,
-/// written in the spec. It exists for *diffs* — a `cells:` mapping is keyed by
-/// address, so inserting a row rewrites every key below it and `git diff` calls
-/// the whole block changed. Anchored rows move the addresses into one `at:`, so
-/// inserting one is a one-line diff.
+/// Where one table's rows come from; exactly one form per entry. `Inline` holds
+/// the rows themselves, so inserting one is a one-line diff.
 priv enum DataSource {
   Csv(String)
   Json(String)
@@ -120,15 +115,8 @@ fn one_source(file~ : String) -> @diag.SchemaError {
 }
 
 ///|
-/// A `values:` block: a sequence of rows, each a sequence of scalars.
-///
-/// The scalars keep the types YAML gave them, so a quoted `"007"` stays text
-/// and a bare `007` is the number 7 — the same rule a `cells:` value follows
-/// (`docs/spec.md` §3), and a sharper one than CSV can offer, where every field
-/// arrives as text and has to be guessed at.
-///
-/// `null` is a blank cell, left untouched rather than written as empty text —
-/// matching a JSON table's `null` and a CSV's empty field.
+/// A `values:` block: rows of scalars keeping their YAML types (`"007"` stays
+/// text); `null` is a blank cell.
 fn load_inline_rows(
   node : @yaml.Node,
   file~ : String,

@@ -22,11 +22,8 @@ pub fn Picture::key(sheet : String, at : @units.CellRef?) -> String {
 }
 
 ///|
-/// The pictures a workbook carries, with the paths the rendered spec uses.
-///
-/// The paths are assigned here rather than while rendering so that `render` and
-/// the caller writing the files agree without either guessing: this returns
-/// both, and `workbook` takes the same list back.
+/// The workbook's pictures with the paths the rendered spec uses, assigned here
+/// so `workbook` and the file writer agree.
 pub fn pictures(wb : @model.Workbook) -> Array[Picture] {
   companion_pictures(wb, Names())
 }

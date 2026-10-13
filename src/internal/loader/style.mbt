@@ -50,21 +50,8 @@ fn combine_style(
 }
 
 ///|
-/// Parse a `style:` mapping into a model style. Keys are `font`, `fill`,
-/// `border`, `align`, `protection`, `format`, and `extends`; anything else is a
-/// diagnostic.
-///
-/// `format` belongs here as well as beside the style, because a number format is
-/// part of a look — a "percent" style is a percent format and nothing else, and
-/// without this it could be *declared* nowhere and would have to be repeated at
-/// every cell that wore it, which is exactly the copying ADR-004 exists to stop.
-/// A `format:` written beside the style still wins, as the caller layers it on.
-///
-/// `extends: <name>` names a style to inherit: `find_base` resolves the name (to
-/// a declared definition), and everything this mapping sets is laid over it.
-///
-/// An attribute or a whole group written `null` is cleared rather than set
-/// (`docs/spec.md` §6).
+/// Parse a `style:` mapping (`docs/spec.md` §4). `extends` is resolved by
+/// `find_base`; `null` clears an attribute (§6).
 fn load_style(
   node : @yaml.Node,
   file~ : String,

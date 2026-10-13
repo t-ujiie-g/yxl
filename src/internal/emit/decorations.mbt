@@ -111,13 +111,8 @@ fn comparison_parts(
 }
 
 ///|
-/// One endpoint as a backend formula value. A date becomes the serial its epoch
-/// gives it, and a whole number is written as an integer so the stored formula
-/// reads `10` rather than `10.0`.
-///
-/// A `Text` bound cannot arrive from a validation — a validation's kind fixes
-/// what its bounds may be — but the type admits one, so it is rendered as the
-/// quoted literal Excel would need rather than left to a partial match.
+/// One endpoint as a formula literal: a date as its serial, a whole number
+/// without `.0`, text quoted.
 fn bound_formula(
   bound : @model.Bound,
   date_system : @units.DateSystem,

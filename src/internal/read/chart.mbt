@@ -97,12 +97,8 @@ fn read_chart(
 }
 
 ///|
-/// The chart group's element name, plus the two attributes that decide what a
-/// bar or an area chart actually is, as one of the kinds the spec names.
-///
-/// A grouping with no word in the schema — a stacked *line* chart, say — is
-/// `None` rather than the nearest kind: "line" would plot the same ranges a
-/// different way, which is exactly the confident wrong answer to avoid.
+/// The chart kind a group's element and grouping amount to, or `None` where the
+/// schema has no word — never the nearest kind.
 fn chart_kind(group : XmlElement) -> @model.ChartKind? {
   let grouping = attribute_of(group, "grouping").unwrap_or("standard")
   match group.name {

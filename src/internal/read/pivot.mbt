@@ -4,11 +4,7 @@
 const SHEET_NS : String = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
 
 ///|
-/// The pivot tables on a sheet.
-///
-/// `declared` names the sheets that survived the read, because a pivot whose
-/// source was skipped — a chart sheet, say — would compile to a spec the loader
-/// refuses.
+/// The pivot tables on a sheet whose source is among the `declared` sheets.
 fn read_pivots(
   backend : @xlsx.Workbook,
   sheet : @model.Sheet,

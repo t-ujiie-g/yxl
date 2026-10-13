@@ -1,15 +1,7 @@
 ///|
-/// Lay one override over the cell the rest of the sheet has already written
-/// (ADR-018).
-///
-/// A facet is written only when the override gives it, and the backend keeps
-/// what it is not told to change — which is what makes the two independent: a
-/// new value keeps the cell's style, a new style keeps its value.
-///
-/// A cell inside a `formulas:` range is a shared-formula follower until this
-/// runs; writing a value or a formula over it drops it out of the group. The
-/// loader has already refused an override of the group's anchor, where the
-/// formula itself is stored.
+/// Lay one override over its already-written cell (ADR-018), writing only the
+/// facets it gives. Writing over a shared-formula follower drops it from the
+/// group.
 fn apply_override(
   backend : @xlsx.Workbook,
   sheet_name : String,

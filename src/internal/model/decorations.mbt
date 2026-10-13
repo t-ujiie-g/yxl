@@ -1,9 +1,6 @@
 ///|
-/// A range that may name a sheet other than the one holding it: `A1:B9` on this
-/// sheet, `Lists!A1:A9` on another. A validation list is routinely sourced from
-/// a lookup sheet, which a bare `CellRange` could not express.
-///
-/// `sheet` is `None` for the sheet the reference was written on.
+/// A range that may name another sheet (`Lists!A1:A9`), as a validation list
+/// sourced from a lookup sheet does. `sheet` is `None` for the writing sheet.
 pub(all) struct SheetRange {
   sheet : String?
   range : CellRange
@@ -71,12 +68,8 @@ pub(all) enum ValidationKind {
 } derive(Eq, Debug)
 
 ///|
-/// One endpoint of a comparison. A date stays a `DateTime` rather than becoming
-/// a number here because the serial depends on the workbook's epoch, which only
-/// the emitter knows.
-///
-/// `Text` is reachable from a conditional format (`cell: { "=": Paid }`) but not
-/// from a validation, whose kind already fixes what its bounds may be.
+/// One endpoint of a comparison. A date stays a `DateTime` because its serial
+/// depends on the workbook's epoch, which only the emitter knows.
 pub(all) enum Bound {
   Number(Double)
   Date(@units.DateTime)
@@ -142,16 +135,9 @@ pub(all) struct Validation {
 pub let max_validation_list_length : Int32 = 255
 
 ///|
-/// How a conditional format decides which cells it applies to (ECMA-376
-/// §18.18.12, `ST_CfType`).
-///
-/// The first group *highlights*: a matching cell is drawn in the format's style,
-/// and a format carrying one of these without a style would do nothing visible.
-/// The last three *draw* instead — a gradient, a bar, or an icon per cell — and
-/// carry their own appearance, so a style would have nothing to apply.
-///
-/// A `Formula` is written relative to the range's top-left cell, as Excel's own
-/// dialog does.
+/// How a conditional format picks its cells (ECMA-376 §18.18.12). The last three
+/// draw their own appearance and take no style; a `Formula` is relative to the
+/// range's top-left.
 pub(all) enum ConditionalRule {
   /// The cell's value against a bound: `cellIs`.
   CellIs(Comparison)
@@ -183,13 +169,8 @@ pub(all) enum TextMatch {
 } derive(Eq, Debug)
 
 ///|
-/// The icon sets Excel knows, by the names OOXML gives them (ECMA-376
-/// §18.18.42, `ST_IconSetType`). Excel's own vocabulary is used verbatim rather
-/// than translated, so a spec names the same thing its documentation does.
-///
-/// These are the seventeen the *base* schema's enumeration admits. Excel 2010
-/// added three more, which are a different matter — see
-/// `unwritable_icon_set_styles`.
+/// The seventeen icon sets the base `ST_IconSetType` admits (ECMA-376
+/// §18.18.42), by their OOXML names.
 pub let icon_set_styles : Array[String] = [
   "3Arrows", "3ArrowsGray", "3Flags", "3Signs", "3Symbols", "3Symbols2", "3TrafficLights1",
   "3TrafficLights2", "4Arrows", "4ArrowsGray", "4Rating", "4RedToBlack", "4TrafficLights",
@@ -214,13 +195,8 @@ pub let max_rank_count : Int32 = 1000
 pub let max_rank_percent : Int32 = 100
 
 ///|
-/// A conditional format over a range: what decides it, and how a matching cell
-/// is drawn.
-///
-/// Excel keeps a `style` in its own table (`dxfs`) rather than `cellXfs`, and
-/// overrides only the parts it sets — a rule that sets a fill leaves the cell's
-/// font alone. `stop_if_true` stops Excel evaluating any later rule on a cell
-/// this one matched.
+/// A conditional format over a range. Its `style` goes to `dxfs` and overrides
+/// only what it sets; `stop_if_true` skips later rules on a matched cell.
 pub(all) struct ConditionalFormat {
   at : CellRange
   rule : ConditionalRule
@@ -229,11 +205,8 @@ pub(all) struct ConditionalFormat {
 } derive(Eq, Debug)
 
 ///|
-/// Where a hyperlink goes.
-///
-/// A `Location` stays text because it is not always a cell range: Excel accepts
-/// a defined name there as readily as `Summary!A1`, and narrowing it to a range
-/// would reject a legal spec.
+/// Where a hyperlink goes. A `Location` stays text because Excel accepts a
+/// defined name there as readily as `Summary!A1`.
 pub(all) enum LinkTarget {
   /// Somewhere outside the workbook — a URL, or a `mailto:`/`file:` target.
   Url(String)
@@ -242,12 +215,8 @@ pub(all) enum LinkTarget {
 } derive(Eq, Debug)
 
 ///|
-/// A note attached to a cell — what Excel now calls a *note* and older versions
-/// called a comment: a box that appears on hover, with the author's name above
-/// the text.
-///
-/// A note always carries an author in the file, so `None` does not omit it — it
-/// leaves the backend to write its generic default.
+/// A note on a cell (formerly a comment). An author is always written, so
+/// `None` leaves the backend's default rather than omitting it.
 pub(all) struct Comment {
   at : @units.CellRef
   text : String

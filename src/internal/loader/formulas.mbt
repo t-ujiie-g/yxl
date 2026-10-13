@@ -66,14 +66,8 @@ fn check_formula_range_size(
 }
 
 ///|
-/// The `formula:` of a filled range: a formula body, with a leading `=` accepted
-/// and stripped as everywhere else.
-///
-/// A `{ $ref: name }` is refused rather than accepted, because the two mean
-/// opposite things: a `defs.formulas` reference compiles to a **defined name**,
-/// which gives every cell that references it the same formula, while this fills
-/// a range with one that shifts per cell. Silently accepting the reference would
-/// produce a column where every row computed the first row's answer.
+/// The `formula:` of a filled range, `=` optional. A `$ref` is refused: it
+/// compiles to a defined name, giving every row the first row's answer.
 fn load_filled_formula(
   node : @yaml.Node,
   file~ : String,
@@ -95,15 +89,8 @@ fn load_filled_formula(
 }
 
 ///|
-/// A filled range writes every cell it covers, so nothing else may claim one:
-/// two overlapping ranges would leave Excel with two formulas for a cell, and a
-/// cell written by `cells:` or `data:` would be silently overwritten by whichever
-/// the emitter reached last.
-///
-/// Refusing is the conservative reading, and the one that can be relaxed later
-/// without breaking a spec that already compiles — a precedence rule could not be
-/// tightened afterwards. Splitting the range around the exception says what was
-/// meant, which a precedence rule would leave for a reader to infer.
+/// A filled range may overlap no other range or written cell. Refusing can be
+/// relaxed later; a precedence rule could not be tightened.
 fn check_formula_ranges(
   workbook : @model.Workbook,
   file~ : String,

@@ -215,11 +215,8 @@ test "a conditional format keeps its own look and its stop flag" {
 
 ///|
 test "a highlighting rule with no expressible style is dropped and named" {
-  // The real case is a dxf holding only what the schema cannot say — a
-  // theme-indexed colour recovers as no style at all — and writing the rule
-  // out anyway makes a spec the loader refuses, which is how a real workbook
-  // failed the extraction's verify pass. Emitting `style: None` reaches the
-  // reader the same way.
+  // A dxf holding only what the schema cannot say (a theme colour) recovers as no
+  // style, which is how a real workbook failed verification.
   let (wb, sheet) = fixture()
   sheet.set(at("A1"), Number(1.0))
   sheet.add_conditional_format({
@@ -239,11 +236,8 @@ test "a highlighting rule with no expressible style is dropped and named" {
 
 ///|
 test "a style on a self-drawing rule is dropped and named, the rule kept" {
-  // The loader refuses a 'style' on a scale, a bar, or an icon set, so one
-  // recovered from a file has nowhere to go; the rule itself is fine. Only a
-  // foreign file can put a dxfId on a data bar — the backend writes that
-  // attribute for highlighting rules alone — so the rule is injected as the
-  // raw cfRule such a file would carry.
+  // The backend writes `dxfId` only on highlighting rules, so a data bar carrying
+  // one is injected as a foreign file's raw cfRule.
   let backend = @xlsx.Workbook::new()
   let _ = backend.new_sheet("S")
   backend.set_cell_int("S", "A1", 1)

@@ -1,15 +1,6 @@
 ///|
-/// A workbook's document properties. Every field is optional; an unset one is
-/// left out of the file rather than written empty, so a reader can tell "not
-/// said" from "said to be blank".
-///
-/// The names here are the ones a user sees in Excel's info pane, not the OOXML
-/// element names underneath: `author` is `dc:creator`, `status` is
-/// `cp:contentStatus`. `company` is the exception Excel keeps apart from the
-/// rest, in the *application* properties.
-///
-/// `custom` holds properties of the author's own devising, in declaration order
-/// and with unique names, which the YAML parser enforces before this is built.
+/// A workbook's document properties, named as Excel's info pane names them. An
+/// unset one is omitted rather than written empty; `custom` names are unique.
 pub(all) struct DocumentProperties {
   title : String?
   subject : String?
@@ -61,11 +52,7 @@ pub(all) enum PropertyValue {
 } derive(Eq, Debug)
 
 ///|
-/// When Excel recalculates formulas (ECMA-376 §18.18.10, `ST_CalcMode`).
-///
-/// `yxl` emits formulas and never evaluates them, so a workbook set to `Manual`
-/// opens showing whatever cached values the spec supplied — which is the reason
-/// to set it, on a workbook whose formulas are slow.
+/// When Excel recalculates formulas (ECMA-376 §18.18.10).
 pub(all) enum CalcMode {
   /// Recalculate as values change (Excel's default).
   Automatic
@@ -85,16 +72,8 @@ pub(all) struct CalcSettings {
 } derive(Eq, Debug)
 
 ///|
-/// What a reader of a protected sheet may still do. Excel's "Protect Sheet"
-/// dialog is a list of tick-boxes, and this is that list: `true` allows the
-/// action, `false` blocks it.
-///
-/// The defaults are Excel's own — selecting cells stays allowed, everything
-/// else is blocked — so `protect: {}` behaves the way ticking nothing in that
-/// dialog does.
-///
-/// The `password` is **not encryption**: it stops accidental edits and is
-/// trivially removed. `None` protects the sheet without one.
+/// What a reader of a protected sheet may still do — the "Protect Sheet" dialog's
+/// boxes, with its defaults. `password` is not encryption.
 pub(all) struct SheetProtection {
   password : String?
   select_locked_cells : Bool
@@ -139,13 +118,8 @@ pub fn SheetProtection::SheetProtection() -> SheetProtection {
 }
 
 ///|
-/// What a reader may not do to the *workbook* — as opposed to a sheet's cells.
-/// At least one of the two is set; protecting neither would write nothing.
-///
-/// `structure` stops sheets being added, removed, renamed, reordered, or
-/// unhidden. `windows` stops the workbook's windows being moved or resized —
-/// Excel for Windows has ignored it since 2013, and it is written for older
-/// readers. The `password` is not encryption, as on a sheet.
+/// What a reader may not do to the workbook; at least one of the two is set.
+/// `password` is not encryption.
 pub(all) struct WorkbookProtection {
   structure : Bool
   windows : Bool

@@ -1,9 +1,6 @@
 ///|
-/// What one read produced: the workbook, and a note for everything in the file
-/// that the schema has no words for.
-///
-/// `dropped` is not a warning list to be skimmed — it is the honest half of a
-/// lossy conversion, and `yxl extract` prints it.
+/// What one read produced: the workbook, and in `dropped` a note for everything
+/// the schema has no words for.
 pub struct Recovered {
   workbook : @model.Workbook
   dropped : Array[String]
@@ -39,14 +36,8 @@ pub impl Reader for MbtexcelReader with fn read(_self, bytes) {
 }
 
 ///|
-/// What the backend actually said, rather than the name of the case it raised.
-///
-/// `Show` on an error gives the constructor alone — `…XlsxError.InvalidXml` —
-/// which names the *kind* of problem and nothing about the file, so a reader who
-/// hit one had to bisect the package part by part to find out what was
-/// unreadable. `XlsxError` derives `Debug`, and every case that carries a
-/// `msg~`, a `path~`, or an `index~` puts the useful half there; `Debug` renders
-/// those fields, so it is what the message is built from.
+/// What the backend said, via `Debug`: `Show` gives only the constructor, not
+/// the `msg~`/`path~` naming the unreadable part.
 fn backend_reason(err : Error) -> String {
   @debug.to_string(err)
 }

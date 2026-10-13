@@ -20,33 +20,15 @@ fn is_drive_letter(ch : Char) -> Bool {
 }
 
 ///|
-/// The two characters that separate path components.
-///
-/// A note for Japanese Windows, where the backslash *displays* as `¥`: that is
-/// the same character (U+005C) in a font that draws it differently, so handling
-/// `\` handles it. A genuine yen sign (U+00A5 `¥`, or U+FFE5 `￥`) is **not** a
-/// separator — Windows itself treats it as an ordinary filename character, and
-/// splitting on it here would break a perfectly legal name like `見積¥1000.yaml`
-/// while rescuing nothing, since a path really containing one would fail to open
-/// long before its directory mattered.
-///
-/// What does matter on those machines is that this splitting is by *character*,
-/// never by byte: in CP932 the second byte of 表, ソ, 十 and friends is 0x5C, and
-/// a byte-wise split would cut a filename in half. MoonBit strings are sequences
-/// of characters, so that hazard does not arise — and a Windows CI job compiles
-/// a spec under such a directory to keep it that way.
+/// The two path separators. A yen sign is not one (Windows treats it as a name
+/// character); `¥` displayed on Japanese Windows is `\` in a different font.
 fn is_separator(ch : Char) -> Bool {
   ch == '/' || ch == '\\'
 }
 
 ///|
-/// Resolve `path`, as written inside the file `from`, against `from`'s
-/// directory: an include in `specs/report.yaml` naming `data/q3.yaml` means
-/// `specs/data/q3.yaml`. An absolute `path` is returned as it stands, and a
-/// `from` with no directory part leaves `path` alone.
-///
-/// The separator already in `from` is kept, so the result reads like the path
-/// the author typed; Windows accepts either, and mixing them is harmless.
+/// Resolve `path`, as written inside `from`, against `from`'s directory. An
+/// absolute `path`, or a `from` with no directory, leaves `path` as it is.
 pub fn resolve_path(from : String, path : String) -> String {
   if is_absolute(path) {
     return path
@@ -58,13 +40,8 @@ pub fn resolve_path(from : String, path : String) -> String {
 }
 
 ///|
-/// Everything up to and including the last separator in `from` — the later of
-/// the two characters `is_separator` names — or `None` when it names a file
-/// with no directory part.
-///
-/// Public because the executable needs it too: a file an extracted spec names
-/// goes in a directory that may not exist yet, and making it is the one thing
-/// that has to happen before writing (ADR-003 keeps the writing out there).
+/// `from` up to and including its last separator, or `None` when it has no
+/// directory part.
 pub fn directory_of(from : String) -> String? {
   let cut = match (from.rev_find("/"), from.rev_find("\\")) {
     (Some(slash), Some(backslash)) =>

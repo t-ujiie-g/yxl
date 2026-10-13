@@ -82,13 +82,8 @@ fn StyleNames::reference(self : StyleNames, style : @model.Style) -> @yaml.Node 
 }
 
 ///|
-/// A cell's style split the way `docs/spec.md` §3 lays it out: the `style:`
-/// reference, and the `format:` beside it.
-///
-/// A *declared* style keeps its number format inside it, because that is where
-/// `defs.styles` puts one. Only an inline style — a look worn once, written at
-/// its cell — has to hand the format out, and a look that is *nothing but* a
-/// format leaves no style behind at all.
+/// A cell's style split into `style:` and `format:` (`docs/spec.md` §3); only an
+/// inline style hands its format out.
 fn StyleNames::split(
   self : StyleNames,
   style : @model.Style?,
@@ -110,13 +105,8 @@ fn StyleNames::split(
 }
 
 ///|
-/// A name for a style, from the style itself.
-///
-/// Only a look with one unmistakable characteristic earns a word: a style whose
-/// only distinguishing feature is a percentage format is `percent`, and one that
-/// is bold on a dark fill is `header` — that pairing is what a heading is, and
-/// no other kind of cell wears it. Everything else gets a number, because a name
-/// that guesses wrong is worse than one that admits it knows nothing.
+/// A name for a style: `percent` or `header` where unmistakable, otherwise a
+/// number, since a wrong guess is worse than none.
 fn describe(style : @model.Style) -> String {
   if is_header(style) {
     return "header"

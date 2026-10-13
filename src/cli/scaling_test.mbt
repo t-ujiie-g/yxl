@@ -10,15 +10,8 @@ let scaling_base_rows : Int32 = bench_rows
 let scaling_factor : Int32 = 16
 
 ///|
-/// The ratio above which the curve is no longer linear enough to pass.
-///
-/// Linear is `scaling_factor` (16), and that is what a healthy pipeline measures
-/// — 15.8 and 16.2 across runs. A loader made quadratic measures 42.6. This sits
-/// between them, far enough above the first to survive a noisy shared runner and
-/// far enough below the second to fail on it. It is a ceiling on the *shape*,
-/// not a performance target: tightening it towards 16 would buy precision the
-/// measurement cannot support, and would start failing on runner noise instead
-/// of on regressions.
+/// The ratio above which the curve fails as non-linear: linear measures ~16, a
+/// quadratic loader 42.6, and runner noise needs the margin.
 let max_scaling_ratio : Double = 26.0
 
 ///|

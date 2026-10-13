@@ -26,20 +26,8 @@ pub fn Diagnostic::render(self : Diagnostic) -> String {
 }
 
 ///|
-/// Render with the offending source line quoted underneath and a caret marking
-/// the column:
-///
-/// ```text
-/// report.yaml:2:4: invalid YAML: mapping values are not allowed in this context
-///   |
-/// 2 |   c: d
-///   |    ^
-/// ```
-///
-/// `source` is the text the span's file was parsed from; a diagnostic with no
-/// span, or one whose line is not in `source`, falls back to `render`. Callers
-/// that have the source (the CLI does) should prefer this — the position alone
-/// tells a reader where to look, but the quoted line tells them what is there.
+/// Render with the offending line of `source` quoted and a caret under the
+/// column; without a span, or a line `source` lacks, falls back to `render`.
 pub fn Diagnostic::render_in(self : Diagnostic, source : String) -> String {
   guard self.span is Some(span) else { return self.message }
   let lines = source.split("\n").collect()

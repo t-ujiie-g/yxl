@@ -24,11 +24,7 @@ fn Defs::empty() -> Defs {
 }
 
 ///|
-/// Read the optional top-level `defs:` block into a `Defs`. Its keys are
-/// `styles`, `values`, and `formulas`, each a mapping of name to definition; an
-/// absent `defs` yields the empty set. A style definition takes the same shape
-/// as a cell `style:` mapping; a value is a scalar; a formula is a string (a
-/// leading `=` is stripped on use, as for cell formulas).
+/// Read the optional `defs:` block (`docs/spec.md` §5); absent, it is empty.
 fn load_defs(
   root : Array[(String, @yaml.Node)],
   workbook : @model.Workbook,
@@ -54,11 +50,8 @@ fn load_defs(
 }
 
 ///|
-/// Read `defs.styles`. A definition may `extends:` another declared style —
-/// including one declared *later*, so the block reads in whatever order suits
-/// the author — which is resolved depth-first and memoized as each name lands in
-/// `defs.styles`. Declaration order is kept for the walk so a spec with an error
-/// reports the same one every time.
+/// Read `defs.styles`, resolving `extends:` depth-first so a style may extend
+/// one declared later; declaration order keeps errors deterministic.
 fn load_style_defs(
   node : @yaml.Node,
   defs : Defs,

@@ -69,11 +69,8 @@ test "a band formats every cell a filled range covers, master and followers" {
     number_format: Some("0.00"),
   })
   sheet.add_formula({ at: range_of("C1", "C3"), formula: "A1*B1", })
-  // `formulas:` carries no styling of its own, for the same reason `data:` does
-  // not — a band is where formatting belongs, and that is what keeps the two
-  // separable. So the band has to reach *these* cells, including the followers
-  // that hold no formula text: a calculation column formatted only on its first
-  // row would be worse than one formatted on none.
+  // The band must reach the followers too, which hold no formula text of their
+  // own.
   for reference in ["C1", "C2", "C3"] {
     assert_eq(cell_format(wb, reference), Some("0.00"))
   }

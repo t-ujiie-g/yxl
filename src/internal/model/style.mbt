@@ -1,21 +1,7 @@
 ///|
-/// A cell's style: any combination of a font, a solid fill, borders, an
-/// alignment, an Excel number-format code, and what sheet protection does to
-/// the cell. Every field is optional; `None` throughout is the default
-/// (`General`) style. Styles are compared and hashed
-/// structurally so the emitter can intern identical styles to a single Excel
-/// `cellXfs` id (ADR-004) — declare a look once, reference it many times, emit
-/// it once.
-///
-/// `number_format` is an Excel format code (`"#,##0.00"`, `"0%"`) and
-/// `protection` is what sheet protection does to a cell wearing this style.
-/// Both live in the style rather than on the cell — Excel's own arrangement —
-/// so both intern with the rest of the look.
-///
-/// An attribute is in one of **three** states, not two: set, not mentioned, or
-/// explicitly not set (`docs/spec.md` §6, ADR-020). `cleared` holds the third —
-/// the attributes this style takes *away* from whatever it is laid over. The two
-/// halves never overlap: an attribute with a value is never in `cleared`.
+/// A cell's style, compared structurally so equal looks intern to one `cellXfs`
+/// id (ADR-004). `cleared` holds attributes explicitly unset (ADR-020), never
+/// also set.
 pub(all) struct Style {
   font : Font?
   fill : Fill?
@@ -27,15 +13,8 @@ pub(all) struct Style {
 } derive(Eq, Hash, Debug)
 
 ///|
-/// A cell's half of sheet protection — Excel's Format Cells → Protection tab.
-/// Neither field does anything until the sheet is protected.
-///
-/// Excel locks every cell by default, so protecting a sheet freezes all of it;
-/// the way to leave a form's input boxes editable is to give *them* a style
-/// with `locked: false`.
-///
-/// `hidden` keeps the cell's formula out of the formula bar while protected —
-/// the value still shows, and the file still contains the formula.
+/// A cell's half of sheet protection (Format Cells → Protection); inert until
+/// the sheet is protected.
 pub(all) struct CellProtection {
   locked : Bool?
   hidden : Bool?
@@ -71,16 +50,8 @@ pub fn Style::is_empty(self : Style) -> Bool {
 }
 
 ///|
-/// Lay `self` over `base`: every attribute `self` sets wins, every attribute it
-/// clears is taken away, and everything it does not mention shows through from
-/// `base`. This is what one style inheriting another means — a `header` that
-/// extends a `base` adds bold without restating the face and size — and it is
-/// also how a column or row band reaches a cell (`docs/spec.md` §4).
-///
-/// The merge reaches *inside* a font, an alignment, and the four border edges,
-/// so setting `font: { bold: true }` over a base font keeps the base's size.
-/// A fill and a number format are single values with no parts to merge, so
-/// setting either replaces it outright.
+/// Lay `self` over `base`: what it sets wins, what it clears goes, the rest shows
+/// through. Fonts, alignments and border edges merge per attribute.
 pub fn Style::over(self : Style, base : Style) -> Style {
   (
     {
@@ -114,21 +85,9 @@ pub fn Style::layer(under : Style?, over : Style?) -> Style? {
 }
 
 ///|
-/// What a band actually passes down to a cell holding `value`.
-///
-/// Everything a band sets reaches every cell — except a **number format landing
-/// on text**, which Excel ignores unless the format carries a fourth, text
-/// section (ECMA-376 §18.8.31: a format is `positive;negative;zero;text`). So
-/// dropping it here is not a house rule, it is Excel's; inheriting it anyway
-/// would cost a style id to change nothing.
-///
-/// It would also do harm. The Excel backend renders such a cell by applying the
-/// *numeric* section to the text, so a `Revenue` header under a `#,##0` column
-/// reads back as the literal `#,##0` — and a pivot, which finds its fields by
-/// reading that header, then cannot find them.
-///
-/// A `format:` written on the cell itself is untouched: that is a request, not
-/// an inheritance.
+/// What a band passes to a cell holding `value`: all of it, except a number
+/// format landing on text, which Excel ignores (ECMA-376 §18.8.31) and the
+/// backend would render as the literal code.
 pub fn Style::inherited_by(self : Style, value : CellValue) -> Style {
   guard value is (Text(_) | RichText(_)) else { return self }
   guard self.number_format is Some(code) && !has_text_section(code) else {

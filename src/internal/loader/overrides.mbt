@@ -100,14 +100,8 @@ fn load_override(
 }
 
 ///|
-/// What an override may and may not land on, checked once every sheet is loaded
-/// (ADR-018): a declared sheet, one entry per cell, and something to deviate
-/// from.
-///
-/// A `formulas:` range compiles to a shared formula stored at the range's
-/// top-left cell (ECMA-376 §18.3.1.40), so overriding *that* cell would leave
-/// the rest of the range following a formula that is no longer there. Every
-/// other cell of the range may be overridden.
+/// What an override may land on (ADR-018): a declared sheet, once per cell,
+/// and never a `formulas:` range's top-left, where the shared formula lives.
 fn check_overrides(
   workbook : @model.Workbook,
   file~ : String,

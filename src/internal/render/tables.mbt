@@ -1,10 +1,6 @@
 ///|
-/// The fewest rows a region needs before a file is better than a `cells:` block.
-///
-/// Below this the file is pure cost: a reader has to open a second thing to see
-/// three values, and a three-line `cells:` block was never the problem `data:`
-/// solves. The number is a judgement, not a measurement, which is why the flat
-/// form stays one flag away.
+/// The fewest rows a region needs before a CSV beats a `cells:` block — a
+/// judgement, not a measurement.
 pub let min_csv_rows : Int32 = 8
 
 ///|
@@ -26,13 +22,8 @@ pub(all) struct DataTable {
 }
 
 ///|
-/// The tables worth extracting from a workbook, and the cells they claim.
-///
-/// One region per sheet at most, and only the obvious one: the largest
-/// rectangle of plain literal cells anchored where the sheet's own data starts.
-/// Hunting for several regions, or for one that is not anchored at the used
-/// range, would be guessing at a layout the file does not describe — and a wrong
-/// guess costs a reader more than a missed one.
+/// The tables worth extracting, and the cells they claim: at most one per sheet,
+/// the largest literal rectangle anchored where the sheet's data starts.
 pub fn data_tables(wb : @model.Workbook) -> Array[DataTable] {
   companion_tables(wb, Names())
 }
@@ -51,12 +42,8 @@ fn companion_tables(wb : @model.Workbook, names : Names) -> Array[DataTable] {
 }
 
 ///|
-/// The rectangle a sheet's literal data occupies, or `None` where it has none
-/// worth pulling out.
-///
-/// "Literal" is strict: a plain text, number, or boolean with no style and no
-/// formula. A styled cell belongs in `cells:`, because `data:` carries no
-/// formatting (`docs/spec.md` §9) and moving it would silently drop the style.
+/// The rectangle of a sheet's literal data — unstyled, formula-free values, since
+/// `data:` carries no formatting — or `None`.
 fn literal_region(sheet : @model.Sheet) -> @model.CellRange? {
   guard bounds(sheet) is Some(bounds) else { return None }
   // The candidate is the whole used rectangle; it survives only if every cell in
@@ -154,12 +141,8 @@ fn region_table(
 }
 
 ///|
-/// One value as a CSV field.
-///
-/// Quoting is the loader's rule read backwards (`docs/spec.md` §9): a *bare*
-/// field is read as a number or boolean when it looks like one, so text that
-/// looks like either has to be quoted to come back as text — which is the same
-/// `007` problem the YAML writer solves the same way.
+/// One value as a CSV field, quoted where a bare field would load as a number
+/// or boolean (`docs/spec.md` §9).
 fn csv_field(value : @model.CellValue) -> String {
   match value {
     Number(number) =>

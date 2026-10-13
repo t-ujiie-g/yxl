@@ -1,9 +1,6 @@
 ///|
-/// Render a workbook as the spec that would compile to it.
-///
-/// The result is a `@yaml.Node`, not text: `@yaml.write` decides quoting and
-/// layout, and a caller that wants to check the spec before writing it can load
-/// this straight back (which is what `yxl extract` does — ADR-017).
+/// Render a workbook as the spec that would compile to it, as a node so the
+/// caller can load it back before writing (ADR-017).
 pub fn workbook(
   wb : @model.Workbook,
   tables~ : Array[DataTable] = [],
@@ -173,11 +170,7 @@ fn one_sheet(
 }
 
 ///|
-/// A sheet's cells, keyed by address in reading order — left to right, top to
-/// bottom — rather than in the order the model happened to collect them. The
-/// model keeps insertion order, which for a recovered workbook is already the
-/// scan order, but a spec is read by a person and a jumbled `cells:` block is
-/// the first thing that would make one close the file.
+/// A sheet's cells keyed by address in reading order, left to right then down.
 fn cells(
   sheet : @model.Sheet,
   styles : StyleNames,
@@ -273,12 +266,8 @@ fn rich_run(run : @model.RichRun) -> @yaml.Node {
 }
 
 ///|
-/// A whole number goes out as an integer, so a spec reads `2400000` rather than
-/// `2400000.0`. The value is the same either way; the spelling is not.
-///
-/// The bound is where a `Double` stops being able to tell one integer from the
-/// next: past it, `2^53 + 1` and `2^53` are the same value, and writing either
-/// as an integer would claim a precision the number does not have.
+/// A whole number as an integer, up to 2^53, past which a `Double` cannot tell
+/// neighbouring integers apart.
 fn number_scalar(number : Double) -> @yaml.Node {
   if number == number.trunc() &&
     number.abs() <= EXACT_INTEGER_LIMIT &&

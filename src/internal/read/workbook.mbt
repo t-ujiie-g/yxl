@@ -28,17 +28,8 @@ fn read_default_font(backend : @xlsx.Workbook) -> String? {
 const EXCEL_DEFAULT_FONT : String = "Calibri"
 
 ///|
-/// Named definitions (ADR-013), as `defs.values` and `defs.formulas`.
-///
-/// Excel keeps its own bookkeeping in the same table — the print area and the
-/// repeated titles are defined names beginning `_xlnm.` — and those are Excel's
-/// to write, not the spec's. A name scoped to one sheet is skipped too: the
-/// schema's definitions are workbook-wide, and recovering a sheet-scoped one as
-/// a workbook-wide one would change which cells it resolves for.
-///
-/// `slicer_caches` names the other bookkeeping kind: a slicer's cache is a
-/// defined name the backend writes for it, so recovering it *and* the slicer
-/// would make the spec ask for the same name twice and refuse to compile.
+/// Workbook-scoped defined names as `defs` (ADR-013), skipping Excel's `_xlnm.`
+/// bookkeeping and slicer caches, which writing the slicer recreates.
 fn read_defined_names(
   backend : @xlsx.Workbook,
   workbook : @model.Workbook,
@@ -219,11 +210,7 @@ fn non_empty(text : String) -> String? {
 }
 
 ///|
-/// A sheet's protection, as Excel's "Protect Sheet" dialog records it.
-///
-/// The password is deliberately **not** recovered: the file keeps a hash, not
-/// the word, so there is nothing to write down — and a spec that silently lost
-/// it would look protected while opening to anyone.
+/// A sheet's protection. The password is not recovered: the file holds a hash.
 fn read_sheet_protection(
   backend : @xlsx.Workbook,
   sheet : @model.Sheet,

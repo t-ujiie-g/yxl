@@ -7,11 +7,7 @@ let data_directory : String = "data"
 let asset_directory : String = "assets"
 
 ///|
-/// The names handed out so far, so a second file cannot take a first one's.
-///
-/// One of these per directory is enough — a table is a `data/…` and a picture an
-/// `assets/…`, so the two kinds cannot collide with each other — but nothing
-/// stops a caller sharing one across both if the directories ever converge.
+/// The companion file names handed out so far.
 priv struct Names {
   taken : @set.Set[String]
 }
@@ -22,12 +18,8 @@ fn Names::Names() -> Names {
 }
 
 ///|
-/// A free path under `directory`, built from `stem` and `extension`, and marked
-/// as taken in the same breath — the recording is what makes the *next* call
-/// correct, and leaving it to the caller is what let the two copies drift.
-///
-/// A name already given out gets a number before its extension: `sales.csv`,
-/// then `sales_2.csv`.
+/// A free path under `directory` from `stem` and `extension`, claimed as it is
+/// returned; a taken name gains a number (`sales_2.csv`).
 fn Names::claim(
   self : Names,
   directory : String,
@@ -51,13 +43,8 @@ fn Names::claim(
 const FALLBACK_STEM : String = "sheet"
 
 ///|
-/// A sheet's name as part of a file name: lower case, with whatever would make
-/// the path need quoting on a command line turned into an underscore.
-///
-/// That is spaces and punctuation — a sheet may be called `Q3 Sales (final)` —
-/// not scripts: a letter or digit passes through whatever alphabet it is from,
-/// because a sheet called `売上` flattened to `__` names nothing, and beside a
-/// second such sheet it is legible only by counting underscores.
+/// A sheet's name as part of a file name: lower case, with spaces and punctuation
+/// as `_`. Letters of any script pass through, so `売上` stays legible.
 fn file_stem(sheet_name : String) -> String {
   let out = StringBuilder()
   for ch in sheet_name {

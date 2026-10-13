@@ -1,55 +1,7 @@
 ///|
-/// Load a parsed YAML document into a workbook model, validating the schema.
-/// The full key-by-key reference is `docs/spec.md`; in brief, a spec is a
-/// mapping with a `sheets` sequence plus optional workbook-level keys, a style
-/// is referenced by bareword name and a value/formula by `{ $ref: name }`
-/// (ADR-012), and any node may instead be `{ $include: path }`, read through
-/// `resolve` (ADR-014).
-///
-/// Sheet keys apply in the order written, so where a `data:` table and `cells:`
-/// overlap, whichever comes last wins.
-///
-/// ```yaml
-/// default_font: Calibri
-/// active: Sheet1
-/// params:
-///   region: APAC
-/// defs:
-///   styles:
-///     header: { font: { bold: true } }
-///   values:
-///     company: "Acme Corp"
-/// sheets:
-///   - name: Sheet1
-///     freeze: B2
-///     gridlines: false
-///     tab_color: "1F77B4"
-///     columns:
-///       - at: B
-///         style: header
-///       - at: D-F
-///         group: 1
-///         hidden: true
-///     cells:
-///       A1: { $ref: company }
-///       B1: { value: 0.5, format: "0.00%", style: header }
-///       C1: { formula: "SUM(B1:B1)", style: { font: { italic: true } } }
-///       D1: { rich: ["plain ", { text: bold, font: { bold: true } }] }
-///     data:
-///       - at: A3
-///         csv: data/sales.csv
-///     print:
-///       area: A1:D50
-///       orientation: landscape
-///       fit: { width: 1 }
-///       header: "&C&\"Arial,Bold\"Quarterly report"
-///   - name: "${region} scratch"
-///     visibility: hidden
-/// ```
-///
-/// Unknown keys, wrong types, bad cell references, and dangling name references
-/// are `@diag.SchemaError`s (ADR-006). `file` names the source in those
-/// diagnostics.
+/// Load a parsed spec into a workbook model, validating it against `docs/spec.md`;
+/// a violation is a `@diag.SchemaError` naming `file` (ADR-006). `$include` nodes
+/// are read through `resolve` (ADR-014).
 pub fn load(
   document : @yaml.Node,
   file~ : String,

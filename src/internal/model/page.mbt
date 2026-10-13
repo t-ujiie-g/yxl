@@ -37,12 +37,9 @@ pub let min_page_scale : Int32 = 10
 pub let max_page_scale : Int32 = 400
 
 ///|
-/// How a sheet prints: what to print (`area`, `breaks`), how it sits on the
-/// paper (`orientation`, `margins`, `scale`), and what runs along the top and
-/// bottom of every page (`header`, `footer`, in Excel's `&`-code syntax —
-/// ECMA-376 §18.3.1.46). Everything is optional; an unset field keeps Excel's
-/// default. Each of `breaks` puts a manual page break above and to the left of
-/// the cell it names.
+/// How a sheet prints; an unset field keeps Excel's default. `header`/`footer`
+/// use Excel's `&` codes (ECMA-376 §18.3.1.46); a break goes above and left of
+/// its cell.
 pub(all) struct PageSetup {
   area : CellRange?
   orientation : Orientation?

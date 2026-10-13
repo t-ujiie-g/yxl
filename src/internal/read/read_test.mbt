@@ -162,12 +162,8 @@ test "a number format comes back as its code" {
 
 ///|
 test "a built-in number format id comes back as the code Excel writes for it" {
-  // Excel does not write a `numFmt` element for a format it recognizes as one
-  // of its own: a cell formatted `#,##0_);(#,##0)` is stored as id 37 and the
-  // code has to be supplied from the table. ECMA-376 §18.8.30 prints a space
-  // where Office puts `_)` (MS-OI29500 §2.1.601), so reading the standard's
-  // spelling back would quietly widen the digits by one and misalign the
-  // column against the source workbook.
+  // Excel stores `#,##0_);(#,##0)` as id 37 with no `numFmt`; the standard's
+  // spelling would misalign the column (MS-OI29500 §2.1.601).
   let backend = @xlsx.Workbook::new()
   let _ = backend.new_sheet("S")
   backend.set_cell_int("S", "A1", 1234)
@@ -373,11 +369,8 @@ test "frozen panes, gridlines, and the tab colour come back" {
 }
 
 ///|
-/// A split pane is the other half of what `docs/spec.md` §22 promises, and it
-/// used to come back as nothing at all: the backend's reader derives `freeze`
-/// from the pane's state and never sets its `split` flag, so a split pane
-/// answered false to both and fell through. A pane that exists and is not
-/// frozen is a split one.
+/// The backend's reader never sets `split`, so this pinned a pane that came back
+/// as nothing.
 test "a split pane comes back a split pane, not nothing" {
   let (wb, sheet) = fixture()
   sheet.set(at("A1"), Text("x"))

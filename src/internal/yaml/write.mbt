@@ -1,16 +1,7 @@
 ///|
-/// Render a document as YAML text, ending in a newline.
-///
-/// Block style throughout: a mapping is `key: value` and a sequence is `- item`,
-/// nested two spaces at a time, which is the shape `docs/spec.md` and the
-/// `examples/` corpus are written in. An empty collection has no block form, so
-/// it falls back to `{}` / `[]`.
-///
-/// Scalars are written plain wherever the syntax allows and double-quoted where
-/// it does not — `007` and `TRUE` come back as the *text* they went in as, not
-/// as a number and a boolean. `write` is therefore the inverse of `parse` for
-/// every `Node` that `parse` can produce, which the round-trip tests assert
-/// directly.
+/// Render a document as block-style YAML ending in a newline; the inverse of
+/// `parse` for every node `parse` can produce. Scalars are quoted only where
+/// plain text would read back as something else.
 pub fn write(node : Node) -> String {
   let out = StringBuilder()
   match node {
@@ -123,11 +114,8 @@ fn scalar(node : Node) -> String {
 }
 
 ///|
-/// A float that reads back as a float. `Double`'s own rendering drops the
-/// fraction from a whole number — `1.0` prints as `1`, which would parse as an
-/// *integer* and change the node's type — so a decimal point is added where the
-/// text carries no sign of one. The infinities and NaN have their own YAML
-/// spellings, which our parser reads.
+/// A float that reads back as a float: `1.0` would print as `1` and parse as an
+/// integer, so a decimal point is added.
 fn float_literal(number : Double) -> String {
   if number.is_nan() {
     return ".nan"
@@ -166,14 +154,9 @@ fn quoted_if_needed(text : String) -> String {
 }
 
 ///|
-/// Whether `text` would come back as something other than itself, or not parse
-/// at all, if written plain.
-///
-/// The test is deliberately conservative at the *first* character: anything that
-/// is not a letter, `_`, `$` or `/` gets quoted, which covers every YAML
-/// indicator (`- ? : , [ ] { } # & * ! | > ' " % @` and the backtick) and every
-/// way a number can start (a digit, `+`, `-`, `.`) in one rule rather than a
-/// list to keep in step with the parser.
+/// Whether `text` written plain would read back as something else. Any first
+/// character but a letter, `_`, `$` or `/` quotes, covering every indicator and
+/// number start at once.
 fn needs_quoting(text : String) -> Bool {
   guard !text.is_empty() else { return true }
   // `null`, `true` and `false` are read as their types in any case, and `~` is
@@ -211,13 +194,8 @@ fn is_plain_start(ch : Char) -> Bool {
 }
 
 ///|
-/// Text in double quotes, with the escapes YAML's double-quoted style defines.
-/// Control characters go out as `\u00XX`, which is the only form that survives
-/// a round trip — including the ones YAML gives a letter: the parser reads
-/// `\r` as U+13 rather than U+0D (its escape table holds decimal code points
-/// written as hex), so a carriage return spelled the friendly way comes back
-/// as a different character. Only `\n` and `\t` are decoded right, and only
-/// they are written.
+/// Double-quoted text. Controls but `\n` and `\t` go out as `\u00XX`: the parser
+/// misreads `\r` and friends (yaml.mbt#14).
 fn quote(text : String) -> String {
   let out = StringBuilder()
   out.write_char('"')

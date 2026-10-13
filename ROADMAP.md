@@ -522,7 +522,8 @@ gate, which is why none carries a box:
   `controls.yxl.yaml` validates clean. One slip remains in that VML: its shape
   style is `position:absolute;73.5pt;…`, a value with no property name — the
   comment defect below, in the form-control writer (`form_control.mbt:460`).
-  Excel positions a control from its anchor, so nothing shows; unreported
+  Excel positions a control from its anchor, so nothing shows. **Reported
+  2026-10-14 as [office.mbt#649](https://github.com/moonbitlang/office.mbt/issues/649)**
 - **a shape with no explicit colour is invisible**, for a neighbouring reason:
   the backend writes no `fillRef`/`lnRef` theme style reference, so a shape
   given neither `fill:` nor `line:` gets no fill and no outline rather than
@@ -2575,6 +2576,18 @@ selling point, and a second file to keep in step undercuts it.
 
 Reverse-chronological. One entry per user-visible or structural change.
 
+- **2026-10-14** — **Refactor: comments brought within AGENTS.md §8.6.** The
+  pass after the `0.3.0` bump found no dead code, duplicate constant or
+  oversized file worth splitting; what it found was 142 comment blocks over
+  four lines, most of them restating `docs/spec.md` or narrating how a line came
+  to be. Each is now the one or two lines the code cannot say. The two left
+  describe print setup, which `0.3.0` makes readable and the next change
+  replaces. Three comments were wrong rather than long: a read note still said
+  the three x14 icon sets make Excel repair the file, a test said no zip reader
+  was available (there is one, and the sheet-password test now asserts the hash
+  in the part), and the hash it quoted was not the one written (`DBFF`, the
+  legacy hash of `s3cret`, not `F533`).
+
 - **2026-10-14** — **`mbtexcel@0.3.0`, and every upstream report closed.** The
   backend pin moves from `0.2.0` (and `flate` to the `0.9.0` it requires). What
   that changes for a spec:
@@ -2596,7 +2609,7 @@ Reverse-chronological. One entry per user-visible or structural change.
 
   `docs/spec.md` loses the four warnings these made necessary. Found on the
   way: the form-control VML has #532's slip (`form_control.mbt:460`), noted in
-  Phase 9.
+  Phase 9 and reported as office.mbt#649.
 
 - **2026-10-12** — **CLI: `-o` is optional, and so is the spec (ADR-029).** A
   spec's new top-level `output:` key says where it builds to

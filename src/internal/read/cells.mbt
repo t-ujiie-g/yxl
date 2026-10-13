@@ -1,9 +1,6 @@
 ///|
-/// Walk the sheet's used range and add every populated cell to the model.
-///
-/// The scan is by address rather than by iterating the backend's own cell list,
-/// which it does not expose; each lookup is O(1) through its index, so the cost
-/// is the size of the rectangle rather than of the file.
+/// Add every populated cell in the used range, scanned by address since the
+/// backend does not expose its cell list.
 fn read_cells(
   backend : @xlsx.Workbook,
   sheet : @model.Sheet,
@@ -84,13 +81,8 @@ fn is_mixed(runs : Array[@xlsx.RichTextRun]) -> Bool {
 }
 
 ///|
-/// A cell's stored value, with no formula or run structure around it.
-///
-/// A number is left a number even where a date format is over it. Turning it
-/// into `type: date` would be a *guess* about what the author meant, and the
-/// number plus its format compiles back to the identical cell — which is the
-/// promise this whole direction makes (ADR-017). Someone who wants the date
-/// spelling can write it; nothing is lost by not inventing it.
+/// A cell's stored value. A number under a date format stays a number: it
+/// compiles back identically, and `type: date` would be a guess (ADR-017).
 fn read_scalar(
   backend : @xlsx.Workbook,
   sheet_name : String,
