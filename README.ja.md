@@ -120,10 +120,48 @@ YXL_VERSION=0.1.0 YXL_INSTALL_DIR=/usr/local/bin \
 
 ビルド済みバイナリは **Linux x86_64**、**macOS arm64**（Apple シリコン）、
 **Windows x86_64** 向けです。
-Intel Mac やその他のプラットフォームでは、下記の手順でソースからビルドしてください。
+Intel Mac やその他のプラットフォームでは、下記の `moonx` で実行するか、ソースからビルドしてください。
 スクリプトをシェルにパイプするのは慎重に行うべきことです — 気になる場合は先に
 [`install.sh` を読む](./install.sh)か、リリースのアセットから手動で入れるか、
 ソースからビルドしてください。
+
+### インストールせずに使う: `moonx`
+
+yxl は [mooncakes](https://mooncakes.io/docs/t-ujiie-g/yxl) で公開しています。
+[MoonBit](https://www.moonbitlang.com/download) が入っていれば、ほかに何も
+インストールせずに実行できます:
+
+```bash
+moonx t-ujiie-g/yxl/cmd/main@0.6.0 build report.yxl.yaml
+moonx t-ujiie-g/yxl/cmd/main@0.6.0 extract existing.xlsx -o spec.yxl.yaml
+```
+
+コマンドもオプションも `yxl` と同じです。`moonx` は WebAssembly として実行し、
+出力されるワークブックはネイティブ版とバイト単位で一致します。起動が遅いので、
+日常的に使うならバイナリをインストールしてください。バージョンの代わりに
+`@latest` と書くと最新リリースを取得します。
+
+### MoonBit のライブラリとして使う
+
+```bash
+moon add t-ujiie-g/yxl
+```
+
+パッケージの `moon.pkg` で `t-ujiie-g/yxl/cli` を import します。サポートする
+のは次の 2 関数で、どちらもディスクには触れません:
+
+```moonbit
+// スペックの文字列 -> .xlsx のバイト列
+let bytes = @cli.compile(spec_text, file="report.yxl.yaml")
+// .xlsx のバイト列 -> スペックの文字列と、持ち越せなかったものの一覧
+let result = @cli.extract(bytes, file="existing.xlsx")
+println(result.spec)
+```
+
+`compile` には `$include` するファイル・CSV・画像を渡す `resolve=` と
+`read_bytes=`、`--set` に当たる `params=` があります。
+`@cli.error_message(err)` は失敗を CLI と同じ形の文に整えます。`internal/`
+以下のパッケージは import できません。
 
 ### ソースから
 
@@ -281,17 +319,21 @@ report.yxl.yaml
 
 ## パッケージ
 
+公開しているのは 3 パッケージで、コンパイラ本体は `internal/` 以下にあります（ADR-028）。
+
 | パッケージ | 役割 |
 |---|---|
-| `diag` | 診断と、ソース位置付きのサブドメインエラー |
-| `units` | 型安全なセル参照、色、日付 |
-| `yaml` | YAML ソース → 文書ツリー |
-| `model` | 型付き中間表現 |
-| `loader` | 文書ツリー → モデル: スキーマ検証、参照の解決 |
-| `emit` | モデル → `.xlsx` バイト列（mbtexcel ベース）、スタイル・文字列のインターン |
-| `read` | `.xlsx` バイト列 → モデル。`emit` の逆（`yxl extract` 用） |
-| `render` | モデル → 文書ツリー。`loader` の逆で、抽出したスタイルに名前を付ける |
-| `cli`（`cmd/main`） | 引数の解析、ファイル I/O、終了コード |
+| `cli` | ディスクに触れない `compile` と `extract`、引数の解析、終了コード |
+| `include` | `compile` が取り込みファイルのために受け取るリゾルバの型 |
+| `cmd/main` | `yxl` 実行ファイル: `cli` の周りのファイル I/O |
+| `internal/diag` | 診断と、ソース位置付きのサブドメインエラー |
+| `internal/units` | 型安全なセル参照、色、日付 |
+| `internal/yaml` | YAML ソース → 文書ツリー |
+| `internal/model` | 型付き中間表現 |
+| `internal/loader` | 文書ツリー → モデル: スキーマ検証、参照の解決 |
+| `internal/emit` | モデル → `.xlsx` バイト列（mbtexcel ベース）、スタイル・文字列のインターン |
+| `internal/read` | `.xlsx` バイト列 → モデル。`emit` の逆（`yxl extract` 用） |
+| `internal/render` | モデル → 文書ツリー。`loader` の逆で、抽出したスタイルに名前を付ける |
 | `examples` | テスト専用: `examples/` の作例をコンパイルして検証する |
 
 ## 開発
