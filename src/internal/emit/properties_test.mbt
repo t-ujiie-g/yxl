@@ -161,12 +161,8 @@ test "an unprotected sheet stays unprotected" {
 }
 
 ///|
-/// A password does not come back out: Excel stores a hash rather than the word,
-/// and the backend's reader does not surface it. What can be asserted is that
-/// adding one disturbs nothing else — the allowances still say what they said.
-/// That the hash reaches the file (`password="F533"` in `sheetProtection`) was
-/// read out of the XML by hand; asserting it here would need a zip reader the
-/// test packages do not have.
+/// The reader does not surface the password, so its hash is asserted in the part
+/// (`DBFF` is the legacy 16-bit hash of `s3cret`).
 test "a sheet password leaves the allowances alone" {
   let (wb, sheet) = fixture()
   sheet.set_protection({
@@ -178,6 +174,9 @@ test "a sheet password leaves the allowances alone" {
   assert_true(protection.sort)
   assert_true(protection.select_locked_cells)
   assert_false(protection.format_cells)
+  assert_true(
+    part(wb, "xl/worksheets/sheet1.xml").contains("password=\"DBFF\""),
+  )
 }
 
 ///|

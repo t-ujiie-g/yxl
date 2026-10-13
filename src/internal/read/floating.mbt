@@ -85,11 +85,8 @@ fn read_control(
     min = None
     max = None
   }
-  // The size lives in the VML anchor's *far* corner, and the backend's parser
-  // reads the anchor's first two coordinates only, so a control comes back
-  // without a size whatever it was given. The note says *any* size because a
-  // control that was never sized loses nothing, and the two cannot be told
-  // apart from here.
+  // The backend reads only the VML anchor's near corner, so no size comes back,
+  // and an unsized control cannot be told from a sized one.
   if control.width is None && control.height is None {
     notes.drop(
       "any size on a form control, which the file records in its VML and the Excel backend does not read back — a control comes back at Excel's default size, and one that was sized cannot be told from one that was not",
@@ -172,13 +169,8 @@ fn read_slicers(
 }
 
 ///|
-/// The defined names the workbook's slicers own.
-///
-/// A slicer's cache is a defined name the backend writes as part of placing it
-/// (`Slicer_Region`), which the spec neither declares nor should: writing the
-/// slicer back out writes the name back out too. The names come off the slicers
-/// themselves rather than off the spelling convention, so a workbook whose
-/// slicer names collided and were numbered is still recognised.
+/// The defined names the workbook's slicers own, which writing the slicer
+/// recreates; taken from the slicers, not from the `Slicer_` spelling.
 fn slicer_caches(backend : @xlsx.Workbook) -> @set.Set[String] {
   let caches : @set.Set[String] = Set([])
   for name in backend.get_sheet_list() {
@@ -201,12 +193,8 @@ fn slicer_caches(backend : @xlsx.Workbook) -> @set.Set[String] {
 let default_slicer_size : Int32 = 200
 
 ///|
-/// A size worth writing down, as the pair the schema takes.
-///
-/// Both dimensions or neither: the schema refuses one alone, since it would
-/// pair silently with the backend's default for the other. So a size equal to
-/// that default in *both* dimensions is dropped, and one that differs in either
-/// is kept whole.
+/// A size worth writing down, both dimensions or neither, as the schema takes it:
+/// dropped only when both equal the backend's default.
 fn both_or_neither(
   width : Int32,
   height : Int32,
@@ -440,14 +428,8 @@ fn read_sparkline_group(
 }
 
 ///|
-/// A sparkline colour, and only where the file names one outright.
-///
-/// The theme index beside it is deliberately *not* resolved, unlike a font's or
-/// a fill's: Excel gives every sparkline group four colours it never asked for
-/// — high, low, first, last — as theme references, so resolving them would put
-/// four `RRGGBB` values on every group in the spec to say what the default
-/// already says. An unset colour reads as "whatever the theme paints", which is
-/// what the group meant.
+/// A sparkline colour only where the file names one outright: theme references
+/// are Excel's defaults on every group, and resolving them would spell those out.
 fn sparkline_color(
   color : @xlsx.SparklineColor?,
   notes : Notes,

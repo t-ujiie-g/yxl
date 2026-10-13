@@ -146,12 +146,8 @@ fn init_spec(output : String, force : Bool) -> Int32 {
 }
 
 ///|
-/// Read a workbook and write the spec that would rebuild it (ADR-017).
-///
-/// Everything the schema could not carry is printed, and so is anything the
-/// self-check found: the spec is still written in that case, because a starting
-/// point with a known gap is more use than no starting point, but the exit code
-/// says it needs a look.
+/// Read a workbook and write the spec that would rebuild it (ADR-017). A spec
+/// that failed its self-check is still written, with a failing exit code.
 fn extract(input : String, output : String, flat : Bool) -> Int32 {
   let bytes = @fs.read_file_to_bytes(input) catch {
     @fs.IOError(reason) => {
@@ -281,11 +277,8 @@ fn read_error(
 }
 
 ///|
-/// Print one `yxl: …` line. The single place that decides where CLI messages go.
-/// Everything goes to *stdout*, including diagnostics: the toolchain exposes no
-/// way to write to stderr (there is no `eprintln`), so this is a limit rather
-/// than an oversight. Keeping it in one function means the day that changes is a
-/// one-line day.
+/// Print one `yxl: …` line — to stdout, diagnostics included, since the
+/// toolchain has no `eprintln`.
 fn report(message : String) -> Unit {
   println("yxl: \{message}")
 }

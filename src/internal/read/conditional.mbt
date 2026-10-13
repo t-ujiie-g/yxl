@@ -156,7 +156,7 @@ fn read_conditional_rule(
         // looking for a typo; they are known, only unwritable.
         notes.drop(
           if @model.unwritable_icon_set_styles.contains(options.icon_style) {
-            "the '\{options.icon_style}' icon set, which the Excel backend cannot write back without making the workbook one Excel offers to repair"
+            "the '\{options.icon_style}' icon set, an Excel 2010 extension the Excel backend cannot write back"
           } else {
             "the '\{options.icon_style}' icon set, which the spec does not name"
           },
@@ -218,13 +218,8 @@ fn read_conditional_comparison(
 }
 
 ///|
-/// One endpoint, read as what it looks like.
-///
-/// A conditional format's bound is a formula literal: a number, or text in
-/// double quotes as the emitter wrote it. Unlike a validation's, its kind is not
-/// fixed by the rule, so the text has to say which it is. A bare number stays a
-/// number — turning one into a date would be the guess `read_scalar` refuses for
-/// the same reason.
+/// One conditional-format endpoint: quoted text or a number, never guessed into
+/// a date.
 fn conditional_bound(
   literal : String,
   dates : @units.DateSystem,

@@ -117,13 +117,8 @@ fn load_comments(
 }
 
 ///|
-/// A comparison: exactly one operator key, whose value is a bound (or a pair of
-/// them, for the two-endpoint operators). `read_bound` decides how a bound is
-/// read, which is all that differs between a validation — whose declared kind
-/// fixes what its bounds may be — and a conditional format, which infers.
-///
-/// Shared so the two spell their comparisons identically: `at_least` means the
-/// same thing wherever it is written.
+/// A comparison: exactly one operator key and its bound(s), shared by validations
+/// and conditional formats; `read_bound` is the part that differs.
 fn load_comparison(
   node : @yaml.Node,
   file~ : String,
@@ -173,13 +168,8 @@ fn load_comparison(
 const COMPARISONS : String = "'between', 'not_between', 'equals', 'not_equals', 'at_least', 'at_most', 'greater_than', or 'less_than'"
 
 ///|
-/// Every decoration that names another sheet must name one the workbook
-/// declares. This runs once the whole spec is loaded, because a sheet may be
-/// referenced before it is declared — a lookup sheet is routinely the last tab.
-///
-/// A dangling reference is silent in Excel: a drop-down simply comes up empty,
-/// and a link goes nowhere. Catching it here is the difference between a
-/// diagnostic and a workbook that looks fine until someone clicks (ADR-006).
+/// Every decoration naming another sheet must name a declared one. Run after the
+/// whole spec loads, since a lookup sheet is often the last tab (ADR-006).
 fn check_cross_sheet_references(
   workbook : @model.Workbook,
   file~ : String,
@@ -251,25 +241,9 @@ fn check_cross_sheet_references(
 }
 
 ///|
-/// A link's in-workbook target, spelled the way the file has to hold it.
-///
-/// Excel stores a hyperlink's `location` as a reference, and a reference to a
-/// sheet whose name is not a bare word has to quote it: `Q1 Sales!B2` is not a
-/// valid reference and Excel answers a click with "Reference isn't valid".
-/// Every other cross-sheet reference yxl writes travels as a parsed
-/// `SheetRange` and is quoted on the way out; a link's target is the one that
-/// stays text from the spec to the file, because it may equally be a defined
-/// name — so it is the one that has to be re-spelled here rather than echoed.
-///
-/// Quoting is applied unconditionally, which is what `emit`'s `quoted_sheet`
-/// does for every chart range: `'Statuses'!A1` is as valid as `Statuses!A1`,
-/// and one rule beats a second implementation of Excel's "is this a bare word"
-/// test.
-///
-/// A target naming no sheet is a defined name and is left exactly as written.
-/// So is one whose quoting is malformed — `location_sheet` deliberately leaves
-/// that to Excel rather than raising about a link that may not be a reference
-/// at all, and this follows it.
+/// A link's in-workbook target with its sheet quoted, always, as `quoted_sheet`
+/// does: Excel rejects an unquoted `Q1 Sales!B2`. A defined name or malformed
+/// quoting is left as written.
 fn canonical_location(location : String) -> String {
   let (sheet, rest) = split_sheet_prefix(location, file="", what="") catch {
     _ => return location

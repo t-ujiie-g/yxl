@@ -3,12 +3,8 @@
 const PARAMS_KEY : String = "params"
 
 ///|
-/// Substitute `${name}` throughout a document from its own `params:` block, with
-/// `overrides` (from `--set`) replacing the declared defaults. A document with
-/// no `params:` and no overrides is returned untouched.
-///
-/// An override naming no declared parameter is a diagnostic: a typo on the
-/// command line should say so, not quietly do nothing.
+/// Substitute `${name}` throughout a document from its `params:`, `overrides`
+/// (`--set`) winning. An override naming no declared parameter is refused.
 fn substitute_params(
   document : @yaml.Node,
   file~ : String,
@@ -37,11 +33,8 @@ fn substitute_params(
 }
 
 ///|
-/// Resolve every declared parameter to a scalar. A default may itself contain
-/// `${other}`, so resolution is depth-first with the chain of names being
-/// resolved carried along to detect a cycle. An override replaces the default
-/// outright, and is read as the scalar it looks like — the value arrives from a
-/// command line as text, and `--set rate=0.08` should be the number.
+/// Resolve every declared parameter to a scalar, depth-first to catch cycles. An
+/// override is read as the scalar it looks like (`--set rate=0.08` is a number).
 fn resolve_params(
   declared : Array[(String, @yaml.Node)],
   overrides : Map[String, String],
@@ -153,14 +146,8 @@ fn lookup_param(
 }
 
 ///|
-/// Expand `${name}` in one string. A string that is *exactly* one placeholder
-/// takes the parameter's own type, so `"${rate}"` can be a number cell; anything
-/// else composes text. `$$` is a literal `$`, and a `$` that begins neither
-/// escape is itself — which leaves Excel's absolute references (`$A$1`) alone.
-///
-/// The one place the two `$` meanings collide is a literal `$` *immediately*
-/// before a placeholder: `$B$${n}` reads its middle `$$` as the escape and
-/// leaves `{n}` alone. Write `$B$$${n}` — an escaped `$` then the placeholder.
+/// Expand `${name}` in one string; exactly one placeholder keeps the parameter's
+/// type. `$$` is `$`, and `$` before anything else stays, so `$A$1` is safe.
 fn interpolate(
   text : String,
   file~ : String,

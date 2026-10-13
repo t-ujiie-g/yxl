@@ -1,23 +1,7 @@
 ///|
-/// Write one formula across a region.
-///
-/// This compiles to a **shared formula** (ECMA-376 §18.3.1.40): the master cell
-/// at the top-left stores the formula text once with the range it governs, and
-/// every other cell in the range records only that it follows the master.
-/// Excel shifts the relative references for each follower when it opens the
-/// file, so the translation is never computed here and never stored — one spec
-/// line becomes one stored formula, which is what ADR-004 asks of any reuse the
-/// spec declares once.
-///
-/// The backend requires the master to be the range's top-left cell, which
-/// `CellRange` guarantees by construction.
-///
-/// The cells the range fills are then styled from the sheet's bands. They have
-/// to be done here rather than with the rest: the backend creates them, so they
-/// are in no `cells` array for `emit_sheet` to walk, and a cell that exists with
-/// no style of its own is style 0 rather than the column's (ECMA-376
-/// §18.3.1.13). Without this a formula column could not be formatted at all,
-/// since `formulas:` carries no styling itself and a band is where it belongs.
+/// Write one formula across a region as a shared formula (ECMA-376 §18.3.1.40),
+/// then style its cells from the bands: the backend creates them, so `emit_sheet`
+/// never sees them, and an unstyled cell is style 0 (§18.3.1.13).
 fn apply_formula_range(
   backend : @xlsx.Workbook,
   sheet_name : String,

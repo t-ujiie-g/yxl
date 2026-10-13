@@ -9,11 +9,8 @@ fn chart_xml() -> String {
 
 ///|
 test "a chart sheet is skipped and named, not walked as a grid" {
-  // `get_sheet_list` names a chart sheet alongside the worksheets while every
-  // per-sheet accessor answers `SheetNotFound` for it, so reading one used to
-  // fail the whole extraction with the backend's own error and nothing to act
-  // on. Right-clicking a chart and choosing "Move to new sheet" is all it takes
-  // to make a workbook like this, so it is not an exotic case.
+  // A chart sheet is listed but `SheetNotFound` to every per-sheet accessor; it
+  // used to fail the whole extraction.
   let backend = @xlsx.Workbook::new()
   let _ = backend.new_sheet("Data")
   backend.set_cell_str("Data", "A1", "Region")

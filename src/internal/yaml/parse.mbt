@@ -1,14 +1,6 @@
 ///|
-/// Parse a single YAML document into a `Node` tree. `file` names the source in
-/// diagnostics. A syntax error, or an unrepresentable value, raises a
-/// `@diag.YamlError`. When the source holds more than one document, only the
-/// first is used; an empty source is the null document.
-///
-/// A syntax error carries the line and column the parser stopped at. A *node*
-/// carries none: the library exposes positions only on the error, not on the
-/// tree it returns (ADR-010), so a diagnostic raised further down the pipeline —
-/// an unknown key, a bad cell reference — names the file alone. Per-node spans
-/// wait for a parser swap, which this seam keeps local.
+/// Parse the first YAML document of `source` (an empty one is null). Only a
+/// syntax error carries a position: the library gives nodes none (ADR-010).
 pub fn parse(source : String, file~ : String) -> Node raise @diag.YamlError {
   let documents = @yamllib.Yaml::load_from_string(source) catch {
     err => raise from_library_error(err, file)
@@ -51,20 +43,8 @@ fn convert(value : @yamllib.Yaml, file : String) -> Node raise @diag.YamlError {
 }
 
 ///|
-/// Undo the parser library's mis-decoding of `\v`, `\f` and `\r`.
-///
-/// Its escape table writes each code point's *decimal* value as a hex literal,
-/// so `\r` yields U+0013 (DC3) rather than U+000D. A cell that says `\r` then
-/// carries a character XML 1.0 has no way to write, and the workbook Excel opens
-/// is a broken one. The seam is where a defect of the chosen parser gets
-/// corrected (ADR-009), and this correction is exact: YAML forbids an
-/// unescaped C0 control in a source document, so a U+0011, U+0012 or U+0013 in
-/// a parsed scalar can only have come from one of these escapes.
-///
-/// `\e` and `\ ` are mis-decoded the same way and are *not* repaired: they land
-/// on `'` and `2`, which a scalar may perfectly well contain, so there is
-/// nothing here to tell an escape from an ordinary character (§9). Write
-/// `` and ` ` for those.
+/// Undo the parser's decoding of `\v`, `\f`, `\r` as U+11–U+13 (yaml.mbt#14).
+/// Exact, since YAML forbids those raw; `\e` and `\ ` cannot be told apart.
 fn repair_escapes(text : String) -> String {
   let mut needs_repair = false
   for ch in text {

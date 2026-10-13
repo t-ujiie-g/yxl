@@ -1,21 +1,7 @@
 ///|
-/// A pivot table placed on a sheet.
-///
-/// - `at` — where the pivot starts. Excel grows it past this range as it needs
-///   to, so it is a corner rather than a promise about the size.
-/// - `source` — the cells summarized, header row first: the column names there
-///   are the field names every axis refers to. May name another sheet, which is
-///   the usual arrangement — raw data on one tab, the summary on another.
-/// - `rows`, `columns` — the fields grouped down the side and along the top.
-/// - `filters` — the fields in the "Filters" box above the pivot, which Excel
-///   lays out in the rows above `at`.
-/// - `values` — the fields aggregated in the body, each with its function.
-/// - `name` — what formulas and the field list call this pivot; `None` leaves
-///   Excel to name it `PivotTable1`, `PivotTable2`, …
-/// - `style` — one of Excel's built-in pivot styles; `None` keeps the backend's
-///   default, `PivotStyleLight16`.
-/// - the grand totals down the right edge and along the bottom, both of which
-///   Excel shows by default.
+/// A pivot table. `at` is a corner Excel grows from; `source`'s header row names
+/// the fields the axes refer to. `None` keeps Excel's name and the backend's
+/// `PivotStyleLight16`.
 pub(all) struct Pivot {
   at : CellRange
   source : SheetRange

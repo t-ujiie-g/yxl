@@ -278,17 +278,9 @@ fn parse_setting(argument : String) -> (String, String) raise @diag.CliError {
 }
 
 ///|
-/// Compile a spec's source text into `.xlsx` bytes. This is the whole pipeline —
-/// parse, load, emit — and is I/O-free, so it tests on strings and bytes.
-/// `file` names the source in any diagnostic. It may raise `@diag.YamlError`,
-/// `@diag.SchemaError`, or `@diag.EmitError`.
-///
-/// `resolve` supplies the source of any `$include` — and of a `data:` table —
-/// while `read_bytes` supplies the contents of any file that is not text, which
-/// today means an image. Without either, a spec that needs it is a diagnostic:
-/// reading files stays the caller's job, and that is what keeps this function
-/// I/O-free (ADR-003). `params` overrides the spec's declared parameter defaults
-/// (the CLI's `--set`).
+/// Compile a spec's text into `.xlsx` bytes, I/O-free (ADR-003): `resolve` and
+/// `read_bytes` supply included text and binary files, `params` the `--set`
+/// overrides. Raises the `@diag` subdomain errors.
 pub fn compile(
   source : String,
   file~ : String,
@@ -333,12 +325,8 @@ pub fn build(
 }
 
 ///|
-/// Render a pipeline error as a message. Recognises the subdomain errors (each
-/// wraps a `@diag.Diagnostic`) and falls back to `Show` otherwise.
-///
-/// Pass `source~` — the spec's text — to get the offending line quoted with a
-/// caret under it wherever the diagnostic carries a position. Without it, or
-/// where it carries none, the message is the plain single line.
+/// Render a pipeline error as a message. With `source~`, a diagnostic that has a
+/// position quotes its line with a caret.
 pub fn error_message(err : Error, source? : String) -> String {
   let diagnostic = match err {
     @diag.YamlError(d)

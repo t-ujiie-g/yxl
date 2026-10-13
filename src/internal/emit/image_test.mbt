@@ -21,13 +21,8 @@ fn plain_image() -> @model.Image {
 }
 
 ///|
-/// The sole image the round-tripped workbook carries.
-///
-/// The sheet's own `images()` is read rather than the workbook's
-/// `get_pictures`: the latter also looks for images *inside* cells, a path that
-/// drags Excel's formula evaluator into the link — and MSVC cannot parse the C
-/// its thousand-armed dispatch generates (`fatal error C1026`). Drawing
-/// pictures are what `yxl` emits, so this is the accessor that matches anyway.
+/// The sole image the round-tripped workbook carries, from the sheet's drawing
+/// rather than `get_pictures`, which also searches in-cell images.
 fn only_image(wb : @model.Workbook) -> @xlsx.Image raise {
   let reopened = reopen(wb)
   guard reopened.sheet("S") is Some(sheet) else { fail("expected the sheet") }

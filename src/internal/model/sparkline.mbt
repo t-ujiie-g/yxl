@@ -1,14 +1,7 @@
 ///|
-/// A group of sparklines. Excel scales and styles a group as a unit.
-///
-/// - `cells` — where each sparkline lands and what it plots; at least one.
-/// - `markers`, `weight` — dot every point, and the line weight in points. Both
-///   belong to the line kind: the others already draw one mark per point.
-/// - `high`, `low`, `axis` — emphasize the extremes, and draw the horizontal
-///   axis at zero.
-/// - `min`, `max` — manual vertical bounds; unset lets Excel scale each end to
-///   the data. Whole numbers, because the backend accepts nothing finer.
-/// - the colours — unset keeps the style's.
+/// A group of sparklines, scaled and styled as a unit. `markers` and `weight`
+/// apply to lines only; `min`/`max` are whole numbers, as the backend takes;
+/// unset colours keep the style's.
 pub(all) struct SparklineGroup {
   kind : SparklineKind
   cells : Array[SparklineCell]

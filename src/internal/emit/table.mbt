@@ -1,11 +1,6 @@
 ///|
-/// Declare a range an Excel table.
-///
-/// The backend reads the column names out of the range's top row, so the sheet's
-/// cells must already be written — `emit_sheet` calls this after them. The
-/// loader has already checked that every header cell holds text, so the backend
-/// never reaches its fallback of inventing `Column1`, `Column2`, … and writing
-/// them into the sheet.
+/// Declare a range an Excel table. The backend reads column names from the top
+/// row, so the cells must already be written.
 fn apply_table(
   backend : @xlsx.Workbook,
   sheet_name : String,

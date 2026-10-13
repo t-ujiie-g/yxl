@@ -93,14 +93,8 @@ pub fn DateTime::to_serial(self : DateTime, system : DateSystem) -> Double {
 }
 
 ///|
-/// The date/time an Excel serial stands for under `system` — the inverse of
-/// `to_serial`, for the direction `yxl extract` travels (ADR-017), where a file
-/// holds serials and a spec wants dates.
-///
-/// A negative serial has no date to name, and neither does one so large that
-/// the day count overflows; both give `None` rather than a wrong answer. The
-/// time is rounded to the nearest second, because a serial is a fraction of a
-/// day and the fraction rarely lands exactly on one.
+/// The date/time a serial stands for under `system`, rounded to the second —
+/// the inverse of `to_serial`. `None` for a negative or overflowing serial.
 pub fn DateTime::from_serial(serial : Double, system : DateSystem) -> DateTime? {
   guard serial >= 0.0 && serial < 3.0e6 && !serial.is_nan() else { return None }
   let whole = serial.floor()

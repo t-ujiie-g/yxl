@@ -198,14 +198,8 @@ fn sheet_range(range : @model.SheetRange) -> String {
 }
 
 ///|
-/// One conditional format: the range, the rule, and how a match is drawn.
-///
-/// A rule that draws its own appearance — a scale, a bar, an icon set — takes no
-/// style, and one that highlights needs one, which is the schema's own rule
-/// (`docs/spec.md` §10). The look goes out *inline* rather than through `defs.styles`: Excel
-/// keeps these in a table of their own, so a conditional look and a cell look
-/// that happen to match are not the same entry and naming them together would
-/// say they were.
+/// One conditional format, its look written inline: Excel keeps it in `dxfs`, so
+/// a matching cell style is not the same entry.
 fn one_conditional(format : @model.ConditionalFormat) -> @yaml.Node {
   let entries = [("at", @yaml.Str(format.at.to_a1()))]
   match format.rule {

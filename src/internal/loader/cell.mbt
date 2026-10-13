@@ -1,10 +1,5 @@
 ///|
-/// A cell is either a scalar shorthand (`A1: 42`) or an expanded mapping with an
-/// optional `type` (currently `date`), `format`, `style`, and a value source: a
-/// `value`, a `formula`, or a `rich` run list — e.g.
-/// `A1: { value: 0.5, format: "0.00%" }`, `B1: { value: "2026-07-23", type: date
-/// }`, `C1: { formula: "SUM(A1:A2)" }`, or `D1: { rich: ["a ", { text: b, font:
-/// { bold: true } }] }`.
+/// A cell: a scalar shorthand or an expanded mapping (`docs/spec.md` §3).
 fn load_cell(
   node : @yaml.Node,
   file~ : String,

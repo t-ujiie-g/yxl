@@ -1,20 +1,7 @@
 ///|
-/// The style a cell is actually drawn in: its column band's, then its row
-/// band's, then its own, each layering over the last so a column can set the
-/// number format while the cell sets the font, and each able to take away what
-/// the last one set.
-///
-/// This has to be resolved here rather than left to Excel, because
-/// `<col style>` and `<row s>` govern only the cells a sheet has **not**
-/// allocated (ECMA-376 §18.3.1.13): a `<c>` element without an `s` attribute is
-/// style 0, not "inherit from the column". Every cell the spec writes is
-/// allocated, so without this a banded `format:` would reach exactly the cells
-/// nobody wrote — which is the opposite of what `docs/spec.md` §4 and §9
-/// promise, `data:` in particular, whose whole story is that a band supplies
-/// the formatting.
-///
-/// The band styles are still set on the column and row records as well, so the
-/// empty cells around the written ones look the same.
+/// The style a cell is drawn in: column band, row band, then its own. Resolved
+/// here because `<col style>` reaches only unallocated cells (ECMA-376
+/// §18.3.1.13), and every written cell is allocated.
 fn effective_style(sheet : @model.Sheet, cell : @model.Cell) -> @model.Style? {
   // Innermost wins: the cell over its row, the row over its column.
   let inherited = match sheet.band_style_at(cell.pos) {

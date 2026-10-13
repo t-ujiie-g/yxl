@@ -126,14 +126,8 @@ fn read_underline(underline : String?, notes : Notes) -> Bool? {
 }
 
 ///|
-/// A hex colour, when there is one to have.
-///
-/// A fully opaque alpha byte is dropped: the file writes SpreadsheetML colours
-/// as `AARRGGBB` and `FF` there says nothing a spec needs to carry, so an
-/// extracted spec spells a colour the way an author would. A partial alpha is
-/// kept, since that one *is* a choice. Most of the backend's colour readers
-/// have already trimmed the byte by the time they get here; the sheet tab's
-/// has not.
+/// A hex colour, with a fully opaque alpha byte dropped since a spec need not say
+/// it; a partial alpha is kept.
 fn read_color(color : String?, notes : Notes) -> @units.Color? {
   guard color is Some(text) && !text.is_empty() else { return None }
   match @units.Color::parse(text) {
@@ -151,18 +145,9 @@ fn read_color(color : String?, notes : Notes) -> @units.Color? {
 }
 
 ///|
-/// A colour the file may have written as an RGB value, as an index into the
-/// workbook's theme, or as one into the legacy palette — resolved to RGB either
-/// way, with the `tint` Excel lightens or darkens the base colour by applied
-/// (ECMA-376 §18.3.1.15).
-///
-/// The spec carries RGB alone, so an unresolved index would be a lost colour;
-/// resolving it here is what lets a workbook whose headings are all theme
-/// colours — which is to say most real workbooks — come back looking like
-/// itself. `what` names the thing wearing the colour, for the note left behind
-/// when even the theme cannot say what it was: the hyperlink pair (`hlink`,
-/// `folHlink`) is in the file's theme but not in the table the backend parses
-/// out of it.
+/// A colour resolved to RGB from an RGB value, a theme index or a palette index,
+/// with its `tint` applied (ECMA-376 §18.3.1.15). `what` names the wearer for
+/// the note left when even the theme cannot say.
 fn resolve_color(
   backend : @xlsx.Workbook,
   color : String?,
@@ -397,14 +382,8 @@ fn builtin_number_format(id : Int32, notes : Notes) -> String? {
 }
 
 ///|
-/// The built-in number formats whose codes ECMA-376 §18.8.30 fixes.
-///
-/// Ids 37–40 are spelled as *Excel* writes them rather than as §18.8.30 prints
-/// them: the standard shows a space where Office uses `_)`, the "as wide as a
-/// `)`" padding that lines a positive number up with a parenthesised negative
-/// one (MS-OI29500 §2.1.601). Excel maps a cell formatted `#,##0_);(#,##0)`
-/// onto id 37 and writes no `numFmt` element, so the standard's spelling would
-/// come back out of `extract` as a different — and visibly misaligned — format.
+/// The built-in number formats of ECMA-376 §18.8.30. Ids 37–40 use Excel's `_)`
+/// where the standard prints a space (MS-OI29500 §2.1.601).
 let builtin_number_formats : Array[(Int32, String)] = [
   (1, "0"),
   (2, "0.00"),

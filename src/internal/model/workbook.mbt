@@ -14,15 +14,8 @@ pub(all) struct DefinedName {
 pub let max_defined_name_length : Int32 = 255
 
 ///|
-/// One cell held apart from the rules that produced it (ADR-018): a deliberate,
-/// one-off deviation, naming the sheet and cell it lands on, the facets it
-/// replaces, and why.
-///
-/// `value` and `style` are independent: an unset one leaves whatever the rest of
-/// the spec put there, so changing a number keeps the formatting and restyling a
-/// cell keeps its value. At least one is set — an override of nothing is a
-/// mistake the loader refuses, as is a second override of the same cell.
-/// `reason` is free text for a reader; nothing in the compiler reads it.
+/// One cell held apart from the rules that produced it (ADR-018). `value` and
+/// `style` are independent and at least one is set; `reason` is never read.
 pub(all) struct Override {
   sheet : String
   at : @units.CellRef
@@ -32,19 +25,9 @@ pub(all) struct Override {
 } derive(Eq, Debug)
 
 ///|
-/// A workbook: an ordered list of sheets — the order is the order of the tabs —
-/// the date system that governs how dates serialize, any workbook-level defined
-/// names, and the overrides laid over the finished cells. This is the entire
-/// input to the emitter seam (`model -> bytes`, ADR-002).
-///
-/// Only the *name* of `default_font` is a workbook-level default; size, colour
-/// and the rest are per-style. `defined_names` is in declaration order, so
-/// emission is deterministic; a reference cell holds `=name` and Excel resolves
-/// it. `active_sheet` names the tab Excel opens on, which the emitter resolves
-/// to an `activeTab` index. `overrides` are workbook-level because they apply
-/// after every sheet's cells, whichever sheet they land on. `output` is where
-/// the spec asks to be written; the emitter never reads it. Every optional field
-/// unset keeps Excel's or the backend's default.
+/// A workbook: the whole input to the emitter seam (ADR-002). Lists keep
+/// declaration order; an unset optional keeps Excel's default; `output` is never
+/// read by the emitter.
 pub(all) struct Workbook {
   sheets : Array[Sheet]
   date_system : @units.DateSystem
@@ -165,26 +148,9 @@ pub fn Workbook::add_sheet(
 }
 
 ///|
-/// One worksheet: a name, the cells written to it (kept in insertion order),
-/// the column and row bands laid over them (see `AxisBand`), merged-cell
-/// ranges, and how the sheet presents itself — tab visibility and color, frozen
-/// or split panes, and whether gridlines show. Turning these into the final
-/// workbook layout is the emitter's job.
-///
-/// Every list below it is in declaration order, and an unset optional keeps
-/// Excel's default. Where that order or that overlap means something:
-///
-/// - `conditional_formats` — declaration order *is* priority order, so an
-///   earlier rule wins where two match the same cell.
-/// - `validations` — ranges may overlap; Excel keeps them all, and the last one
-///   written wins where they do.
-/// - `tables` — ranges may not overlap: Excel refuses a workbook whose do.
-/// - `formulas` — ranges may not overlap each other or a populated cell, which
-///   the loader checks, so the order carries no precedence.
-/// - `filter` — a sheet has at most one, and its top row is the header.
-/// - `gridlines` — the on-screen grid, not cell borders, which are a style.
-/// - `background` — an image tiled behind the cells. Excel shows it on screen
-///   and never prints it.
+/// One worksheet. Lists keep declaration order, which for `conditional_formats`
+/// is priority order; `tables` and `formulas` may not overlap (the loader
+/// checks). An unset optional keeps Excel's default.
 pub(all) struct Sheet {
   name : String
   cells : Array[Cell]
@@ -367,13 +333,8 @@ pub fn Sheet::add_link(
 }
 
 ///|
-/// What the bands alone say about one position — the column band's style with
-/// the row band's laid over it, or `None` where neither covers it.
-///
-/// This is what a cell inherits before its own style is laid on top
-/// (`docs/spec.md` §4). The emitter resolves it into every written cell, and the
-/// reader needs the same answer to tell a cell that agrees with its band from
-/// one that deliberately does not.
+/// The row band's style laid over the column band's at `at`, or `None` where
+/// neither covers it (`docs/spec.md` §4).
 pub fn Sheet::band_style_at(self : Sheet, at : @units.CellRef) -> Style? {
   Style::layer(
     band_covering(self.columns, at.col),
@@ -440,11 +401,8 @@ pub fn Sheet::merge(
 }
 
 ///|
-/// Write a value at a cell reference, appending it to the sheet's cells. Pass
-/// `style=` for a full style, or `format=` as a shorthand for a number-format-
-/// only style. If both are given, an explicit `style` wins; a `format` fills in
-/// only when the style leaves the number format unset. An empty resulting style
-/// is dropped so the cell stays on the default style.
+/// Append a value at `at`. `format=` fills the number format only where `style=`
+/// leaves it unset; an empty resulting style is dropped.
 pub fn Sheet::set(
   self : Sheet,
   pos : @units.CellRef,

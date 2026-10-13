@@ -1,10 +1,6 @@
 ///|
-/// Column and row bands, one per column or row that differs from the default.
-///
-/// The backend answers per column rather than per band, so the run of columns
-/// that share a look is rebuilt here — the file lost the fact that they were
-/// declared together, and a band per column would turn one spec line into
-/// hundreds.
+/// Column and row bands, rebuilt from the backend's per-column answers so a run
+/// declared together comes back as one band.
 fn read_bands(
   backend : @xlsx.Workbook,
   sheet : @model.Sheet,
@@ -68,15 +64,9 @@ fn read_bands(
 }
 
 ///|
-/// Give every written cell the `null`s its own formatting implies.
-///
-/// `<col style>` and `<row s>` reach only the cells a sheet never allocated
-/// (ECMA-376 §18.3.1.13), where a band in a spec reaches every cell in its span
-/// (`docs/spec.md` §4). So a cell the file leaves without something its band
-/// sets has to say so, or it comes back wearing the band's version (#71).
-///
-/// Only what the band would have passed down is cleared — a text cell under a
-/// numeric column band never had that format to lose.
+/// Give every written cell the `null`s its formatting implies: a `<col style>`
+/// reaches only unallocated cells (ECMA-376 §18.3.1.13), a spec band reaches all
+/// (#71).
 fn record_band_deviations(sheet : @model.Sheet) -> Unit {
   for index, cell in sheet.cells {
     guard sheet.band_style_at(cell.pos) is Some(band) else { continue }
@@ -113,12 +103,8 @@ type Track = (Double?, Bool, Int32, @model.Style?)
 type Band = (Int32, Int32, Double?, Bool?, Int32?, @model.Style?)
 
 ///|
-/// Sort the records by index, drop the ones that say nothing, and collapse a run
-/// of *adjacent* records that say the same thing into one band.
-///
-/// The collapsing is what keeps the result readable: a file records every column
-/// separately, and the fact that twenty of them were declared together in one
-/// line is exactly what compiling threw away.
+/// Sort the records, drop the empty ones, and collapse adjacent equal ones into
+/// one band.
 fn tracks(records : Array[(Int32, Track)]) -> Array[Band] {
   let ordered = records
   ordered.sort_by((left, right) => left.0 - right.0)
@@ -177,13 +163,8 @@ fn read_presentation(
       Freeze(@units.CellRef(col=panes.x_split + 1, row=panes.y_split + 1)),
     )
   } else if panes.x_split > 0 || panes.y_split > 0 {
-    // Not `panes.split`: the backend's reader derives `freeze` from the pane's
-    // `state="frozen"` and leaves `split` false whatever the file said. A pane
-    // that exists and is not frozen is a split one.
-    //
-    // A split's position is stored in twips and the schema speaks points; a
-    // freeze's is a count of columns and rows, which is why the two branches
-    // divide differently.
+    // Not `panes.split`, which the backend never sets: a pane that is not frozen is
+    // split. Its position is in twips (§18.3.1.66), a freeze's in cells.
     sheet.set_panes(
       Split(
         x=panes.x_split.to_double() / TWIPS_PER_POINT,

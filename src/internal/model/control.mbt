@@ -1,15 +1,6 @@
 ///|
-/// A form control anchored at a cell. Which fields mean anything depends on
-/// the kind — the loader admits only the combinations Excel's own "Format
-/// Control" dialog offers.
-///
-/// `link` is the cell the control writes its value into: a boolean for a check
-/// box, the option's index for an option button, the number for a scroll bar or
-/// spin button. Same-sheet only, since the backend refuses a qualified
-/// reference. `min`/`max`/`step`/`page`/`value` are a scroll bar's or spin
-/// button's range, and all lie within `0..=max_form_control_value`; `page` (a
-/// click in the trough) is the scroll bar's alone. `width`/`height` are pixels,
-/// `horizontal` lays a scroll bar or spin button sideways, and `None` anywhere
+/// A form control. The loader admits only the field combinations Excel's
+/// "Format Control" dialog offers per kind; `link` is same-sheet only, and `None`
 /// keeps the backend's default.
 pub(all) struct FormControl {
   at : @units.CellRef

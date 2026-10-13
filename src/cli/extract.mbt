@@ -1,14 +1,7 @@
 ///|
-/// What `extract` produced: the spec text, whatever files it refers to, and the
-/// honest account of what the schema could not carry.
-///
-/// `dropped` names each kind of loss once, whatever the file did a hundred
-/// times. `warnings` is different — it holds the ways the *result* failed to
-/// check out, which should be empty and is the one thing worth reading twice.
-///
-/// `companions` are the files the spec names, keyed by the path it names them
-/// by — relative to the spec, as `docs/spec.md` §9 resolves them. Writing them
-/// is the caller's job, which is what keeps `extract` I/O-free (ADR-003).
+/// What `extract` produced. `dropped` names each kind of loss once; `warnings`
+/// are verification failures; `companions` are keyed by spec-relative path
+/// (`docs/spec.md` §9) for the caller to write (ADR-003).
 pub struct Extracted {
   spec : String
   companions : Array[Companion]
@@ -17,29 +10,16 @@ pub struct Extracted {
 }
 
 ///|
-/// One file the extracted spec refers to: a `data:` table, or a picture.
-///
-/// The content is `Bytes` for both. A CSV is text and could have been a
-/// `String`, but a picture cannot, and one kind of companion is easier to write
-/// out than two — the caller opens a file and writes bytes either way.
+/// One file the extracted spec refers to — a `data:` table or a picture — as
+/// bytes either way.
 pub struct Companion {
   path : String
   content : Bytes
 }
 
 ///|
-/// Turn an existing workbook into the spec that would rebuild it.
-///
-/// This is a **one-way migration aid**, not a round trip: what the schema can
-/// say is recovered, what it cannot is dropped and named. See ADR-017 for where
-/// that boundary is and why it is the schema rather than a list of features.
-///
-/// The result is **verified, not trusted**. Compression and naming are both
-/// inferences, so the spec is compiled back here and the cells compared against
-/// the ones read out of the original; anything that does not match is reported
-/// in `warnings` rather than left for the author to discover in Excel. Both
-/// halves of the pipeline are already in memory, which is what makes checking
-/// cheap enough to do every time.
+/// Turn an existing workbook into the spec that would rebuild it (ADR-017). The
+/// spec is compiled back and its cells compared; mismatches go to `warnings`.
 pub fn extract(
   bytes : Bytes,
   file~ : String,
@@ -75,13 +55,8 @@ pub fn extract(
 }
 
 ///|
-/// Compile the rendered spec and compare what comes out against what went in.
-///
-/// The comparison is on the *model*, not on bytes: two workbooks that differ
-/// only in the order Excel happens to write a part are the same spreadsheet, and
-/// a byte comparison would report that as a failure every time. Cells are what a
-/// reader cares about and what an inference could get wrong, so cells are what
-/// is checked.
+/// Compile the rendered spec and compare its cells, on the model rather than the
+/// bytes, against what went in.
 fn verify(
   spec : String,
   companions : Array[Companion],

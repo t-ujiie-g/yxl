@@ -221,13 +221,9 @@ fn load_pivot_values(
 }
 
 ///|
-/// Everything about a pivot that only the finished workbook can answer: that its
-/// source is a region with a header row and rows beneath, that it names a sheet
-/// the workbook has, that every field it lays out is a column of that header,
-/// and that it is not drawn over the cells it summarizes.
-///
-/// Each of these is otherwise an error from inside the backend — or, worse, a
-/// workbook Excel opens and then quietly refuses to refresh.
+/// The pivot checks only the finished workbook can answer — source shape and
+/// sheet, fields from its header, no overlap with the source — each otherwise a
+/// backend error or a pivot Excel will not refresh.
 fn check_pivots(
   workbook : @model.Workbook,
   file~ : String,

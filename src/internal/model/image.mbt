@@ -1,12 +1,6 @@
 ///|
-/// A picture anchored on a sheet: `at` is the cell its top-left corner floats
-/// over, and the cells beneath it keep whatever they hold. `offset_x`/`offset_y`
-/// are pixels in from that corner and `scale_x`/`scale_y` are relative to the
-/// image's natural size, which is `1.0`.
-///
-/// `format` is a lower-case extension without the dot (`png`); Excel decodes the
-/// bytes by that rather than by inspecting them. `alt_text` is what a screen
-/// reader announces and Excel shows as "Alt Text".
+/// A picture floating over `at`; offsets are pixels, scales relative to natural
+/// size. Excel decodes by `format`, a lower-case extension without the dot.
 pub(all) struct Image {
   at : @units.CellRef
   data : Bytes
@@ -41,11 +35,8 @@ pub let image_formats : Array[String] = [
 ]
 
 ///|
-/// A sheet's background: an image tiled behind the cells, like a watermark.
-/// Excel shows it on screen but never prints it. Same arrangement as an
-/// `Image`: the bytes are read while the spec loads, so the emitter writes
-/// from memory alone (ADR-003), and `format` is a lower-case extension without
-/// the dot (`png`).
+/// A sheet's background, tiled behind the cells and never printed; `format` as
+/// for `Image`.
 pub(all) struct SheetBackground {
   data : Bytes
   format : String

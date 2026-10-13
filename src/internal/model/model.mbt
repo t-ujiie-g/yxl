@@ -1,13 +1,7 @@
 ///|
-/// A cell's value: text, a number, a boolean, a date/time, an Excel error
-/// literal, a formula, or rich text. A `Date` is stored as civil components; the
-/// emitter renders it to an Excel serial using the workbook's date system.
-///
-/// A `Formula` is stored without its leading `=`, and its `cached` scalar is
-/// what Excel shows until it recomputes on open. `RichText` runs are ordered,
-/// and there is at least one. A `Blank` cell exists only so that it can wear a
-/// style — a shaded box, a ruled table edge, the blank half of a merged heading
-/// — and stays blank to `ISBLANK` and to `COUNTA`.
+/// A cell's value. `Formula` omits the leading `=` and caches what Excel shows
+/// before recomputing; `Blank` exists only to wear a style and stays blank to
+/// `ISBLANK`.
 pub(all) enum CellValue {
   Text(String)
   Number(Double)
@@ -45,18 +39,8 @@ pub(all) struct Cell {
 pub let max_outline_level : Int32 = 7
 
 ///|
-/// One band of columns or rows: an inclusive 1-based span (`first == last` for a
-/// single column/row) and what the spec set on it. Every property is optional;
-/// `None` leaves Excel's default in place.
-///
-/// - `style` — a default style the band's cells inherit unless they set their
-///   own. Equal styles compile to a single shared `cellXfs` id (ADR-004).
-/// - `size` — a column width in character units, or a row height in points.
-/// - `hidden` — `true` hides the band.
-/// - `outline_level` — the grouping depth (0 to `max_outline_level`), which
-///   Excel draws as a collapsible outline bracket.
-///
-/// Whether the band is columns or rows is fixed by which `Sheet` list holds it.
+/// One band of columns or rows: an inclusive 1-based span and what the spec set
+/// on it; `None` keeps Excel's default. The holding `Sheet` list fixes the axis.
 pub(all) struct AxisBand {
   first : Int32
   last : Int32
@@ -83,11 +67,8 @@ pub fn CellRange::to_a1(self : CellRange) -> String {
 }
 
 ///|
-/// Parse `TopLeft:BottomRight` (`A1:B9`) — the inverse of `to_a1`. The corners
-/// may be given in either order; the result is canonical. `None` for anything
-/// that is not two A1 references around a colon, which the caller turns into
-/// whatever its own direction needs: the loader raises a diagnostic, the reader
-/// treats it as one more thing the schema will not carry.
+/// Parse `TopLeft:BottomRight`, the inverse of `to_a1`; corners in either order
+/// come back canonical.
 pub fn CellRange::parse(text : String) -> CellRange? {
   guard text.split_once(":") is Some((left, right)) else { return None }
   guard @units.CellRef::parse_a1(left.to_owned()) is Some(first) &&
@@ -124,36 +105,22 @@ pub(all) enum SheetVisibility {
 } derive(Eq, Debug)
 
 ///|
-/// How a sheet's viewport is divided (ECMA-376 §18.3.1.66, `pane`):
-///
-/// - `Freeze(cell)` — the rows above and the columns left of `cell` stay put
-///   while the rest scrolls, exactly as Excel's "Freeze Panes" does with that
-///   cell selected. `A1` would freeze nothing.
-/// - `Split(x, y)` — a draggable splitter, positioned in points from the sheet's
-///   top-left corner (`0` on an axis leaves that axis unsplit). Points, not a
-///   cell, because a split falls wherever the user drags it, not on a boundary.
+/// How a sheet's viewport is divided (ECMA-376 §18.3.1.66). A `Split` is in
+/// points from the top-left, `0` leaving that axis unsplit.
 pub(all) enum Panes {
   Freeze(@units.CellRef)
   Split(x~ : Double, y~ : Double)
 } derive(Eq, Debug)
 
 ///|
-/// One formula filled across a region: the formula is written as it applies at
-/// the range's **top-left** cell, and every other cell in the range gets it with
-/// its relative references shifted by that cell's offset. Absolute references
-/// (`$C$2`) do not move. This is Excel's own shared formula (ECMA-376
-/// §18.3.1.40), so *Excel* performs the translation on open — the emitter writes
-/// the master formula once and marks the rest as followers, which is what makes
-/// one spec line compile to one stored formula (ADR-004).
+/// One formula filled across a region, written as it applies at the top-left;
+/// it compiles to a shared formula (ECMA-376 §18.3.1.40, ADR-004).
 pub(all) struct FormulaRange {
   at : CellRange
   formula : String
 } derive(Eq, Debug)
 
 ///|
-/// The most cells one `formulas:` range may cover — a full Excel column
-/// (ECMA-376 §18.3.1.99 puts 1 048 576 rows in a sheet). A filled column is the
-/// point of the construct, so the whole of one is allowed; beyond that the range
-/// is a typo, and without a ceiling a mistyped `A1:A99999999` would sit there
-/// building cells until the machine gave up.
+/// The most cells one `formulas:` range may cover: one full column
+/// (ECMA-376 §18.3.1.99). Beyond that the range is a typo.
 pub let max_formula_range_cells : Int32 = 1048576

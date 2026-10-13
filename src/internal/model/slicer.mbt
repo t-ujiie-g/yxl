@@ -1,13 +1,7 @@
 ///|
-/// A slicer over a declared table. The table is named, not pointed at: table
-/// names share one workbook-wide namespace (Excel's own rule), so the name
-/// finds it whatever sheet it sits on.
-///
-/// `at` is the cell the panel's top-left corner floats over, `table` the
-/// declared `name:` it filters, and `column` one of that table's header cells,
-/// whose values become the buttons. `caption` unset leaves Excel showing the
-/// column name; `width`/`height` are pixels and unset keeps the backend's
-/// 200×200; `header` unset keeps Excel's default.
+/// A slicer over a declared table, found by name in the workbook-wide table
+/// namespace; `column` is one of its headers. `None` keeps Excel's or the
+/// backend's default.
 pub(all) struct Slicer {
   at : @units.CellRef
   table : String

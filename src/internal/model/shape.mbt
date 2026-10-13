@@ -1,15 +1,7 @@
 ///|
-/// A drawing anchored on a sheet: a preset geometry with an optional size,
-/// fill and line colour, text, and alt text.
-///
-/// `preset` is the DrawingML geometry token (ECMA-376 §20.1.10.56,
-/// `ST_ShapeType`) — one of `shape_presets`' second halves, and the loader
-/// admits no other, because Excel repairs a file whose `prst` it does not know.
-///
-/// `width`/`height` are pixels and unset keeps the backend's 160; `line_width`
-/// is points; an unset colour keeps the theme default. `alt_text` is what a
-/// screen reader announces and Excel shows as "Alt Text", and `positioning`
-/// takes the same three anchors an image does.
+/// A preset-geometry drawing. `preset` is an `ST_ShapeType` token (ECMA-376
+/// §20.1.10.56) from `shape_presets`; sizes are pixels, `line_width` points, and
+/// `None` keeps the default.
 pub(all) struct Shape {
   at : @units.CellRef
   preset : String

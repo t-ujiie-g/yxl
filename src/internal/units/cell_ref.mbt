@@ -1,9 +1,5 @@
 ///|
-/// A 1-based cell reference — column and row, where (1, 1) is `A1`. Stored as
-/// numbers rather than an A1 string so the model stays backend-agnostic and
-/// range/offset arithmetic is possible; `to_a1` renders the Excel form. Using a
-/// newtype here, rather than a bare `String`, keeps cell references type-safe at
-/// internal API boundaries.
+/// A 1-based cell reference, (1, 1) being `A1`; `to_a1` renders it.
 pub struct CellRef {
   col : Int32
   row : Int32

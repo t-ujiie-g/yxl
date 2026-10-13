@@ -122,13 +122,9 @@ fn build_workbook(wb : @model.Workbook) -> Bytes raise {
 }
 
 ///|
-/// Serialize the backend's package with every entry deflated.
-///
-/// A `.xlsx` is a ZIP, and the backend stores each part uncompressed; XML
-/// compresses roughly tenfold, so an untouched package is about ten times the
-/// size Excel and openpyxl write for the same workbook. Nothing else changes:
-/// the entries are copied in the backend's own order, each with the same name
-/// and bytes, and only the compression method differs.
+/// Serialize the backend's package with every entry deflated — the backend
+/// stores parts uncompressed, about ten times Excel's size. Order and bytes are
+/// unchanged.
 fn deflate_archive(archive : @zip.Archive) -> Bytes raise {
   let compressed = @zip.Archive::Archive()
   for entry in archive.entries() {

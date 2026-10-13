@@ -145,11 +145,8 @@ pub fn Style::clearing(self : Style, attrs : StyleAttrs) -> Style {
 }
 
 ///|
-/// The style as it is finally worn, with the record of what it cleared dropped.
-///
-/// Once layering is over, an attribute explicitly not set is indistinguishable
-/// from one nobody mentioned — Excel writes both the same way — and dropping the
-/// record is what keeps the two from interning as two `cellXfs` ids (ADR-004).
+/// The style as finally worn, `cleared` dropped so it interns with an equal
+/// style that never cleared anything (ADR-004).
 pub fn Style::settled(self : Style) -> Style {
   { ..self, cleared: StyleAttrs::none(), }
 }

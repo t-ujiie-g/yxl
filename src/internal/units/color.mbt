@@ -1,19 +1,7 @@
 ///|
-/// An RGB(A) color, stored as canonical uppercase hex without a leading `#`
-/// (either `RRGGBB` or `AARRGGBB`). A newtype rather than a bare `String` so a
-/// color cannot be confused with any other text at an internal API boundary.
-/// Construct through `parse`, which rejects anything that is not 6 or 8 hex
-/// digits.
-///
-/// Excel has **two** color attribute types and they are not interchangeable:
-/// SpreadsheetML writes four bytes (`ST_UnsignedIntHex`, `AARRGGBB` — a tab
-/// color, a font color, a conditional format's color) and DrawingML writes
-/// three (`ST_HexColorRGB`, `RRGGBB` — a shape's fill and outline). A value of
-/// the wrong width is a schema violation Excel answers with its repair dialog,
-/// so a caller writing into a workbook asks for `argb` or `rgb` by name rather
-/// than passing `hex` through and hoping. `hex` is for showing the color back
-/// to a human — a spec, a diagnostic — where the author's own spelling is the
-/// right one to keep.
+/// An RGB(A) colour as canonical uppercase hex, `RRGGBB` or `AARRGGBB`. Writers
+/// ask for `argb` (SpreadsheetML) or `rgb` (DrawingML) by name, since the wrong
+/// width is invalid; `hex` is for people.
 pub struct Color(String) derive(Eq, Hash, Debug)
 
 ///|
@@ -52,13 +40,8 @@ pub fn Color::argb(self : Color) -> String {
 }
 
 ///|
-/// The `RRGGBB` half alone, dropping an alpha byte where the colour carries one.
-///
-/// Two callers need exactly three bytes. DrawingML's `ST_HexColorRGB`
-/// (ECMA-376 §20.1.10.42) is the one that ends up in a file — a shape's fill
-/// and outline — and Excel's legacy palette is the other: it writes its entries
-/// as `00RRGGBB`, an alpha byte it does not mean, since a fully transparent
-/// palette would paint nothing.
+/// The `RRGGBB` half alone, as DrawingML's `ST_HexColorRGB` (ECMA-376
+/// §20.1.10.42) and the legacy palette's `00RRGGBB` both need.
 pub fn Color::rgb(self : Color) -> String {
   if self.0.length() == 8 {
     self.0[2:].to_owned()

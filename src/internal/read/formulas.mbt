@@ -1,11 +1,6 @@
 ///|
-/// The shared-formula masters whose whole range comes back as one `formulas:`
-/// entry, as the set of cell addresses those ranges cover.
-///
-/// The fold is refused where a cell in the range wears a style, because a
-/// `formulas:` range carries no styling (docs/spec.md §3) and there would be
-/// nowhere to put it — those ranges come back as ordinary cells instead, each
-/// with its own translated formula, which loses the sharing but nothing else.
+/// The cells covered by shared formulas that fold back into one `formulas:`
+/// entry; a range with a styled cell does not, since `formulas:` has no style.
 fn fold_shared_formulas(
   backend : @xlsx.Workbook,
   source : @xlsx.Worksheet,
@@ -85,12 +80,8 @@ fn range_follows(
 }
 
 ///|
-/// The formula a shared-formula follower stands for, translated from its master
-/// to this cell's position, or `None` where the cell follows nothing.
-///
-/// The translation is the backend's own — the same shifting Excel applies when
-/// it opens the file — so `D3` under a master `B2*C2` at `D2` comes back as
-/// `B3*C3`, and an absolute `$C$2` does not move.
+/// A shared-formula follower's formula, translated from its master by the
+/// backend as Excel would, or `None`.
 fn shared_follower_formula(
   source : @xlsx.Worksheet,
   at : @units.CellRef,
