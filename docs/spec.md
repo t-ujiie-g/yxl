@@ -1415,9 +1415,6 @@ its workbook-protection record opaque, so `extract` cannot see what was locked.
   corner of the control's VML anchor, and the Excel backend's reader takes only
   the near corner from there — so every control comes back at Excel's default,
   and one that was sized cannot be told from one that was not.
-- **The font on a line of shape text is not recovered**, for the same reason at
-  the other end of the file: it is written into the drawing's `a:rPr` and not
-  read back. A shape's words survive; how they were set does not.
 - **A shape geometry outside §18's table is dropped and named.** DrawingML has
   about 180 presets and the schema spells a subset of them; a shape drawn with
   one of the others is reported rather than guessed at.
@@ -1465,9 +1462,12 @@ its workbook-protection record opaque, so `extract` cannot see what was locked.
 - **A filter's saved criteria are not kept**, only the range it covers: which
   rows somebody last chose to hide is a view of the sheet, not a description
   of it.
-- **Print setup is not recovered.** The Excel backend cannot report it per
-  sheet: reading one sheet's setup leaks it to every later sheet, so a spec built
-  on it would claim the wrong orientation.
+- **Print setup comes back as far as §5 reaches.** Paper size, a first page
+  number, black-and-white printing, page order, centring, and a separate
+  first-page or even-page header are reported rather than kept. A value equal to
+  Excel's default is left out, so a sheet nobody set up gets no `print:`. A
+  manual break comes back as one cell per axis (`C5` becomes `A5` and `C1`),
+  which builds the same breaks.
 - **A sheet-protection password is not recovered.** The file keeps a hash, not
   the word. It is reported, so a spec that needs one can have it set again
   rather than looking protected while opening to anyone.

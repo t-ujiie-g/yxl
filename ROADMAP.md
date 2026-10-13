@@ -576,7 +576,8 @@ gate, which is why none carries a box:
             `src/render` the inverse of `loader`; `yxl extract` joins them and
             checks its own output
       - [x] **Slice 2 — layout**: column widths, row heights, hidden, outline
-            levels, freeze panes, gridlines, tab colour. **Print setup is
+            levels, freeze panes, gridlines, tab colour. (Print setup, since
+            recovered with `mbtexcel@0.3.0`.) **Print setup is
             refused**, not deferred: the backend's `page_layout_with_defaults`
             aliases a module-level default instead of copying it, so reading one
             sheet's setup leaks it to every later sheet and to every later
@@ -823,8 +824,9 @@ gate, which is why none carries a box:
               `style="width:…;height:…"` looks like the place to read it and is
               not: the backend stamps one constant string on every control.)
               Every control comes back at Excel's default size
-            - **The font on a line of shape text**, written into the drawing's
-              `a:rPr` and not read back, so shape text comes back unstyled
+            - ~~**The font on a line of shape text**~~ — **unblocked in
+              `mbtexcel@0.3.0`**, whose drawing reader fills each run's
+              font. Read, and done (2026-10-14)
             - **The sheet a sparkline plots from**: the file writes
               `'Data'!B2:E2` and `normalize_sparkline_range_ref` keeps only what
               follows the `!`. This is the worst of the four, because it is not
@@ -833,24 +835,16 @@ gate, which is why none carries a box:
               compares cells, so nothing catches it. Reported whenever a
               workbook has more than one sheet; with one sheet no qualifier
               could have named anything else
-            - **A shape geometry whose DrawingML token carries a capital**,
-              blocked on the backend lowercasing `prst` (§9) — the same root as
-              the refusal on the way in
-            - **Print setup**, because `page_layout_with_defaults` aliases a
-              module-level default instead of copying it, so reading one sheet's
-              setup leaks it to every later sheet and to every later workbook
-              read in the same process. Becomes a plain read the day that is a
-              copy; worth an upstream report.
-              **Route found, not yet taken:** `pub struct Worksheet` exposes
-              `page_layout`, `page_margins`, `header_footer`, `row_breaks`, and
-              `col_breaks` as *fields*, all `Option`, so presence and content
-              can be read without going near the aliasing accessor at all — the
-              detection that now reports the loss already does exactly this.
-              Recovering `model.PageSetup` from them is a real piece of work
-              with its own tests (the print area is a `_xlnm.Print_Area`
-              defined name, and `PageLayoutOptions` splits scaling across
-              `adjust_to` / `fit_to_width` / `fit_to_height`), so it is its own
-              item rather than a footnote here
+            - ~~**A shape geometry whose DrawingML token carries a capital**~~
+              — fixed with the lowercasing (`mbtexcel@0.1.10`); `roundRect`
+              round-trips and `read/floating_test.mbt` pins it. This line had
+              outlived it
+            - ~~**Print setup**~~ — **unblocked in `mbtexcel@0.3.0`**, whose
+              `page_layout_with_defaults` copies its default instead of
+              aliasing it. Read off `Worksheet`'s own fields regardless, plus
+              the sheet-scoped `_xlnm.Print_Area`; what §5 cannot say (paper
+              size, first page number, centring, …) is named. Done
+              (2026-10-14)
             - ~~**Shared-formula followers**~~ — **unblocked in
               `mbtexcel@0.1.9`**, which publishes `Cell.formula_shared_index`,
               `Worksheet::shared_formula_master` and
@@ -2575,6 +2569,18 @@ selling point, and a second file to keep in step undercuts it.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-10-14** — **`extract` recovers print setup and shape-text fonts.**
+  Both were blocked on the backend and `mbtexcel@0.3.0` unblocked them, which
+  re-probing the Phase 10 "Blocked" list against the new version found. A
+  sheet's `print:` now comes back — area, orientation, margins, scale or fit,
+  header, footer, breaks — with Excel's defaults left out and what §5 cannot say
+  named; two sheets are read independently, the leak that kept it refused. Each
+  line of shape text keeps its font. A third item on that list, a capitalised
+  geometry, had been fixed since `0.1.10` and the list had not caught up. Still
+  blocked against `0.3.0`, each re-checked: a form control's size, a
+  sparkline's source sheet, a column's `customWidth` (#51), a border's theme
+  colour (#50), and a truly blank styled cell (#48).
 
 - **2026-10-14** — **Refactor: comments brought within AGENTS.md §8.6.** The
   pass after the `0.3.0` bump found no dead code, duplicate constant or

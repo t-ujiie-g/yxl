@@ -321,11 +321,9 @@ test "the four things that float over a sheet come back as themselves" {
   assert_true(result.spec.contains("data: A2:B3"))
   assert_true(result.spec.contains("kind: check_box"))
   assert_true(result.spec.contains("column: Region"))
-  // Two, and only two: a control's size and a shape text's font, which the
-  // file records and the backend's reader does not hand back.
-  assert_eq(result.dropped.length(), 2)
+  // Only a control's size, which the backend's reader does not hand back.
+  assert_eq(result.dropped.length(), 1)
   assert_true(result.dropped[0].contains("any size on a form control"))
-  assert_true(result.dropped[1].contains("any font on a line of shape text"))
 }
 
 ///|

@@ -217,7 +217,7 @@ fn read_shapes(
   guard backend.sheet(sheet.name) is Some(source) else { return }
   let shapes = []
   for shape in source.shapes() {
-    if read_shape(shape, notes) is Some(recovered) {
+    if read_shape(backend, shape, notes) is Some(recovered) {
       shapes.push(recovered)
     }
   }
@@ -236,7 +236,11 @@ fn read_shapes(
 
 ///|
 /// One shape, or `None` where its geometry is not one the schema names.
-fn read_shape(shape : @xlsx.Shape, notes : Notes) -> @model.Shape? {
+fn read_shape(
+  backend : @xlsx.Workbook,
+  shape : @xlsx.Shape,
+  notes : Notes,
+) -> @model.Shape? {
   guard @units.CellRef::parse_a1(shape.cell) is Some(at) else { return None }
   guard preset_spelling(shape.shape_type) is Some(preset) else {
     notes.drop(
@@ -244,7 +248,7 @@ fn read_shape(shape : @xlsx.Shape, notes : Notes) -> @model.Shape? {
     )
     return None
   }
-  let text = read_shape_text(shape, notes)
+  let text = read_shape_text(backend, shape, notes)
   let line_color = read_color(Some(shape.line_color), notes)
   // The schema writes an outline as a colour, optionally with a width, so a
   // width over a colour the file left to the theme has nowhere to go.
@@ -284,31 +288,20 @@ fn read_shape(shape : @xlsx.Shape, notes : Notes) -> @model.Shape? {
 }
 
 ///|
-/// What a shape says. The backend keeps it as one paragraph run per line, and
-/// hands the runs back stripped of their fonts.
-fn read_shape_text(shape : @xlsx.Shape, notes : Notes) -> @model.ShapeText? {
-  let lines = []
-  for run in shape.paragraph {
-    if run.font is Some(_) {
-      // Unreachable today; see the note below, which claims the opposite.
-      notes.drop("a font on a line of shape text, reported but not recovered")
-    }
-    lines.push(@model.RichRun::{ text: run.text, font: None, })
-  }
+/// What a shape says: one run per line, each with its own font.
+fn read_shape_text(
+  backend : @xlsx.Workbook,
+  shape : @xlsx.Shape,
+  notes : Notes,
+) -> @model.ShapeText? {
+  let lines = shape.paragraph.map(run => read_run(backend, run, notes))
   if lines.is_empty() {
     // A shape written with a plain `text` rather than runs still comes back as
     // one run, so an empty paragraph really is a shape that says nothing.
     return if shape.text.is_empty() { None } else { Some(Plain(shape.text)) }
   }
-  // The file records each line's font in `a:rPr`, and the backend's drawing
-  // parser does not read it, so shape text comes back in the shape's default
-  // font whatever it was set to — and, as with a control's size, text that was
-  // never styled cannot be told from text that was.
-  notes.drop(
-    "any font on a line of shape text, which the file records and the Excel backend does not read back — a shape's text comes back unstyled, and one that was styled cannot be told from one that was not",
-  )
   match lines {
-    [only] => Some(Plain(only.text))
+    [{ text, font: None, }] => Some(Plain(text))
     _ => Some(Lines(lines))
   }
 }
