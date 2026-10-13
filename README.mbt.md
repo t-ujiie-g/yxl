@@ -119,10 +119,49 @@ YXL_VERSION=0.1.0 YXL_INSTALL_DIR=/usr/local/bin \
 
 Prebuilt binaries cover **Linux x86_64**, **macOS arm64** (Apple silicon), and
 **Windows x86_64**.
-On an Intel Mac, or any other platform, build from source below. Piping
+On an Intel Mac, or any other platform, run it with `moonx` or build from
+source below. Piping
 a script into a shell is worth doing deliberately — [read
 `install.sh`](./install.sh) first if you would rather, or install by hand from
 the release assets, or build from source:
+
+### Without installing: `moonx`
+
+yxl is published on [mooncakes](https://mooncakes.io/docs/t-ujiie-g/yxl), so
+with [MoonBit](https://www.moonbitlang.com/download) installed you can run it
+without installing anything else:
+
+```bash
+moonx t-ujiie-g/yxl/cmd/main@0.6.0 build report.yxl.yaml
+moonx t-ujiie-g/yxl/cmd/main@0.6.0 extract existing.xlsx -o spec.yxl.yaml
+```
+
+Every command and option is the same as `yxl`'s. `moonx` runs it as
+WebAssembly, and its workbooks are byte-identical to the native binary's. It is
+slower to start, so for daily use install the binary. `@latest` instead of a
+version fetches the newest release.
+
+### As a MoonBit library
+
+```bash
+moon add t-ujiie-g/yxl
+```
+
+Import `t-ujiie-g/yxl/cli` in your package's `moon.pkg`. Two functions are the
+supported surface, and neither touches the disk:
+
+```moonbit
+// spec text -> .xlsx bytes
+let bytes = @cli.compile(spec_text, file="report.yxl.yaml")
+// .xlsx bytes -> spec text, plus what could not be carried
+let result = @cli.extract(bytes, file="existing.xlsx")
+println(result.spec)
+```
+
+`compile` takes `resolve=` and `read_bytes=` to supply `$include`d files, CSVs
+and images, and `params=` for `--set`. `@cli.error_message(err)` renders a
+failure the way the CLI prints it. The packages under `internal/` are not
+importable.
 
 ### From source
 
@@ -276,17 +315,21 @@ the CLI touches disk. The Excel backend sits behind a seam so it can be swapped
 
 ## Packages
 
+Three packages are public; the compiler itself is under `internal/` (ADR-028).
+
 | Package | Purpose |
 |---|---|
-| `diag` | Diagnostics + subdomain errors with source spans |
-| `units` | Type-safe cell references, colors, dates |
-| `yaml` | YAML source → document tree |
-| `model` | Typed intermediate representation |
-| `loader` | Document tree → model: schema validation, reference resolution |
-| `emit` | Model → `.xlsx` bytes (mbtexcel-backed), style/string interning |
-| `read` | `.xlsx` bytes → model, the mirror of `emit` (for `yxl extract`) |
-| `render` | Model → document tree, the mirror of `loader`, where extracted styles get their names |
-| `cli` (`cmd/main`) | Argument parsing, file I/O, exit codes |
+| `cli` | `compile` and `extract`, I/O-free, plus argument parsing and exit codes |
+| `include` | The resolver types `compile` takes for included files |
+| `cmd/main` | The `yxl` executable: file I/O around `cli` |
+| `internal/diag` | Diagnostics + subdomain errors with source spans |
+| `internal/units` | Type-safe cell references, colors, dates |
+| `internal/yaml` | YAML source → document tree |
+| `internal/model` | Typed intermediate representation |
+| `internal/loader` | Document tree → model: schema validation, reference resolution |
+| `internal/emit` | Model → `.xlsx` bytes (mbtexcel-backed), style/string interning |
+| `internal/read` | `.xlsx` bytes → model, the mirror of `emit` (for `yxl extract`) |
+| `internal/render` | Model → document tree, the mirror of `loader`, where extracted styles get their names |
 | `examples` | Test-only: compiles the `examples/` cookbook and asserts on it |
 
 ## Development

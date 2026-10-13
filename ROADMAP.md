@@ -270,7 +270,7 @@ The **active phase** is the first phase with any unchecked box.
       the spec as `<name>.xlsx`. A bare `yxl build` builds the one `*.yxl.yaml`
       in the current directory, and refuses when there are none or several.
       Kept in the spec, not a project file, so one file stays the whole story
-- [ ] **Publish to mooncakes, runnable with `moonx` (ADR-027).** Before the first
+- [x] **Publish to mooncakes, runnable with `moonx` (ADR-027).** Before the first
       `moon publish`:
       - narrow the public surface to `@cli.compile` / `@cli.extract`. First
         check against the current toolchain how a module hides a package.
@@ -285,7 +285,12 @@ The **active phase** is the first phase with any unchecked box.
       with the resolver types in `include` (ADR-028). CI's Linux leg builds
       `cmd/main` for `wasm`, runs it with `moonrun`, and `cmp`s each example
       against the native binary's output. `repository` is filled in, and the
-      backend is `mbtexcel@0.3.0`. What remains is the publish, at `v0.6.0`:
+      backend is `mbtexcel@0.3.0`. **Published as 0.6.0** and checked through
+      the registry: `moonx t-ujiie-g/yxl/cmd/main@0.6.0` builds, checks and
+      extracts, byte-identical to the native binary, with relative, parent and
+      absolute paths; `moon add t-ujiie-g/yxl` with `@cli.compile` /
+      `@cli.extract` works on native and wasm, and an `internal/` import is
+      refused. Both READMEs document it. The steps as planned, at `v0.6.0`:
       `moon publish` from a clean checkout of the tag, then `moonx` against
       the published package, then both READMEs. `moon publish --dry-run`
       passes the server's checks for 0.6.0 (it exits non-zero after the
@@ -2573,6 +2578,14 @@ selling point, and a second file to keep in step undercuts it.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-10-14** — **Docs: yxl on mooncakes.** 0.6.0 is published (ADR-027),
+  and both READMEs now say how to use it from there: `moonx
+  t-ujiie-g/yxl/cmd/main@0.6.0 build …` with no install, and `moon add
+  t-ujiie-g/yxl` for `@cli.compile` / `@cli.extract`. Each was run against the
+  published package first. The READMEs' package table predated ADR-028 and
+  read as if every package were public; it now shows the three that are and
+  the `internal/` rest.
 
 - **2026-10-14** — **0.6.0: `mbtexcel@0.3.0`, filter criteria, and the first
   mooncakes publish.** The version moves to `0.6.0` in `moon.mod` and in
