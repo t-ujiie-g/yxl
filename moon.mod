@@ -6,7 +6,7 @@
 
 name = "t-ujiie-g/yxl"
 
-version = "0.5.1"
+version = "0.6.0"
 
 readme = "README.mbt.md"
 
