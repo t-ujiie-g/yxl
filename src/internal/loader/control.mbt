@@ -174,7 +174,7 @@ fn expect_control_value(
   node : @yaml.Node,
   file~ : String,
   what~ : String,
-) -> Int raise @diag.SchemaError {
+) -> Int32 raise @diag.SchemaError {
   guard node is @yaml.Int(number) &&
     number >= 0L &&
     number <= @model.max_form_control_value.to_int64() else {

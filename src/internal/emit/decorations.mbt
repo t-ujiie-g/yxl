@@ -136,7 +136,7 @@ fn bound_formula(
 ///|
 /// The `Int` a double stands for exactly, or `None` when it has a fraction or
 /// sits outside `Int`'s range.
-fn exact_int(number : Double) -> Int? {
+fn exact_int(number : Double) -> Int32? {
   if number == number.trunc() &&
     number >= @int.MIN_VALUE.to_double() &&
     number <= @int.MAX_VALUE.to_double() {

@@ -106,7 +106,7 @@ priv struct AxisSpec {
   style : @model.Style?
   size : Double?
   hidden : Bool?
-  outline_level : Int?
+  outline_level : Int32?
 }
 
 ///|
@@ -188,7 +188,7 @@ fn expect_outline_level(
   node : @yaml.Node,
   file~ : String,
   context~ : String,
-) -> Int raise @diag.SchemaError {
+) -> Int32 raise @diag.SchemaError {
   guard node is @yaml.Int(level) else {
     raise schema_error(file~, "\{context} group must be a whole number")
   }
@@ -207,7 +207,7 @@ fn expect_outline_level(
 fn parse_column_selector(
   selector : String,
   file~ : String,
-) -> (Int, Int) raise @diag.SchemaError {
+) -> (Int32, Int32) raise @diag.SchemaError {
   parse_selector(selector, file~, parse=@units.parse_column, noun="column")
 }
 
@@ -217,7 +217,7 @@ fn parse_column_selector(
 fn parse_row_selector(
   selector : String,
   file~ : String,
-) -> (Int, Int) raise @diag.SchemaError {
+) -> (Int32, Int32) raise @diag.SchemaError {
   parse_selector(selector, file~, parse=parse_row_index, noun="row")
 }
 
@@ -227,9 +227,9 @@ fn parse_row_selector(
 fn parse_selector(
   selector : String,
   file~ : String,
-  parse~ : (StringView) -> Int?,
+  parse~ : (StringView) -> Int32?,
   noun~ : String,
-) -> (Int, Int) raise @diag.SchemaError {
+) -> (Int32, Int32) raise @diag.SchemaError {
   let (start, end) = split_range(selector)
   guard parse(start) is Some(first) else {
     raise schema_error(file~, "'\{selector}' is not a valid \{noun}")
@@ -262,7 +262,7 @@ fn split_range(selector : String) -> (StringView, StringView?) {
 ///|
 /// Parse a run of ASCII digits as a 1-based row index (`>= 1`), or `None`. A row
 /// number is a positive integer, so `0` is rejected.
-fn parse_row_index(text : StringView) -> Int? {
+fn parse_row_index(text : StringView) -> Int32? {
   match @units.parse_uint(text) {
     Some(value) if value >= 1 => Some(value)
     _ => None

@@ -78,8 +78,8 @@ pub(all) enum LegendPosition {
 ///|
 /// A chart's size in pixels, as Excel's own "Size" pane gives it.
 pub(all) struct ChartSize {
-  width : Int
-  height : Int
+  width : Int32
+  height : Int32
 } derive(Eq, Debug)
 
 ///|

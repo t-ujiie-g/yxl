@@ -53,9 +53,9 @@
 pub fn load(
   document : @yaml.Node,
   file~ : String,
-  resolve? : IncludeResolver = no_includes,
-  read_bytes? : BytesResolver = no_binaries,
-  params? : Map[String, String] = Map([]),
+  resolve~ : IncludeResolver = no_includes,
+  read_bytes~ : BytesResolver = no_binaries,
+  params~ : Map[String, String] = Map([]),
 ) -> @model.Workbook raise {
   // Two pre-passes collapse a multi-file, parameterized spec into the single
   // plain tree every reader below sees (ADR-005, ADR-014). Includes expand

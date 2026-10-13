@@ -34,7 +34,7 @@ pub fn write(node : Node) -> String {
 fn write_map(
   out : StringBuilder,
   entries : Array[(String, Node)],
-  indent~ : Int,
+  indent~ : Int32,
   inline_first~ : Bool,
 ) -> Unit {
   for index, entry in entries {
@@ -56,7 +56,7 @@ fn write_map(
 fn write_seq(
   out : StringBuilder,
   items : Array[Node],
-  indent~ : Int,
+  indent~ : Int32,
   inline_first~ : Bool,
 ) -> Unit {
   for index, item in items {
@@ -83,7 +83,7 @@ fn write_seq(
 ///|
 /// What follows a `key:` — the value on the same line when it is a scalar, or a
 /// block underneath when it is a collection.
-fn write_value(out : StringBuilder, value : Node, indent~ : Int) -> Unit {
+fn write_value(out : StringBuilder, value : Node, indent~ : Int32) -> Unit {
   match value {
     Map(entries) if !entries.is_empty() => {
       out.write_char('\n')
@@ -102,7 +102,7 @@ fn write_value(out : StringBuilder, value : Node, indent~ : Int) -> Unit {
 }
 
 ///|
-fn pad(out : StringBuilder, indent : Int) -> Unit {
+fn pad(out : StringBuilder, indent : Int32) -> Unit {
   for _ in 0..<indent {
     out.write_string("  ")
   }
@@ -207,7 +207,7 @@ fn needs_quoting(text : String) -> Bool {
 ///|
 /// Whether `ch` may open a plain scalar.
 fn is_plain_start(ch : Char) -> Bool {
-  ch is ('A'..='Z' | 'a'..='z') || ch is ('_' | '$' | '/')
+  ch is ('A'..<='Z' | 'a'..<='z') || ch is ('_' | '$' | '/')
 }
 
 ///|
@@ -241,7 +241,7 @@ fn quote(text : String) -> String {
 
 ///|
 /// A code point as exactly four lowercase hex digits.
-fn hex4(code : Int) -> String {
+fn hex4(code : Int32) -> String {
   let digits = "0123456789abcdef".to_array()
   let out = StringBuilder()
   for shift in [12, 8, 4, 0] {

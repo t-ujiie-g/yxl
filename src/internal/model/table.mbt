@@ -25,7 +25,7 @@ pub(all) struct Table {
 /// so on. A style outside them is rejected with a diagnostic rather than written
 /// through, since Excel silently falls back to its default for a name it does
 /// not know (ADR-006).
-pub let table_style_families : Array[(String, Int)] = [
+pub let table_style_families : Array[(String, Int32)] = [
   ("TableStyleLight", 21),
   ("TableStyleMedium", 28),
   ("TableStyleDark", 11),

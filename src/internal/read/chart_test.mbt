@@ -181,7 +181,7 @@ fn foreign_chart(xml : String) -> @read.Recovered raise {
 
 ///|
 /// A `chartSpace` around whatever the plot area should hold.
-fn chart_part(plot_area : String, extra? : String = "") -> String {
+fn chart_part(plot_area : String, extra~ : String = "") -> String {
   (
     #|<?xml version="1.0" encoding="UTF-8"?>
     #|<c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><c:chart>

@@ -20,7 +20,7 @@ fn promise(
   sheet : String,
   cell : String,
   value : String,
-  params? : Map[String, String] = Map([]),
+  params~ : Map[String, String] = Map([]),
 ) -> Promise {
   { spec, sheet, cell, value, params, }
 }

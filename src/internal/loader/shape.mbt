@@ -137,7 +137,7 @@ fn load_shape_size(
   node : @yaml.Node,
   file~ : String,
   context~ : String,
-) -> (Int, Int) raise @diag.SchemaError {
+) -> (Int32, Int32) raise @diag.SchemaError {
   let what = "\{context} 'size'"
   let mut width = None
   let mut height = None

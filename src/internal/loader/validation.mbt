@@ -211,7 +211,7 @@ fn load_message(
   node : @yaml.Node,
   file~ : String,
   what~ : String,
-  allow_style? : Bool = false,
+  allow_style~ : Bool = false,
 ) -> (String, String) raise @diag.SchemaError {
   let mut title = ""
   let mut body = ""

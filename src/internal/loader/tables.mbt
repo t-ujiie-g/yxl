@@ -149,7 +149,7 @@ fn is_name_start(ch : Char) -> Bool {
 /// tables and pivot tables, whose styles are named the same way.
 fn check_numbered_style(
   style : String,
-  families : Array[(String, Int)],
+  families : Array[(String, Int32)],
   file~ : String,
   what~ : String,
   context~ : String,
@@ -238,7 +238,7 @@ fn check_header_row(
 ) -> Unit raise @diag.SchemaError {
   let row = table.at.top_left.row
   let headers = header_row(sheet, table.at)
-  let seen : Map[String, Int] = Map([])
+  let seen : Map[String, Int32] = Map([])
   for col in table.at.top_left.col..<=table.at.bottom_right.col {
     let reference = @units.CellRef(col~, row~).to_a1()
     guard headers.get(col) is Some(header) else {
@@ -269,9 +269,9 @@ fn check_header_row(
 fn header_row(
   sheet : @model.Sheet,
   range : @model.CellRange,
-) -> Map[Int, String] {
+) -> Map[Int32, String] {
   let row = range.top_left.row
-  let headers : Map[Int, String] = Map([])
+  let headers : Map[Int32, String] = Map([])
   for cell in sheet.cells {
     guard cell.pos.row == row &&
       cell.pos.col >= range.top_left.col &&

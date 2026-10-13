@@ -25,7 +25,7 @@ pub fn Color::parse(text : String) -> Color? {
   guard body.length() is (6 | 8) else { return None }
   let out = StringBuilder()
   for ch in body {
-    guard ch is ('0'..='9' | 'A'..='F' | 'a'..='f') else { return None }
+    guard ch is ('0'..<='9' | 'A'..<='F' | 'a'..<='f') else { return None }
     // `to_ascii_uppercase` leaves digits and `A`..`F` unchanged.
     out.write_char(ch.to_ascii_uppercase())
   }

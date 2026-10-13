@@ -24,17 +24,17 @@ pub(all) struct PageMargins {
 /// `min_page_scale`..`max_page_scale`; a `Fit` shrinks the sheet onto that many
 /// pages across and down, where `0` on an axis leaves it unconstrained.
 pub(all) enum PageScale {
-  Percent(Int)
-  Fit(width~ : Int, height~ : Int)
+  Percent(Int32)
+  Fit(width~ : Int32, height~ : Int32)
 } derive(Eq, Debug)
 
 ///|
 /// The smallest print scale percentage Excel accepts.
-pub let min_page_scale : Int = 10
+pub let min_page_scale : Int32 = 10
 
 ///|
 /// The largest print scale percentage Excel accepts.
-pub let max_page_scale : Int = 400
+pub let max_page_scale : Int32 = 400
 
 ///|
 /// How a sheet prints: what to print (`area`, `breaks`), how it sits on the

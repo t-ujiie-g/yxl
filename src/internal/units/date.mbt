@@ -3,12 +3,12 @@
 /// date). Kept as civil components, not a serial number, so the model stays
 /// independent of the workbook's date system; `to_serial` renders it.
 pub(all) struct DateTime {
-  year : Int
-  month : Int
-  day : Int
-  hour : Int
-  minute : Int
-  second : Int
+  year : Int32
+  month : Int32
+  day : Int32
+  hour : Int32
+  minute : Int32
+  second : Int32
 } derive(Eq, Debug)
 
 ///|
@@ -141,7 +141,7 @@ pub fn DateTime::from_serial(serial : Double, system : DateSystem) -> DateTime? 
 ///|
 /// The civil date a day count stands for — the inverse of `days_from_civil`,
 /// and the same algorithm run backwards.
-fn civil_from_days(days : Int) -> (Int, Int, Int) {
+fn civil_from_days(days : Int32) -> (Int32, Int32, Int32) {
   let days = days + 719468
   let era = (if days >= 0 { days } else { days - 146096 }) / 146097
   let day_of_era = days - era * 146097
@@ -161,7 +161,7 @@ fn civil_from_days(days : Int) -> (Int, Int, Int) {
 ///|
 /// Days since 1970-01-01 in the proleptic Gregorian calendar (Howard Hinnant's
 /// algorithm). Only *differences* are used here, so the choice of epoch cancels.
-fn days_from_civil(year : Int, month : Int, day : Int) -> Int {
+fn days_from_civil(year : Int32, month : Int32, day : Int32) -> Int32 {
   let year = if month <= 2 { year - 1 } else { year }
   let era = (if year >= 0 { year } else { year - 399 }) / 400
   let year_of_era = year - era * 400
@@ -177,12 +177,12 @@ fn days_from_civil(year : Int, month : Int, day : Int) -> Int {
 }
 
 ///|
-fn is_leap_year(year : Int) -> Bool {
+fn is_leap_year(year : Int32) -> Bool {
   (year % 4 == 0 && year % 100 != 0) || year % 400 == 0
 }
 
 ///|
-fn days_in_month(year : Int, month : Int) -> Int {
+fn days_in_month(year : Int32, month : Int32) -> Int32 {
   match month {
     1 | 3 | 5 | 7 | 8 | 10 | 12 => 31
     4 | 6 | 9 | 11 => 30
@@ -195,11 +195,11 @@ fn days_in_month(year : Int, month : Int) -> Int {
 /// Parse a non-empty run of ASCII digits into a non-negative integer; `None` for
 /// empty or non-digit input. Shared by date parsing and the loader's row
 /// selectors.
-pub fn parse_uint(text : StringView) -> Int? {
+pub fn parse_uint(text : StringView) -> Int32? {
   guard !text.is_empty() else { return None }
   let mut value = 0
   for ch in text {
-    guard ch is ('0'..='9') else { return None }
+    guard ch is ('0'..<='9') else { return None }
     value = value * 10 + (ch.to_int() - '0'.to_int())
   }
   Some(value)

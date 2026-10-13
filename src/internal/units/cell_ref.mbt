@@ -5,15 +5,15 @@
 /// newtype here, rather than a bare `String`, keeps cell references type-safe at
 /// internal API boundaries.
 pub struct CellRef {
-  col : Int
-  row : Int
+  col : Int32
+  row : Int32
 } derive(Eq, Debug)
 
 ///|
 /// Build a reference from a 1-based column and row. Both are expected to be
 /// `>= 1`; a reference derived from user input is validated where it is parsed
 /// (a bad ref becomes a `SchemaError` in the loader), not here.
-pub fn CellRef::CellRef(col~ : Int, row~ : Int) -> CellRef {
+pub fn CellRef::CellRef(col~ : Int32, row~ : Int32) -> CellRef {
   { col, row, }
 }
 
@@ -27,7 +27,7 @@ pub fn CellRef::parse_a1(text : String) -> CellRef? {
   // reuse the column/uint parsers rather than re-implementing base-26 / digits.
   let mut split = 0
   for ch in text {
-    guard ch is ('A'..='Z') else { break }
+    guard ch is ('A'..<='Z') else { break }
     split += 1
   }
   guard split > 0 && split < text.length() else { return None }
@@ -40,11 +40,11 @@ pub fn CellRef::parse_a1(text : String) -> CellRef? {
 /// Parse a bare column label into its 1-based index: `A` -> 1, `Z` -> 26,
 /// `AA` -> 27. Returns `None` for anything that is not one-or-more `A`..`Z`
 /// letters (e.g. `""`, `A1`, `a`). Uses the same bijective base-26 as `to_a1`.
-pub fn parse_column(text : StringView) -> Int? {
+pub fn parse_column(text : StringView) -> Int32? {
   guard !text.is_empty() else { return None }
   let mut col = 0
   for ch in text {
-    guard ch is ('A'..='Z') else { return None }
+    guard ch is ('A'..<='Z') else { return None }
     col = col * 26 + (ch.to_int() - 'A'.to_int() + 1)
   }
   Some(col)
@@ -80,7 +80,7 @@ pub fn CellRef::to_absolute_a1(self : CellRef) -> String {
 ///|
 /// A 1-based column index as its Excel letters: 1 -> `A`, 27 -> `AA`. The
 /// inverse of `parse_column`.
-fn column_letters(col : Int) -> String {
+fn column_letters(col : Int32) -> String {
   // Letters come out least-significant first, so collect and reverse.
   let letters : Array[Char] = []
   let mut n = col

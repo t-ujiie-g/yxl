@@ -3,9 +3,9 @@
 /// backs any `$include` in the source.
 fn schema_message(
   source : String,
-  files? : Map[String, String] = Map([]),
-  binaries? : Map[String, Bytes] = Map([]),
-  params? : Map[String, String] = Map([]),
+  files~ : Map[String, String] = Map([]),
+  binaries~ : Map[String, Bytes] = Map([]),
+  params~ : Map[String, String] = Map([]),
 ) -> String? raise {
   let document = @yaml.parse(source, file="spec.yaml")
   try {
@@ -29,9 +29,9 @@ fn schema_message(
 /// `params` stands in for the CLI's `--set`.
 fn load_ok(
   source : String,
-  files? : Map[String, String] = Map([]),
-  binaries? : Map[String, Bytes] = Map([]),
-  params? : Map[String, String] = Map([]),
+  files~ : Map[String, String] = Map([]),
+  binaries~ : Map[String, Bytes] = Map([]),
+  params~ : Map[String, String] = Map([]),
 ) -> @model.Workbook raise {
   @loader.load(
     @yaml.parse(source, file="spec.yaml"),

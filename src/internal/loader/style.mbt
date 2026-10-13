@@ -9,7 +9,7 @@ fn combine_style(
   file~ : String,
   defs~ : Defs,
   context~ : String,
-  cleared? : @model.StyleAttrs = @model.StyleAttrs::none(),
+  cleared~ : @model.StyleAttrs = @model.StyleAttrs::none(),
 ) -> @model.Style? raise @diag.SchemaError {
   let base = match style_node {
     // A bareword names a style definition (ADR-012); a mapping is inline.

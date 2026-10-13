@@ -8,7 +8,7 @@ fn main {
 
 ///|
 /// Parse arguments, run the requested command, and return a process exit code.
-fn run() -> Int {
+fn run() -> Int32 {
   // `args` includes the program name at index 0.
   let args = @env.args()[1:]
   let command = @cli.parse_args(args) catch {
@@ -44,7 +44,7 @@ fn run() -> Int {
 ///|
 /// The spec the command line named, or else the one in the current directory.
 /// `Err` carries the exit code, once the reason there is none has been reported.
-fn spec_or_found(input : String?) -> Result[String, Int] {
+fn spec_or_found(input : String?) -> Result[String, Int32] {
   if input is Some(input) {
     return Ok(input)
   }
@@ -65,7 +65,7 @@ fn spec_or_found(input : String?) -> Result[String, Int] {
 ///|
 /// Compile `input` without writing anything: the whole pipeline runs, so a spec
 /// that passes here is one `build` would accept.
-fn check(input : String, params : Map[String, String]) -> Int {
+fn check(input : String, params : Map[String, String]) -> Int32 {
   guard read_source(input) is Some(source) else { return @cli.exit_error }
   guard compile(input, source, params) is Some(_) else {
     return @cli.exit_error
@@ -77,7 +77,11 @@ fn check(input : String, params : Map[String, String]) -> Int {
 ///|
 /// Read `input`, compile it, and write the `.xlsx` bytes to `output` — or,
 /// without one, to wherever the spec says (`@cli.Compiled`).
-fn build(input : String, output : String?, params : Map[String, String]) -> Int {
+fn build(
+  input : String,
+  output : String?,
+  params : Map[String, String],
+) -> Int32 {
   guard read_source(input) is Some(source) else { return @cli.exit_error }
   let compiled = @cli.build(
     source,
@@ -126,7 +130,7 @@ fn compile(
 /// Write the starter spec to `output` (#77), refusing an existing file unless
 /// `--force` says otherwise. Not named `init`: that is MoonBit's package
 /// initializer, which takes no arguments.
-fn init_spec(output : String, force : Bool) -> Int {
+fn init_spec(output : String, force : Bool) -> Int32 {
   if !force && @fs.path_exists(output) {
     report("\{output} already exists (use --force to overwrite)")
     return @cli.exit_error
@@ -148,7 +152,7 @@ fn init_spec(output : String, force : Bool) -> Int {
 /// self-check found: the spec is still written in that case, because a starting
 /// point with a known gap is more use than no starting point, but the exit code
 /// says it needs a look.
-fn extract(input : String, output : String, flat : Bool) -> Int {
+fn extract(input : String, output : String, flat : Bool) -> Int32 {
   let bytes = @fs.read_file_to_bytes(input) catch {
     @fs.IOError(reason) => {
       report("cannot read \{input}: \{reason}")

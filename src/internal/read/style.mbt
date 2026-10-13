@@ -3,7 +3,7 @@
 /// on first sight and reused thereafter, which is what makes the recovered spec
 /// share what the original shared (ADR-004).
 priv struct StyleTable {
-  by_id : Map[Int, @model.Style?]
+  by_id : Map[Int32, @model.Style?]
 }
 
 ///|
@@ -30,7 +30,7 @@ fn read_cell_style(
 /// The model style for one backend style id, translated once and cached.
 fn read_style_id(
   backend : @xlsx.Workbook,
-  id : Int,
+  id : Int32,
   styles : StyleTable,
   notes : Notes,
 ) -> @model.Style? raise {
@@ -166,8 +166,8 @@ fn read_color(color : String?, notes : Notes) -> @units.Color? {
 fn resolve_color(
   backend : @xlsx.Workbook,
   color : String?,
-  theme~ : Int?,
-  indexed~ : Int?,
+  theme~ : Int32?,
+  indexed~ : Int32?,
   tint~ : Double?,
   what~ : String,
   notes~ : Notes,
@@ -280,7 +280,7 @@ fn read_border(border : @xlsx.Border, notes : Notes) -> @model.Border? {
 
 ///|
 /// The inverse of the emitter's border codes (`@emit`'s `border_style_code`).
-fn border_style(code : Int) -> @model.BorderStyle? {
+fn border_style(code : Int32) -> @model.BorderStyle? {
   match code {
     1 => Some(Thin)
     2 => Some(Medium)
@@ -382,7 +382,7 @@ fn read_number_format(style : @xlsx.Style, notes : Notes) -> String? {
 /// which is the absence of a format rather than one to write down. The gaps in
 /// the table are ids Excel reserves and leaves locale-defined; there is no fixed
 /// code to write for them, so they are reported instead of guessed at.
-fn builtin_number_format(id : Int, notes : Notes) -> String? {
+fn builtin_number_format(id : Int32, notes : Notes) -> String? {
   guard id != 0 else { return None }
   for entry in builtin_number_formats {
     let (builtin, code) = entry
@@ -405,7 +405,7 @@ fn builtin_number_format(id : Int, notes : Notes) -> String? {
 /// one (MS-OI29500 §2.1.601). Excel maps a cell formatted `#,##0_);(#,##0)`
 /// onto id 37 and writes no `numFmt` element, so the standard's spelling would
 /// come back out of `extract` as a different — and visibly misaligned — format.
-let builtin_number_formats : Array[(Int, String)] = [
+let builtin_number_formats : Array[(Int32, String)] = [
   (1, "0"),
   (2, "0.00"),
   (3, "#,##0"),

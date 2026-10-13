@@ -81,7 +81,7 @@ fn XmlElement::attribute(self : XmlElement, name : String) -> String? {
 /// The reader's position, and the namespace prefixes in scope where it stands.
 priv struct XmlScanner {
   chars : Array[Char]
-  mut at : Int
+  mut at : Int32
   scopes : Array[Map[String, String]]
 }
 
@@ -251,7 +251,7 @@ fn XmlScanner::read_name(self : XmlScanner) -> String? {
   let start = self.at
   while self.at < self.chars.length() {
     let ch = self.chars[self.at]
-    guard ch is ('a'..='z' | 'A'..='Z' | '0'..='9' | ':' | '_' | '-' | '.') else {
+    guard ch is ('a'..<='z' | 'A'..<='Z' | '0'..<='9' | ':' | '_' | '-' | '.') else {
       break
     }
     self.at += 1
@@ -286,7 +286,7 @@ fn XmlScanner::read_quoted(self : XmlScanner) -> String? {
 /// numeric character references resolved. An entity this does not know is left
 /// as written: a chart part holds none, and mangling one would be worse than
 /// carrying it through.
-fn XmlScanner::decode(self : XmlScanner, start : Int, end : Int) -> String {
+fn XmlScanner::decode(self : XmlScanner, start : Int32, end : Int32) -> String {
   let out = StringBuilder()
   let mut index = start
   while index < end {
@@ -343,7 +343,7 @@ fn character_reference(body : String) -> Char? {
     _ => return None
   }
   guard code > 0 && code <= 0x10FFFF else { return None }
-  Some(Int::unsafe_to_char(code))
+  Some(Int32::unsafe_to_char(code))
 }
 
 ///|

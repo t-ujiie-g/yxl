@@ -26,10 +26,10 @@ pub(all) enum StyleAttr {
 /// A set of style attributes, as a bitmask. A bitmask rather than a collection
 /// so a `Style` carrying one still compares and hashes structurally, which is
 /// what lets the emitter intern styles (ADR-004).
-pub struct StyleAttrs(UInt) derive(Eq, Hash, Debug)
+pub struct StyleAttrs(UInt32) derive(Eq, Hash, Debug)
 
 ///|
-fn StyleAttr::bit(self : StyleAttr) -> UInt {
+fn StyleAttr::bit(self : StyleAttr) -> UInt32 {
   match self {
     Fill => 1U
     NumberFormat => 1U << 1

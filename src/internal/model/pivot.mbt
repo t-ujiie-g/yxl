@@ -68,7 +68,7 @@ pub(all) enum PivotFunction {
 /// Excel's built-in pivot styles, in the same shape as the table ones: three
 /// families of twenty-eight. Checked here rather than passed through, since
 /// Excel falls back to its default for a name it does not know (ADR-006).
-pub let pivot_style_families : Array[(String, Int)] = [
+pub let pivot_style_families : Array[(String, Int32)] = [
   ("PivotStyleLight", 28),
   ("PivotStyleMedium", 28),
   ("PivotStyleDark", 28),

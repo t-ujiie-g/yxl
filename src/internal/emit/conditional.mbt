@@ -7,7 +7,7 @@ fn apply_conditional_format(
   backend : @xlsx.Workbook,
   sheet_name : String,
   format : @model.ConditionalFormat,
-  dxf_ids : Map[@model.Style, Int],
+  dxf_ids : Map[@model.Style, Int32],
   date_system : @units.DateSystem,
 ) -> Unit raise {
   let options = conditional_options(format.rule, date_system)

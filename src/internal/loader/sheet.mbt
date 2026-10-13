@@ -63,7 +63,7 @@ fn check_sheet_name(
 
 ///|
 /// The longest sheet name Excel accepts.
-let max_sheet_name_length : Int = 31
+let max_sheet_name_length : Int32 = 31
 
 ///|
 /// The characters Excel refuses in a sheet name — the four a formula reference

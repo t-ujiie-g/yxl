@@ -13,8 +13,8 @@ pub(all) struct Slicer {
   table : String
   column : String
   caption : String?
-  width : Int?
-  height : Int?
+  width : Int32?
+  height : Int32?
   header : Bool?
 } derive(Eq, Debug)
 

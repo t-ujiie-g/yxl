@@ -45,7 +45,7 @@ fn load_block_defs(
 /// `{{name}}` in the instance first, and carry its `header` as their top level.
 fn expand_layout_columns(
   items : Array[@yaml.Node],
-  at_col~ : Int,
+  at_col~ : Int32,
   file~ : String,
   defs~ : Defs,
   context~ : String,

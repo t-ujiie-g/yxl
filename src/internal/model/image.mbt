@@ -14,8 +14,8 @@ pub(all) struct Image {
   alt_text : String?
   scale_x : Double
   scale_y : Double
-  offset_x : Int
-  offset_y : Int
+  offset_x : Int32
+  offset_y : Int32
   positioning : ImagePositioning
 } derive(Eq, Debug)
 
@@ -64,7 +64,7 @@ pub fn Sheet::set_background(
 /// A ceiling on a drawing's size or offset in pixels — charts and images alike —
 /// well past any usable value: it exists so an absurd number is a diagnostic
 /// rather than a drawing Excel cannot place.
-pub let max_drawing_pixels : Int = 20000
+pub let max_drawing_pixels : Int32 = 20000
 
 ///|
 /// The largest image scale a spec may ask for. Excel's own dialog stops here,

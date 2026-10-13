@@ -27,12 +27,12 @@ fn load_body_data(
 /// How many body rows: `rows:` when given, which may reserve more than the data
 /// fills but never fewer, and otherwise as many as the data holds.
 fn body_rows(
-  rows : Int?,
+  rows : Int32?,
   data : Rows,
   has_source~ : Bool,
   file~ : String,
   context~ : String,
-) -> Int raise @diag.SchemaError {
+) -> Int32 raise @diag.SchemaError {
   match rows {
     Some(rows) => {
       guard rows >= data.length() else {
@@ -65,7 +65,7 @@ fn write_body_rows(
   sheet : @model.Sheet,
   data : Rows,
   inputs : Array[LayoutColumn],
-  body_first~ : Int,
+  body_first~ : Int32,
 ) -> Unit {
   for row_index, row in data {
     for field_index, value in row {

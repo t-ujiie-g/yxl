@@ -7,7 +7,7 @@ fn load_layout_header(
   file~ : String,
   defs~ : Defs,
   context~ : String,
-) -> (Array[Array[HeaderCell?]], Int, @model.Style?) raise @diag.SchemaError {
+) -> (Array[Array[HeaderCell?]], Int32, @model.Style?) raise @diag.SchemaError {
   let headers = columns.map(column => {
     match column.header {
       Some(node) =>
@@ -88,25 +88,25 @@ fn write_headers(
   sheet : @model.Sheet,
   headers : Array[Array[HeaderCell?]],
   at~ : @units.CellRef,
-  depth~ : Int,
+  depth~ : Int32,
   header_style~ : @model.Style?,
 ) -> Unit {
-  fn place(col : Int, row : Int) -> @units.CellRef {
+  fn place(col : Int32, row : Int32) -> @units.CellRef {
     @units.CellRef(col=at.col + col, row=at.row + row)
   }
 
-  fn blank(col : Int, row : Int, style : @model.Style?) -> Unit {
+  fn blank(col : Int32, row : Int32, style : @model.Style?) -> Unit {
     if style is Some(style) {
       sheet.set(place(col, row), Blank, style~)
     }
   }
 
   // A level stretches when it is its column's last and rows remain below it.
-  fn stretches(col : Int, row : Int) -> Bool {
+  fn stretches(col : Int32, row : Int32) -> Bool {
     row == headers[col].length() - 1 && row < depth - 1
   }
 
-  fn same_parents(left : Int, right : Int, row : Int) -> Bool {
+  fn same_parents(left : Int32, right : Int32, row : Int32) -> Bool {
     headers[right].length() > row &&
     (0).until(row).all(level => headers[left][level] == headers[right][level])
   }

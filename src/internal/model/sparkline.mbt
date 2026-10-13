@@ -15,8 +15,8 @@ pub(all) struct SparklineGroup {
   markers : Bool
   high : Bool
   low : Bool
-  min : Int?
-  max : Int?
+  min : Int32?
+  max : Int32?
   weight : Double?
   color : @units.Color?
   markers_color : @units.Color?

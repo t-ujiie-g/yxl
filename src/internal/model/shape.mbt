@@ -14,8 +14,8 @@ pub(all) struct Shape {
   at : @units.CellRef
   preset : String
   text : ShapeText?
-  width : Int?
-  height : Int?
+  width : Int32?
+  height : Int32?
   fill : @units.Color?
   line_color : @units.Color?
   line_width : Double?

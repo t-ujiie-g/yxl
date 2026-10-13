@@ -23,7 +23,7 @@ fn apply_formula_range(
   sheet_name : String,
   sheet : @model.Sheet,
   range : @model.FormulaRange,
-  style_ids : Map[@model.Style, Int],
+  style_ids : Map[@model.Style, Int32],
 ) -> Unit raise {
   backend.set_cell_formula_opts(
     sheet_name,
