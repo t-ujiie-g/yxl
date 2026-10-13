@@ -52,6 +52,19 @@ test "a table round-trips as its range, named by its header row" {
 }
 
 ///|
+/// An attribute value's raw line feed is read back as a space (XML 1.0
+/// §3.3.3), so the column name would stop matching its header cell.
+test "a line break in a header reaches the table's column name intact" {
+  let (wb, sheet) = tabular()
+  sheet.set(@units.CellRef(col=2, row=1), Text("Unit\nprice"))
+  sheet.add_table(plain_table(range("A1", "C3"), name="Sales"))
+  assert_true(
+    part(wb, "xl/tables/table1.xml").contains("name=\"Unit&#10;price\""),
+  )
+  assert_eq(only_table(wb).columns, ["Region", "Unit\nprice", "Share"])
+}
+
+///|
 test "an unnamed table is named by Excel, not left blank" {
   let (wb, sheet) = tabular()
   sheet.add_table(plain_table(range("A1", "C3")))

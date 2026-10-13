@@ -41,6 +41,7 @@ defs:
       fill: "EEEEEE"
       border: { all: { style: thin, color: "333333" } }
       align: { horizontal: center, vertical: middle, wrap: true }
+      format: "#,##0.00"
       protection: { locked: false, hidden: true }
 
 sheets:

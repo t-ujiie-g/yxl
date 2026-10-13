@@ -300,10 +300,8 @@ test "an unknown icon set is refused, and the diagnostic lists the real ones" {
 }
 
 ///|
-/// The three Excel 2010 added exist only in the `x14` schema, and the backend
-/// writes the name into the base attribute — so a workbook naming one is
-/// schema-invalid and Excel offers to repair it. Refused by name, with the
-/// reason, rather than left to be discovered on open.
+/// The three Excel 2010 added exist only in the `x14` schema, which the
+/// backend does not write for icon sets.
 test "an icon set the backend cannot write is refused by name, with the reason" {
   for style in @model.unwritable_icon_set_styles {
     guard schema_message(conditional_spec("icon_set: \{style}"))
@@ -312,7 +310,7 @@ test "an icon set the backend cannot write is refused by name, with the reason" 
     }
     assert_true(message.contains("asks for '\{style}'"))
     assert_true(message.contains("§18.18.42"))
-    assert_true(message.contains("would not open cleanly"))
+    assert_true(message.contains("x14"))
   }
 }
 

@@ -216,21 +216,6 @@ and XML 1.0 §2.11 has every reader — Excel included — normalize it to a lin
 feed on the way back in, so the two spellings open the same and only the second
 one survives a re-`extract` unchanged.
 
-> **Do not put a line break in a cell that a table's header row will use.** The
-> Excel backend writes attribute values without escaping a line feed
-> ([office.mbt#533](https://github.com/moonbitlang/office.mbt/issues/533)), and
-> XML 1.0 §3.3.3 has a parser turn a raw one into a space. A table records its
-> column names in attributes while the header *cells* keep their line breaks,
-> so the two stop matching — which ECMA-376 requires them to do — and Excel
-> offers to repair the workbook. Write a one-line heading (`"Phase1 載せ替え"`),
-> or use `filter:` (§10) instead of `tables:`, until the fix lands.
->
-> The same escaping gap quietly costs a line break anywhere else it reaches an
-> attribute rather than a cell — a validation's `prompt:` or `error:` (§10) is
-> the one you are most likely to notice, where `"T1\nT2"` arrives as `T1 T2`.
-> Nothing is refused and no workbook breaks there; the text is simply not what
-> was asked for.
-
 > **`yxl` emits formulas; Excel computes them.** There is no evaluator here.
 
 ### Filled formula ranges
@@ -788,21 +773,6 @@ Excel keeps these looks in a table of its own, separate from the styles cells
 wear, but they are declared the same way and shared the same way: a look used by
 ten rules is stored once.
 
-> **Do not give a conditional look a `format:` or an `align:` yet.** The Excel
-> backend writes that table's entries with their parts in the wrong order
-> ([office.mbt#531](https://github.com/moonbitlang/office.mbt/issues/531)), and
-> a look carrying a number format or an alignment comes out invalid. Excel then
-> reports the workbook as damaged and, on repair, **throws away every style in
-> it** — fills, borders, fonts and number formats on ordinary cells too, not
-> only the conditional ones. A look built from a `font:` and a `fill:` is
-> unaffected, which is why this is easy to miss.
->
-> The trap is `extends:`. A base style shared across a workbook — `align:
-> { vertical: middle }`, say — carries the alignment into every look that
-> inherits it, so a rule can hit this without the word `align` appearing near
-> it. Give a conditional look its own definition rather than extending a shared
-> one, until the fix lands upstream.
-
 ### The icon sets
 
 `3Arrows`, `3ArrowsGray`, `3Flags`, `3Signs`, `3Symbols`, `3Symbols2`,
@@ -812,15 +782,14 @@ ten rules is stored once.
 
 **Three more that Excel offers are refused, and named as such.** `3Stars`,
 `3Triangles` and `5Boxes` arrived with Excel 2010 and live only in an extension
-schema; the Excel backend writes the name into the base attribute, whose
-enumeration (ECMA-376 §18.18.42) is the seventeen above. A workbook naming one
-does not open cleanly, so the spec is refused first:
+schema; the Excel backend writes only the base attribute, whose enumeration
+(ECMA-376 §18.18.42) is the seventeen above:
 
 ```
 yxl: conditional 'C2:C50' 'icon_set' asks for '5Boxes', which Excel 2010 added
-and the Excel backend writes into the base 'iconSet' attribute, whose ECMA-376
-§18.18.42 enumeration does not have it — the workbook would not open cleanly.
-Pick one of the seventeen the base schema names, or wait for the upstream fix
+in its x14 extension schema; the Excel backend writes only the base 'iconSet'
+attribute, whose ECMA-376 §18.18.42 enumeration does not have it. Pick one of
+the seventeen the base schema names
 ```
 
 They become plain schema additions the day the backend routes them through the
@@ -1131,12 +1100,6 @@ of `structure` and `windows` must be set — locking neither would write nothing
 Excel for Windows has ignored `windows` since 2013; it is written for older
 readers. The password carries the same caveat as a sheet's.
 
-### One combination the backend cannot express
-
-A style may carry **either** a number format **or** cell protection, not both.
-The build fails saying so, naming the format, rather than dropping one
-silently. Split them into two styles, or drop the format.
-
 ## 17. Diagnostics
 
 A failed build prints one diagnostic and exits non-zero. YAML **syntax** errors
@@ -1290,13 +1253,6 @@ it — anything else is a diagnostic naming where the key belongs:
 
 No `macro:` — an `.xlsx` carries no macros, and a button without one is a
 caption that clicks. Assigning behavior is Excel's side of the contract.
-
-> **Excel does not draw these yet.** The Excel backend writes the *legacy* half
-> of a form control — the VML shape and its `x:ClientData` — and not the
-> worksheet's `<controls>` element or the per-control `ctrlProps` parts that
-> current Excel needs to render one. The control is in the file and the linked
-> cell holds its value, but Excel shows nothing where it sits. Nothing in a spec
-> works around this; it is a gap in the backend and is tracked as one.
 
 > **On a protected sheet, unlock the linked cell.** Excel writes a control's
 > value into its `link` like any other edit, so a locked target makes the

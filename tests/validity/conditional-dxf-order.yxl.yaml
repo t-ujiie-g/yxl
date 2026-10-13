@@ -12,11 +12,9 @@
 # Nothing here needs to be legible or realistic. Add a row when the schema
 # grows a variant; never delete one to make a build pass.
 #
-# This file exists to *hold a known defect still*: the workbook it builds is
-# invalid, waived by name in tools/openxml-validator/known-defects.txt, and the
-# waiver fails the day the backend starts writing the order correctly
-# (office.mbt#531). `conditional.yxl.yaml` stays clean so that it keeps proving
-# the feature itself validates; only this one file carries the defect.
+# A `<dxf>` holding only a font and a fill is in CT_Dxf order by accident, which
+# is all `conditional.yxl.yaml` builds; this one pins the order with a number
+# format and an alignment in it (office.mbt#531, fixed in mbtexcel 0.3.0).
 
 defs:
   styles:
