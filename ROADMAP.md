@@ -2579,6 +2579,11 @@ selling point, and a second file to keep in step undercuts it.
 
 Reverse-chronological. One entry per user-visible or structural change.
 
+- **2026-10-15** — **0.6.1.** A patch release carrying the output-directory
+  fix below. The version moves to `0.6.1` in `moon.mod` and in `yxl version`,
+  and the READMEs' `moonx …@<version>` lines follow, ready for the `v0.6.1` tag
+  and its mooncakes publish (ADR-027).
+
 - **2026-10-15** — **`extract -o` and `init -o` make the output's directory.**
   `yxl extract book.xlsx -o specs/book.yxl.yaml` failed with "cannot write"
   when `specs/` did not exist yet, though the companion files beside it were
