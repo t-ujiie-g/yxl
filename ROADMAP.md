@@ -2579,6 +2579,12 @@ selling point, and a second file to keep in step undercuts it.
 
 Reverse-chronological. One entry per user-visible or structural change.
 
+- **2026-10-15** — **`extract -o` and `init -o` make the output's directory.**
+  `yxl extract book.xlsx -o specs/book.yxl.yaml` failed with "cannot write"
+  when `specs/` did not exist yet, though the companion files beside it were
+  already written into fresh directories, and `build` already made its output's.
+  Every file the CLI writes now creates the directory it sits in first.
+
 - **2026-10-14** — **Docs: yxl on mooncakes.** 0.6.0 is published (ADR-027),
   and both READMEs now say how to use it from there: `moonx
   t-ujiie-g/yxl/cmd/main@0.6.0 build …` with no install, and `moon add
