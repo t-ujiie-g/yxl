@@ -135,6 +135,7 @@ fn init_spec(output : String, force : Bool) -> Int32 {
     report("\{output} already exists (use --force to overwrite)")
     return @cli.exit_error
   }
+  make_parent(output)
   @fs.write_string_to_file(output, @cli.starter_spec(output~)) catch {
     @fs.IOError(reason) => {
       report("cannot write \{output}: \{reason}")
@@ -161,6 +162,7 @@ fn extract(input : String, output : String, flat : Bool) -> Int32 {
       return @cli.exit_error
     }
   }
+  make_parent(output)
   @fs.write_string_to_file(output, extracted.spec) catch {
     @fs.IOError(reason) => {
       report("cannot write \{output}: \{reason}")
@@ -196,9 +198,7 @@ fn extract(input : String, output : String, flat : Bool) -> Int32 {
 /// extracted spec puts its tables under `data/`, and a spec's `output:` may
 /// name a `dist/` nobody has built into before.
 fn write_file(path : String, content : Bytes) -> Bool {
-  if @cli.directory_of(path) is Some(directory) {
-    make_directories(directory)
-  }
+  make_parent(path)
   @fs.write_bytes_to_file(path, content) catch {
     @fs.IOError(reason) => {
       report("cannot write \{path}: \{reason}")
@@ -206,6 +206,15 @@ fn write_file(path : String, content : Bytes) -> Bool {
     }
   }
   true
+}
+
+///|
+/// Make the directory `path` sits in, so `-o out/book.yxl.yaml` needs no
+/// `mkdir` first.
+fn make_parent(path : String) -> Unit {
+  if @cli.directory_of(path) is Some(directory) {
+    make_directories(directory)
+  }
 }
 
 ///|
