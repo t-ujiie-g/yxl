@@ -16,6 +16,8 @@ defs:
       align: { horizontal: center }
     fall:
       font: { color: "9C0006" }
+    sales: { fill: "DDEBF7" }
+    gross: { fill: "FFF2CC" }
   blocks:
     # This year, last year, and the ratio: one definition, so the formula, the
     # formats and the rule cannot drift apart between items. `{{cy}}` is this
@@ -64,3 +66,18 @@ sheets:
               gross.py: { total: sum }
               gross.ratio: { formula: 'IFERROR({{gross.cy}}/{{gross.py}}-1,"")' }
             style: header
+
+  # The same header for a file a program edits afterwards: `header_merge: false`
+  # writes the same cells with no merged range to shift when a column is
+  # deleted. 売上 sits over its first column; the blanks keep its colour.
+  - name: 実績（結合なし）
+    layouts:
+      - at: A1
+        header_style: { font: { bold: true } }
+        header_merge: false
+        values:
+          - [東日本, 5200000, 4800000, 1560000, 1500000]
+        columns:
+          - { name: item, header: 部門, width: 16 }
+          - { block: yoy, as: sales, header: { value: 売上, style: sales } }
+          - { block: yoy, as: gross, header: { value: 粗利, style: gross } }

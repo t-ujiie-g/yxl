@@ -72,6 +72,7 @@ fn load_layout(
   let context = "layout '\{at.to_a1()}'"
   let mut rows = None
   let mut header_style_node = None
+  let mut header_merge_node = None
   let mut columns_node = None
   let mut source = None
   let mut footer_node = None
@@ -82,6 +83,7 @@ fn load_layout(
       "at" => () // consumed above
       "rows" => rows = Some(expect_body_rows(value, file~, context~))
       "header_style" => header_style_node = Some(value)
+      "header_merge" => header_merge_node = Some(value)
       "columns" => columns_node = Some(value)
       "footer" => footer_node = Some(value)
       "name" =>
@@ -106,7 +108,7 @@ fn load_layout(
       _ =>
         raise schema_error(
           file~,
-          "unknown key '\{key}' in \{context} (expected 'at', 'name', 'rows', 'header_style', 'columns', 'values', 'csv', 'json', or 'footer')",
+          "unknown key '\{key}' in \{context} (expected 'at', 'name', 'rows', 'header_style', 'header_merge', 'columns', 'values', 'csv', 'json', or 'footer')",
         )
     }
   }
@@ -140,14 +142,15 @@ fn load_layout(
     context~,
   )
   let col_of = register_names(columns, names~, sheet~, file~, context~)
-  let (headers, depth, header_style) = load_layout_header(
+  let header = load_layout_header(
     columns,
     header_style_node,
+    header_merge_node,
     file~,
     defs~,
     context~,
   )
-  let body_first = at.row + depth
+  let body_first = at.row + header.depth
   let body_last = body_first + rows - 1
   guard body_last <= max_sheet_row else {
     raise schema_error(
@@ -155,7 +158,7 @@ fn load_layout(
       "\{context} body ends at row \{body_last}, past Excel's last row (\{max_sheet_row})",
     )
   }
-  write_headers(sheet, headers, at~, depth~, header_style~)
+  write_headers(sheet, header, at~)
   write_body_rows(sheet, data, inputs, body_first~)
   for column in columns {
     write_layout_column(
@@ -209,7 +212,7 @@ fn load_layout(
       columns: placed,
       input_of,
       data,
-      header_row: if depth > 0 {
+      header_row: if header.depth > 0 {
         Some(body_first - 1)
       } else {
         None

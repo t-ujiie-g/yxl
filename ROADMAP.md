@@ -1178,13 +1178,21 @@ the first item changes what a spec looks like.
             - Every cell anchor, through `anchor_cell`, may be
               `{ below: layout, gap: n }`. That covers charts, images, shapes,
               controls, slicers, `data:` and layouts stacked under layouts.
+      - [x] **A header without merged cells (#120).** `header_merge: false`
+            on a layout writes the same header cells, blanks and styles
+            included, and drops the merged ranges. A spec ported from a file
+            with no merges no longer gains dozens, and a program deleting a
+            column afterwards cannot shift a merge onto its neighbour. One key
+            per layout, not per cell, so no rule is needed for half a merge.
+            Without a header the key is refused, like `header_style`.
 
       Open, to settle inside the slices: whether `yxl extract` should
       *propose* a block when it finds a repeated column group, which is a guess
       and so ADR-017 territory; how yxl-vscode maps "insert a column" or "edit
       one instance's cell" back — change the block, or add an override; and a
       layout also declared an Excel table when its header is one row of unique
-      names. Row-axis groups and emitting `LAMBDA` are not in scope.
+      names. Once `extract` emits layouts at all, a multi-row header
+      with no merges should come back as `header_merge: false`. Row-axis groups and emitting `LAMBDA` are not in scope.
 
 
 ### v1.0 — Stability gate
@@ -2578,6 +2586,14 @@ selling point, and a second file to keep in step undercuts it.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-10-15** — **`header_merge: false`: a layout header without merged
+  cells (#120).** A layout's header merges equal neighbours across and short
+  columns down. With `header_merge: false` it writes the same cells, a
+  label's colour carried across its blanks, but no merged range, so a file
+  ported from one without merges keeps none, and a column deleted afterwards
+  by a program cannot drag a merge onto the next header. The default is
+  unchanged. `examples/columns.yxl.yaml` shows it on a second sheet.
 
 - **2026-10-15** — **0.6.1.** A patch release carrying the output-directory
   fix below. The version moves to `0.6.1` in `moon.mod` and in `yxl version`,

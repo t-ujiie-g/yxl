@@ -594,3 +594,26 @@ test "golden: a layout compiles to the same bytes as its expansion" {
     @cli.compile(by_hand, file="spec.yaml"),
   )
 }
+
+///|
+test "round trip: a header that does not merge reopens with no merged cells" {
+  let source =
+    #|sheets:
+    #|  - name: S
+    #|    layouts:
+    #|      - at: A1
+    #|        rows: 1
+    #|        header_merge: false
+    #|        header_style: { fill: "DDEBF7" }
+    #|        columns:
+    #|          - { name: item, header: 部門 }
+    #|          - { name: cy, header: [売上, 当年] }
+    #|          - { name: py, header: [売上, 前年] }
+    #|
+  let reopened = @xlsx.read(@cli.compile(source, file="spec.yaml")[:])
+  assert_eq(reopened.get_merge_cells("S"), [])
+  assert_eq(reopened.get_cell("S", "B1"), Some("売上"))
+  assert_eq(reopened.get_cell("S", "A2"), Some(""))
+  assert_eq(reopened.get_cell("S", "C1"), Some(""))
+  assert_eq(reopened.get_cell("S", "C2"), Some("前年"))
+}

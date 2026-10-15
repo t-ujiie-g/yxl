@@ -2416,6 +2416,15 @@
           "description": "A style (bareword or inline) for every header cell. Needs at least one `header`.",
           "markdownDescription": "A style (bareword or inline) for every header cell. Needs at least one `header`."
         },
+        "header_merge": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/boolean"
+            }
+          ],
+          "description": "`false` writes the header without merged cells. Default `true`. Needs at least one `header`.",
+          "markdownDescription": "`false` writes the header without merged cells. Default `true`. Needs at least one `header`."
+        },
         "columns": {
           "anyOf": [
             {

@@ -1315,6 +1315,7 @@ def build(doc: Reference) -> dict:
             "name": ref("text"),
             "rows": ref("integer"),
             "header_style": ref("style"),
+            "header_merge": ref("boolean"),
             "columns": seq(
                 {"anyOf": [ref("layout_column"), ref("block_instance")]}
             ),

@@ -1,14 +1,24 @@
 ///|
-/// Every column's header levels, how many rows they take, and the style they
-/// wear. A `header_style` with no header to wear it is refused.
+/// A layout's header: each column's levels, how many rows they take, the style
+/// they wear, and whether equal neighbours merge.
+priv struct LayoutHeader {
+  levels : Array[Array[HeaderCell?]]
+  depth : Int32
+  style : @model.Style?
+  merge : Bool
+}
+
+///|
+/// A `header_style` or `header_merge` with no header to apply to is refused.
 fn load_layout_header(
   columns : Array[LayoutColumn],
   style_node : @yaml.Node?,
+  merge_node : @yaml.Node?,
   file~ : String,
   defs~ : Defs,
   context~ : String,
-) -> (Array[Array[HeaderCell?]], Int32, @model.Style?) raise @diag.SchemaError {
-  let headers = columns.map(column => {
+) -> LayoutHeader raise @diag.SchemaError {
+  let levels = columns.map(column => {
     match column.header {
       Some(node) =>
         load_header_levels(
@@ -20,7 +30,7 @@ fn load_layout_header(
       None => []
     }
   })
-  let depth = headers.fold(init=0, (deepest, levels) => {
+  let depth = levels.fold(init=0, (deepest, levels) => {
     if levels.length() > deepest {
       levels.length()
     } else {
@@ -40,7 +50,19 @@ fn load_layout_header(
       "\{context} has a 'header_style' but no column has a 'header' to wear it",
     )
   }
-  (headers, depth, style)
+  let merge = match merge_node {
+    Some(node) => {
+      guard depth > 0 else {
+        raise schema_error(
+          file~,
+          "\{context} has a 'header_merge' but no column has a 'header' to merge",
+        )
+      }
+      expect_bool(node, file~, context="\{context} 'header_merge'")
+    }
+    None => true
+  }
+  { levels, depth, style, merge, }
 }
 
 ///|
@@ -81,16 +103,14 @@ fn load_header_levels(
 }
 
 ///|
-/// Lay out every column's header levels over `depth` rows from `at`, merging
-/// as `docs/spec.md` §25 says. Blanks inside a merge wear the header style too,
-/// so a fill or a border runs unbroken.
+/// Lay out every column's header levels from `at`, merging as `docs/spec.md`
+/// §25 says. Without `merge` the cells are the same, only the ranges go.
 fn write_headers(
   sheet : @model.Sheet,
-  headers : Array[Array[HeaderCell?]],
+  header : LayoutHeader,
   at~ : @units.CellRef,
-  depth~ : Int32,
-  header_style~ : @model.Style?,
 ) -> Unit {
+  let { levels: headers, depth, style: header_style, merge, } = header
   fn place(col : Int32, row : Int32) -> @units.CellRef {
     @units.CellRef(col=at.col + col, row=at.row + row)
   }
@@ -133,7 +153,9 @@ fn write_headers(
         for covered in (row + 1)..<depth {
           blank(col, covered, style)
         }
-        sheet.merge(place(col, row), place(col, depth - 1))
+        if merge {
+          sheet.merge(place(col, row), place(col, depth - 1))
+        }
         col += 1
         continue
       }
@@ -148,7 +170,7 @@ fn write_headers(
       for covered in (col + 1)..<=last {
         blank(covered, row, style)
       }
-      if last > col {
+      if merge && last > col {
         sheet.merge(place(col, row), place(last, row))
       }
       col = last + 1

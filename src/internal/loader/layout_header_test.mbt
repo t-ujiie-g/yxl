@@ -115,3 +115,74 @@ test "a header's levels are cells, and there is at least one" {
     Some("spec.yaml: layout 'A1' column 'a' header levels are cells, not lists"),
   )
 }
+
+///|
+test "header_merge false writes the merged cells and no merge" {
+  let sheet = load_ok(
+      (
+        #|defs:
+        #|  styles:
+        #|    head: { font: { bold: true } }
+        #|    weak: { font: { color: "C00000" } }
+        #|  blocks:
+        #|    yoy:
+        #|      columns:
+        #|        - { name: cy, header: 当年 }
+        #|        - { name: py, header: 前年 }
+        #|sheets:
+        #|  - name: 実績
+        #|    layouts:
+        #|      - at: A1
+        #|        rows: 1
+        #|        header_style: head
+        #|        header_merge: false
+        #|        columns:
+        #|          - { name: item, header: 部門 }
+        #|          - { block: yoy, as: sales, header: [{ value: 売上, style: weak }] }
+        #|          - { name: note, header: [{ style: weak }, 備考] }
+        #|          - { name: memo, header: [{ style: weak }, 備考] }
+      ),
+    ).sheets[0]
+  assert_eq(merged(sheet), [])
+  let cells = written(sheet)
+  assert_eq(cells.get("A1"), Some((Text("部門"), true)))
+  assert_eq(cells.get("A2"), Some((Blank, true)))
+  assert_eq(cells.get("B1"), Some((Text("売上"), true)))
+  assert_eq(cells.get("C1"), Some((Blank, true)))
+  assert_eq(cells.get("C2"), Some((Text("前年"), true)))
+  assert_eq(cells.get("D1"), Some((Blank, true)))
+  assert_eq(cells.get("D2"), Some((Text("備考"), true)))
+  assert_eq(cells.get("E2"), Some((Blank, true)))
+}
+
+///|
+test "header_merge true is the default" {
+  let sheet = load_ok(
+      layout_spec(
+        "      - at: A1\n        rows: 1\n        header_merge: true\n        columns:\n          - { name: a, header: 備考 }\n          - { name: b, header: [X, b] }\n          - { name: c, header: [X, c] }\n",
+      ),
+    ).sheets[0]
+  assert_eq(merged(sheet), ["A1:A2", "B1:C1"])
+}
+
+///|
+test "header_merge is a boolean, and needs a header to apply to" {
+  assert_eq(
+    schema_message(
+      layout_spec(
+        "      - at: A1\n        rows: 1\n        header_merge: no\n        columns: [{ name: a, header: A }]\n",
+      ),
+    ),
+    Some("spec.yaml: layout 'A1' 'header_merge' must be true or false"),
+  )
+  assert_eq(
+    schema_message(
+      layout_spec(
+        "      - at: A1\n        rows: 1\n        header_merge: false\n        columns: [{ name: a }]\n",
+      ),
+    ),
+    Some(
+      "spec.yaml: layout 'A1' has a 'header_merge' but no column has a 'header' to merge",
+    ),
+  )
+}
