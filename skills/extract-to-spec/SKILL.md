@@ -136,7 +136,8 @@ becomes a layout.
   before deleting the per-cell entries.
 - **Merged header rows become header levels.** `header: [売上, 当年]` on each
   column rebuilds a two-row header, merges included; `null` keeps a deliberate
-  blank.
+  blank. If the original header has no merged cells, add `header_merge: false`
+  so the spec does not add merges the original never had.
 - **Columns that repeat per item become a block.** 当年 / 前年 / 前年比 written
   out for 売上, then 粗利, then 営業利益 is one `defs.blocks` entry placed three
   times. Check the copies really are identical first — a difference between

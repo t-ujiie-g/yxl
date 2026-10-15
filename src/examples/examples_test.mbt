@@ -74,6 +74,7 @@ fn promises() -> Array[Promise] {
     promise("columns.yxl.yaml", "実績", "E4", "1560000"),
     promise("columns.yxl.yaml", "実績", "E2", "粗利"),
     promise("columns.yxl.yaml", "実績", "A8", "合計"),
+    promise("columns.yxl.yaml", "実績（結合なし）", "E1", "粗利"),
     promise("subtotals.yxl.yaml", "店舗別", "B9", "直営 計"),
     promise("subtotals.yxl.yaml", "店舗別", "A16", "福岡"),
     promise("subtotals.yxl.yaml", "店舗別", "A17", "福岡 計"),

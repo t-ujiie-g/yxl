@@ -1691,6 +1691,7 @@ layouts:
 | `footer` | Rows placed straight after the body: totals, and totals per group. See below. |
 | `name` | Makes each column's body a workbook defined name, `name.column`, and lets an override find a cell by meaning. See below. |
 | `header_style` | A style (bareword or inline) for every header cell. Needs at least one `header`. |
+| `header_merge` | `false` writes the header without merged cells. Default `true`. Needs at least one `header`. |
 | `columns` | **Required.** The columns, left to right from `at`. At least one. |
 
 Each column:
@@ -1726,6 +1727,10 @@ columns:
 - Every header cell wears `header_style`, the blanks inside a merge and the
   `null`s included, so a fill or a border runs unbroken. A header written in
   the expanded form (`{ value: 部門, style: key }`) lays its own style over it.
+- `header_merge: false` keeps every cell above, the blanks a merge would cover
+  included, and drops only the merged ranges. The value sits in the first
+  cell; the rest are blanks in its style. Use it for a file a program edits
+  afterwards, where deleting a column can shift a merge onto its neighbour.
 
 **`{{name}}` is that column's cell in the same row.** It is read in a column's
 `formula` and in a conditional rule's `formula`, and nowhere else: a `{{`

@@ -152,7 +152,8 @@ Why it is the default:
 Reach for the rest of §25 as the shape demands:
 
 - **Two-row headers** — `header: [売上, 当年]`; a shared parent merges across,
-  a short column merges down, `null` leaves a blank.
+  a short column merges down, `null` leaves a blank. `header_merge: false`
+  keeps those cells without the merged ranges.
 - **Totals and subtotals** — `footer:` rows straight after the body.
   `{ total: sum }` aggregates the column; a `by:` group repeats rows per value
   (nested for 支店 → 直営/FC), with `order:` fixed or sorted and labels like
