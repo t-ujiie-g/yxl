@@ -2587,6 +2587,11 @@ selling point, and a second file to keep in step undercuts it.
 
 Reverse-chronological. One entry per user-visible or structural change.
 
+- **2026-10-15** — **0.6.2.** A release carrying `header_merge: false` below.
+  The version moves to `0.6.2` in `moon.mod` and in `yxl version`, and the
+  READMEs' `moonx …@<version>` lines follow, ready for the `v0.6.2` tag and
+  its mooncakes publish (ADR-027).
+
 - **2026-10-15** — **`header_merge: false`: a layout header without merged
   cells (#120).** A layout's header merges equal neighbours across and short
   columns down. With `header_merge: false` it writes the same cells, a
