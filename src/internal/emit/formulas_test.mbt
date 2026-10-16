@@ -22,7 +22,7 @@ fn range_of(top_left : String, bottom_right : String) -> @model.CellRange {
 ///|
 test "a filled range stores the formula once, on the master cell" {
   let (wb, sheet) = calculation_sheet()
-  sheet.add_formula({ at: range_of("C1", "C3"), formula: "A1*B1", })
+  sheet.add_formula({ at: range_of("C1", "C3"), formula: "A1*B1", style: None, })
   let reopened = reopen(wb)
   // The master carries the text; the followers carry no formula text at all,
   // only their membership of the master's range, so the range costs one stored
@@ -36,7 +36,7 @@ test "a filled range stores the formula once, on the master cell" {
 ///|
 test "a filled range costs one stored formula, whatever it covers" {
   let (wb, sheet) = calculation_sheet()
-  sheet.add_formula({ at: range_of("C1", "C3"), formula: "A1*B1", })
+  sheet.add_formula({ at: range_of("C1", "C3"), formula: "A1*B1", style: None, })
   // `formula_refs` lists the cells that hold formula *text*: three cells
   // calculate, one of them stores anything (ADR-004).
   assert_eq(reopen(wb).sheet("S").unwrap().formula_refs(), ["C1"])
@@ -45,8 +45,8 @@ test "a filled range costs one stored formula, whatever it covers" {
 ///|
 test "two ranges on one sheet stay separate formulas" {
   let (wb, sheet) = calculation_sheet()
-  sheet.add_formula({ at: range_of("C1", "C3"), formula: "A1*B1", })
-  sheet.add_formula({ at: range_of("D1", "D3"), formula: "C1+1", })
+  sheet.add_formula({ at: range_of("C1", "C3"), formula: "A1*B1", style: None, })
+  sheet.add_formula({ at: range_of("D1", "D3"), formula: "C1+1", style: None, })
   let reopened = reopen(wb)
   assert_eq(reopened.get_cell_formula("S", "C1"), Some("A1*B1"))
   assert_eq(reopened.get_cell_formula("S", "D1"), Some("C1+1"))
@@ -57,7 +57,7 @@ test "two ranges on one sheet stay separate formulas" {
 ///|
 test "a single-cell range is an ordinary formula in one cell" {
   let (wb, sheet) = calculation_sheet()
-  sheet.add_formula({ at: range_of("C1", "C1"), formula: "A1*B1", })
+  sheet.add_formula({ at: range_of("C1", "C1"), formula: "A1*B1", style: None, })
   assert_eq(reopen(wb).get_cell_formula("S", "C1"), Some("A1*B1"))
 }
 
@@ -68,7 +68,7 @@ test "a band formats every cell a filled range covers, master and followers" {
     ..@model.Style::empty(),
     number_format: Some("0.00"),
   })
-  sheet.add_formula({ at: range_of("C1", "C3"), formula: "A1*B1", })
+  sheet.add_formula({ at: range_of("C1", "C3"), formula: "A1*B1", style: None, })
   // The band must reach the followers too, which hold no formula text of their
   // own.
   for reference in ["C1", "C2", "C3"] {
@@ -83,7 +83,7 @@ test "a filled range outside every band leaves its cells unstyled" {
     ..@model.Style::empty(),
     number_format: Some("0.00"),
   })
-  sheet.add_formula({ at: range_of("C1", "C3"), formula: "A1*B1", })
+  sheet.add_formula({ at: range_of("C1", "C3"), formula: "A1*B1", style: None, })
   assert_eq(cell_format(wb, "C1"), None)
   assert_eq(cell_format(wb, "C2"), None)
 }
@@ -95,8 +95,36 @@ test "a row band reaches a filled range that crosses it" {
     ..@model.Style::empty(),
     number_format: Some("0.0%"),
   })
-  sheet.add_formula({ at: range_of("C1", "C3"), formula: "A1*B1", })
+  sheet.add_formula({ at: range_of("C1", "C3"), formula: "A1*B1", style: None, })
   assert_eq(cell_format(wb, "C1"), None)
   assert_eq(cell_format(wb, "C2"), Some("0.0%"))
   assert_eq(cell_format(wb, "C3"), None)
+}
+
+///|
+test "a filled range's own style lays over the band, master and followers" {
+  let (wb, sheet) = calculation_sheet()
+  sheet.set_column_band(first=3, last=3, style={
+    ..@model.Style::empty(),
+    number_format: Some("0.00"),
+  })
+  sheet.add_formula({
+    at: range_of("C1", "C3"),
+    formula: "A1*B1",
+    style: Some(@model.Style::number_format("#,##0")),
+  })
+  for reference in ["C1", "C2", "C3"] {
+    assert_eq(cell_format(wb, reference), Some("#,##0"))
+  }
+}
+
+///|
+test "a filled range's own style reaches its cells on a sheet with no bands" {
+  let (wb, sheet) = calculation_sheet()
+  sheet.add_formula({
+    at: range_of("C1", "C3"),
+    formula: "A1*B1",
+    style: Some(@model.Style::number_format("0.0%")),
+  })
+  assert_eq(cell_format(wb, "C3"), Some("0.0%"))
 }

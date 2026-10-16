@@ -15,9 +15,12 @@ fn apply_formula_range(
     @model.to_file_formula(range.formula),
     opts=@xlsx.FormulaOpts::shared(range.at.to_a1()),
   )
-  // Nothing to lay down when the sheet declares no bands at all — worth the
-  // check, because a range may legitimately cover a whole column.
-  guard !(sheet.columns.is_empty() && sheet.rows.is_empty()) else { return }
+  // Nothing to lay down when neither a band nor the range styles a cell —
+  // worth the check, because a range may legitimately cover a whole column.
+  guard range.style is Some(_) ||
+    !(sheet.columns.is_empty() && sheet.rows.is_empty()) else {
+    return
+  }
   for row in range.at.top_left.row..<=range.at.bottom_right.row {
     for col in range.at.top_left.col..<=range.at.bottom_right.col {
       let at = @units.CellRef(col~, row~)
@@ -25,7 +28,8 @@ fn apply_formula_range(
       // a formula's result has no type until Excel computes it, and the cell is
       // written as a numeric one, so an inherited number format is exactly what
       // a calculation column wants.
-      if band_style_at(sheet, at) is Some(style) {
+      if settle(@model.Style::layer(sheet.band_style_at(at), range.style))
+        is Some(style) {
         backend.set_cell_style(
           sheet_name,
           at.to_a1(),

@@ -114,10 +114,12 @@ pub(all) enum Panes {
 
 ///|
 /// One formula filled across a region, written as it applies at the top-left;
-/// it compiles to a shared formula (ECMA-376 §18.3.1.40, ADR-004).
+/// it compiles to a shared formula (ECMA-376 §18.3.1.40, ADR-004). `style` is
+/// every cell's own style, laid over the bands as a cell's is.
 pub(all) struct FormulaRange {
   at : CellRange
   formula : String
+  style : Style?
 } derive(Eq, Debug)
 
 ///|

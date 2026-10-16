@@ -1186,6 +1186,36 @@ the first item changes what a spec looks like.
             per layout, not per cell, so no rule is needed for half a merge.
             Without a header the key is refused, like `header_style`.
 
+      What a layout still could not say, found by compiling probe specs
+      against 0.6.2 (2026-10-17), in the order they are taken:
+      - [x] **Slice 5 — a body's own look (`body_style`).** A column's
+            `style` and `format` are its band, so a grid border or a fill
+            reaches every row of the sheet, not only the table. And two
+            layouts stacked with `below:` cannot format one sheet column two
+            ways. `body_style` on a layout, and on a column over it, styles
+            the body's cells alone: data, blanks and formula cells. A
+            `formulas:` range takes a `style` too, so the layout still
+            compiles to what hand-written keys would (ADR-030).
+            **Shipped** (`docs/spec.md` §3 and §25,
+            `examples/columns.yxl.yaml`). A golden test compiles a layout with
+            a body style and its expansion to the same bytes. `extract` still
+            writes a styled calculation column cell by cell, since a cell's
+            look cannot be split between its band and its range.
+      - [ ] **Slice 6 — sheet keys that name a layout.** `freeze`, `filter`,
+            `print.area`, `merges`, `rows:` bands, `comments` and `links` take
+            only A1, so a layout placed `below:` another, or one whose body
+            follows its data, cannot reach them. Print titles (rows repeated
+            on every page) are missing outright.
+      - [ ] **Slice 7 — a column's `type`.** A CSV's dates stay text, and a
+            code like `007` becomes 7 unless the export quoted it. A layout
+            column may say what its field is.
+      - [ ] **Slice 8 — the rest of the probe list.** Equal body values
+            merged down a column (支店); a title row merged across the
+            layout's width; overrides on header and footer cells by meaning;
+            a header style per level; a header without merges drawn with its
+            groups' outer borders only (#122); row outlines and page breaks
+            per footer group. Each is settled as its own item when taken.
+
       Open, to settle inside the slices: whether `yxl extract` should
       *propose* a block when it finds a repeated column group, which is a guess
       and so ADR-017 territory; how yxl-vscode maps "insert a column" or "edit
@@ -2040,6 +2070,33 @@ selling point, and a second file to keep in step undercuts it.
 - `yxl extract` does not write `output:`: the default already rebuilds
   `book.yxl.yaml` to `book.xlsx`.
 
+### ADR-030 — A layout's body has a look of its own, and a formula range may carry one
+
+**Status:** accepted 2026-10-17.
+
+**Context:** A layout column's `style` and `format` are its column band
+(ADR-023), and a band covers the whole sheet column. A grid border or a fill
+meant for a table ran to row 1048576. Two layouts stacked with `below:` could
+not format one column two ways, since a column has one band. Styling the body
+by hand was impossible too: `formulas:` had no style, and no cell may be
+written over a range.
+
+**Decision:**
+- `body_style` on a layout, and on a column laid over it, is the style of every
+  body cell: data, the blanks a short row or a reserved row leaves, and the
+  formula cells. It sets no band. The header and the footer keep their own keys.
+- A `formulas:` entry takes `style` and `format`, laid over the bands as a
+  cell's own are. A layout's formula column carries its body style there, so a
+  layout still compiles to exactly what hand-written keys would.
+- A column's `style` and `format` keep meaning its band. Changing them to the
+  body would break every spec written since slice 1.
+
+**Trade-offs / consequences:** A body style writes a cell per blank body
+position, which a band did not. The look is still interned once (ADR-004).
+`extract` keeps writing a styled calculation column cell by cell: a cell's
+style in the file is band and range together, and splitting it would be a
+guess (ADR-017).
+
 ## 8. Open questions
 
 - **Q1 — YAML parser.** ✅ **Decided (ADR-009), refined (ADR-010):** depend on
@@ -2586,6 +2643,14 @@ selling point, and a second file to keep in step undercuts it.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-10-17** — **`body_style`: a layout body's own look (ADR-030).** A
+  layout, and each column over it, may style its body alone: data cells, the
+  blanks between them and the formula cells, and no row beyond the table. A
+  grid border no longer runs to the sheet's last row, and layouts stacked with
+  `below:` can format one column apart. A `formulas:` range takes `style` and
+  `format` for the same reason. The probe list behind this, and the slices
+  that follow it, are under the layouts item in §6.
 
 - **2026-10-15** — **0.6.2.** A release carrying `header_merge: false` below.
   The version moves to `0.6.2` in `moon.mod` and in `yxl version`, and the

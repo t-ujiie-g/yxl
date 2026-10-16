@@ -98,12 +98,18 @@ fn one_sheet(
   if !sheet.formulas.is_empty() {
     let ranges = []
     for range in sheet.formulas {
-      ranges.push(
-        @yaml.Map([
-          ("at", @yaml.Str(range.at.to_a1())),
-          ("formula", @yaml.Str(range.formula)),
-        ]),
-      )
+      let entry = [
+        ("at", @yaml.Str(range.at.to_a1())),
+        ("formula", @yaml.Str(range.formula)),
+      ]
+      let (style_node, format) = styles.split(range.style)
+      if format is Some(code) {
+        entry.push(("format", @yaml.Str(code)))
+      }
+      if style_node is Some(node) {
+        entry.push(("style", node))
+      }
+      ranges.push(@yaml.Map(entry))
     }
     entries.push(("formulas", @yaml.Seq(ranges)))
   }

@@ -239,6 +239,7 @@ rows, and a one-cell range is allowed.
 |---|---|
 | `at` | **Required.** A `TopLeft:BottomRight` range. |
 | `formula` | **Required.** The formula body; a leading `=` is accepted and stripped. |
+| `style`, `format` | The look of every cell the range fills, laid over the bands as a cell's own `style` / `format` is (§4). |
 
 This compiles to Excel's own **shared formula**: the file stores the text once
 and marks the rest of the range as following it, so a 500-row column is one
@@ -249,9 +250,9 @@ defined name (§6), which gives every cell that references it the *same* formula
 — the opposite of filling a range with one that shifts per row. Write the
 formula in place instead.
 
-**Formatting is not part of a formula range**, for the same reason it is not part
-of a `data:` block (§9): style the region with a `columns:` / `rows:` band, which
-reaches every cell the range fills (§4).
+A band reaches every cell the range fills too (§4). Give the range its own
+`style` where the look belongs to these cells and not to the whole column, such
+as the border of a table that ends.
 
 A range may not overlap another range, or any cell that `cells:` or `data:`
 writes — a cell holds one formula, and letting one side silently win would hide
@@ -1692,6 +1693,7 @@ layouts:
 | `name` | Makes each column's body a workbook defined name, `name.column`, and lets an override find a cell by meaning. See below. |
 | `header_style` | A style (bareword or inline) for every header cell. Needs at least one `header`. |
 | `header_merge` | `false` writes the header without merged cells. Default `true`. Needs at least one `header`. |
+| `body_style` | A style for every body cell, and for nothing outside the body. See below. |
 | `columns` | **Required.** The columns, left to right from `at`. At least one. |
 
 Each column:
@@ -1703,6 +1705,7 @@ Each column:
 | `header` | A cell (§3), or a list of them, one per header row, top first. `null` in the list is a blank. |
 | `formula` | Filled down the body as a formula range (§3), written for the body's first row. |
 | `conditional` | Conditional formats (§10) over the body, written without `at`. |
+| `body_style` | A style for this column's body cells, laid over the layout's `body_style`. |
 | `width`, `style`, `format`, `hidden`, `group` | The column's band, exactly as in §4. |
 
 **A header may have levels.** Written as a list, a column's header takes one
@@ -1744,8 +1747,25 @@ per rule. So everything those keys refuse, a layout refuses too. In
 particular, a `cells:` entry inside a formula column is refused as in §3, and
 one row that differs is an override (§23).
 
+**A column's `style` and `format` are its band**, so they reach every row of
+the sheet, above and below the layout too. `body_style` styles the body alone:
+each row the layout spans, its data cells, the blanks between them and the
+formula cells. A grid border or a fill then stops where the table does. It
+does not reach the header or the footer, which have `header_style` and a
+footer row's `style`.
+
+```yaml
+layouts:
+  - at: A2
+    body_style: { border: thin }                     # every body cell
+    columns:
+      - { name: item, header: 部門 }
+      - { name: cy, header: 当年, body_style: { format: "#,##0" } }  # thin, and counted
+```
+
 A sheet may hold several layouts. Two layouts may not both give one sheet
-column a band.
+column a band. Layouts stacked with `below:` that format one column apart say
+so with `body_style`, which sets no band.
 
 **Rows come from data without addressing a column either.** A layout's
 source fills its *input* columns, the ones without a `formula`. A formula

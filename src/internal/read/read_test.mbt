@@ -247,6 +247,7 @@ test "a shared formula comes back as the range that declared it" {
   sheet.add_formula({
     at: @model.CellRange::parse("C2:C4").unwrap(),
     formula: "B2*2",
+    style: None,
   })
   let recovered = only_sheet(wb)
   assert_eq(recovered.formulas.length(), 1)
@@ -274,6 +275,7 @@ test "a shared formula's followers are translated where the range cannot fold" {
   sheet.add_formula({
     at: @model.CellRange::parse("C2:C3").unwrap(),
     formula: "B2*2",
+    style: None,
   })
   let recovered = only_sheet(wb)
   assert_eq(recovered.formulas.length(), 0)

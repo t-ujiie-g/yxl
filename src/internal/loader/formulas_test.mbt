@@ -76,12 +76,31 @@ test "a formula range needs both its keys, and refuses an unknown one" {
   assert_eq(
     schema_message(
       formula_spec(
-        "    formulas:\n      - at: C2:C3\n        formula: \"A2*B2\"\n        style: header\n",
+        "    formulas:\n      - at: C2:C3\n        formula: \"A2*B2\"\n        width: 9\n",
       ),
     ),
     Some(
-      "spec.yaml: unknown key 'style' in formula range 'C2:C3' (expected 'at' or 'formula')",
+      "spec.yaml: unknown key 'width' in formula range 'C2:C3' (expected 'at', 'formula', 'style', or 'format')",
     ),
+  )
+}
+
+///|
+test "a formula range carries a style and a format for every cell it fills" {
+  let range = loaded_formula(
+    "      - at: C2:C3\n        formula: \"A2*B2\"\n        style: { font: { bold: true } }\n        format: \"#,##0\"\n",
+  )
+  assert_eq(
+    range.style,
+    Some({
+      ..@model.Style::empty(),
+      font: Some({ ..@model.Font::empty(), bold: Some(true), }),
+      number_format: Some("#,##0"),
+    }),
+  )
+  assert_eq(
+    loaded_formula("      - at: C2:C3\n        formula: \"A2*B2\"\n").style,
+    None,
   )
 }
 

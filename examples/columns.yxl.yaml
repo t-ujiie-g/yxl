@@ -42,6 +42,9 @@ sheets:
     layouts:
       - at: A2
         header_style: header
+        # A grid over the body alone. A column's `style` would run past the
+        # table to the sheet's last row.
+        body_style: { border: thin }
         # The rows fill the columns without a formula, in order, so no row
         # holds a placeholder for a ratio. The body is as long as the rows.
         values:

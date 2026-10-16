@@ -131,7 +131,7 @@ test "a layout's own keys are required and checked" {
       ),
     ),
     Some(
-      "spec.yaml: unknown key 'body' in layout 'A1' (expected 'at', 'name', 'rows', 'header_style', 'header_merge', 'columns', 'values', 'csv', 'json', or 'footer')",
+      "spec.yaml: unknown key 'body' in layout 'A1' (expected 'at', 'name', 'rows', 'header_style', 'header_merge', 'body_style', 'columns', 'values', 'csv', 'json', or 'footer')",
     ),
   )
 }
@@ -219,7 +219,7 @@ test "a column's unknown key lists both its own keys and its band's" {
       ),
     ),
     Some(
-      "spec.yaml: unknown key 'at' in layout 'A1' column 'a' (expected 'name', 'header', 'field', 'formula', 'conditional', 'width', 'style', 'format', 'hidden', or 'group')",
+      "spec.yaml: unknown key 'at' in layout 'A1' column 'a' (expected 'name', 'header', 'field', 'formula', 'conditional', 'body_style', 'width', 'style', 'format', 'hidden', or 'group')",
     ),
   )
 }
@@ -305,7 +305,7 @@ test "a header style needs a header, and two layouts may not band one column" {
       ),
     ),
     Some(
-      "spec.yaml: layout 'A5' column 'b' lands on a column layout 'A1' column 'a' already formats; give the column its width and style in one layout",
+      "spec.yaml: layout 'A5' column 'b' lands on a column layout 'A1' column 'a' already formats; give the column its width and style in one layout, and each body its own look with 'body_style'",
     ),
   )
 }
@@ -337,4 +337,98 @@ fn written(sheet : @model.Sheet) -> Map[String, (@model.CellValue, Bool)] {
 ///|
 fn merged(sheet : @model.Sheet) -> Array[String] {
   sheet.merges.map(range => range.to_a1())
+}
+
+///|
+test "a body style loads to exactly what the hand-written spec loads to" {
+  let layout = load_ok(
+    layout_spec(
+      (
+        #|      - at: B2
+        #|        rows: 3
+        #|        body_style: { border: thin }
+        #|        values: [[a, 1], [b]]
+        #|        columns:
+        #|          - { name: item, header: 項目 }
+        #|          - { name: cy, header: 当年, body_style: { format: "#,##0" } }
+        #|          - { name: twice, header: 倍, formula: "{{cy}}*2" }
+      ),
+    ),
+  )
+  let by_hand = load_ok(
+    (
+      #|defs:
+      #|  styles:
+      #|    head: { font: { bold: true } }
+      #|    weak: { font: { color: "C00000" } }
+      #|sheets:
+      #|  - name: 実績
+      #|    cells:
+      #|      B2: 項目
+      #|      C2: 当年
+      #|      D2: 倍
+      #|      B3: { value: a, style: { border: thin } }
+      #|      C3: { value: 1, style: { border: thin, format: "#,##0" } }
+      #|      B4: { value: b, style: { border: thin } }
+      #|      C4: { style: { border: thin, format: "#,##0" } }
+      #|      B5: { style: { border: thin } }
+      #|      C5: { style: { border: thin, format: "#,##0" } }
+      #|    formulas:
+      #|      - { at: D3:D5, formula: "C3*2", style: { border: thin } }
+    ),
+  )
+  assert_eq(layout, by_hand)
+}
+
+///|
+test "a body style sets no band, so stacked layouts may format one column apart" {
+  let sheet = load_ok(
+      layout_spec(
+        (
+          #|      - at: A1
+          #|        name: 売上
+          #|        values: [[1]]
+          #|        columns:
+          #|          - { name: amount, header: 金額, body_style: { format: "#,##0" } }
+          #|      - at: { below: 売上 }
+          #|        values: [[0.5]]
+          #|        columns:
+          #|          - { name: rate, header: 率, body_style: { format: "0.0%" } }
+        ),
+      ),
+    ).sheets[0]
+  assert_eq(sheet.columns.length(), 0)
+  assert_eq(
+    sheet.cells.map(cell => {
+      (cell.pos.to_a1(), cell.style.map(s => s.number_format))
+    }),
+    [
+      ("A1", None),
+      ("A2", Some(Some("#,##0"))),
+      ("A4", None),
+      ("A5", Some(Some("0.0%"))),
+    ],
+  )
+}
+
+///|
+test "a body style naming no declared style is refused, on the layout and a column" {
+  assert_eq(
+    schema_message(
+      layout_spec(
+        "      - at: A1\n        rows: 1\n        body_style: grid\n        columns: [{ name: a }]\n",
+      ),
+    ),
+    Some("spec.yaml: layout 'A1' body_style references undefined style 'grid'"),
+  )
+  assert_eq(
+    schema_message(
+      layout_spec(
+        "      - at: A1\n        rows: 1\n        columns: [{ name: a, body_style: grid }]\n",
+      ),
+    ),
+    Some(
+      "spec.yaml: layout 'A1' column 'a' body_style references undefined style 'grid'",
+    ),
+  )
 }

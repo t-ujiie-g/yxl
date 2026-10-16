@@ -219,6 +219,7 @@ test "a formula range renders as one entry, not as its cells" {
   sheet.add_formula({
     at: { top_left: at("C1"), bottom_right: at("C9"), },
     formula: "A1*2",
+    style: None,
   })
   inspect(
     spec(wb),
@@ -230,6 +231,28 @@ test "a formula range renders as one entry, not as its cells" {
       #|    formulas:
       #|      - at: C1:C9
       #|        formula: A1*2
+      #|
+    ),
+  )
+}
+
+///|
+test "a formula range's style renders beside it, its format as the shorthand" {
+  let (wb, sheet) = fixture()
+  sheet.add_formula({
+    at: { top_left: at("C1"), bottom_right: at("C9"), },
+    formula: "A1*2",
+    style: Some(@model.Style::number_format("0.0%")),
+  })
+  inspect(
+    spec(wb),
+    content=(
+      #|sheets:
+      #|  - name: S
+      #|    formulas:
+      #|      - at: C1:C9
+      #|        formula: A1*2
+      #|        format: "0.0%"
       #|
     ),
   )

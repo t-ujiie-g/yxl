@@ -1,6 +1,7 @@
 ///|
 /// The cells covered by shared formulas that fold back into one `formulas:`
-/// entry; a range with a styled cell does not, since `formulas:` has no style.
+/// entry; a range with a styled cell does not, since a cell's style cannot be
+/// told apart from its band's.
 fn fold_shared_formulas(
   backend : @xlsx.Workbook,
   source : @xlsx.Worksheet,
@@ -37,6 +38,7 @@ fn fold_shared_formulas(
       sheet.add_formula({
         at: range,
         formula: @model.from_file_formula(info.formula),
+        style: None,
       })
       for r in range.top_left.row..<=range.bottom_right.row {
         for c in range.top_left.col..<=range.bottom_right.col {
