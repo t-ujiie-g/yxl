@@ -25,14 +25,6 @@ fn settle(style : @model.Style?) -> @model.Style? {
 }
 
 ///|
-/// What the bands alone say about one position. Split out for the cells a
-/// *formula range* fills, which the backend creates and which are therefore in
-/// no `cells` array to be styled with the rest.
-fn band_style_at(sheet : @model.Sheet, at : @units.CellRef) -> @model.Style? {
-  settle(sheet.band_style_at(at))
-}
-
-///|
 /// The interned style id for a band's default style, or `None` when the band
 /// sets no style. Interned once per band, not once per column/row it covers.
 fn band_style_id(

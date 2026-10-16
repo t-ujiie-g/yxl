@@ -106,7 +106,7 @@ fn load_sheet(
     match key {
       "name" | "visibility" => () // consumed above
       "cells" => load_cells(value, sheet, file~, defs~)
-      "formulas" => load_formulas(value, sheet, file~)
+      "formulas" => load_formulas(value, sheet, file~, defs~)
       "data" => load_data(value, sheet, file~, defs~, resolve~)
       "columns" => load_columns(value, sheet, file~, defs~)
       "layouts" => load_layouts(value, sheet, file~, defs~, resolve~)

@@ -64,19 +64,18 @@ fn body_rows(
 fn write_body_rows(
   sheet : @model.Sheet,
   data : Rows,
-  inputs : Array[LayoutColumn],
+  inputs : Array[(Int32, @model.Style?)],
   body_first~ : Int32,
+  rows~ : Int32,
 ) -> Unit {
-  for row_index, row in data {
-    for field_index, value in row {
-      if value is Some(value) {
-        sheet.set(
-          @units.CellRef(
-            col=inputs[field_index].col,
-            row=body_first + row_index,
-          ),
-          value,
-        )
+  for row_index in 0..<rows {
+    let row = data.get(row_index).unwrap_or([])
+    for field_index, input in inputs {
+      let (col, style) = input
+      let at = @units.CellRef(col~, row=body_first + row_index)
+      match row.get(field_index) {
+        Some(Some(value)) => sheet.set(at, value, style?)
+        _ => if style is Some(style) { sheet.set(at, Blank, style~) }
       }
     }
   }

@@ -20,7 +20,7 @@ fn load_layouts(
 ///|
 /// The keys a layout column reads itself; the rest are its band's (§4).
 let layout_column_keys : Array[String] = [
-  "name", "header", "field", "formula", "conditional",
+  "name", "header", "field", "formula", "conditional", "body_style",
 ]
 
 ///|
@@ -46,6 +46,7 @@ priv struct LayoutColumn {
   field : String?
   formula : @yaml.Node?
   conditional : @yaml.Node?
+  body_style : @yaml.Node?
   band : Array[(String, @yaml.Node)]
 }
 
@@ -73,6 +74,7 @@ fn load_layout(
   let mut rows = None
   let mut header_style_node = None
   let mut header_merge_node = None
+  let mut body_style_node = None
   let mut columns_node = None
   let mut source = None
   let mut footer_node = None
@@ -84,6 +86,7 @@ fn load_layout(
       "rows" => rows = Some(expect_body_rows(value, file~, context~))
       "header_style" => header_style_node = Some(value)
       "header_merge" => header_merge_node = Some(value)
+      "body_style" => body_style_node = Some(value)
       "columns" => columns_node = Some(value)
       "footer" => footer_node = Some(value)
       "name" =>
@@ -108,7 +111,7 @@ fn load_layout(
       _ =>
         raise schema_error(
           file~,
-          "unknown key '\{key}' in \{context} (expected 'at', 'name', 'rows', 'header_style', 'header_merge', 'columns', 'values', 'csv', 'json', or 'footer')",
+          "unknown key '\{key}' in \{context} (expected 'at', 'name', 'rows', 'header_style', 'header_merge', 'body_style', 'columns', 'values', 'csv', 'json', or 'footer')",
         )
     }
   }
@@ -158,13 +161,40 @@ fn load_layout(
       "\{context} body ends at row \{body_last}, past Excel's last row (\{max_sheet_row})",
     )
   }
+  let layout_body = combine_style(
+    body_style_node,
+    None,
+    file~,
+    defs~,
+    context="\{context} body_style",
+  )
+  let body_style_of : Map[String, @model.Style?] = Map([])
+  for column in columns {
+    body_style_of[column.name] = @model.Style::layer(
+      layout_body,
+      combine_style(
+        column.body_style,
+        None,
+        file~,
+        defs~,
+        context="\{context} column '\{column.name}' body_style",
+      ),
+    )
+  }
   write_headers(sheet, header, at~)
-  write_body_rows(sheet, data, inputs, body_first~)
+  write_body_rows(
+    sheet,
+    data,
+    inputs.map(column => (column.col, body_style_of[column.name])),
+    body_first~,
+    rows~,
+  )
   for column in columns {
     write_layout_column(
       column,
       sheet,
       col_of,
+      body_style=body_style_of[column.name],
       body_first~,
       body_last~,
       banded~,
@@ -254,6 +284,7 @@ fn write_layout_column(
   column : LayoutColumn,
   sheet : @model.Sheet,
   col_of : Map[String, Int32],
+  body_style~ : @model.Style?,
   body_first~ : Int32,
   body_last~ : Int32,
   banded~ : Map[Int32, String],
@@ -287,7 +318,7 @@ fn write_layout_column(
     if banded.get(column.col) is Some(first) {
       raise schema_error(
         file~,
-        "\{where_} lands on a column \{first} already formats; give the column its width and style in one layout",
+        "\{where_} lands on a column \{first} already formats; give the column its width and style in one layout, and each body its own look with 'body_style'",
       )
     }
     banded[column.col] = where_
@@ -309,6 +340,7 @@ fn write_layout_column(
     sheet.add_formula({
       at: body,
       formula: load_filled_formula(formula, file~, context=where_),
+      style: body_style,
     })
   }
   guard column.conditional is Some(conditional) else { return }
@@ -386,6 +418,7 @@ fn load_layout_column(
   let mut field = None
   let mut formula = None
   let mut conditional = None
+  let mut body_style = None
   let band = []
   for entry in entries {
     let (key, value) = entry
@@ -396,6 +429,7 @@ fn load_layout_column(
         field = Some(expect_string(value, file~, context="\{where_} 'field'"))
       "formula" => formula = Some(value)
       "conditional" => conditional = Some(value)
+      "body_style" => body_style = Some(value)
       _ if layout_band_keys.contains(key) => band.push(entry)
       _ =>
         raise schema_error(
@@ -410,7 +444,17 @@ fn load_layout_column(
       "\{where_} has both a 'field' and a 'formula'; a formula column takes no data",
     )
   }
-  { name, col, header, scope: None, field, formula, conditional, band, }
+  {
+    name,
+    col,
+    header,
+    scope: None,
+    field,
+    formula,
+    conditional,
+    body_style,
+    band,
+  }
 }
 
 ///|

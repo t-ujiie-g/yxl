@@ -303,6 +303,7 @@ pub(all) enum FormControlKind {
 pub(all) struct FormulaRange {
   at : CellRange
   formula : String
+  style : Style?
 } derive(Eq, @debug.Debug)
 
 pub(all) enum HAlign {

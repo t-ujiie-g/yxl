@@ -600,7 +600,12 @@ def build(doc: Reference) -> dict:
     }
     define["layout_range"] = {"anyOf": [ref("range"), ref("layout_ref")]}
     define["formula_range"] = obj(
-        {"at": ref("range"), "formula": ref("text")},
+        {
+            "at": ref("range"),
+            "formula": ref("text"),
+            "style": ref("style"),
+            "format": clearable(ref("text")),
+        },
         documented=doc.keys("Filled formula ranges"),
         required=("at", "formula"),
         where="a formulas entry",
@@ -1250,6 +1255,7 @@ def build(doc: Reference) -> dict:
                     where="a layout column's conditional format",
                 )
             ),
+            "body_style": ref("style"),
             **{key: band[key] for key in ("width", "style", "format", "hidden", "group")},
         },
         documented=doc.keys(layouts, table=1),
@@ -1316,6 +1322,7 @@ def build(doc: Reference) -> dict:
             "rows": ref("integer"),
             "header_style": ref("style"),
             "header_merge": ref("boolean"),
+            "body_style": ref("style"),
             "columns": seq(
                 {"anyOf": [ref("layout_column"), ref("block_instance")]}
             ),

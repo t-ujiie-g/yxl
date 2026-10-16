@@ -28,6 +28,9 @@ fn StyleNames::of(wb : @model.Workbook) -> StyleNames {
     for cell in sheet.cells {
       count(cell.style)
     }
+    for range in sheet.formulas {
+      count(range.style)
+    }
     for band in sheet.columns {
       count(band.style)
     }
@@ -57,6 +60,9 @@ fn StyleNames::of(wb : @model.Workbook) -> StyleNames {
     }
     for cell in sheet.cells {
       remember(cell.style)
+    }
+    for range in sheet.formulas {
+      remember(range.style)
     }
   }
   let taken : @set.Set[String] = Set([])

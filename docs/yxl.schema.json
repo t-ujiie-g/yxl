@@ -2157,6 +2157,27 @@
           "description": "**Required.** The formula body; a leading `=` is accepted and stripped.",
           "markdownDescription": "**Required.** The formula body; a leading `=` is accepted and stripped."
         },
+        "style": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/style"
+            }
+          ],
+          "description": "The look of every cell the range fills, laid over the bands as a cell's own `style` / `format` is (§4).",
+          "markdownDescription": "The look of every cell the range fills, laid over the bands as a cell's own `style` / `format` is (§4)."
+        },
+        "format": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/text"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The look of every cell the range fills, laid over the bands as a cell's own `style` / `format` is (§4).",
+          "markdownDescription": "The look of every cell the range fills, laid over the bands as a cell's own `style` / `format` is (§4)."
+        },
         "$include": {
           "type": "string",
           "description": "Another document, pasted in place of this node (§8)."
@@ -2424,6 +2445,15 @@
           ],
           "description": "`false` writes the header without merged cells. Default `true`. Needs at least one `header`.",
           "markdownDescription": "`false` writes the header without merged cells. Default `true`. Needs at least one `header`."
+        },
+        "body_style": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/style"
+            }
+          ],
+          "description": "A style for every body cell, and for nothing outside the body. See below.",
+          "markdownDescription": "A style for every body cell, and for nothing outside the body. See below."
         },
         "columns": {
           "anyOf": [
@@ -2844,6 +2874,15 @@
           ],
           "description": "Conditional formats (§10) over the body, written without `at`.",
           "markdownDescription": "Conditional formats (§10) over the body, written without `at`."
+        },
+        "body_style": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/style"
+            }
+          ],
+          "description": "A style for this column's body cells, laid over the layout's `body_style`.",
+          "markdownDescription": "A style for this column's body cells, laid over the layout's `body_style`."
         },
         "width": {
           "allOf": [

@@ -4,18 +4,20 @@ fn load_formulas(
   node : @yaml.Node,
   sheet : @model.Sheet,
   file~ : String,
+  defs~ : Defs,
 ) -> Unit raise @diag.SchemaError {
   for item in expect_seq(node, file~, context="'formulas'") {
-    sheet.add_formula(load_formula_range(item, file~))
+    sheet.add_formula(load_formula_range(item, file~, defs~))
   }
 }
 
 ///|
-/// One `formulas:` entry: the region, and the formula as it applies at the
-/// region's top-left cell.
+/// One `formulas:` entry: the region, the formula as it applies at the
+/// region's top-left cell, and the look every cell of it wears.
 fn load_formula_range(
   node : @yaml.Node,
   file~ : String,
+  defs~ : Defs,
 ) -> @model.FormulaRange raise @diag.SchemaError {
   let entries = expect_map(node, file~, context="a formula range")
   let at = anchor_range(
@@ -26,15 +28,28 @@ fn load_formula_range(
   )
   let context = "formula range '\{at.to_a1()}'"
   let mut formula = None
+  let mut style_node = None
+  let mut format = None
+  let mut format_cleared = @model.StyleAttrs::none()
   for entry in entries {
     let (key, value) = entry
     match key {
       "at" => () // consumed above
       "formula" => formula = Some(load_filled_formula(value, file~, context~))
+      "style" => style_node = Some(value)
+      "format" =>
+        match value {
+          @yaml.Null =>
+            format_cleared = @model.StyleAttrs::none().adding(NumberFormat)
+          _ =>
+            format = Some(
+              expect_string(value, file~, context="\{context} 'format'"),
+            )
+        }
       _ =>
         raise schema_error(
           file~,
-          "unknown key '\{key}' in \{context} (expected 'at' or 'formula')",
+          "unknown key '\{key}' in \{context} (expected 'at', 'formula', 'style', or 'format')",
         )
     }
   }
@@ -42,7 +57,15 @@ fn load_formula_range(
     raise schema_error(file~, "\{context} is missing required key 'formula'")
   }
   check_formula_range_size(at, file~, context~)
-  { at, formula, }
+  let style = combine_style(
+    style_node,
+    format,
+    file~,
+    defs~,
+    context~,
+    cleared=format_cleared,
+  )
+  { at, formula, style, }
 }
 
 ///|

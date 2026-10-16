@@ -596,6 +596,66 @@ test "golden: a layout compiles to the same bytes as its expansion" {
 }
 
 ///|
+test "golden: a layout's body style compiles to the same bytes as its expansion" {
+  let layout =
+    #|sheets:
+    #|  - name: S
+    #|    layouts:
+    #|      - at: A1
+    #|        rows: 3
+    #|        values: [[3, 250], [7]]
+    #|        body_style: { border: thin }
+    #|        columns:
+    #|          - { name: qty, header: Qty }
+    #|          - { name: price, header: Price, body_style: { format: "#,##0" } }
+    #|          - { name: amount, header: Amount, formula: "{{qty}}*{{price}}" }
+    #|
+  let by_hand =
+    #|sheets:
+    #|  - name: S
+    #|    cells:
+    #|      A1: Qty
+    #|      B1: Price
+    #|      C1: Amount
+    #|      A2: { value: 3, style: { border: thin } }
+    #|      B2: { value: 250, style: { border: thin, format: "#,##0" } }
+    #|      A3: { value: 7, style: { border: thin } }
+    #|      B3: { style: { border: thin, format: "#,##0" } }
+    #|      A4: { style: { border: thin } }
+    #|      B4: { style: { border: thin, format: "#,##0" } }
+    #|    formulas:
+    #|      - { at: C2:C4, formula: "A2*B2", style: { border: thin } }
+    #|
+  assert_eq(
+    @cli.compile(layout, file="spec.yaml"),
+    @cli.compile(by_hand, file="spec.yaml"),
+  )
+}
+
+///|
+test "round trip: a body style reaches the body and no row beyond it" {
+  let source =
+    #|sheets:
+    #|  - name: S
+    #|    layouts:
+    #|      - at: A1
+    #|        rows: 2
+    #|        body_style: { fill: "DDEBF7" }
+    #|        columns:
+    #|          - { name: qty, header: Qty }
+    #|          - { name: twice, header: Twice, formula: "{{qty}}*2" }
+    #|
+  let reopened = @xlsx.read(@cli.compile(source, file="spec.yaml")[:])
+  let style_of = reference => reopened.get_cell_style("S", reference)
+  assert_true(style_of("A2") is Some(_))
+  assert_eq(style_of("A3"), style_of("A2"))
+  assert_eq(style_of("B3"), style_of("A2"))
+  assert_true(style_of("A1") != style_of("A2"))
+  assert_eq(style_of("A4"), None)
+  assert_eq(style_of("B4"), None)
+}
+
+///|
 test "round trip: a header that does not merge reopens with no merged cells" {
   let source =
     #|sheets:
