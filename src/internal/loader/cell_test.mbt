@@ -107,7 +107,7 @@ test "load rejects a malformed duration, and one that is not text" {
     schema_message(
       "sheets:\n  - name: S\n    cells:\n      A1: { value: 1.5, type: duration }\n",
     ),
-    Some("spec.yaml: duration value for 'A1' must be text"),
+    Some("spec.yaml: cell 'A1' cannot be read as a duration: '1.5'"),
   )
 }
 
@@ -174,13 +174,13 @@ test "load rejects bad coercions and unknown error literals" {
     schema_message(
       "sheets:\n  - name: S\n    cells:\n      A1: { value: \"abc\", type: number }\n",
     ),
-    Some("spec.yaml: cell 'A1' value is not a number: 'abc'"),
+    Some("spec.yaml: cell 'A1' is not a number: 'abc'"),
   )
   assert_eq(
     schema_message(
       "sheets:\n  - name: S\n    cells:\n      A1: { value: \"yes\", type: bool }\n",
     ),
-    Some("spec.yaml: cell 'A1' value is not a boolean (true or false)"),
+    Some("spec.yaml: cell 'A1' is not a boolean (true or false): 'yes'"),
   )
   assert_eq(
     schema_message(
@@ -407,7 +407,7 @@ test "a structure cannot be coerced to text" {
     schema_message(
       "sheets:\n  - name: S\n    cells:\n      A1: { value: [1], type: text }\n",
     ),
-    Some("spec.yaml: cell 'A1' value cannot be text"),
+    Some("spec.yaml: cell 'A1' must be text, a number, or a boolean"),
   )
 }
 

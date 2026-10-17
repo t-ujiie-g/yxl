@@ -1758,7 +1758,8 @@ the sheet, above and below the layout too. `body_style` styles the body alone:
 each row the layout spans, its data cells, the blanks between them and the
 formula cells. A grid border or a fill then stops where the table does. It
 does not reach the header or the footer, which have `header_style` and a
-footer row's `style`.
+footer row's `style`. A blank body cell is a style-only cell, so it is stored
+as empty text (§3): `{ total: count }` over a column with blanks counts them.
 
 ```yaml
 layouts:

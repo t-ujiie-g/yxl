@@ -51,15 +51,15 @@ fn load_expanded_cell(
         type_ = Some(
           expect_string(node, file~, context="cell '\{reference}' type"),
         )
-      "format" =>
-        match node {
-          @yaml.Null =>
-            format_cleared = @model.StyleAttrs::none().adding(NumberFormat)
-          _ =>
-            format = Some(
-              expect_string(node, file~, context="cell '\{reference}' format"),
-            )
-        }
+      "format" => {
+        let (code, cleared) = load_format(
+          node,
+          file~,
+          context="cell '\{reference}' format",
+        )
+        format = code
+        format_cleared = cleared
+      }
       "formula" =>
         formula = Some(resolve_formula(node, file~, reference~, defs~))
       "style" => style_node = Some(node)
@@ -150,32 +150,29 @@ fn load_expanded_cell(
           }
           (resolve_value_ref(name, file~, reference~, defs~), format)
         } else {
+          let value = scalar_value(
+            value_node,
+            file~,
+            context="cell '\{reference}'",
+          )
           match type_ {
-            None =>
-              (
-                scalar_value(value_node, file~, context="cell '\{reference}'"),
-                format,
-              )
-            Some("text") =>
-              (@model.Text(coerce_text(value_node, file~, reference~)), format)
-            Some("number") =>
-              (
-                @model.Number(coerce_number(value_node, file~, reference~)),
-                format,
-              )
-            Some("bool") =>
-              (@model.Bool(coerce_bool(value_node, file~, reference~)), format)
-            Some("error") =>
-              (error_literal(value_node, file~, reference~), format)
-            Some("date") =>
-              load_date_cell(value_node, format, file~, reference~)
-            Some("duration") =>
-              load_duration_cell(value_node, format, file~, reference~)
-            Some(other) =>
-              raise schema_error(
+            None => (value, format)
+            Some(name) => {
+              let type_ = parse_value_type(
+                name,
                 file~,
-                "unknown type '\{other}' for cell '\{reference}' (expected 'text', 'number', 'bool', 'date', 'duration', or 'error')",
+                context="cell '\{reference}'",
+                errors=true,
               )
+              let value = type_.read(value, file~, place="cell '\{reference}'")
+              (
+                value,
+                match format {
+                  Some(_) => format
+                  None => type_.default_format(value)
+                },
+              )
+            }
           }
         }
       }
@@ -290,167 +287,6 @@ fn strip_leading_equals(formula : String) -> String {
     formula[1:].to_owned()
   } else {
     formula
-  }
-}
-
-///|
-/// A `type: date` cell: parse the string value as a date/time and, unless the
-/// spec gives a `format`, default to a date or date-time display format.
-fn load_date_cell(
-  value_node : @yaml.Node,
-  format : String?,
-  file~ : String,
-  reference~ : String,
-) -> (@model.CellValue, String?) raise @diag.SchemaError {
-  let text = expect_string(
-    value_node,
-    file~,
-    context="date value for '\{reference}'",
-  )
-  guard @units.DateTime::parse(text) is Some(datetime) else {
-    raise schema_error(
-      file~,
-      "cell '\{reference}' is not a valid date: '\{text}'",
-    )
-  }
-  let format = match format {
-    Some(format) => format
-    None =>
-      if datetime.has_time() {
-        DEFAULT_DATETIME_FORMAT
-      } else {
-        DEFAULT_DATE_FORMAT
-      }
-  }
-  (@model.Date(datetime), Some(format))
-}
-
-///|
-/// The number formats a `type: date` cell gets when the spec sets none — ISO
-/// order, so what Excel shows matches what the spec wrote.
-const DEFAULT_DATE_FORMAT : String = "yyyy-mm-dd"
-
-///|
-/// The same, when the date carries a time of day.
-const DEFAULT_DATETIME_FORMAT : String = "yyyy-mm-dd hh:mm:ss"
-
-///|
-/// A `type: duration` cell: an elapsed time, which Excel stores as a plain
-/// number — the length as a fraction of a day — wearing an elapsed format.
-/// The serial does not depend on the date system, so it is computed here and
-/// the model carries an ordinary `Number`.
-fn load_duration_cell(
-  value_node : @yaml.Node,
-  format : String?,
-  file~ : String,
-  reference~ : String,
-) -> (@model.CellValue, String?) raise @diag.SchemaError {
-  let text = expect_string(
-    value_node,
-    file~,
-    context="duration value for '\{reference}'",
-  )
-  guard @units.Duration::parse(text) is Some(duration) else {
-    raise schema_error(
-      file~,
-      "cell '\{reference}' is not a valid duration: '\{text}' (expected H:MM or H:MM:SS, hours unbounded)",
-    )
-  }
-  (
-    @model.Number(duration.to_serial()),
-    Some(format.unwrap_or(DEFAULT_DURATION_FORMAT)),
-  )
-}
-
-///|
-/// The format a `type: duration` cell gets when the spec sets none. `[h]`
-/// keeps counting past 24 instead of rolling into days, which is what makes
-/// the display an elapsed time rather than a time of day.
-const DEFAULT_DURATION_FORMAT : String = "[h]:mm:ss"
-
-///|
-/// The Excel error literals a `type: error` cell may hold.
-let excel_errors : Array[String] = [
-  "#DIV/0!", "#N/A", "#NAME?", "#NULL!", "#NUM!", "#REF!", "#VALUE!", "#SPILL!",
-  "#CALC!", "#GETTING_DATA",
-]
-
-///|
-/// `type: error`: the value must be one of the known Excel error literals.
-fn error_literal(
-  node : @yaml.Node,
-  file~ : String,
-  reference~ : String,
-) -> @model.CellValue raise @diag.SchemaError {
-  let text = expect_string(
-    node,
-    file~,
-    context="error value for '\{reference}'",
-  )
-  guard excel_errors.contains(text) else {
-    raise schema_error(
-      file~,
-      "cell '\{reference}' is not a valid Excel error literal: '\{text}'",
-    )
-  }
-  @model.Error(text)
-}
-
-///|
-/// `type: text`: render any scalar as its text form.
-fn coerce_text(
-  node : @yaml.Node,
-  file~ : String,
-  reference~ : String,
-) -> String raise @diag.SchemaError {
-  match node {
-    @yaml.Str(text) => text
-    @yaml.Int(number) => number.to_string()
-    @yaml.Float(number) => number.to_string()
-    @yaml.Bool(flag) => if flag { "true" } else { "false" }
-    @yaml.Null | @yaml.Seq(_) | @yaml.Map(_) =>
-      raise schema_error(file~, "cell '\{reference}' value cannot be text")
-  }
-}
-
-///|
-/// `type: number`: accept a number, or a string that parses as one.
-fn coerce_number(
-  node : @yaml.Node,
-  file~ : String,
-  reference~ : String,
-) -> Double raise @diag.SchemaError {
-  match node {
-    @yaml.Int(number) => number.to_double()
-    @yaml.Float(number) => number
-    @yaml.Str(text) =>
-      @string.parse_double(text) catch {
-        _ =>
-          raise schema_error(
-            file~,
-            "cell '\{reference}' value is not a number: '\{text}'",
-          )
-      }
-    _ => raise schema_error(file~, "cell '\{reference}' value is not a number")
-  }
-}
-
-///|
-/// `type: bool`: accept a boolean, or the strings `true`/`false`.
-fn coerce_bool(
-  node : @yaml.Node,
-  file~ : String,
-  reference~ : String,
-) -> Bool raise @diag.SchemaError {
-  match node {
-    @yaml.Bool(flag) => flag
-    @yaml.Str("true") => true
-    @yaml.Str("false") => false
-    _ =>
-      raise schema_error(
-        file~,
-        "cell '\{reference}' value is not a boolean (true or false)",
-      )
   }
 }
 

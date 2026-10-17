@@ -141,15 +141,15 @@ fn load_axis_spec(
     match key {
       "at" => () // the selector, consumed by `split_band`
       "style" => style_node = Some(node)
-      "format" =>
-        match node {
-          @yaml.Null =>
-            format_cleared = @model.StyleAttrs::none().adding(NumberFormat)
-          _ =>
-            format = Some(
-              expect_string(node, file~, context="\{context} format"),
-            )
-        }
+      "format" => {
+        let (code, cleared) = load_format(
+          node,
+          file~,
+          context="\{context} format",
+        )
+        format = code
+        format_cleared = cleared
+      }
       "hidden" =>
         hidden = Some(expect_bool(node, file~, context="\{context} hidden"))
       "group" =>

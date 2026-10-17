@@ -2281,6 +2281,12 @@ not record that the rows were a layout's header.
 
 ## 9. Risks
 
+- **A styled blank is not blank.** `mbtexcel` stores a style-only cell as an
+  empty shared string, so `ISBLANK` is false and `COUNTA` counts it
+  (`docs/spec.md` §3). `body_style` (ADR-030) writes one per blank body cell,
+  so a footer's `{ total: count }` over such a column counts them too. The fix
+  is upstream, a cell the writer emits with no value; until then the spec says
+  so where it matters.
 - ~~**Windows cannot build, and it is not our code.**~~ **Closed 2026-09-09**:
   `mbtexcel@0.1.10` restructured the function, the Windows runner built, tested
   and compiled every example on the first try, and the leg now **blocks** in
@@ -2684,6 +2690,15 @@ not record that the rows were a layout's header.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-10-18** — **Refactor after the layout slices.** A cell's `type` and a
+  layout column's `type` are now one implementation, so the two cannot read a
+  value differently. Its diagnostics changed wording to match: `cell 'A1' is
+  not a number: 'abc'`, and a value of the wrong kind says what it cannot be
+  read as. The `format:` key is read in one place, the print-name constants
+  live in the model, and `layout.mbt` gave its column loading to
+  `layout_column.mbt`. The spec now says that a body style's blanks count
+  under `{ total: count }`, a limit of the Excel backend recorded in §9.
 
 - **2026-10-18** — **A layout column's `type`.** `type: text` keeps a CSV's
   `007` as text, and `type: date` makes `2026-04-01` a date shown

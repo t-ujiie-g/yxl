@@ -37,7 +37,7 @@ fn print_area(
   notes : Notes,
 ) -> @model.CellRange? {
   for defined in backend.get_defined_names() {
-    guard defined.name == PRINT_AREA_NAME && defined.scope == sheet_name else {
+    guard defined.name == @model.print_area_name && defined.scope == sheet_name else {
       continue
     }
     guard parse_sheet_range(defined.refers_to)
@@ -54,9 +54,6 @@ fn print_area(
 }
 
 ///|
-const PRINT_AREA_NAME : String = "_xlnm.Print_Area"
-
-///|
 /// The sheet's `_xlnm.Print_Titles` (ECMA-376 §18.2.6), when it repeats rows
 /// alone: `'S'!$1:$3`.
 fn print_titles(
@@ -65,7 +62,8 @@ fn print_titles(
   notes : Notes,
 ) -> @model.TitleRows? {
   for defined in backend.get_defined_names() {
-    guard defined.name == PRINT_TITLES_NAME && defined.scope == sheet_name else {
+    guard defined.name == @model.print_titles_name &&
+      defined.scope == sheet_name else {
       continue
     }
     guard @model.split_sheet_prefix(defined.refers_to)
@@ -100,9 +98,6 @@ fn title_row_span(text : String) -> @model.TitleRows? {
   }
   Some({ first, last, })
 }
-
-///|
-const PRINT_TITLES_NAME : String = "_xlnm.Print_Titles"
 
 ///|
 fn orientation(

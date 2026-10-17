@@ -478,3 +478,14 @@ test "a sheet key may not name a layout on another sheet, nor titles one with no
     ),
   )
 }
+
+///|
+test "a filter naming a layout still takes a filter column by letter" {
+  let sheet = load_ok(
+      sheet_keys_spec(
+        "    filter: { at: t, columns: [{ at: C, at_least: 1 }] }\n",
+      ),
+    ).sheets[0]
+  guard sheet.filter is Some(filter) else { fail("no filter") }
+  assert_eq(filter.columns[0].column, 3)
+}
