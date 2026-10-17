@@ -1221,13 +1221,21 @@ the first item changes what a spec looks like.
             The default date and duration formats apply only where the column
             sets no format of its own. `error` is left out: no export sends
             one. A golden test compiles a typed column as typed cells.
-      - [ ] **Slice 8 — the rest of the probe list.** Equal body values
-            merged down a column (支店); a title row merged across the
-            layout's width; `rows:` bands, `comments` and `links` on a
-            layout's rows and cells; overrides on header and footer cells by meaning;
-            a header style per level; a header without merges drawn with its
-            groups' outer borders only (#122); row outlines and page breaks
-            per footer group. Each is settled as its own item when taken.
+      - [ ] **Slice 8 — the rest of the probe list.** Each is settled as
+            its own item when taken:
+            - [x] A header without merges drawn with its groups' outer borders
+                  only (#122). **Shipped** (`docs/spec.md` §25,
+                  `examples/columns.yxl.yaml`). Each cell of an unmerged span
+                  drops, and clears, the border edges facing into the span, so a
+                  band's edge does not show through either. An edge the style
+                  never set is left alone, so a header without borders keeps its
+                  one style. `null` runs still draw every edge: they never merge.
+            - [ ] A header style per level.
+            - [ ] Equal body values merged down a column (支店).
+            - [ ] A title row merged across the layout's width.
+            - [ ] Overrides on header and footer cells by meaning; `rows:`
+                  bands, `comments` and `links` on a layout's rows and cells.
+            - [ ] Row outlines and page breaks per footer group.
 
       Open, to settle inside the slices: whether `yxl extract` should
       *propose* a block when it finds a repeated column group, which is a guess
@@ -2285,8 +2293,8 @@ not record that the rows were a layout's header.
   empty shared string, so `ISBLANK` is false and `COUNTA` counts it
   (`docs/spec.md` §3). `body_style` (ADR-030) writes one per blank body cell,
   so a footer's `{ total: count }` over such a column counts them too. The fix
-  is upstream, a cell the writer emits with no value; until then the spec says
-  so where it matters.
+  is upstream, a cell the writer emits with no value (moonbitlang/office.mbt
+  #653); until then the spec says so where it matters.
 - ~~**Windows cannot build, and it is not our code.**~~ **Closed 2026-09-09**:
   `mbtexcel@0.1.10` restructured the function, the Windows runner built, tested
   and compiled every example on the first try, and the leg now **blocks** in
@@ -2690,6 +2698,13 @@ not record that the rows were a layout's header.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-10-18** — **A header without merges keeps its groups' outline
+  (#122).** With `header_merge: false` and a bordered `header_style`, every
+  cell of a group used to draw all four edges, so lines appeared inside 売上
+  that the merged header never had. Each cell now drops the edges facing into
+  its group, which is what the merge drew. Headers without borders are
+  unchanged.
 
 - **2026-10-18** — **Refactor after the layout slices.** A cell's `type` and a
   layout column's `type` are now one implementation, so the two cannot read a
