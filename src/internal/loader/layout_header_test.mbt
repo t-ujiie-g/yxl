@@ -186,3 +186,74 @@ test "header_merge is a boolean, and needs a header to apply to" {
     ),
   )
 }
+
+///|
+/// Which border edges the cell at `reference` draws, as `"LRTB"` with `-` for
+/// a missing edge, and which it clears.
+fn edges(sheet : @model.Sheet, reference : String) -> (String, String) {
+  for cell in sheet.cells {
+    if cell.pos.to_a1() == reference {
+      guard cell.style is Some(style) else { break }
+      let borders = style.borders.unwrap_or(@model.Borders::empty())
+      let drawn = [
+        ("L", borders.left is Some(_)),
+        ("R", borders.right is Some(_)),
+        ("T", borders.top is Some(_)),
+        ("B", borders.bottom is Some(_)),
+      ]
+      let cleared = [
+        ("L", style.cleared.has(BorderLeft)),
+        ("R", style.cleared.has(BorderRight)),
+        ("T", style.cleared.has(BorderTop)),
+        ("B", style.cleared.has(BorderBottom)),
+      ]
+      let show = (flags : Array[(String, Bool)]) => {
+        flags.map(flag => if flag.1 { flag.0 } else { "-" }).join("")
+      }
+      return (show(drawn), show(cleared))
+    }
+  }
+  ("none", "none")
+}
+
+///|
+/// The header of #122: 部門 stretched down two rows beside 売上 over three.
+fn outlined_header(merge : Bool) -> @model.Sheet raise {
+  load_ok(
+    layout_spec(
+      "      - at: A1\n        rows: 1\n        header_style: { border: thin }\n        header_merge: \{merge}\n        columns:\n          - { name: item, header: 部門 }\n          - { name: cy, header: [売上, 当年] }\n          - { name: py, header: [売上, 前年] }\n          - { name: ratio, header: [売上, 前年比] }\n",
+    ),
+  ).sheets[0]
+}
+
+///|
+test "a header without merges draws each span's outer border only" {
+  let sheet = outlined_header(false)
+  assert_eq(edges(sheet, "B1"), ("L-TB", "-R--"))
+  assert_eq(edges(sheet, "C1"), ("--TB", "LR--"))
+  assert_eq(edges(sheet, "D1"), ("-RTB", "L---"))
+  assert_eq(edges(sheet, "A1"), ("LRT-", "---B"))
+  assert_eq(edges(sheet, "A2"), ("LR-B", "--T-"))
+  assert_eq(edges(sheet, "C2"), ("LRTB", "----"))
+}
+
+///|
+test "a merged header keeps every edge, as Excel draws the merge's outline" {
+  let sheet = outlined_header(true)
+  assert_eq(edges(sheet, "C1"), ("LRTB", "----"))
+  assert_eq(edges(sheet, "A2"), ("LRTB", "----"))
+}
+
+///|
+test "a header without merges and without a border keeps its one style" {
+  let sheet = load_ok(
+      layout_spec(
+        "      - at: A1\n        rows: 1\n        header_style: { fill: \"DDEBF7\" }\n        header_merge: false\n        columns:\n          - { name: cy, header: [売上, 当年] }\n          - { name: py, header: [売上, 前年] }\n",
+      ),
+    ).sheets[0]
+  let styles = sheet.cells
+    .filter(cell => cell.pos.row == 1)
+    .map(cell => cell.style)
+  assert_eq(styles[0], styles[1])
+  assert_eq(edges(sheet, "B1"), ("----", "----"))
+}

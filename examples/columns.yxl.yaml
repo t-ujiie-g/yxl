@@ -72,11 +72,12 @@ sheets:
 
   # The same header for a file a program edits afterwards: `header_merge: false`
   # writes the same cells with no merged range to shift when a column is
-  # deleted. 売上 sits over its first column; the blanks keep its colour.
+  # deleted. 売上 sits over its first column; the blanks keep its colour, and
+  # the border still outlines each group rather than every cell.
   - name: 実績（結合なし）
     layouts:
       - at: A1
-        header_style: { font: { bold: true } }
+        header_style: { font: { bold: true }, border: thin }
         header_merge: false
         values:
           - [東日本, 5200000, 4800000, 1560000, 1500000]

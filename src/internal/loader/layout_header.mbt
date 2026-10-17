@@ -104,7 +104,8 @@ fn load_header_levels(
 
 ///|
 /// Lay out every column's header levels from `at`, merging as `docs/spec.md`
-/// §25 says. Without `merge` the cells are the same, only the ranges go.
+/// §25 says. Without `merge` the ranges go, and with them the border edges
+/// inside each, which a merge would not draw.
 fn write_headers(
   sheet : @model.Sheet,
   header : LayoutHeader,
@@ -131,11 +132,24 @@ fn write_headers(
     last_col : Int32,
     last_row : Int32,
   ) -> Unit {
-    sheet.set(place(col, row), cell.value, style?)
+    let style_at = (at_col : Int32, at_row : Int32) => {
+      if merge {
+        style
+      } else {
+        inner_edges_dropped(
+          style,
+          left=at_col > col,
+          right=at_col < last_col,
+          top=at_row > row,
+          bottom=at_row < last_row,
+        )
+      }
+    }
+    sheet.set(place(col, row), cell.value, style?=style_at(col, row))
     for covered_row in row..<=last_row {
       for covered_col in col..<=last_col {
         if covered_row != row || covered_col != col {
-          blank(covered_col, covered_row, style)
+          blank(covered_col, covered_row, style_at(covered_col, covered_row))
         }
       }
     }
@@ -187,4 +201,36 @@ fn write_headers(
       col = last + 1
     }
   }
+}
+
+///|
+/// `style` without the border edges flagged, each one cleared so no band shows
+/// through. An edge the style does not set is left alone (#122).
+fn inner_edges_dropped(
+  style : @model.Style?,
+  left~ : Bool,
+  right~ : Bool,
+  top~ : Bool,
+  bottom~ : Bool,
+) -> @model.Style? {
+  guard style is Some(style) && style.borders is Some(borders) else {
+    return style
+  }
+  let mut cleared = @model.StyleAttrs::none()
+  let edge = (side : @model.Border?, inner : Bool, attr : @model.StyleAttr) => {
+    if inner && side is Some(_) {
+      cleared = cleared.adding(attr)
+      None
+    } else {
+      side
+    }
+  }
+  let kept : @model.Borders = {
+    left: edge(borders.left, left, BorderLeft),
+    right: edge(borders.right, right, BorderRight),
+    top: edge(borders.top, top, BorderTop),
+    bottom: edge(borders.bottom, bottom, BorderBottom),
+  }
+  let borders = if kept == @model.Borders::empty() { None } else { Some(kept) }
+  Some({ ..style, borders, }.clearing(cleared))
 }

@@ -1738,7 +1738,8 @@ columns:
   the expanded form (`{ value: 部門, style: key }`) lays its own style over it.
 - `header_merge: false` keeps every cell above, the blanks a merge would cover
   included, and drops only the merged ranges. The value sits in the first
-  cell; the rest are blanks in its style. Use it for a file a program edits
+  cell; the rest are blanks in its style, less the border edges inside the
+  range, so a bordered header still outlines each group as the merge did. Use it for a file a program edits
   afterwards, where deleting a column can shift a merge onto its neighbour.
 
 **`{{name}}` is that column's cell in the same row.** It is read in a column's
