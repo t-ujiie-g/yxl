@@ -1230,7 +1230,12 @@ the first item changes what a spec looks like.
                   band's edge does not show through either. An edge the style
                   never set is left alone, so a header without borders keeps its
                   one style. `null` runs still draw every edge: they never merge.
-            - [ ] A header style per level.
+            - [x] A header style per level. **Shipped** (`docs/spec.md` §25,
+                  `examples/columns.yxl.yaml`). `header_style` may be a list,
+                  one style per header row, top first; rows past its end wear
+                  its last style. A stretched cell wears the row it starts in.
+                  A list longer than the header is deep is refused rather than
+                  partly ignored.
             - [ ] Equal body values merged down a column (支店).
             - [ ] A title row merged across the layout's width.
             - [ ] Overrides on header and footer cells by meaning; `rows:`
@@ -2698,6 +2703,11 @@ not record that the rows were a layout's header.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-10-18** — **A header style per row.** `header_style: [group, sub]`
+  styles a layout's header row by row: the group labels dark, the column
+  names beneath them light, written once instead of on every column. A single
+  style still styles every row.
 
 - **2026-10-18** — **A header without merges keeps its groups' outline
   (#122).** With `header_merge: false` and a bordered `header_style`, every

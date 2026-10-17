@@ -257,3 +257,97 @@ test "a header without merges and without a border keeps its one style" {
   assert_eq(styles[0], styles[1])
   assert_eq(edges(sheet, "B1"), ("----", "----"))
 }
+
+///|
+/// The style of the cell written at `reference`, by its font's boldness and
+/// colour: `"bold"`, the colour's hex, or `"plain"`.
+fn look(sheet : @model.Sheet, reference : String) -> String {
+  for cell in sheet.cells {
+    if cell.pos.to_a1() == reference {
+      guard cell.style is Some({ font: Some(font), .. }) else { return "plain" }
+      if font.bold is Some(true) {
+        return "bold"
+      }
+      return font.color.map(color => color.hex()).unwrap_or("plain")
+    }
+  }
+  "none"
+}
+
+///|
+test "a header style list styles each row, a stretched cell by the row it starts" {
+  let sheet = load_ok(
+      layout_spec(
+        (
+          #|      - at: A1
+          #|        rows: 1
+          #|        header_style: [head, weak]
+          #|        columns:
+          #|          - { name: item, header: 部門 }
+          #|          - { name: cy, header: [売上, 当年] }
+          #|          - { name: py, header: [売上, 前年] }
+          #|          - { name: note, header: [null, 備考] }
+        ),
+      ),
+    ).sheets[0]
+  assert_eq(look(sheet, "A1"), "bold")
+  assert_eq(look(sheet, "A2"), "bold")
+  assert_eq(look(sheet, "B1"), "bold")
+  assert_eq(look(sheet, "C1"), "bold")
+  assert_eq(look(sheet, "B2"), "C00000")
+  assert_eq(look(sheet, "D1"), "bold")
+  assert_eq(look(sheet, "D2"), "C00000")
+}
+
+///|
+test "rows past a header style list wear its last style" {
+  let sheet = load_ok(
+      layout_spec(
+        "      - at: A1\n        rows: 1\n        header_style: [head, weak]\n        columns:\n          - { name: a, header: [x, y, z] }\n",
+      ),
+    ).sheets[0]
+  assert_eq(look(sheet, "A1"), "bold")
+  assert_eq(look(sheet, "A2"), "C00000")
+  assert_eq(look(sheet, "A3"), "C00000")
+}
+
+///|
+test "a header cell's own style lies over its row's style" {
+  let sheet = load_ok(
+      layout_spec(
+        "      - at: A1\n        rows: 1\n        header_style: [head, weak]\n        columns:\n          - { name: a, header: [x, { value: y, style: head }] }\n",
+      ),
+    ).sheets[0]
+  guard sheet.cells[1].style is Some({ font: Some(font), .. }) else {
+    fail("no font")
+  }
+  assert_eq(font.bold, Some(true))
+  assert_eq(font.color.map(color => color.hex()), Some("C00000"))
+}
+
+///|
+test "a header style list is not empty, nor longer than the header is deep" {
+  let spec = style => {
+    layout_spec(
+      "      - at: A1\n        rows: 1\n        header_style: " +
+      style +
+      "\n        columns:\n          - { name: a, header: [x, y] }\n",
+    )
+  }
+  assert_eq(
+    schema_message(spec("[]")),
+    Some("spec.yaml: layout 'A1' 'header_style' is an empty list"),
+  )
+  assert_eq(
+    schema_message(spec("[head, weak, head]")),
+    Some(
+      "spec.yaml: layout 'A1' 'header_style' lists 3 styles, but the header is 2 rows deep",
+    ),
+  )
+  assert_eq(
+    schema_message(spec("[head, nope]")),
+    Some(
+      "spec.yaml: layout 'A1' header_style references undefined style 'nope'",
+    ),
+  )
+}

@@ -14,6 +14,10 @@ defs:
       font: { bold: true, color: "FFFFFF" }
       fill: "1F3864"
       align: { horizontal: center }
+    subheader:
+      font: { bold: true }
+      fill: "D9E1F2"
+      align: { horizontal: center }
     fall:
       font: { color: "9C0006" }
     sales: { fill: "DDEBF7" }
@@ -41,7 +45,9 @@ sheets:
       A1: 2026年度 上期 前年比
     layouts:
       - at: A2
-        header_style: header
+        # The group row dark, the rows beneath it light; 部門 runs down both
+        # rows in the style of the row it starts in.
+        header_style: [header, subheader]
         # A grid over the body alone. A column's `style` would run past the
         # table to the sheet's last row.
         body_style: { border: thin }
