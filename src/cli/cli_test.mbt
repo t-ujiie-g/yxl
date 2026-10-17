@@ -690,6 +690,33 @@ test "golden: freeze, filter and print naming a layout compile as their letters 
 }
 
 ///|
+test "golden: a typed layout column compiles as typed cells do" {
+  let layout =
+    #|sheets:
+    #|  - name: S
+    #|    layouts:
+    #|      - at: A1
+    #|        values: [["007", "2026-04-01"]]
+    #|        columns:
+    #|          - { name: code, header: Code, type: text }
+    #|          - { name: opened, header: Opened, type: date }
+    #|
+  let by_hand =
+    #|sheets:
+    #|  - name: S
+    #|    cells:
+    #|      A1: Code
+    #|      B1: Opened
+    #|      A2: { value: "007", type: text }
+    #|      B2: { value: "2026-04-01", type: date }
+    #|
+  assert_eq(
+    @cli.compile(layout, file="spec.yaml"),
+    @cli.compile(by_hand, file="spec.yaml"),
+  )
+}
+
+///|
 test "round trip: a header that does not merge reopens with no merged cells" {
   let source =
     #|sheets:

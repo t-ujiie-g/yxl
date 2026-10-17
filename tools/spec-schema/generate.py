@@ -1252,6 +1252,7 @@ def build(doc: Reference) -> dict:
         {
             "name": ref("text"),
             "field": ref("text"),
+            "type": enum(["text", "number", "bool", "date", "duration"]),
             "header": ref("header_levels"),
             "formula": ref("text"),
             "conditional": seq(

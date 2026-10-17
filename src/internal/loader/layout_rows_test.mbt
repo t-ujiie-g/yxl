@@ -165,3 +165,131 @@ test "a layout takes one source of rows, and a CSV needs its header row" {
     ),
   )
 }
+
+///|
+/// The value and number format a loaded sheet holds at `reference`.
+fn typed_cell(
+  sheet : @model.Sheet,
+  reference : String,
+) -> (@model.CellValue, String?)? {
+  for cell in sheet.cells {
+    if cell.pos.to_a1() == reference {
+      return Some((cell.value, cell.style.bind(style => style.number_format)))
+    }
+  }
+  None
+}
+
+///|
+test "a column's type reads a CSV field as written, so a code keeps its zeros" {
+  let source =
+    #|sheets:
+    #|  - name: S
+    #|    layouts:
+    #|      - at: A1
+    #|        csv: shops.csv
+    #|        columns:
+    #|          - { name: code, type: text }
+    #|          - { name: opened, type: date }
+    #|          - { name: seats, type: number }
+    #|          - { name: open, type: bool }
+    #|          - { name: hours, type: duration }
+    #|          - { name: plain }
+    #|
+  let sheet = load_ok(source, files={
+      "shops.csv": "code,opened,seats,open,hours,plain\n007,2026-04-01,\"12\",true,26:30,007\n,2026-04-01 09:30:00,,,,\n",
+    }).sheets[0]
+  assert_eq(typed_cell(sheet, "A1"), Some((Text("007"), None)))
+  assert_eq(
+    typed_cell(sheet, "B1"),
+    Some(
+      (Date(@units.DateTime::parse("2026-04-01").unwrap()), Some("yyyy-mm-dd")),
+    ),
+  )
+  assert_eq(typed_cell(sheet, "C1"), Some((Number(12.0), None)))
+  assert_eq(typed_cell(sheet, "D1"), Some((Bool(true), None)))
+  assert_eq(
+    typed_cell(sheet, "E1").map(cell => cell.1),
+    Some(Some("[h]:mm:ss")),
+  )
+  assert_eq(typed_cell(sheet, "F1"), Some((Number(7.0), None)))
+  assert_eq(typed_cell(sheet, "A2"), None)
+  assert_eq(
+    typed_cell(sheet, "B2").map(cell => cell.1),
+    Some(Some("yyyy-mm-dd hh:mm:ss")),
+  )
+}
+
+///|
+test "a column's type reads inline rows too, and a set format wins over the default" {
+  let sheet = load_ok(
+      layout_spec(
+        (
+          #|      - at: A1
+          #|        values: [[7, "2026-04-01", "2026-04-01", "2026-04-01"]]
+          #|        columns:
+          #|          - { name: code, type: text }
+          #|          - { name: a, type: date }
+          #|          - { name: b, type: date, format: "yyyy/m/d" }
+          #|          - { name: c, type: date, body_style: { border: thin, format: "m月d日" } }
+          #|
+        ),
+      ),
+    ).sheets[0]
+  assert_eq(typed_cell(sheet, "A1"), Some((Text("7"), None)))
+  assert_eq(
+    typed_cell(sheet, "B1").map(cell => cell.1),
+    Some(Some("yyyy-mm-dd")),
+  )
+  assert_eq(typed_cell(sheet, "C1").map(cell => cell.1), Some(None))
+  assert_eq(typed_cell(sheet, "D1").map(cell => cell.1), Some(Some("m月d日")))
+}
+
+///|
+test "a field its column's type cannot read is refused with its row and column" {
+  let typed = (column, row) => {
+    schema_message(
+      layout_spec(
+        "      - at: A1\n        values: [[" +
+        row +
+        "]]\n        columns:\n          - " +
+        column +
+        "\n",
+      ),
+    )
+  }
+  assert_eq(
+    typed("{ name: d, type: date }", "\"4月1日\""),
+    Some(
+      "spec.yaml: row 1 of layout 'A1' column 'd' is not a valid date: '4月1日'",
+    ),
+  )
+  assert_eq(
+    typed("{ name: n, type: number }", "\"12個\""),
+    Some("spec.yaml: row 1 of layout 'A1' column 'n' is not a number: '12個'"),
+  )
+  assert_eq(
+    typed("{ name: f, type: bool }", "1"),
+    Some(
+      "spec.yaml: row 1 of layout 'A1' column 'f' cannot be read as a boolean: '1'",
+    ),
+  )
+  assert_eq(
+    typed("{ name: h, type: duration }", "\"1h\""),
+    Some(
+      "spec.yaml: row 1 of layout 'A1' column 'h' is not a valid duration: '1h' (expected H:MM or H:MM:SS, hours unbounded)",
+    ),
+  )
+  assert_eq(
+    typed("{ name: e, type: error }", "x"),
+    Some(
+      "spec.yaml: unknown type 'error' for layout 'A1' column 'e' (expected 'text', 'number', 'bool', 'date', or 'duration')",
+    ),
+  )
+  assert_eq(
+    typed("{ name: t, type: text, formula: \"1\" }", "x"),
+    Some(
+      "spec.yaml: layout 'A1' column 't' has both a 'type' and a 'formula'; a formula column takes no data",
+    ),
+  )
+}
