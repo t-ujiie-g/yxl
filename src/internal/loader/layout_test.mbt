@@ -219,7 +219,7 @@ test "a column's unknown key lists both its own keys and its band's" {
       ),
     ),
     Some(
-      "spec.yaml: unknown key 'at' in layout 'A1' column 'a' (expected 'name', 'header', 'field', 'formula', 'conditional', 'body_style', 'width', 'style', 'format', 'hidden', or 'group')",
+      "spec.yaml: unknown key 'at' in layout 'A1' column 'a' (expected 'name', 'header', 'field', 'type', 'formula', 'conditional', 'body_style', 'width', 'style', 'format', 'hidden', or 'group')",
     ),
   )
 }

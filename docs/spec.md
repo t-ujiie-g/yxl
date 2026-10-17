@@ -1707,6 +1707,7 @@ Each column:
 |---|---|
 | `name` | **Required.** Letters, digits and `_`, or any non-ASCII character, not starting with a digit. Unique on the sheet. |
 | `field` | The CSV or JSON field this column reads, when it differs from `name`. Only for a `csv`, or `json` of objects. |
+| `type` | What each field of the column is: `text`, `number`, `bool`, `date` or `duration`, read as a cell's `type` reads its value (§3). Not with a `formula`. |
 | `header` | A cell (§3), or a list of them, one per header row, top first. `null` in the list is a blank. |
 | `formula` | Filled down the body as a formula range (§3), written for the body's first row. |
 | `conditional` | Conditional formats (§10) over the body, written without `at`. |
@@ -1784,6 +1785,18 @@ changes no data row.
   order does not matter, and fields no column asks for are ignored. A field a
   column asks for that is not in the header is an error.
 - A `json:` array of objects is matched the same way, by key.
+- A column's `type` says what its fields are, where guessing would be wrong.
+  A CSV field is then read as written: `type: text` keeps `007` as text, and
+  `type: date` makes `2026-04-01` a date. A date or a duration takes the same
+  default number format a typed cell does, unless the column's `format` or
+  `body_style` sets one. A field the type cannot read is an error naming its
+  row and column.
+
+```yaml
+columns:
+  - { name: code, header: 店番, type: text }       # 007, not 7
+  - { name: opened, header: 開店日, type: date }    # a date, shown yyyy-mm-dd
+```
 
 ```yaml
 layouts:

@@ -2565,6 +2565,25 @@
           "description": "The CSV or JSON field this column reads, when it differs from `name`. Only for a `csv`, or `json` of objects.",
           "markdownDescription": "The CSV or JSON field this column reads, when it differs from `name`. Only for a `csv`, or `json` of objects."
         },
+        "type": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "text",
+                "number",
+                "bool",
+                "date",
+                "duration"
+              ]
+            },
+            {
+              "$ref": "#/definitions/parameterized"
+            }
+          ],
+          "description": "What each field of the column is: `text`, `number`, `bool`, `date` or `duration`, read as a cell's `type` reads its value (§3). Not with a `formula`.",
+          "markdownDescription": "What each field of the column is: `text`, `number`, `bool`, `date` or `duration`, read as a cell's `type` reads its value (§3). Not with a `formula`."
+        },
         "header": {
           "allOf": [
             {

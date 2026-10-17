@@ -10,7 +10,23 @@ fn load_body_data(
   context~ : String,
 ) -> Rows raise {
   if source is Some((key, value)) {
-    return load_layout_rows(key, value, inputs, file~, resolve~, context~)
+    let rows = load_layout_rows(key, value, inputs, file~, resolve~, context~)
+    return rows.mapi((index, row) => {
+      row.mapi((field, value) => {
+        match (inputs[field].type_, value) {
+          (Some(type_), Some(value)) =>
+            Some(
+              typed_field(
+                value,
+                type_,
+                file~,
+                place="row \{index + 1} of \{context} column '\{inputs[field].name}'",
+              ),
+            )
+          _ => value
+        }
+      })
+    })
   }
   for column in columns {
     if column.field is Some(_) {
@@ -61,23 +77,159 @@ fn body_rows(
 }
 
 ///|
+/// An input column as its body is written: where, in what look, and the type
+/// whose default number format a cell needs when the column sets none.
+priv struct BodyInput {
+  col : Int32
+  style : @model.Style?
+  type_ : ColumnType?
+}
+
+///|
 fn write_body_rows(
   sheet : @model.Sheet,
   data : Rows,
-  inputs : Array[(Int32, @model.Style?)],
+  inputs : Array[BodyInput],
   body_first~ : Int32,
   rows~ : Int32,
 ) -> Unit {
   for row_index in 0..<rows {
     let row = data.get(row_index).unwrap_or([])
     for field_index, input in inputs {
-      let (col, style) = input
-      let at = @units.CellRef(col~, row=body_first + row_index)
+      let at = @units.CellRef(col=input.col, row=body_first + row_index)
       match row.get(field_index) {
-        Some(Some(value)) => sheet.set(at, value, style?)
-        _ => if style is Some(style) { sheet.set(at, Blank, style~) }
+        Some(Some(value)) => {
+          let style = match default_format(input.type_, value) {
+            Some(code) =>
+              @model.Style::layer(
+                input.style,
+                Some(@model.Style::number_format(code)),
+              )
+            None => input.style
+          }
+          sheet.set(at, value, style?)
+        }
+        _ => if input.style is Some(style) { sheet.set(at, Blank, style~) }
       }
     }
+  }
+}
+
+///|
+/// A layout column's `type`: what each of its fields is read as.
+priv enum ColumnType {
+  Text
+  Number
+  Bool
+  Date
+  Duration
+}
+
+///|
+fn load_column_type(
+  node : @yaml.Node,
+  file~ : String,
+  context~ : String,
+) -> ColumnType raise @diag.SchemaError {
+  match expect_string(node, file~, context="\{context} 'type'") {
+    "text" => Text
+    "number" => Number
+    "bool" => Bool
+    "date" => Date
+    "duration" => Duration
+    other =>
+      raise schema_error(
+        file~,
+        "unknown type '\{other}' for \{context} (expected 'text', 'number', 'bool', 'date', or 'duration')",
+      )
+  }
+}
+
+///|
+/// One field read as its column's `type`, as a `type:` on a cell reads its value
+/// (`docs/spec.md` §3). `place` names the field in a diagnostic.
+fn typed_field(
+  value : @model.CellValue,
+  type_ : ColumnType,
+  file~ : String,
+  place~ : String,
+) -> @model.CellValue raise @diag.SchemaError {
+  let text = match value {
+    Text(text) => Some(text)
+    _ => None
+  }
+  match (type_, value) {
+    (Text, Text(_)) => value
+    (Text, Number(number)) => Text(number.to_string())
+    (Text, Bool(flag)) => Text(if flag { "true" } else { "false" })
+    (Number, Number(_)) => value
+    (Number, Text(text)) =>
+      Number(
+        @string.parse_double(text) catch {
+          _ => raise schema_error(file~, "\{place} is not a number: '\{text}'")
+        },
+      )
+    (Bool, Bool(_)) => value
+    (Bool, Text("true")) => Bool(true)
+    (Bool, Text("false")) => Bool(false)
+    (Date, Text(text)) =>
+      match @units.DateTime::parse(text) {
+        Some(datetime) => Date(datetime)
+        None =>
+          raise schema_error(file~, "\{place} is not a valid date: '\{text}'")
+      }
+    (Duration, Text(text)) =>
+      match @units.Duration::parse(text) {
+        Some(duration) => Number(duration.to_serial())
+        None =>
+          raise schema_error(
+            file~,
+            "\{place} is not a valid duration: '\{text}' (expected H:MM or H:MM:SS, hours unbounded)",
+          )
+      }
+    _ =>
+      raise schema_error(
+        file~,
+        "\{place} cannot be read as \{type_name(type_)}: '\{text.unwrap_or(render_plain(value))}'",
+      )
+  }
+}
+
+///|
+fn type_name(type_ : ColumnType) -> String {
+  match type_ {
+    Text => "text"
+    Number => "a number"
+    Bool => "a boolean"
+    Date => "a date"
+    Duration => "a duration"
+  }
+}
+
+///|
+fn render_plain(value : @model.CellValue) -> String {
+  match value {
+    Number(number) => number.to_string()
+    Bool(flag) => if flag { "true" } else { "false" }
+    _ => ""
+  }
+}
+
+///|
+/// The number format a typed cell takes when its column sets none, as a typed
+/// cell's does (`docs/spec.md` §3).
+fn default_format(type_ : ColumnType?, value : @model.CellValue) -> String? {
+  match (type_, value) {
+    (Some(Date), Date(datetime)) =>
+      Some(
+        if datetime.has_time() {
+          DEFAULT_DATETIME_FORMAT
+        } else {
+          DEFAULT_DATE_FORMAT
+        },
+      )
+    (Some(Duration), Number(_)) => Some(DEFAULT_DURATION_FORMAT)
+    _ => None
   }
 }
 
@@ -139,8 +291,11 @@ fn load_layout_rows(
         index
       })
       body.map(record => {
-        picks.map(index => {
+        picks.mapi((pick, index) => {
           match record.get(index) {
+            // A typed column reads the field as written, so `007` stays text.
+            Some(("", _)) if inputs[pick].type_ is Some(_) => None
+            Some((text, _)) if inputs[pick].type_ is Some(_) => Some(Text(text))
             Some((text, quoted)) => csv_field(text, quoted)
             None => None
           }

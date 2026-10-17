@@ -20,7 +20,7 @@ fn load_layouts(
 ///|
 /// The keys a layout column reads itself; the rest are its band's (§4).
 let layout_column_keys : Array[String] = [
-  "name", "header", "field", "formula", "conditional", "body_style",
+  "name", "header", "field", "type", "formula", "conditional", "body_style",
 ]
 
 ///|
@@ -44,6 +44,7 @@ priv struct LayoutColumn {
   header : @yaml.Node?
   scope : String?
   field : String?
+  type_ : ColumnType?
   formula : @yaml.Node?
   conditional : @yaml.Node?
   body_style : @yaml.Node?
@@ -182,13 +183,30 @@ fn load_layout(
     )
   }
   write_headers(sheet, header, at~)
-  write_body_rows(
-    sheet,
-    data,
-    inputs.map(column => (column.col, body_style_of[column.name])),
-    body_first~,
-    rows~,
-  )
+  let body_inputs = []
+  for column in inputs {
+    let body_style = body_style_of[column.name]
+    let band = load_axis_spec(
+      column.band,
+      file~,
+      defs~,
+      size_key="width",
+      context="\{context} column '\{column.name}'",
+    )
+    let formatted = [band.style, body_style].any(style => {
+      style is Some({ number_format: Some(_), .. })
+    })
+    body_inputs.push({
+      col: column.col,
+      style: body_style,
+      type_: if formatted {
+        None
+      } else {
+        column.type_
+      },
+    })
+  }
+  write_body_rows(sheet, data, body_inputs, body_first~, rows~)
   for column in columns {
     write_layout_column(
       column,
@@ -417,6 +435,7 @@ fn load_layout_column(
   let where_ = "\{context} column '\{name}'"
   let mut header = None
   let mut field = None
+  let mut type_ = None
   let mut formula = None
   let mut conditional = None
   let mut body_style = None
@@ -428,6 +447,7 @@ fn load_layout_column(
       "header" => header = Some(value)
       "field" =>
         field = Some(expect_string(value, file~, context="\{where_} 'field'"))
+      "type" => type_ = Some(load_column_type(value, file~, context=where_))
       "formula" => formula = Some(value)
       "conditional" => conditional = Some(value)
       "body_style" => body_style = Some(value)
@@ -445,12 +465,19 @@ fn load_layout_column(
       "\{where_} has both a 'field' and a 'formula'; a formula column takes no data",
     )
   }
+  guard !(type_ is Some(_) && formula is Some(_)) else {
+    raise schema_error(
+      file~,
+      "\{where_} has both a 'type' and a 'formula'; a formula column takes no data",
+    )
+  }
   {
     name,
     col,
     header,
     scope: None,
     field,
+    type_,
     formula,
     conditional,
     body_style,

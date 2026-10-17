@@ -1212,9 +1212,15 @@ the first item changes what a spec looks like.
             each to the bytes its letters give. `merges`, `rows:` bands,
             `comments` and `links` moved to slice 8: each wants a cell or a
             row by meaning, which is a design of its own.
-      - [ ] **Slice 7 — a column's `type`.** A CSV's dates stay text, and a
+      - [x] **Slice 7 — a column's `type`.** A CSV's dates stay text, and a
             code like `007` becomes 7 unless the export quoted it. A layout
             column may say what its field is.
+            **Shipped** (`docs/spec.md` §25). `text`, `number`, `bool`, `date`
+            and `duration`, read as a cell's `type` reads its value. A CSV
+            field of a typed column skips the guess and is read as written.
+            The default date and duration formats apply only where the column
+            sets no format of its own. `error` is left out: no export sends
+            one. A golden test compiles a typed column as typed cells.
       - [ ] **Slice 8 — the rest of the probe list.** Equal body values
             merged down a column (支店); a title row merged across the
             layout's width; `rows:` bands, `comments` and `links` on a
@@ -2678,6 +2684,12 @@ not record that the rows were a layout's header.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-10-18** — **A layout column's `type`.** `type: text` keeps a CSV's
+  `007` as text, and `type: date` makes `2026-04-01` a date shown
+  `yyyy-mm-dd`, where the field used to be guessed at. `number`, `bool` and
+  `duration` work the same way. A field the type cannot read is an error
+  naming its row and column.
 
 - **2026-10-17** — **Freeze, filter and print by a layout's name (ADR-031).**
   `freeze: { layout: 店舗, columns: 1 }` holds a layout's header rows and its
