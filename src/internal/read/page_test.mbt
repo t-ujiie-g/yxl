@@ -16,6 +16,7 @@ fn page(
     header,
     footer,
     breaks: breaks.map(at),
+    title_rows: None,
   }
 }
 
@@ -97,4 +98,13 @@ test "print settings the spec has no word for are named" {
   )
   assert_true(noted(recovered, "paper size"))
   assert_true(noted(recovered, "black-and-white"))
+}
+
+///|
+test "print titles come back as the rows they repeat" {
+  let (wb, sheet) = fixture()
+  sheet.set(at("A1"), Text("x"))
+  let setup = { ..page(), title_rows: Some({ first: 1, last: 2, }), }
+  sheet.set_page_setup(setup)
+  assert_eq(only_sheet(wb).page, Some(setup))
 }

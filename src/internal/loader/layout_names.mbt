@@ -6,6 +6,7 @@ priv struct NamedLayout {
   columns : Array[(String, Int32)]
   input_of : Map[String, Int32]
   data : Rows
+  first_row : Int32
   header_row : Int32?
   body_first : Int32
   body_last : Int32
@@ -234,6 +235,37 @@ fn table_range(layout : NamedLayout) -> @model.CellRange {
       row=layout.body_last,
     ),
   }
+}
+
+///|
+/// The whole of a layout: every header row, the body and the footer.
+fn layout_extent(layout : NamedLayout) -> @model.CellRange {
+  {
+    top_left: @units.CellRef(col=layout.columns[0].1, row=layout.first_row),
+    bottom_right: @units.CellRef(
+      col=layout.columns[layout.columns.length() - 1].1,
+      row=layout.last_row,
+    ),
+  }
+}
+
+///|
+/// The layout `name` names, when one does; it must be on `sheet`.
+fn layout_here(
+  name : String,
+  defs~ : Defs,
+  sheet~ : String,
+  file~ : String,
+  what~ : String,
+) -> NamedLayout? raise @diag.SchemaError {
+  guard defs.layouts.get(name) is Some(layout) else { return None }
+  guard layout.sheet == sheet else {
+    raise schema_error(
+      file~,
+      "\{what} '\{name}' names a layout on sheet '\{layout.sheet}', not this one",
+    )
+  }
+  Some(layout)
 }
 
 ///|

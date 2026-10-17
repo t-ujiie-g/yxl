@@ -1580,14 +1580,14 @@
     "filter": {
       "anyOf": [
         {
-          "$ref": "#/definitions/range"
+          "$ref": "#/definitions/layout_range"
         },
         {
           "type": "object",
           "additionalProperties": false,
           "properties": {
             "at": {
-              "$ref": "#/definitions/range"
+              "$ref": "#/definitions/layout_range"
             },
             "columns": {
               "anyOf": [
@@ -3537,7 +3537,7 @@
       "description": "What Excel prints, and how (§5).",
       "properties": {
         "area": {
-          "$ref": "#/definitions/range"
+          "$ref": "#/definitions/layout_range"
         },
         "orientation": {
           "anyOf": [
@@ -3578,6 +3578,20 @@
             },
             {
               "$ref": "#/definitions/include"
+            }
+          ]
+        },
+        "titles": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/integer"
+            },
+            {
+              "type": "string",
+              "pattern": "^[0-9]+(-[0-9]+)?$"
+            },
+            {
+              "$ref": "#/definitions/layout_ref"
             }
           ]
         },
@@ -4230,13 +4244,41 @@
           "markdownDescription": "`hidden` can be undone in Excel's UI; `very_hidden` only via VBA. **At least one sheet must stay visible.**"
         },
         "freeze": {
-          "allOf": [
+          "anyOf": [
             {
               "$ref": "#/definitions/cell"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "layout": {
+                  "$ref": "#/definitions/layout_ref"
+                },
+                "columns": {
+                  "$ref": "#/definitions/integer"
+                },
+                "$include": {
+                  "type": "string",
+                  "description": "Another document, pasted in place of this node (§8)."
+                }
+              },
+              "anyOf": [
+                {
+                  "required": [
+                    "layout"
+                  ]
+                },
+                {
+                  "required": [
+                    "$include"
+                  ]
+                }
+              ]
             }
           ],
-          "description": "Rows above and columns left of it stay put. `A1` freezes nothing and is an error.",
-          "markdownDescription": "Rows above and columns left of it stay put. `A1` freezes nothing and is an error."
+          "description": "Rows above and columns left of it stay put. `A1` freezes nothing and is an error. The mapping freezes above a named layout's body, and through its first `columns` (default 0). §25.",
+          "markdownDescription": "Rows above and columns left of it stay put. `A1` freezes nothing and is an error. The mapping freezes above a named layout's body, and through its first `columns` (default 0). §25."
         },
         "split": {
           "type": "object",

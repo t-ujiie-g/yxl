@@ -108,12 +108,12 @@ sheets:
 | `layouts` | sequence | Regions of named columns. §25. |
 | `merges` | sequence of `A1:B2` | Corners in any order; the merge shows the top-left value. |
 | `visibility` | bareword | `hidden` can be undone in Excel's UI; `very_hidden` only via VBA. **At least one sheet must stay visible.** |
-| `freeze` | cell | Rows above and columns left of it stay put. `A1` freezes nothing and is an error. |
+| `freeze` | cell, or `{ layout, columns }` | Rows above and columns left of it stay put. `A1` freezes nothing and is an error. The mapping freezes above a named layout's body, and through its first `columns` (default 0). §25. |
 | `split` | `{ x, y }` | A draggable splitter, in **points** from the top-left; `0` leaves that axis unsplit. Mutually exclusive with `freeze`. |
 | `gridlines` | boolean | The on-screen grid, *not* cell borders. |
 | `tab_color` | hex `RRGGBB` | |
 | `print` | mapping | §5. |
-| `filter` | range | Excel's auto filter. §10. |
+| `filter` | range, or a layout | Excel's auto filter. §10. |
 | `validations` | sequence | What cells will accept. §10. |
 | `links` | mapping | Hyperlinks, by cell. §10. |
 | `conditional` | sequence | Formatting decided by the value. §10. |
@@ -382,7 +382,12 @@ print:
   header: "&CQuarterly report"
   footer: "&LPage &P of &N"
   breaks: [A21, C1]          # each starts a new page above and left of itself
+  titles: 1-3                # rows repeated atop every page
 ```
+
+`area` may be a named layout on the sheet: all of it, every header row and the
+footer included. `titles` is a row, a `first-last` span, or a named layout,
+whose header rows then repeat.
 
 Margins are in **inches** (Excel's unit here) and may not be negative. `scale`
 and `fit` are the two halves of Excel's scaling control and **cannot be
@@ -1848,6 +1853,25 @@ placed before any sheet loads:
 On the layout's own sheet, a range that *covers* cells may name it too: a
 table's `at: 店舗`, which declares the layout an Excel table, and a
 validation's or a conditional format's `at: 店舗.cy`.
+
+**So may the sheet's own keys**, on the layout's sheet:
+
+```yaml
+freeze: { layout: 店舗, columns: 1 }   # the header rows, and the first column
+filter:
+  at: 店舗                             # its bottom header row and its body
+  columns: [{ at: branch, values: [東京] }]   # a column by name
+print:
+  area: 店舗                           # all of it, header and footer included
+  titles: 店舗                         # its header rows, on every page
+```
+
+- `freeze` holds the rows above the body. `columns` adds the layout's first
+  columns, and any columns left of the layout with them.
+- `filter` covers the table, as `店舗` does wherever a range is read. A
+  filter column's `at` may then be a column's name.
+- `print.area` takes the whole layout; `print.titles` its header rows, so a
+  layout with no header is refused there.
 
 **Anything anchored at a cell may follow a layout instead.** Write
 `at: { below: 店舗 }` for a chart, an image, a shape, a control, a slicer, a
