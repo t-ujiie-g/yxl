@@ -1,14 +1,28 @@
 ///|
-/// A sheet's `filter:` — a range, or `{ at, columns }` with saved criteria
-/// (`docs/spec.md` §10). A repeated key is a parse error, so one per sheet.
+/// A sheet's `filter:` — a range or a layout, or `{ at, columns }` with saved
+/// criteria (`docs/spec.md` §10). A repeated key is a parse error, so one per
+/// sheet.
 fn load_filter(
   node : @yaml.Node,
   sheet : @model.Sheet,
   file~ : String,
+  defs~ : Defs,
 ) -> Unit raise @diag.SchemaError {
+  let columns_of : Map[String, Int32] = Map([])
+  let filter_range = text => {
+    match layout_here(text, defs~, sheet=sheet.name, file~, what="filter") {
+      Some(layout) => {
+        for column in layout.columns {
+          columns_of[column.0] = column.1
+        }
+        table_range(layout)
+      }
+      None => parse_range(text, file~, what="filter range")
+    }
+  }
   guard node is @yaml.Map(entries) else {
     let text = expect_string(node, file~, context="sheet 'filter'")
-    sheet.set_filter(parse_range(text, file~, what="filter range"))
+    sheet.set_filter(filter_range(text))
     return
   }
   let mut range = None
@@ -17,7 +31,7 @@ fn load_filter(
     match entry {
       ("at", value) => {
         let text = expect_string(value, file~, context="filter 'at'")
-        range = Some(parse_range(text, file~, what="filter range"))
+        range = Some(filter_range(text))
       }
       ("columns", value) =>
         columns = expect_seq(value, file~, context="filter 'columns'")
@@ -33,7 +47,12 @@ fn load_filter(
   }
   let loaded : Array[@model.FilterColumn] = []
   for column in columns {
-    let (filter_column, letters) = load_filter_column(column, range, file~)
+    let (filter_column, letters) = load_filter_column(
+      column,
+      range,
+      columns_of,
+      file~,
+    )
     if loaded.iter().any(earlier => earlier.column == filter_column.column) {
       raise schema_error(
         file~,
@@ -47,9 +66,11 @@ fn load_filter(
 
 ///|
 /// One `filter.columns` entry: `at:` and either `values:` or one comparison.
+/// Over a layout, `at:` may name one of its columns.
 fn load_filter_column(
   node : @yaml.Node,
   range : @model.CellRange,
+  columns_of : Map[String, Int32],
   file~ : String,
 ) -> (@model.FilterColumn, String) raise @diag.SchemaError {
   let entries = expect_map(node, file~, context="filter column")
@@ -58,7 +79,11 @@ fn load_filter_column(
   for entry in entries {
     if entry is ("at", value) {
       let text = expect_string(value, file~, context="filter column 'at'")
-      guard @units.parse_column(text) is Some(index) else {
+      let found = match columns_of.get(text) {
+        Some(col) => Some(col)
+        None => @units.parse_column(text)
+      }
+      guard found is Some(index) else {
         raise schema_error(
           file~,
           "filter column 'at' must be a column letter, got '\{text}'",

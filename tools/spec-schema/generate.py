@@ -664,7 +664,7 @@ def build(doc: Reference) -> dict:
     )
     define["print"] = obj(
         {
-            "area": ref("range"),
+            "area": ref("layout_range"),
             "orientation": enum(doc.alternatives(printing, "orientation")),
             "margins": ref("margins"),
             "scale": ref("integer"),
@@ -672,6 +672,13 @@ def build(doc: Reference) -> dict:
             "header": ref("text"),
             "footer": ref("text"),
             "breaks": seq(ref("cell")),
+            "titles": {
+                "anyOf": [
+                    ref("integer"),
+                    {"type": "string", "pattern": "^[0-9]+(-[0-9]+)?$"},
+                    ref("layout_ref"),
+                ]
+            },
         },
         documented=doc.example(printing, "print"),
         description="What Excel prints, and how (§5).",
@@ -744,9 +751,9 @@ def build(doc: Reference) -> dict:
     ]
     define["filter"] = {
         "anyOf": [
-            ref("range"),
+            ref("layout_range"),
             obj(
-                {"at": ref("range"), "columns": seq(ref("filter_column"))},
+                {"at": ref("layout_range"), "columns": seq(ref("filter_column"))},
                 documented=filter_keys,
                 required=("at",),
                 where="a filter",
@@ -1351,7 +1358,17 @@ def build(doc: Reference) -> dict:
             "rows": seq(ref("row_band")),
             "merges": seq(ref("range")),
             "visibility": enum(doc.alternatives("2. Sheets", "visibility")),
-            "freeze": ref("cell"),
+            "freeze": {
+                "anyOf": [
+                    ref("cell"),
+                    obj(
+                        {"layout": ref("layout_ref"), "columns": ref("integer")},
+                        documented=braced(doc.types("2. Sheets")["freeze"]),
+                        required=("layout",),
+                        where="a freeze at a layout",
+                    ),
+                ]
+            },
             "split": obj(
                 {"x": ref("number"), "y": ref("number")},
                 documented=braced(doc.types("2. Sheets")["split"]),

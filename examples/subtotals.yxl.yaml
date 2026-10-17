@@ -26,7 +26,10 @@ defs:
 
 sheets:
   - name: 店舗別
-    freeze: A3
+    # Held and printed by the layout's name, so neither moves when the title
+    # above it grows a row: the header stays put, and repeats on every page.
+    freeze: { layout: 店舗 }
+    print: { area: 店舗, titles: 店舗 }
     cells:
       A1: 2026年度 上期 店舗別実績
     layouts:

@@ -511,3 +511,31 @@ test "Picture::key separates an anchored picture from the sheet background" {
     @render.Picture::key("Sales", None),
   )
 }
+
+///|
+test "print titles render as one row, or as a span" {
+  let (wb, sheet) = fixture()
+  sheet.set_page_setup({
+    ..@model.PageSetup::empty(),
+    title_rows: Some({ first: 2, last: 3, }),
+  })
+  wb
+  .add_sheet("T")
+  .set_page_setup({
+    ..@model.PageSetup::empty(),
+    title_rows: Some({ first: 1, last: 1, }),
+  })
+  inspect(
+    spec(wb),
+    content=(
+      #|sheets:
+      #|  - name: S
+      #|    print:
+      #|      titles: "2-3"
+      #|  - name: T
+      #|    print:
+      #|      titles: 1
+      #|
+    ),
+  )
+}

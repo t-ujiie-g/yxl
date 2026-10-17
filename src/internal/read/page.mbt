@@ -15,6 +15,7 @@ fn read_page_setup(
     header: source.header_footer.bind(hf => non_empty(hf.odd_header)),
     footer: source.header_footer.bind(hf => non_empty(hf.odd_footer)),
     breaks: page_breaks(source),
+    title_rows: print_titles(backend, sheet.name, notes),
   }
   if source.header_footer is Some(hf) &&
     (hf.different_first || hf.different_odd_even) {
@@ -54,6 +55,54 @@ fn print_area(
 
 ///|
 const PRINT_AREA_NAME : String = "_xlnm.Print_Area"
+
+///|
+/// The sheet's `_xlnm.Print_Titles` (ECMA-376 §18.2.6), when it repeats rows
+/// alone: `'S'!$1:$3`.
+fn print_titles(
+  backend : @xlsx.Workbook,
+  sheet_name : String,
+  notes : Notes,
+) -> @model.TitleRows? {
+  for defined in backend.get_defined_names() {
+    guard defined.name == PRINT_TITLES_NAME && defined.scope == sheet_name else {
+      continue
+    }
+    guard @model.split_sheet_prefix(defined.refers_to)
+      is Some((Some(target), rows)) &&
+      target == sheet_name &&
+      title_row_span(rows) is Some(span) else {
+      notes.drop(
+        "print titles repeating columns, or on another sheet, which the spec writes as rows of its own sheet",
+      )
+      return None
+    }
+    return Some(span)
+  }
+  None
+}
+
+///|
+/// `$1:$3` as rows 1 to 3.
+fn title_row_span(text : String) -> @model.TitleRows? {
+  guard text.find(":") is Some(colon) else { return None }
+  let row = (part : StringView) => {
+    let digits = if part.has_prefix("$") { part[1:] } else { part }
+    match @units.parse_uint(digits) {
+      Some(value) if value >= 1 => Some(value)
+      _ => None
+    }
+  }
+  guard row(text[:colon]) is Some(first) &&
+    row(text[colon + 1:]) is Some(last) &&
+    first <= last else {
+    return None
+  }
+  Some({ first, last, })
+}
+
+///|
+const PRINT_TITLES_NAME : String = "_xlnm.Print_Titles"
 
 ///|
 fn orientation(

@@ -105,7 +105,7 @@ test "load rejects out-of-range, contradictory, and malformed print settings" {
   assert_eq(
     schema_message("sheets:\n  - name: S\n    print: { paper: a4 }\n"),
     Some(
-      "spec.yaml: unknown key 'paper' in sheet 'print' (expected 'area', 'orientation', 'margins', 'scale', 'fit', 'header', 'footer', or 'breaks')",
+      "spec.yaml: unknown key 'paper' in sheet 'print' (expected 'area', 'orientation', 'margins', 'scale', 'fit', 'header', 'footer', 'breaks', or 'titles')",
     ),
   )
 }

@@ -656,6 +656,40 @@ test "round trip: a body style reaches the body and no row beyond it" {
 }
 
 ///|
+test "golden: freeze, filter and print naming a layout compile as their letters do" {
+  let layout_body =
+    #|    layouts:
+    #|      - at: B2
+    #|        name: t
+    #|        values: [[a, 1], [b, 2]]
+    #|        columns:
+    #|          - { name: key, header: キー }
+    #|          - { name: v, header: [値, 当年] }
+    #|        footer: [{ row: { key: 計, v: { total: sum } } }]
+    #|
+  let by_name = "sheets:\n  - name: S\n" +
+    layout_body +
+    (
+      #|    freeze: { layout: t, columns: 1 }
+      #|    filter: { at: t, columns: [{ at: key, values: [a] }] }
+      #|    print: { area: t, titles: t }
+      #|
+    )
+  let by_letter = "sheets:\n  - name: S\n" +
+    layout_body +
+    (
+      #|    freeze: C4
+      #|    filter: { at: B3:C5, columns: [{ at: B, values: [a] }] }
+      #|    print: { area: B2:C6, titles: 2-3 }
+      #|
+    )
+  assert_eq(
+    @cli.compile(by_name, file="spec.yaml"),
+    @cli.compile(by_letter, file="spec.yaml"),
+  )
+}
+
+///|
 test "round trip: a header that does not merge reopens with no merged cells" {
   let source =
     #|sheets:

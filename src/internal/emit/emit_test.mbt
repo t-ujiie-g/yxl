@@ -313,6 +313,7 @@ test "page setup round-trips: layout, margins, header/footer, and the print area
     header: Some("&CQuarterly report"),
     footer: Some("&LPage &P of &N"),
     breaks: [@units.CellRef(col=1, row=21)],
+    title_rows: None,
   })
   let reopened = reopen(wb)
   let layout = reopened.get_page_layout("Report")
@@ -330,6 +331,22 @@ test "page setup round-trips: layout, margins, header/footer, and the print area
   assert_eq(names[0].name, "_xlnm.Print_Area")
   assert_eq(names[0].refers_to, "'Report'!$A$1:$D$50")
   assert_eq(names[0].scope, "Report")
+}
+
+///|
+test "print titles are the sheet's own defined name, rows absolute" {
+  let wb = @model.Workbook()
+  wb
+  .add_sheet("Q1 Report")
+  .set_page_setup({
+    ..@model.PageSetup::empty(),
+    title_rows: Some({ first: 2, last: 3, }),
+  })
+  let names = reopen(wb).get_defined_names()
+  assert_eq(names.length(), 1)
+  assert_eq(names[0].name, "_xlnm.Print_Titles")
+  assert_eq(names[0].refers_to, "'Q1 Report'!$2:$3")
+  assert_eq(names[0].scope, "Q1 Report")
 }
 
 ///|

@@ -242,6 +242,7 @@ fn load_layout(
       columns: placed,
       input_of,
       data,
+      first_row: at.row,
       header_row: if header.depth > 0 {
         Some(body_first - 1)
       } else {

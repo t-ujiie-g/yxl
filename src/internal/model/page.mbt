@@ -48,6 +48,15 @@ pub(all) struct PageSetup {
   header : String?
   footer : String?
   breaks : Array[@units.CellRef]
+  title_rows : TitleRows?
+} derive(Eq, Debug)
+
+///|
+/// The rows printed atop every page, `first` to `last` inclusive
+/// (`_xlnm.Print_Titles`, ECMA-376 §18.2.6).
+pub(all) struct TitleRows {
+  first : Int32
+  last : Int32
 } derive(Eq, Debug)
 
 ///|
@@ -61,5 +70,6 @@ pub fn PageSetup::empty() -> PageSetup {
     header: None,
     footer: None,
     breaks: [],
+    title_rows: None,
   }
 }
