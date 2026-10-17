@@ -388,6 +388,7 @@ pub(all) struct PageSetup {
   header : String?
   footer : String?
   breaks : Array[@units.CellRef]
+  title_rows : TitleRows?
 } derive(Eq, @debug.Debug)
 pub fn PageSetup::empty() -> Self
 
@@ -660,6 +661,11 @@ pub(all) enum TextMatch {
   NotContains
   BeginsWith
   EndsWith
+} derive(Eq, @debug.Debug)
+
+pub(all) struct TitleRows {
+  first : Int
+  last : Int
 } derive(Eq, @debug.Debug)
 
 pub(all) enum VAlign {

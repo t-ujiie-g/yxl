@@ -1,8 +1,9 @@
 # Part of the validity corpus (ROADMAP §5).
 #
-# print setup both ways (fit and scale), page breaks, header and footer
-# codes, outline groups on rows and columns, a table with all four toggles,
-# and both halves of protection — the workbook's and a sheet's, with passwords
+# print setup both ways (fit and scale), page breaks, print titles, header
+# and footer codes, outline groups on rows and columns, a table with all four
+# toggles, and both halves of protection — the workbook's and a sheet's, with
+# passwords
 #
 # This is not the cookbook. `examples/` is written to be read and teaches one
 # thing at a time; this is written to be *validated*, and reaches for every
@@ -36,6 +37,7 @@ sheets:
       - { at: 2-4, group: 1, hidden: true }
     print:
       area: A1:D50
+      titles: 1-2
       orientation: landscape
       margins: { top: 1, bottom: 1, left: 0.7, right: 0.7, header: 0.3, footer: 0.3 }
       fit: { width: 1, height: 0 }

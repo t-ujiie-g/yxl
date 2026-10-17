@@ -1201,17 +1201,24 @@ the first item changes what a spec looks like.
             a body style and its expansion to the same bytes. `extract` still
             writes a styled calculation column cell by cell, since a cell's
             look cannot be split between its band and its range.
-      - [ ] **Slice 6 — sheet keys that name a layout.** `freeze`, `filter`,
-            `print.area`, `merges`, `rows:` bands, `comments` and `links` take
-            only A1, so a layout placed `below:` another, or one whose body
-            follows its data, cannot reach them. Print titles (rows repeated
-            on every page) are missing outright.
+      - [x] **Slice 6 — sheet keys that name a layout.** `freeze`, `filter`
+            and `print.area` take only A1, so a layout placed `below:`
+            another, or one whose body follows its data, cannot reach them.
+            Print titles (rows repeated on every page) are missing outright.
+            **Shipped** (ADR-031, `docs/spec.md` §2, §5, §10 and §25,
+            `examples/subtotals.yxl.yaml`). `freeze: { layout, columns }`,
+            `filter: 店舗` with its columns by name, `print.area: 店舗` and the
+            new `print.titles`, a row span or a layout. A golden test compiles
+            each to the bytes its letters give. `merges`, `rows:` bands,
+            `comments` and `links` moved to slice 8: each wants a cell or a
+            row by meaning, which is a design of its own.
       - [ ] **Slice 7 — a column's `type`.** A CSV's dates stay text, and a
             code like `007` becomes 7 unless the export quoted it. A layout
             column may say what its field is.
       - [ ] **Slice 8 — the rest of the probe list.** Equal body values
             merged down a column (支店); a title row merged across the
-            layout's width; overrides on header and footer cells by meaning;
+            layout's width; `rows:` bands, `comments` and `links` on a
+            layout's rows and cells; overrides on header and footer cells by meaning;
             a header style per level; a header without merges drawn with its
             groups' outer borders only (#122); row outlines and page breaks
             per footer group. Each is settled as its own item when taken.
@@ -2097,6 +2104,34 @@ position, which a band did not. The look is still interned once (ADR-004).
 style in the file is band and range together, and splitting it would be a
 guess (ADR-017).
 
+### ADR-031 — Sheet keys name a layout by what each of them needs
+
+**Status:** accepted 2026-10-17.
+
+**Context:** `freeze`, `filter` and `print` took only A1, so a layout placed
+`below:` another, or one whose body follows its data, had no fixed address for
+them. ADR-026 already gave a layout's name one range, its bottom header row and
+its body, the shape a table, a filter and a pivot source want. Freezing and
+printing want other rows of the same layout.
+
+**Decision:**
+- `filter: 店舗` is that range, as everywhere a range is read. A filter
+  column's `at` may then be a column's name.
+- `freeze: { layout: 店舗, columns: n }` freezes above the body and through the
+  first `n` columns. A mapping rather than a bare name, because the column
+  count has no default a report agrees on.
+- `print.area: 店舗` is the whole layout, every header row and the footer
+  included, since a page that drops the upper header or the totals is not the
+  report. `print.titles: 店舗` is its header rows. `print.titles` is new, and
+  takes a row span as well (`_xlnm.Print_Titles`, ECMA-376 §18.2.6).
+- Each key accepts a layout on its own sheet only.
+
+**Trade-offs / consequences:** The name means a different range under `print`
+than under `filter`. Each key is documented with the range it takes, and the
+alternative, one range for all, would print a report without its group labels
+or its totals. `extract` writes print titles back as a row span: a workbook does
+not record that the rows were a layout's header.
+
 ## 8. Open questions
 
 - **Q1 — YAML parser.** ✅ **Decided (ADR-009), refined (ADR-010):** depend on
@@ -2643,6 +2678,13 @@ guess (ADR-017).
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-10-17** — **Freeze, filter and print by a layout's name (ADR-031).**
+  `freeze: { layout: 店舗, columns: 1 }` holds a layout's header rows and its
+  first column. `filter: 店舗` covers its table, with filter columns named
+  rather than lettered. `print.area: 店舗` prints all of it, and the new
+  `print.titles` repeats rows on every page: a span such as `1-3`, or a
+  layout's header. None of them moves when the layout does.
 
 - **2026-10-17** — **`body_style`: a layout body's own look (ADR-030).** A
   layout, and each column over it, may style its body alone: data cells, the

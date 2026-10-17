@@ -1,10 +1,13 @@
 ///|
 /// A sheet's `print:` block — how it goes onto paper. Every key is optional:
-/// `area` (a range), `orientation`, `margins`, `scale` or `fit` (Excel offers
-/// one or the other, never both), `header` / `footer`, and `breaks`.
+/// `area` (a range or a layout), `orientation`, `margins`, `scale` or `fit`
+/// (Excel offers one or the other, never both), `header` / `footer`, `breaks`,
+/// and `titles`.
 fn load_page_setup(
   node : @yaml.Node,
   file~ : String,
+  defs~ : Defs,
+  sheet~ : String,
 ) -> @model.PageSetup raise @diag.SchemaError {
   let entries = expect_map(node, file~, context="sheet 'print'")
   // Excel scales by a percentage or by a page fit, and they share one model
@@ -23,17 +26,21 @@ fn load_page_setup(
   let mut header = None
   let mut footer = None
   let mut breaks = []
+  let mut title_rows = None
   for entry in entries {
     let (key, value) = entry
     match key {
-      "area" =>
+      "area" => {
+        let text = expect_string(value, file~, context="print 'area'")
         area = Some(
-          parse_range(
-            expect_string(value, file~, context="print 'area'"),
-            file~,
-            what="print area",
-          ),
+          match layout_here(text, defs~, sheet~, file~, what="print area") {
+            Some(layout) => layout_extent(layout)
+            None => parse_range(text, file~, what="print area")
+          },
         )
+      }
+      "titles" =>
+        title_rows = Some(load_title_rows(value, file~, defs~, sheet~))
       "orientation" => orientation = Some(load_orientation(value, file~))
       "margins" => margins = Some(load_margins(value, file~))
       "scale" => scale = Some(load_scale(value, file~))
@@ -46,11 +53,43 @@ fn load_page_setup(
       _ =>
         raise schema_error(
           file~,
-          "unknown key '\{key}' in sheet 'print' (expected 'area', 'orientation', 'margins', 'scale', 'fit', 'header', 'footer', or 'breaks')",
+          "unknown key '\{key}' in sheet 'print' (expected 'area', 'orientation', 'margins', 'scale', 'fit', 'header', 'footer', 'breaks', or 'titles')",
         )
     }
   }
-  { area, orientation, margins, scale, header, footer, breaks, }
+  { area, orientation, margins, scale, header, footer, breaks, title_rows, }
+}
+
+///|
+/// A `print.titles:` — a row, a `first-last` span, or a layout, whose header
+/// rows repeat.
+fn load_title_rows(
+  node : @yaml.Node,
+  file~ : String,
+  defs~ : Defs,
+  sheet~ : String,
+) -> @model.TitleRows raise @diag.SchemaError {
+  let text = match node {
+    @yaml.Str(text) => text
+    @yaml.Int(row) => row.to_string()
+    _ =>
+      raise schema_error(
+        file~,
+        "print 'titles' must be a row, a 'first-last' span, or a layout",
+      )
+  }
+  if layout_here(text, defs~, sheet~, file~, what="print titles")
+    is Some(layout) {
+    guard layout.header_row is Some(last) else {
+      raise schema_error(
+        file~,
+        "print titles '\{text}' names a layout with no header rows to repeat",
+      )
+    }
+    return { first: layout.first_row, last, }
+  }
+  let (first, last) = parse_row_selector(text, file~)
+  { first, last, }
 }
 
 ///|

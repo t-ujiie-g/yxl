@@ -120,5 +120,13 @@ fn print_setup(page : @model.PageSetup) -> @yaml.Node {
     }
     entries.push(("breaks", @yaml.Seq(cells)))
   }
+  if page.title_rows is Some({ first, last, }) {
+    let rows = if first == last {
+      @yaml.Int(first.to_int64())
+    } else {
+      @yaml.Str("\{first}-\{last}")
+    }
+    entries.push(("titles", rows))
+  }
   @yaml.Map(entries)
 }

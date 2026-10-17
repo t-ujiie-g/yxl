@@ -334,3 +334,147 @@ test "names that reach nothing, or reach too far, are refused" {
     ),
   )
 }
+
+///|
+/// A layout two header rows deep at B3, two body rows and a footer row: rows 3-4
+/// are its header, 5-6 its body, 7 its footer.
+fn sheet_keys_spec(keys : String) -> String {
+  (
+    #|sheets:
+    #|  - name: S
+    #|    layouts:
+    #|      - at: B3
+    #|        name: t
+    #|        values: [[a, 1], [b, 2]]
+    #|        columns:
+    #|          - { name: key, header: キー }
+    #|          - { name: v, header: [値, 当年] }
+    #|        footer: [{ row: { key: 計, v: { total: sum } } }]
+    #|
+  ) +
+  keys
+}
+
+///|
+test "freeze, filter and print may name a layout on their own sheet" {
+  let sheet = load_ok(
+      sheet_keys_spec(
+        (
+          #|    freeze: { layout: t, columns: 1 }
+          #|    filter: { at: t, columns: [{ at: key, values: [a] }] }
+          #|    print: { area: t, titles: t }
+          #|
+        ),
+      ),
+    ).sheets[0]
+  assert_eq(sheet.panes, Some(Freeze(@units.CellRef::parse_a1("C5").unwrap())))
+  guard sheet.filter is Some(filter) else { fail("no filter") }
+  assert_eq(filter.at.to_a1(), "B4:C6")
+  assert_eq(filter.columns[0].column, 2)
+  guard sheet.page is Some(page) else { fail("no print setup") }
+  assert_eq(page.area.map(area => area.to_a1()), Some("B3:C7"))
+  assert_eq(page.title_rows, Some({ first: 3, last: 4, }))
+}
+
+///|
+test "a layout's freeze without columns holds the header rows alone" {
+  let sheet = load_ok(sheet_keys_spec("    freeze: { layout: t }\n")).sheets[0]
+  assert_eq(sheet.panes, Some(Freeze(@units.CellRef::parse_a1("A5").unwrap())))
+}
+
+///|
+test "print titles may be a row or a span, written without a layout" {
+  let titles = keys => {
+    load_ok(sheet_keys_spec(keys)).sheets[0].page.bind(page => page.title_rows)
+  }
+  assert_eq(titles("    print: { titles: 2 }\n"), Some({ first: 2, last: 2, }))
+  assert_eq(
+    titles("    print: { titles: 1-3 }\n"),
+    Some({ first: 1, last: 3, }),
+  )
+  assert_eq(
+    schema_message(sheet_keys_spec("    print: { titles: 3-1 }\n")),
+    Some("spec.yaml: row range '3-1' is reversed"),
+  )
+  assert_eq(
+    schema_message(sheet_keys_spec("    print: { titles: [1] }\n")),
+    Some(
+      "spec.yaml: print 'titles' must be a row, a 'first-last' span, or a layout",
+    ),
+  )
+}
+
+///|
+test "a layout freeze names a layout here, with no more columns than it has" {
+  assert_eq(
+    schema_message(sheet_keys_spec("    freeze: { layout: u }\n")),
+    Some("spec.yaml: freeze layout 'u' is not a named layout (layouts: 't')"),
+  )
+  assert_eq(
+    schema_message(sheet_keys_spec("    freeze: { layout: t, columns: 3 }\n")),
+    Some("spec.yaml: freeze 'columns' is 3, but layout 't' has 2"),
+  )
+  assert_eq(
+    schema_message(sheet_keys_spec("    freeze: { layout: t, rows: 1 }\n")),
+    Some(
+      "spec.yaml: unknown key 'rows' in sheet 'freeze' (expected 'layout' or 'columns')",
+    ),
+  )
+  assert_eq(
+    schema_message(sheet_keys_spec("    freeze: { columns: 1 }\n")),
+    Some(
+      "spec.yaml: sheet 'freeze' must be a cell, or '{ layout: name }' to freeze above its body",
+    ),
+  )
+  assert_eq(
+    schema_message(
+      (
+        #|sheets:
+        #|  - name: S
+        #|    freeze: { layout: t }
+        #|    layouts:
+        #|      - { at: A1, name: t, rows: 1, columns: [{ name: a }] }
+        #|
+      ),
+    ),
+    Some(
+      "spec.yaml: freeze at layout 't' would freeze nothing: it starts at A1 with no header, and 'columns' is 0",
+    ),
+  )
+}
+
+///|
+test "a sheet key may not name a layout on another sheet, nor titles one with no header" {
+  let elsewhere = keys => {
+    schema_message(sheet_keys_spec("  - name: O\n" + keys))
+  }
+  assert_eq(
+    elsewhere("    filter: t\n"),
+    Some("spec.yaml: filter 't' names a layout on sheet 'S', not this one"),
+  )
+  assert_eq(
+    elsewhere("    print: { area: t }\n"),
+    Some("spec.yaml: print area 't' names a layout on sheet 'S', not this one"),
+  )
+  assert_eq(
+    elsewhere("    freeze: { layout: t }\n"),
+    Some(
+      "spec.yaml: freeze layout 't' names a layout on sheet 'S', not this one",
+    ),
+  )
+  assert_eq(
+    schema_message(
+      (
+        #|sheets:
+        #|  - name: S
+        #|    print: { titles: t }
+        #|    layouts:
+        #|      - { at: A1, name: t, rows: 1, columns: [{ name: a }] }
+        #|
+      ),
+    ),
+    Some(
+      "spec.yaml: print titles 't' names a layout with no header rows to repeat",
+    ),
+  )
+}

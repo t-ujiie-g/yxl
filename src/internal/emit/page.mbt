@@ -4,6 +4,9 @@
 const PRINT_AREA_NAME : String = "_xlnm.Print_Area"
 
 ///|
+const PRINT_TITLES_NAME : String = "_xlnm.Print_Titles"
+
+///|
 /// Drive the backend's page-setup surface for one sheet: paper layout, margins,
 /// header/footer, manual breaks, and the print area.
 fn apply_page_setup(
@@ -71,6 +74,15 @@ fn apply_page_setup(
       @xlsx.DefinedName::new(
         PRINT_AREA_NAME,
         absolute_range(sheet_name, area),
+        scope=sheet_name,
+      ),
+    )
+  }
+  if page.title_rows is Some({ first, last, }) {
+    backend.set_defined_name(
+      @xlsx.DefinedName::new(
+        PRINT_TITLES_NAME,
+        "\{quoted_sheet(sheet_name)}!$\{first}:$\{last}",
         scope=sheet_name,
       ),
     )

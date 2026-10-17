@@ -112,7 +112,8 @@ fn load_sheet(
       "layouts" => load_layouts(value, sheet, file~, defs~, resolve~)
       "rows" => load_rows(value, sheet, file~, defs~)
       "merges" => load_merges(value, sheet, file~)
-      "freeze" => sheet.set_panes(load_freeze(value, file~))
+      "freeze" =>
+        sheet.set_panes(load_freeze(value, file~, defs~, sheet=sheet_name))
       "split" => sheet.set_panes(load_split(value, file~))
       "gridlines" =>
         sheet.set_gridlines(
@@ -122,8 +123,11 @@ fn load_sheet(
         sheet.set_tab_color(
           expect_color(value, file~, what="'tab_color'", context="sheet"),
         )
-      "print" => sheet.set_page_setup(load_page_setup(value, file~))
-      "filter" => load_filter(value, sheet, file~)
+      "print" =>
+        sheet.set_page_setup(
+          load_page_setup(value, file~, defs~, sheet=sheet_name),
+        )
+      "filter" => load_filter(value, sheet, file~, defs~)
       "validations" => load_validations(value, sheet, file~, defs~)
       "links" => load_links(value, sheet, file~)
       "conditional" => load_conditional_formats(value, sheet, file~, defs~)
@@ -170,12 +174,18 @@ fn load_visibility(
 
 ///|
 /// A sheet's `freeze: <cell>` — the rows above and columns left of that cell
-/// stay put while the rest scrolls. `A1` freezes nothing, so it is a mistake
-/// worth reporting rather than a no-op.
+/// stay put while the rest scrolls — or `{ layout, columns }`, above a layout's
+/// body and through its first `columns`. Freezing nothing is a mistake worth
+/// reporting rather than a no-op.
 fn load_freeze(
   node : @yaml.Node,
   file~ : String,
+  defs~ : Defs,
+  sheet~ : String,
 ) -> @model.Panes raise @diag.SchemaError {
+  if node is @yaml.Map(entries) {
+    return Freeze(freeze_at_layout(entries, file~, defs~, sheet~))
+  }
   let reference = expect_string(node, file~, context="sheet 'freeze'")
   let cell = expect_cell_ref(reference, file~, what="'freeze'")
   guard cell.col > 1 || cell.row > 1 else {
@@ -185,6 +195,62 @@ fn load_freeze(
     )
   }
   Freeze(cell)
+}
+
+///|
+fn freeze_at_layout(
+  entries : Array[(String, @yaml.Node)],
+  file~ : String,
+  defs~ : Defs,
+  sheet~ : String,
+) -> @units.CellRef raise @diag.SchemaError {
+  let mut name = None
+  let mut columns = 0
+  for entry in entries {
+    match entry {
+      ("layout", node) =>
+        name = Some(expect_string(node, file~, context="freeze 'layout'"))
+      ("columns", @yaml.Int(count)) if count >= 0L => columns = count.to_int()
+      ("columns", _) =>
+        raise schema_error(
+          file~,
+          "freeze 'columns' must be a whole number of columns, 0 or more",
+        )
+      (key, _) =>
+        raise schema_error(
+          file~,
+          "unknown key '\{key}' in sheet 'freeze' (expected 'layout' or 'columns')",
+        )
+    }
+  }
+  guard name is Some(name) else {
+    raise schema_error(
+      file~,
+      "sheet 'freeze' must be a cell, or '{ layout: name }' to freeze above its body",
+    )
+  }
+  guard layout_here(name, defs~, sheet~, file~, what="freeze layout")
+    is Some(layout) else {
+    let known = defs.layouts.keys().map(name => "'\{name}'").collect()
+    raise schema_error(
+      file~,
+      "freeze layout '\{name}' is not a named layout (layouts: \{or_list(known)})",
+    )
+  }
+  guard columns <= layout.columns.length() else {
+    raise schema_error(
+      file~,
+      "freeze 'columns' is \{columns}, but layout '\{name}' has \{layout.columns.length()}",
+    )
+  }
+  let col = if columns == 0 { 1 } else { layout.columns[0].1 + columns }
+  guard col > 1 || layout.body_first > 1 else {
+    raise schema_error(
+      file~,
+      "freeze at layout '\{name}' would freeze nothing: it starts at A1 with no header, and 'columns' is 0",
+    )
+  }
+  @units.CellRef(col~, row=layout.body_first)
 }
 
 ///|
