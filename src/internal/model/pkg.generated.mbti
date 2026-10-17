@@ -37,6 +37,10 @@ pub let min_page_scale : Int
 
 pub let pivot_style_families : Array[(String, Int)]
 
+pub let print_area_name : String
+
+pub let print_titles_name : String
+
 pub let shape_presets : Array[(String, String)]
 
 pub fn split_sheet_prefix(String) -> (String?, String)?

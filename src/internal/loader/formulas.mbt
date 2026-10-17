@@ -37,15 +37,15 @@ fn load_formula_range(
       "at" => () // consumed above
       "formula" => formula = Some(load_filled_formula(value, file~, context~))
       "style" => style_node = Some(value)
-      "format" =>
-        match value {
-          @yaml.Null =>
-            format_cleared = @model.StyleAttrs::none().adding(NumberFormat)
-          _ =>
-            format = Some(
-              expect_string(value, file~, context="\{context} 'format'"),
-            )
-        }
+      "format" => {
+        let (code, cleared) = load_format(
+          value,
+          file~,
+          context="\{context} 'format'",
+        )
+        format = code
+        format_cleared = cleared
+      }
       _ =>
         raise schema_error(
           file~,

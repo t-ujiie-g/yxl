@@ -1,12 +1,4 @@
 ///|
-/// Excel's built-in defined name for a sheet's print area (ECMA-376 §18.2.5);
-/// scoping it to the sheet is what makes it that sheet's area.
-const PRINT_AREA_NAME : String = "_xlnm.Print_Area"
-
-///|
-const PRINT_TITLES_NAME : String = "_xlnm.Print_Titles"
-
-///|
 /// Drive the backend's page-setup surface for one sheet: paper layout, margins,
 /// header/footer, manual breaks, and the print area.
 fn apply_page_setup(
@@ -72,7 +64,7 @@ fn apply_page_setup(
   if page.area is Some(area) {
     backend.set_defined_name(
       @xlsx.DefinedName::new(
-        PRINT_AREA_NAME,
+        @model.print_area_name,
         absolute_range(sheet_name, area),
         scope=sheet_name,
       ),
@@ -81,7 +73,7 @@ fn apply_page_setup(
   if page.title_rows is Some({ first, last, }) {
     backend.set_defined_name(
       @xlsx.DefinedName::new(
-        PRINT_TITLES_NAME,
+        @model.print_titles_name,
         "\{quoted_sheet(sheet_name)}!$\{first}:$\{last}",
         scope=sheet_name,
       ),

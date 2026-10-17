@@ -52,6 +52,15 @@ pub(all) struct PageSetup {
 } derive(Eq, Debug)
 
 ///|
+/// Excel's built-in defined name for a sheet's print area (ECMA-376 §18.2.5);
+/// scoping it to the sheet is what makes it that sheet's area.
+pub let print_area_name : String = "_xlnm.Print_Area"
+
+///|
+/// The same, for the rows printed atop every page (ECMA-376 §18.2.6).
+pub let print_titles_name : String = "_xlnm.Print_Titles"
+
+///|
 /// The rows printed atop every page, `first` to `last` inclusive
 /// (`_xlnm.Print_Titles`, ECMA-376 §18.2.6).
 pub(all) struct TitleRows {

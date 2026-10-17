@@ -108,3 +108,20 @@ test "print titles come back as the rows they repeat" {
   sheet.set_page_setup(setup)
   assert_eq(only_sheet(wb).page, Some(setup))
 }
+
+///|
+test "print titles that also repeat columns are dropped with a note" {
+  let backend = @xlsx.Workbook::new()
+  let _ = backend.new_sheet("S")
+  backend.set_cell_int("S", "A1", 1)
+  backend.set_defined_name(
+    @xlsx.DefinedName::new(
+      "_xlnm.Print_Titles",
+      "'S'!$A:$A,'S'!$1:$2",
+      scope="S",
+    ),
+  )
+  let recovered = @read.from_bytes(backend.write_to_buffer())
+  assert_eq(recovered.workbook.sheets[0].page, None)
+  assert_eq(recovered.dropped.length(), 1)
+}

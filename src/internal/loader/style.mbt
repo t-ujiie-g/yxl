@@ -199,3 +199,17 @@ let protection_attrs : @model.StyleAttrs = @model.StyleAttrs::of([
   ProtectionLocked,
   ProtectionHidden,
 ])
+
+///|
+/// A `format:` key beside a `style:`: a number-format code, or `null` to clear
+/// the one a band would hand down (`docs/spec.md` §6).
+fn load_format(
+  node : @yaml.Node,
+  file~ : String,
+  context~ : String,
+) -> (String?, @model.StyleAttrs) raise @diag.SchemaError {
+  match node {
+    @yaml.Null => (None, @model.StyleAttrs::none().adding(NumberFormat))
+    _ => (Some(expect_string(node, file~, context~)), @model.StyleAttrs::none())
+  }
+}

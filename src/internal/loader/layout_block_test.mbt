@@ -176,3 +176,31 @@ test "an instance names a declared block, once, and keys it knows" {
     ),
   )
 }
+
+///|
+test "a block column's body style lives on in every instance" {
+  let sheet = load_ok(
+      (
+        #|defs:
+        #|  blocks:
+        #|    pair:
+        #|      columns:
+        #|        - { name: cy, body_style: { format: "#,##0" } }
+        #|sheets:
+        #|  - name: S
+        #|    layouts:
+        #|      - at: A1
+        #|        values: [[1, 2]]
+        #|        columns:
+        #|          - { block: pair, as: a }
+        #|          - { block: pair, as: b }
+        #|
+      ),
+    ).sheets[0]
+  assert_eq(
+    sheet.cells.map(cell => {
+      (cell.pos.to_a1(), cell.style.bind(s => s.number_format))
+    }),
+    [("A1", Some("#,##0")), ("B1", Some("#,##0"))],
+  )
+}

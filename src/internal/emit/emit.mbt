@@ -332,8 +332,8 @@ fn emit_cell(
         reference,
         runs.map(build_rich_run)[:],
       )
-    // Nothing to write: the style below is the whole of what this cell is for,
-    // and giving it a value would make it non-blank to `ISBLANK` and `COUNTA`.
+    // The style below is the whole cell; the backend still stores it as empty
+    // text (`docs/spec.md` §3).
     Blank => ()
   }
   if style is Some(style) {
