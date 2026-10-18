@@ -103,3 +103,16 @@ sheets:
         type: column
         min: 0
         max: 40
+
+  - name: Listed
+    layouts:
+      - at: A1
+        name: listed
+        values: [[a, 1], [b, 2]]
+        columns: [{ name: key, header: Key }, { name: v, header: V }]
+    comments:
+      - { at: { layout: listed, column: v, where: { key: b } }, text: "By meaning." }
+      - { at: D1, text: "By letter.", author: Finance }
+    links:
+      - { at: { layout: listed, column: key, header: 1 }, url: "https://example.com" }
+      - { at: D2, to: "Listed!A1", tip: "The list" }

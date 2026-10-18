@@ -737,6 +737,40 @@ test "round trip: merge_equal merges a run and keeps every covered value" {
 }
 
 ///|
+test "golden: comments, links and overrides by a layout's meaning compile as their letters do" {
+  let layout =
+    #|    layouts:
+    #|      - at: A1
+    #|        name: t
+    #|        values: [[a, 1], [b, 2]]
+    #|        columns: [{ name: key, header: キー }, { name: v, header: 値 }]
+    #|        footer: [{ row: { key: 計, v: { total: sum } } }]
+    #|
+  let by_meaning = "sheets:\n  - name: S\n" +
+    layout +
+    (
+      #|    comments: [{ at: { layout: t, column: v, where: { key: b } }, text: 確認 }]
+      #|    links: [{ at: { layout: t, column: key, footer: last }, url: "https://e.com" }]
+      #|overrides:
+      #|  - { at: { layout: t, column: v, header: 1 }, value: 金額 }
+      #|
+    )
+  let by_letter = "sheets:\n  - name: S\n" +
+    layout +
+    (
+      #|    comments: { B3: 確認 }
+      #|    links: { A4: "https://e.com" }
+      #|overrides:
+      #|  - { at: "S!B1", value: 金額 }
+      #|
+    )
+  assert_eq(
+    @cli.compile(by_meaning, file="spec.yaml"),
+    @cli.compile(by_letter, file="spec.yaml"),
+  )
+}
+
+///|
 test "round trip: a header that does not merge reopens with no merged cells" {
   let source =
     #|sheets:

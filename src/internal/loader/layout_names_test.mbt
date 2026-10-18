@@ -90,7 +90,7 @@ test "an override by meaning must find exactly one row" {
   assert_eq(
     refused("{ layout: 店舗, column: cy }"),
     Some(
-      "spec.yaml: override 'at' on layout '店舗' needs exactly one of 'where' or 'row' to find its row",
+      "spec.yaml: override 'at' on layout '店舗' needs exactly one of 'where', 'row', 'header', 'footer', or 'title' to find its cell",
     ),
   )
   assert_eq(
@@ -108,7 +108,7 @@ test "an override by meaning must find exactly one row" {
   assert_eq(
     refused("{ layout: 店舗, row: 1 }"),
     Some(
-      "spec.yaml: override 'at' given by layout needs both 'layout' and 'column'",
+      "spec.yaml: override 'at' on layout '店舗' needs a 'column' to go with its 'row'",
     ),
   )
 }
@@ -488,4 +488,144 @@ test "a filter naming a layout still takes a filter column by letter" {
     ).sheets[0]
   guard sheet.filter is Some(filter) else { fail("no filter") }
   assert_eq(filter.columns[0].column, 3)
+}
+
+///|
+test "an override may name a header, footer or title cell by meaning" {
+  let at = target => {
+    load_ok(
+      sheet_keys_spec("overrides:\n  - at: " + target + "\n    value: x\n"),
+    ).overrides[0].at.to_a1()
+  }
+  assert_eq(at("{ layout: t, column: v, header: 1 }"), "C3")
+  assert_eq(at("{ layout: t, column: v, header: 2 }"), "C4")
+  assert_eq(at("{ layout: t, column: key, header: 1 }"), "B3")
+  assert_eq(at("{ layout: t, column: v, footer: 1 }"), "C7")
+  assert_eq(at("{ layout: t, column: v, footer: last }"), "C7")
+  let titled = load_ok(
+    (
+      #|sheets:
+      #|  - name: S
+      #|    layouts:
+      #|      - { at: A1, name: t, title: 表, rows: 1, columns: [{ name: a }, { name: b }] }
+      #|overrides:
+      #|  - at: { layout: t, title: true }
+      #|    value: 新しい表
+      #|
+    ),
+  )
+  assert_eq(titled.overrides[0].at.to_a1(), "A1")
+}
+
+///|
+test "a layout cell by meaning refuses a covered cell and a part the layout lacks" {
+  let refused = target => {
+    schema_message(
+      sheet_keys_spec("overrides:\n  - at: " + target + "\n    value: x\n"),
+    )
+  }
+  assert_eq(
+    refused("{ layout: t, column: key, header: 2 }"),
+    Some(
+      "spec.yaml: override 'at' on layout 't' lands inside the merged cells 'B3:B4'; name their first cell",
+    ),
+  )
+  assert_eq(
+    refused("{ layout: t, column: v, footer: 2 }"),
+    Some(
+      "spec.yaml: override 'at' on layout 't' 'footer' is 2, but the footer has rows 1 to 1",
+    ),
+  )
+  assert_eq(
+    refused("{ layout: t, column: v, header: top }"),
+    Some(
+      "spec.yaml: override 'at' on layout 't' 'header' must be a whole number: the header row, counting from 1",
+    ),
+  )
+  assert_eq(
+    refused("{ layout: t, title: true }"),
+    Some(
+      "spec.yaml: override 'at' on layout 't' names the title of a layout with none",
+    ),
+  )
+  assert_eq(
+    refused("{ layout: t, column: v, title: true }"),
+    Some(
+      "spec.yaml: override 'at' on layout 't' names a 'column' and the 'title', which spans them all",
+    ),
+  )
+  assert_eq(
+    refused("{ layout: t, column: v, row: 1, footer: 1 }"),
+    Some(
+      "spec.yaml: override 'at' on layout 't' needs exactly one of 'where', 'row', 'header', 'footer', or 'title' to find its cell",
+    ),
+  )
+  assert_eq(
+    schema_message(
+      (
+        #|sheets:
+        #|  - name: S
+        #|    layouts:
+        #|      - { at: A1, name: t, rows: 1, columns: [{ name: a }] }
+        #|    cells: { A1: 1 }
+        #|overrides:
+        #|  - { at: { layout: t, column: a, footer: last }, value: 2 }
+        #|
+      ),
+    ),
+    Some(
+      "spec.yaml: override 'at' on layout 't' names the footer of a layout with none",
+    ),
+  )
+}
+
+///|
+test "comments and links may be a list, at an A1 cell or a layout's cell" {
+  let sheet = load_ok(
+      sheet_keys_spec(
+        (
+          #|    comments:
+          #|      - { at: { layout: t, column: v, where: { key: b } }, text: 確認中 }
+          #|      - { at: A1, text: メモ, author: 経理 }
+          #|    links:
+          #|      - { at: { layout: t, column: key, footer: last }, url: "https://example.com" }
+          #|      - { at: A2, to: "S!B3", tip: 一覧 }
+          #|
+        ),
+      ),
+    ).sheets[0]
+  assert_eq(sheet.comments.map(c => (c.at.to_a1(), c.text, c.author)), [
+    ("C6", "確認中", None),
+    ("A1", "メモ", Some("経理")),
+  ])
+  assert_eq(sheet.links.map(link => (link.at.to_a1(), link.tip)), [
+    ("B7", None),
+    ("A2", Some("一覧")),
+  ])
+}
+
+///|
+test "a listed comment or link stays on its own sheet and keeps its own keys" {
+  assert_eq(
+    schema_message(
+      sheet_keys_spec(
+        "  - name: O\n    comments:\n      - { at: { layout: t, column: v, row: 1 }, text: x }\n",
+      ),
+    ),
+    Some("spec.yaml: comment 'at' names a layout on sheet 'S', not this one"),
+  )
+  assert_eq(
+    schema_message(
+      sheet_keys_spec("    links:\n      - { url: \"https://e.com\" }\n"),
+    ),
+    Some("spec.yaml: a link is missing required key 'at'"),
+  )
+  assert_eq(
+    schema_message(
+      sheet_keys_spec("    comments:\n      - { at: A1, note: x }\n"),
+    ),
+    Some(
+      "spec.yaml: unknown key 'note' in comment 'A1' (expected 'text' or 'author')",
+    ),
+  )
 }

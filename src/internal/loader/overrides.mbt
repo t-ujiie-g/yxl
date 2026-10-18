@@ -28,7 +28,12 @@ fn load_override(
   let (sheet, at, text) = match
     required_at(entries, file~, subject="an override") {
     @yaml.Map(target) => {
-      let (sheet, at) = resolve_layout_cell(target, defs~, file~)
+      let (sheet, at) = resolve_layout_cell(
+        target,
+        defs~,
+        file~,
+        what="override 'at'",
+      )
       (sheet, at, "\{sheet}!\{at.to_a1()}")
     }
     node => {
