@@ -1691,13 +1691,14 @@ layouts:
 
 | Key | Notes |
 |---|---|
-| `at` | **Required.** The top-left cell. The header rows start here when any column has a `header`; otherwise the body starts here. |
+| `at` | **Required.** The top-left cell. The title sits here when there is one, and the header rows start below it; otherwise they start here, or the body does when no column has a `header`. |
+| `title` | A cell (§3) across the layout's width, in its first row. See below. |
 | `rows` | How many body rows, at least 1. With a source it defaults to the rows read, and may only reserve more. **Required** without one. |
 | `values` / `csv` / `json` | Where the body's rows come from, as in §9. **At most one.** They fill only the columns without a `formula`. |
 | `footer` | Rows placed straight after the body: totals, and totals per group. See below. |
 | `name` | Makes each column's body a workbook defined name, `name.column`, and lets an override find a cell by meaning. See below. |
 | `header_style` | A style (bareword or inline) for every header cell, or a list of them, one per header row. Needs at least one `header`. |
-| `header_merge` | `false` writes the header without merged cells. Default `true`. Needs at least one `header`. |
+| `header_merge` | `false` writes the header, and the title, without merged cells. Default `true`. Needs a `header` or a `title`. |
 | `body_style` | A style for every body cell, and for nothing outside the body. See below. |
 | `columns` | **Required.** The columns, left to right from `at`. At least one. |
 
@@ -1745,6 +1746,14 @@ columns:
   cell; the rest are blanks in its style, less the border edges inside the
   range, so a bordered header still outlines each group as the merge did. Use it for a file a program edits
   afterwards, where deleting a column can shift a merge onto its neighbour.
+
+**`title` is a heading across the whole table**, merged over every column in
+the layout's first row, so it stays as wide as the layout when a column is
+added. The expanded form styles it. With `header_merge: false` it is not
+merged: the value sits in the first cell, and a style reaches the rest as
+blanks with the border edges between them dropped. The title is part of the
+layout for `print.area` and `freeze`, and outside its table, so `filter` and
+`print.titles` start below it.
 
 **`{{name}}` is that column's cell in the same row.** It is read in a column's
 `formula` and in a conditional rule's `formula`, and nowhere else: a `{{`

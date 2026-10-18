@@ -7,6 +7,7 @@ priv struct NamedLayout {
   input_of : Map[String, Int32]
   data : Rows
   first_row : Int32
+  header_first : Int32
   header_row : Int32?
   body_first : Int32
   body_last : Int32

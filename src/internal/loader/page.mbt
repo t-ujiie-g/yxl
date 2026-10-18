@@ -86,7 +86,7 @@ fn load_title_rows(
         "print titles '\{text}' names a layout with no header rows to repeat",
       )
     }
-    return { first: layout.first_row, last, }
+    return { first: layout.header_first, last, }
   }
   let (first, last) = parse_row_selector(text, file~)
   { first, last, }

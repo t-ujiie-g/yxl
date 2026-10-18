@@ -182,7 +182,7 @@ test "header_merge is a boolean, and needs a header to apply to" {
       ),
     ),
     Some(
-      "spec.yaml: layout 'A1' has a 'header_merge' but no column has a 'header' to merge",
+      "spec.yaml: layout 'A1' has a 'header_merge' but no 'title' or column 'header' to merge",
     ),
   )
 }
@@ -348,6 +348,71 @@ test "a header style list is not empty, nor longer than the header is deep" {
     schema_message(spec("[head, nope]")),
     Some(
       "spec.yaml: layout 'A1' header_style references undefined style 'nope'",
+    ),
+  )
+}
+
+///|
+test "a title spans the layout's width above the header, merged" {
+  let sheet = load_ok(
+      layout_spec(
+        (
+          #|      - at: B2
+          #|        name: t
+          #|        title: { value: 店舗別実績, style: head }
+          #|        values: [[a, 1]]
+          #|        columns:
+          #|          - { name: key, header: キー }
+          #|          - { name: v, header: [値, 当年] }
+          #|          - { name: w, header: [値, 前年] }
+          #|
+          #|    print: { area: t, titles: t }
+          #|    freeze: { layout: t }
+        ),
+      ),
+    ).sheets[0]
+  assert_eq(merged(sheet).contains("B2:D2"), true)
+  let cells = written(sheet)
+  assert_eq(cells.get("B2"), Some((Text("店舗別実績"), true)))
+  assert_eq(cells.get("D2"), Some((Blank, true)))
+  assert_eq(cells.get("B3"), Some((Text("キー"), false)))
+  assert_eq(cells.get("B5"), Some((Text("a"), false)))
+  guard sheet.page is Some(page) else { fail("no print setup") }
+  assert_eq(page.area.map(area => area.to_a1()), Some("B2:D5"))
+  assert_eq(page.title_rows, Some({ first: 3, last: 4, }))
+  assert_eq(sheet.panes, Some(Freeze(@units.CellRef::parse_a1("A5").unwrap())))
+}
+
+///|
+test "a title without merges sits in the first cell, its inner edges dropped" {
+  let sheet = load_ok(
+      layout_spec(
+        "      - at: A1\n        title: { value: 実績, style: { border: thin } }\n        header_merge: false\n        rows: 1\n        columns:\n          - { name: a }\n          - { name: b }\n",
+      ),
+    ).sheets[0]
+  assert_eq(merged(sheet), [])
+  assert_eq(edges(sheet, "A1"), ("L-TB", "-R--"))
+  assert_eq(edges(sheet, "B1"), ("-RTB", "L---"))
+  assert_eq(written(sheet).get("A2"), None)
+}
+
+///|
+test "a plain title writes no blanks, and a bad one is refused" {
+  let sheet = load_ok(
+      layout_spec(
+        "      - at: A1\n        title: 実績\n        rows: 1\n        columns:\n          - { name: a }\n          - { name: b }\n",
+      ),
+    ).sheets[0]
+  assert_eq(merged(sheet), ["A1:B1"])
+  assert_eq(written(sheet).get("B1"), None)
+  assert_eq(
+    schema_message(
+      layout_spec(
+        "      - at: A1\n        title: [実績]\n        rows: 1\n        columns: [{ name: a }]\n",
+      ),
+    ),
+    Some(
+      "spec.yaml: cell 'layout 'A1' title' must be text, a number, or a boolean",
     ),
   )
 }

@@ -20,12 +20,14 @@ fn LayoutHeader::style_at(self : LayoutHeader, row : Int32) -> @model.Style? {
 }
 
 ///|
-/// A `header_style` or `header_merge` with no header to apply to is refused, as
-/// is a `header_style` list longer than the header is deep.
+/// A `header_style` with no header to apply to is refused, as is a
+/// `header_merge` with neither a header nor a title, and a `header_style` list
+/// longer than the header is deep.
 fn load_layout_header(
   columns : Array[LayoutColumn],
   style_node : @yaml.Node?,
   merge_node : @yaml.Node?,
+  has_title~ : Bool,
   file~ : String,
   defs~ : Defs,
   context~ : String,
@@ -82,10 +84,10 @@ fn load_layout_header(
   })
   let merge = match merge_node {
     Some(node) => {
-      guard depth > 0 else {
+      guard depth > 0 || has_title else {
         raise schema_error(
           file~,
-          "\{context} has a 'header_merge' but no column has a 'header' to merge",
+          "\{context} has a 'header_merge' but no 'title' or column 'header' to merge",
         )
       }
       expect_bool(node, file~, context="\{context} 'header_merge'")
@@ -263,4 +265,48 @@ fn inner_edges_dropped(
   }
   let borders = if kept == @model.Borders::empty() { None } else { Some(kept) }
   Some({ ..style, borders, }.clearing(cleared))
+}
+
+///|
+/// A layout's `title:`, a cell across its width in the row above the header:
+/// merged, or with `merge` off the value in the first cell and the rest blanks
+/// in its style, the border edges between them dropped.
+fn write_title(
+  sheet : @model.Sheet,
+  node : @yaml.Node,
+  at~ : @units.CellRef,
+  last_col~ : Int32,
+  merge~ : Bool,
+  file~ : String,
+  defs~ : Defs,
+  context~ : String,
+) -> Unit raise @diag.SchemaError {
+  let (value, style) = load_cell(
+    node,
+    file~,
+    reference="\{context} title",
+    defs~,
+  )
+  let style_at = (col : Int32) => {
+    if merge {
+      style
+    } else {
+      inner_edges_dropped(
+        style,
+        left=col > at.col,
+        right=col < last_col,
+        top=false,
+        bottom=false,
+      )
+    }
+  }
+  sheet.set(at, value, style?=style_at(at.col))
+  for col in (at.col + 1)..<=last_col {
+    if style_at(col) is Some(style) {
+      sheet.set(@units.CellRef(col~, row=at.row), Blank, style~)
+    }
+  }
+  if merge && last_col > at.col {
+    sheet.merge(at, @units.CellRef(col=last_col, row=at.row))
+  }
 }
