@@ -1,7 +1,7 @@
 ///|
 /// The keys a layout column reads itself; the rest are its band's (§4).
 let layout_column_keys : Array[String] = [
-  "name", "header", "field", "type", "formula", "conditional", "body_style",
+  "name", "header", "field", "type", "formula", "conditional", "body_style", "merge_equal",
 ]
 
 ///|
@@ -22,6 +22,7 @@ priv struct LayoutColumn {
   formula : @yaml.Node?
   conditional : @yaml.Node?
   body_style : @yaml.Node?
+  merge_equal : Bool
   band : Array[(String, @yaml.Node)]
 }
 
@@ -53,6 +54,7 @@ fn load_layout_column(
   let mut formula = None
   let mut conditional = None
   let mut body_style = None
+  let mut merge_equal = false
   let band = []
   for entry in entries {
     let (key, value) = entry
@@ -73,6 +75,12 @@ fn load_layout_column(
       "formula" => formula = Some(value)
       "conditional" => conditional = Some(value)
       "body_style" => body_style = Some(value)
+      "merge_equal" =>
+        merge_equal = expect_bool(
+          value,
+          file~,
+          context="\{where_} 'merge_equal'",
+        )
       _ if layout_band_keys.contains(key) => band.push(entry)
       _ =>
         raise schema_error(
@@ -93,6 +101,12 @@ fn load_layout_column(
       "\{where_} has both a 'type' and a 'formula'; a formula column takes no data",
     )
   }
+  guard !(merge_equal && formula is Some(_)) else {
+    raise schema_error(
+      file~,
+      "\{where_} has both 'merge_equal' and a 'formula'; only data merges",
+    )
+  }
   {
     name,
     col,
@@ -103,6 +117,7 @@ fn load_layout_column(
     formula,
     conditional,
     body_style,
+    merge_equal,
     band,
   }
 }

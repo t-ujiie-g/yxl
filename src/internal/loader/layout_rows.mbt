@@ -207,3 +207,48 @@ fn load_layout_rows(
     }
   }
 }
+
+///|
+/// Merge each `merge_equal` column's runs of equal values down the body, cut
+/// wherever a `merge_equal` column left of it changes. Every covered cell keeps
+/// its value, so a `SUMIFS` or a filter over the column still finds it.
+fn merge_equal_runs(
+  sheet : @model.Sheet,
+  data : Rows,
+  inputs : Array[LayoutColumn],
+  body_first~ : Int32,
+  file~ : String,
+  context~ : String,
+) -> Unit raise @diag.SchemaError {
+  let value = (row : Int32, field : Int32) => {
+    data[row].get(field).unwrap_or(None)
+  }
+  let outer : Array[Int32] = []
+  for field, column in inputs {
+    guard column.merge_equal else { continue }
+    guard !data.is_empty() else {
+      raise schema_error(
+        file~,
+        "\{context} column '\{column.name}' has 'merge_equal' but the layout reads no data to merge",
+      )
+    }
+    let mut start = 0
+    for row in 1..<=data.length() {
+      let continues = row < data.length() &&
+        value(row, field) is Some(_) &&
+        value(row, field) == value(start, field) &&
+        outer.all(left => value(row, left) == value(row - 1, left))
+      if continues {
+        continue
+      }
+      if row - start > 1 && value(start, field) is Some(_) {
+        sheet.merge(
+          @units.CellRef(col=column.col, row=body_first + start),
+          @units.CellRef(col=column.col, row=body_first + row - 1),
+        )
+      }
+      start = row
+    }
+    outer.push(field)
+  }
+}

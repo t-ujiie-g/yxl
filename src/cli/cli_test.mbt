@@ -717,6 +717,26 @@ test "golden: a typed layout column compiles as typed cells do" {
 }
 
 ///|
+test "round trip: merge_equal merges a run and keeps every covered value" {
+  let source =
+    #|sheets:
+    #|  - name: S
+    #|    layouts:
+    #|      - at: A1
+    #|        values: [[東京, 1], [東京, 2], [大阪, 3]]
+    #|        columns:
+    #|          - { name: branch, header: 支店, merge_equal: true }
+    #|          - { name: amount, header: 金額 }
+    #|        footer:
+    #|          - by: branch
+    #|            rows: [{ row: { branch: "{{branch}} 計", amount: { total: sum } } }]
+    #|
+  let reopened = @xlsx.read(@cli.compile(source, file="spec.yaml")[:])
+  assert_eq(reopened.get_merge_cells("S"), ["A2:A3"])
+  assert_eq(reopened.get_cell("S", "A3"), Some("東京"))
+}
+
+///|
 test "round trip: a header that does not merge reopens with no merged cells" {
   let source =
     #|sheets:

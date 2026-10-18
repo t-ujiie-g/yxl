@@ -40,14 +40,15 @@ sheets:
         header_style: header
         values:
           - [東京, 直営, 銀座, 5200000, 4800000]
+          - [東京, 直営, 渋谷, 2800000, 2500000]
           - [東京, FC, 新宿, 3100000, 3300000]
           - [大阪, 直営, 梅田, 4100000, 3900000]
-          - [東京, 直営, 渋谷, 2800000, 2500000]
           - [大阪, FC, 難波, 1900000, 2000000]
           - [福岡, 直営, 天神, 2200000, 2100000]
         columns:
-          - { name: branch, header: 支店, width: 10 }
-          - { name: channel, header: 区分, width: 8 }
+          # Each 支店, and each 区分 within it, shows once beside its stores.
+          - { name: branch, header: 支店, width: 10, merge_equal: true }
+          - { name: channel, header: 区分, width: 8, merge_equal: true }
           - { name: store, header: 店舗, width: 16 }
           - { name: cy, header: 当年, width: 12, format: "#,##0" }
           - { name: py, header: 前年, width: 12, format: "#,##0" }

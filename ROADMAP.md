@@ -1236,7 +1236,14 @@ the first item changes what a spec looks like.
                   its last style. A stretched cell wears the row it starts in.
                   A list longer than the header is deep is refused rather than
                   partly ignored.
-            - [ ] Equal body values merged down a column (支店).
+            - [x] Equal body values merged down a column (支店). **Shipped**
+                  (`docs/spec.md` §25, `examples/subtotals.yxl.yaml`).
+                  `merge_equal: true` on a data column merges each run of
+                  equal values, cut where a `merge_equal` column left of it
+                  changes, as a header's levels are. Covered cells keep their
+                  values, so the footer's `SUMIFS` still finds them; Excel
+                  keeps such values, while LibreOffice's and Google Sheets'
+                  handling of them is for the Tier-3 check to confirm.
             - [ ] A title row merged across the layout's width.
             - [ ] Overrides on header and footer cells by meaning; `rows:`
                   bands, `comments` and `links` on a layout's rows and cells.
@@ -2703,6 +2710,12 @@ not record that the rows were a layout's header.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-10-18** — **`merge_equal`: a column's repeats shown once.** A layout
+  column with `merge_equal: true` merges each run of equal values down the
+  body, so 支店 shows once beside its stores, and 区分 once within each 支店.
+  The covered cells keep their values, so subtotals, filters and sorts still
+  see every row.
 
 - **2026-10-18** — **A header style per row.** `header_style: [group, sub]`
   styles a layout's header row by row: the group labels dark, the column
