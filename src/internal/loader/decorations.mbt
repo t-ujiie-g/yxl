@@ -161,13 +161,60 @@ fn load_links(
   node : @yaml.Node,
   sheet : @model.Sheet,
   file~ : String,
+  defs~ : Defs,
 ) -> Unit raise @diag.SchemaError {
-  for entry in expect_map(node, file~, context="'links'") {
-    let (reference, value) = entry
-    let cell = expect_cell_ref(reference, file~, what="'links'")
+  for entry in by_cell(node, sheet, file~, defs~, what="link") {
+    let (cell, reference, value) = entry
     let (target, tip) = load_link(value, file~, reference~)
     sheet.add_link(cell, target, tip?)
   }
+}
+
+///|
+/// A `links:` or `comments:` block as (cell, its name in diagnostics, entry): a
+/// mapping keyed by A1, or a list whose entries carry their own `at:`, an A1
+/// cell or a cell of a named layout on this sheet.
+fn by_cell(
+  node : @yaml.Node,
+  sheet : @model.Sheet,
+  file~ : String,
+  defs~ : Defs,
+  what~ : String,
+) -> Array[(@units.CellRef, String, @yaml.Node)] raise @diag.SchemaError {
+  guard node is @yaml.Seq(items) else {
+    return expect_map(node, file~, context="'\{what}s'").map(entry => {
+      let (reference, value) = entry
+      (expect_cell_ref(reference, file~, what="'\{what}s'"), reference, value)
+    })
+  }
+  items.map(item => {
+    let entries = expect_map(item, file~, context="a \{what}")
+    let cell = match required_at(entries, file~, subject="a \{what}") {
+      @yaml.Map(target) => {
+        let (on, cell) = resolve_layout_cell(
+          target,
+          defs~,
+          file~,
+          what="\{what} 'at'",
+        )
+        guard on == sheet.name else {
+          raise schema_error(
+            file~,
+            "\{what} 'at' names a layout on sheet '\{on}', not this one",
+          )
+        }
+        cell
+      }
+      at =>
+        expect_cell_ref(
+          expect_string(at, file~, context="\{what} 'at'"),
+          file~,
+          what="\{what} 'at'",
+        )
+    }
+    let rest = entries.filter(entry => entry.0 != "at")
+    (cell, cell.to_a1(), @yaml.Map(rest))
+  })
 }
 
 ///|
@@ -225,10 +272,10 @@ fn load_comments(
   node : @yaml.Node,
   sheet : @model.Sheet,
   file~ : String,
+  defs~ : Defs,
 ) -> Unit raise @diag.SchemaError {
-  for entry in expect_map(node, file~, context="'comments'") {
-    let (reference, value) = entry
-    let cell = expect_cell_ref(reference, file~, what="'comments'")
+  for entry in by_cell(node, sheet, file~, defs~, what="comment") {
+    let (cell, reference, value) = entry
     let context = "comment '\{reference}'"
     if value is @yaml.Str(text) {
       sheet.add_comment(cell, text)

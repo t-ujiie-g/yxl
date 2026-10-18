@@ -1252,8 +1252,16 @@ the first item changes what a spec looks like.
                   with inner border edges dropped. It belongs to the layout
                   for `print.area` and `freeze`, not to its table, so `filter`
                   and `print.titles` start below it.
-            - [ ] Overrides on header and footer cells by meaning; `rows:`
-                  bands, `comments` and `links` on a layout's rows and cells.
+            - [x] Overrides, notes and links on a layout's cells by meaning.
+                  **Shipped** (`docs/spec.md` §10, §25,
+                  `examples/subtotals.yxl.yaml`). A layout cell takes
+                  `header: n`, `footer: n | last` or `title: true` beside
+                  `where` and `row`; one resolver serves overrides,
+                  `comments` and `links`, which also take a list form whose
+                  entries carry their own `at:`. A cell a merge covers is
+                  refused, so a value or a note cannot land where nobody sees
+                  it.
+            - [ ] `rows:` bands on a layout's title, header, body or footer.
             - [ ] Row outlines and page breaks per footer group.
 
       Open, to settle inside the slices: whether `yxl extract` should
@@ -2717,6 +2725,13 @@ not record that the rows were a layout's header.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-10-18** — **Header, footer and title cells by meaning; listed notes
+  and links.** An override's layout cell takes `header: n`, `footer: n` or
+  `footer: last`, and `title: true`, beside `where` and `row`. `comments:` and
+  `links:` may be lists whose entries carry their own `at:`, an A1 cell or a
+  layout cell, so a note can sit on 渋谷's row wherever the row moves. A cell
+  hidden under a merge is refused.
 
 - **2026-10-18** — **Whole-tree refactor.** The nine spellings tables the
   loader reads (chart kinds, legend positions, form controls, image

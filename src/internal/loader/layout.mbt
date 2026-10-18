@@ -130,6 +130,7 @@ fn load_layout(
     defs~,
     context~,
   )
+  let merges_before = sheet.merges.length()
   let header_first = if title_node is Some(_) { at.row + 1 } else { at.row }
   let body_first = header_first + header.depth
   let body_last = body_first + rows - 1
@@ -252,6 +253,7 @@ fn load_layout(
       data,
       first_row: at.row,
       header_first,
+      merges: sheet.merges[merges_before:].to_owned(),
       header_row: if header.depth > 0 {
         Some(body_first - 1)
       } else {

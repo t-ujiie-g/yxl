@@ -714,9 +714,18 @@ just text.
 
 | Key | Notes |
 |---|---|
+| `at` | In the list form only: the cell, as A1 or as a named layout's cell (§25). |
 | `url` | A target outside the workbook. Exactly one of `url` / `to`. |
 | `to` | A target inside it. |
 | `tip` | The hover tooltip. |
+
+**`links:` may also be a list**, each entry carrying its own `at:`. That is the
+form for a cell found by meaning, which no A1 key can name:
+
+```yaml
+links:
+  - { at: { layout: 店舗, column: store, where: { store: 渋谷 } }, url: "https://…" }
+```
 
 A sheet named by `to:` or by a validation's `from:` must be declared, or the
 build fails — Excel reports neither, so a typo would otherwise ship as a
@@ -742,8 +751,11 @@ it decorates the cell: the value shown is still the cell's own.
 
 | Key | Notes |
 |---|---|
+| `at` | In the list form only, as for a link: the cell, as A1 or as a named layout's cell (§25). |
 | `text` | **Required** in the expanded form; a bare value is the text. |
 | `author` | Shown above the text. A note always carries one in the file, so leaving it out does not omit it — Excel writes a generic name instead. |
+
+`comments:` may be a list too, each entry with its own `at:`, as `links:` can.
 
 ### Conditional formatting
 
@@ -1871,11 +1883,15 @@ overrides:
   and `.`, starting with a letter or `_`, and not a cell reference in either
   case. It is unique among layouts. Each `layout.column` it produces must not
   repeat another defined name or a table name (§6).
-- **An override may find its cell by meaning.** Its `at:` is then
-  `{ layout, column, where }`, with `where` naming input columns and the values
-  they hold. It must match exactly one row of the layout's data, so a key that
-  is not unique, or a row that is gone, is an error, never a guess. `row: n`
-  instead of `where` takes the body's *n*th row. The layout must have a `name`.
+- **An override, a note or a link may find its cell by meaning.** Its `at:`
+  is then `{ layout, column, where }`, with `where` naming input columns and
+  the values they hold. It must match exactly one row of the layout's data, so
+  a key that is not unique, or a row that is gone, is an error, never a guess.
+  The layout must have a `name`. Instead of `where`, `row: n` takes the
+  body's *n*th row, `header: n` the *n*th header row from the top, and
+  `footer: n` the *n*th footer row as written out (`footer: last` the last).
+  `title: true`, with no `column`, is the title. A cell that a merge covers is
+  refused: name the merge's first cell.
 
 **Where a spec reads a range, it may name a layout instead.** The layout may
 be on any sheet, declared before or after the reader, because every layout is

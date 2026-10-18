@@ -223,6 +223,11 @@ def keyish(text: str) -> list[str]:
     ]
 
 
+def without_at(keys: dict[str, str]) -> dict[str, str]:
+    """A key table less its list-form-only `at` row."""
+    return {key: text for key, text in keys.items() if key != "at"}
+
+
 def braced(text: str) -> list[str]:
     """The keys of the first `{ a, b, c }` a description writes out.
 
@@ -808,22 +813,43 @@ def build(doc: Reference) -> dict:
                     "to": ref("text"),
                     "tip": ref("text"),
                 },
-                documented=doc.keys("Links"),
+                documented=without_at(doc.keys("Links")),
                 where="a link",
             ),
         ]
     }
+    define["listed_link"] = obj(
+        {
+            "at": {"anyOf": [ref("cell"), ref("layout_cell")]},
+            "url": ref("text"),
+            "to": ref("text"),
+            "tip": ref("text"),
+        },
+        documented=doc.keys("Links"),
+        required=("at",),
+        where="a listed link",
+    )
     define["comment"] = {
         "anyOf": [
             ref("text"),
             obj(
                 {"text": ref("text"), "author": ref("text")},
-                documented=doc.keys("Notes"),
+                documented=without_at(doc.keys("Notes")),
                 required=("text",),
                 where="a note",
             ),
         ]
     }
+    define["listed_comment"] = obj(
+        {
+            "at": {"anyOf": [ref("cell"), ref("layout_cell")]},
+            "text": ref("text"),
+            "author": ref("text"),
+        },
+        documented=doc.keys("Notes"),
+        required=("at", "text"),
+        where="a listed note",
+    )
     rules = doc.keys("Conditional formatting")
     extent = {
         "anyOf": [
@@ -1206,11 +1232,14 @@ def build(doc: Reference) -> dict:
             "column": ref("text"),
             "where": node({"type": "object", "additionalProperties": ref("scalar")}),
             "row": ref("integer"),
+            "header": ref("integer"),
+            "footer": {"anyOf": [ref("integer"), enum(["last"])]},
+            "title": ref("boolean"),
         },
-        documented=["layout", "column", "where", "row"],
-        required=("layout", "column"),
+        documented=["layout", "column", "where", "row", "header", "footer", "title"],
+        required=("layout",),
         description="A cell of a named layout, found by meaning (§25).",
-        where="an override's layout cell",
+        where="a layout cell",
     )
     define["override"] = obj(
         {
@@ -1382,21 +1411,31 @@ def build(doc: Reference) -> dict:
             "print": ref("print"),
             "filter": ref("filter"),
             "validations": seq(ref("validation")),
-            "links": node(
-                {
-                    "type": "object",
-                    "propertyNames": {"$ref": "#/definitions/cell"},
-                    "additionalProperties": ref("link"),
-                }
-            ),
+            "links": {
+                "anyOf": [
+                    node(
+                        {
+                            "type": "object",
+                            "propertyNames": {"$ref": "#/definitions/cell"},
+                            "additionalProperties": ref("link"),
+                        }
+                    ),
+                    seq(ref("listed_link")),
+                ]
+            },
             "conditional": seq(ref("conditional")),
-            "comments": node(
-                {
-                    "type": "object",
-                    "propertyNames": {"$ref": "#/definitions/cell"},
-                    "additionalProperties": ref("comment"),
-                }
-            ),
+            "comments": {
+                "anyOf": [
+                    node(
+                        {
+                            "type": "object",
+                            "propertyNames": {"$ref": "#/definitions/cell"},
+                            "additionalProperties": ref("comment"),
+                        }
+                    ),
+                    seq(ref("listed_comment")),
+                ]
+            },
             "tables": seq(ref("table")),
             "charts": seq(ref("chart")),
             "images": seq(ref("image")),

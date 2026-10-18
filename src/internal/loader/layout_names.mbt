@@ -8,6 +8,7 @@ priv struct NamedLayout {
   data : Rows
   first_row : Int32
   header_first : Int32
+  merges : Array[@model.CellRange]
   header_row : Int32?
   body_first : Int32
   body_last : Int32
@@ -72,47 +73,37 @@ fn add_layout_names(workbook : @model.Workbook, defs : Defs) -> Unit {
 }
 
 ///|
-/// An override's `at:` given by meaning: `{ layout, column, where | row }`. `where`
-/// matches the data's values in the named columns and must find exactly one row.
+/// A cell of a named layout given by meaning, for an override's, a comment's or
+/// a link's `at:` (`what`): a `column` and one of `where`, `row`, `header` or
+/// `footer`, or `title` alone. A cell a merge covers is refused.
 fn resolve_layout_cell(
   entries : Array[(String, @yaml.Node)],
   defs~ : Defs,
   file~ : String,
+  what~ : String,
 ) -> (String, @units.CellRef) raise @diag.SchemaError {
   let mut layout_name = None
   let mut column = None
-  let mut where_ = None
-  let mut row = None
+  let finders = []
   for entry in entries {
     match entry {
       ("layout", node) =>
         layout_name = Some(
-          expect_string(node, file~, context="override 'at' 'layout'"),
+          expect_string(node, file~, context="\{what} 'layout'"),
         )
       ("column", node) =>
-        column = Some(
-          expect_string(node, file~, context="override 'at' 'column'"),
-        )
-      ("where", node) =>
-        where_ = Some(expect_map(node, file~, context="override 'at' 'where'"))
-      ("row", @yaml.Int(number)) => row = Some(number.to_int())
-      ("row", _) =>
-        raise schema_error(
-          file~,
-          "override 'at' 'row' must be a whole number: the body row, counting from 1",
-        )
+        column = Some(expect_string(node, file~, context="\{what} 'column'"))
+      ("where" | "row" | "header" | "footer" | "title", _) =>
+        finders.push(entry)
       (key, _) =>
         raise schema_error(
           file~,
-          "unknown key '\{key}' in override 'at' (expected 'layout', 'column', 'where', or 'row')",
+          "unknown key '\{key}' in \{what} (expected 'layout', 'column', 'where', 'row', 'header', 'footer', or 'title')",
         )
     }
   }
-  guard layout_name is Some(layout_name) && column is Some(column) else {
-    raise schema_error(
-      file~,
-      "override 'at' given by layout needs both 'layout' and 'column'",
-    )
+  guard layout_name is Some(layout_name) else {
+    raise schema_error(file~, "\{what} given by layout needs 'layout'")
   }
   guard defs.layouts.get(layout_name) is Some(layout) else {
     let known = defs.layouts.keys().map(name => "'\{name}'").collect()
@@ -123,36 +114,135 @@ fn resolve_layout_cell(
     }
     raise schema_error(
       file~,
-      "override 'at' names layout '\{layout_name}', which no layout is called (\{hint})",
+      "\{what} names layout '\{layout_name}', which no layout is called (\{hint})",
     )
   }
-  let context = "override 'at' on layout '\{layout_name}'"
-  guard layout.columns.search_by(entry => entry.0 == column) is Some(index) else {
+  let context = "\{what} on layout '\{layout_name}'"
+  guard finders is [(finder, node)] else {
     raise schema_error(
       file~,
-      "\{context} names column '\{column}', which the layout does not have",
+      "\{context} needs exactly one of 'where', 'row', 'header', 'footer', or 'title' to find its cell",
     )
   }
-  let col = layout.columns[index].1
-  let body_row = match (where_, row) {
-    (Some(conditions), None) => match_where(conditions, layout, file~, context~)
-    (None, Some(number)) => {
-      let rows = layout.body_last - layout.body_first + 1
-      guard number >= 1 && number <= rows else {
-        raise schema_error(
-          file~,
-          "\{context} 'row' is \{number}, but the body has rows 1 to \{rows}",
-        )
-      }
-      number - 1
+  let at = if finder == "title" {
+    guard node is @yaml.Bool(true) else {
+      raise schema_error(file~, "\{context} 'title' must be true")
     }
-    _ =>
+    guard column is None else {
       raise schema_error(
         file~,
-        "\{context} needs exactly one of 'where' or 'row' to find its row",
+        "\{context} names a 'column' and the 'title', which spans them all",
       )
+    }
+    guard layout.header_first > layout.first_row else {
+      raise schema_error(
+        file~,
+        "\{context} names the title of a layout with none",
+      )
+    }
+    @units.CellRef(col=layout.columns[0].1, row=layout.first_row)
+  } else {
+    guard column is Some(column) else {
+      raise schema_error(
+        file~,
+        "\{context} needs a 'column' to go with its '\{finder}'",
+      )
+    }
+    guard layout.columns.search_by(entry => entry.0 == column) is Some(index) else {
+      raise schema_error(
+        file~,
+        "\{context} names column '\{column}', which the layout does not have",
+      )
+    }
+    let row = match finder {
+      "where" =>
+        layout.body_first +
+        match_where(
+          expect_map(node, file~, context="\{context} 'where'"),
+          layout,
+          file~,
+          context~,
+        )
+      "row" =>
+        layout.body_first +
+        counted_row(
+          node,
+          layout.body_last - layout.body_first + 1,
+          part="body",
+          finder~,
+          file~,
+          context~,
+        ) -
+        1
+      "header" =>
+        layout.header_first +
+        counted_row(
+          node,
+          layout.body_first - layout.header_first,
+          part="header",
+          finder~,
+          file~,
+          context~,
+        ) -
+        1
+      _ => {
+        let rows = layout.last_row - layout.body_last
+        let number = if node is @yaml.Str("last") {
+          rows
+        } else {
+          counted_row(node, rows, part="footer", finder~, file~, context~)
+        }
+        guard rows > 0 else {
+          raise schema_error(
+            file~,
+            "\{context} names the footer of a layout with none",
+          )
+        }
+        layout.body_last + number
+      }
+    }
+    @units.CellRef(col=layout.columns[index].1, row~)
   }
-  (layout.sheet, @units.CellRef(col~, row=layout.body_first + body_row))
+  for merged in layout.merges {
+    guard !within(at, merged) || at == merged.top_left else {
+      raise schema_error(
+        file~,
+        "\{context} lands inside the merged cells '\{merged.to_a1()}'; name their first cell",
+      )
+    }
+  }
+  (layout.sheet, at)
+}
+
+///|
+/// A `row`, `header` or `footer` count: a whole number from 1 to `rows`.
+fn counted_row(
+  node : @yaml.Node,
+  rows : Int32,
+  part~ : String,
+  finder~ : String,
+  file~ : String,
+  context~ : String,
+) -> Int32 raise @diag.SchemaError {
+  guard node is @yaml.Int(number) else {
+    raise schema_error(
+      file~,
+      "\{context} '\{finder}' must be a whole number: the \{part} row, counting from 1",
+    )
+  }
+  guard rows > 0 else {
+    raise schema_error(
+      file~,
+      "\{context} names the \{part} of a layout with none",
+    )
+  }
+  guard number >= 1L && number <= rows.to_int64() else {
+    raise schema_error(
+      file~,
+      "\{context} '\{finder}' is \{number}, but the \{part} has rows 1 to \{rows}",
+    )
+  }
+  number.to_int()
 }
 
 ///|

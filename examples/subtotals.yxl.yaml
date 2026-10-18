@@ -30,6 +30,9 @@ sheets:
     # does: the title and header stay put, and the header repeats on every page.
     freeze: { layout: 店舗 }
     print: { area: 店舗, titles: 店舗 }
+    # A note found as the override below finds its cell: by the row's values.
+    comments:
+      - { at: { layout: 店舗, column: store, where: { store: 渋谷 } }, text: 2026年4月に改装 }
     layouts:
       - at: A1
         # Merged across the layout's six columns, however many it grows to.

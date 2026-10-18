@@ -2545,6 +2545,32 @@
         "row": {
           "$ref": "#/definitions/integer"
         },
+        "header": {
+          "$ref": "#/definitions/integer"
+        },
+        "footer": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/integer"
+            },
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "last"
+                  ]
+                },
+                {
+                  "$ref": "#/definitions/parameterized"
+                }
+              ]
+            }
+          ]
+        },
+        "title": {
+          "$ref": "#/definitions/boolean"
+        },
         "$include": {
           "type": "string",
           "description": "Another document, pasted in place of this node (§8)."
@@ -2553,8 +2579,7 @@
       "anyOf": [
         {
           "required": [
-            "layout",
-            "column"
+            "layout"
           ]
         },
         {
@@ -3056,6 +3081,120 @@
               "description": "Another document, pasted in place of this node (§8)."
             }
           }
+        }
+      ]
+    },
+    "listed_comment": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "at": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/cell"
+            },
+            {
+              "$ref": "#/definitions/layout_cell"
+            }
+          ],
+          "description": "In the list form only, as for a link: the cell, as A1 or as a named layout's cell (§25).",
+          "markdownDescription": "In the list form only, as for a link: the cell, as A1 or as a named layout's cell (§25)."
+        },
+        "text": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/text"
+            }
+          ],
+          "description": "**Required** in the expanded form; a bare value is the text.",
+          "markdownDescription": "**Required** in the expanded form; a bare value is the text."
+        },
+        "author": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/text"
+            }
+          ],
+          "description": "Shown above the text. A note always carries one in the file, so leaving it out does not omit it — Excel writes a generic name instead.",
+          "markdownDescription": "Shown above the text. A note always carries one in the file, so leaving it out does not omit it — Excel writes a generic name instead."
+        },
+        "$include": {
+          "type": "string",
+          "description": "Another document, pasted in place of this node (§8)."
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "at",
+            "text"
+          ]
+        },
+        {
+          "required": [
+            "$include"
+          ]
+        }
+      ]
+    },
+    "listed_link": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "at": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/cell"
+            },
+            {
+              "$ref": "#/definitions/layout_cell"
+            }
+          ],
+          "description": "In the list form only: the cell, as A1 or as a named layout's cell (§25).",
+          "markdownDescription": "In the list form only: the cell, as A1 or as a named layout's cell (§25)."
+        },
+        "url": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/text"
+            }
+          ],
+          "description": "A target outside the workbook. Exactly one of `url` / `to`.",
+          "markdownDescription": "A target outside the workbook. Exactly one of `url` / `to`."
+        },
+        "to": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/text"
+            }
+          ],
+          "description": "A target inside it.",
+          "markdownDescription": "A target inside it."
+        },
+        "tip": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/text"
+            }
+          ],
+          "description": "The hover tooltip.",
+          "markdownDescription": "The hover tooltip."
+        },
+        "$include": {
+          "type": "string",
+          "description": "Another document, pasted in place of this node (§8)."
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "at"
+          ]
+        },
+        {
+          "required": [
+            "$include"
+          ]
         }
       ]
     },
@@ -4396,16 +4535,33 @@
         "links": {
           "anyOf": [
             {
-              "type": "object",
-              "propertyNames": {
-                "$ref": "#/definitions/cell"
-              },
-              "additionalProperties": {
-                "$ref": "#/definitions/link"
-              }
+              "anyOf": [
+                {
+                  "type": "object",
+                  "propertyNames": {
+                    "$ref": "#/definitions/cell"
+                  },
+                  "additionalProperties": {
+                    "$ref": "#/definitions/link"
+                  }
+                },
+                {
+                  "$ref": "#/definitions/include"
+                }
+              ]
             },
             {
-              "$ref": "#/definitions/include"
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/listed_link"
+                  }
+                },
+                {
+                  "$ref": "#/definitions/include"
+                }
+              ]
             }
           ],
           "description": "Hyperlinks, by cell. §10.",
@@ -4429,16 +4585,33 @@
         "comments": {
           "anyOf": [
             {
-              "type": "object",
-              "propertyNames": {
-                "$ref": "#/definitions/cell"
-              },
-              "additionalProperties": {
-                "$ref": "#/definitions/comment"
-              }
+              "anyOf": [
+                {
+                  "type": "object",
+                  "propertyNames": {
+                    "$ref": "#/definitions/cell"
+                  },
+                  "additionalProperties": {
+                    "$ref": "#/definitions/comment"
+                  }
+                },
+                {
+                  "$ref": "#/definitions/include"
+                }
+              ]
             },
             {
-              "$ref": "#/definitions/include"
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/listed_comment"
+                  }
+                },
+                {
+                  "$ref": "#/definitions/include"
+                }
+              ]
             }
           ],
           "description": "Notes, by cell. §10.",
