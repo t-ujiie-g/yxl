@@ -132,8 +132,8 @@ with [MoonBit](https://www.moonbitlang.com/download) installed you can run it
 without installing anything else:
 
 ```bash
-moonx t-ujiie-g/yxl/cmd/main@0.6.2 build report.yxl.yaml
-moonx t-ujiie-g/yxl/cmd/main@0.6.2 extract existing.xlsx -o spec.yxl.yaml
+moonx t-ujiie-g/yxl/cmd/main@0.7.0 build report.yxl.yaml
+moonx t-ujiie-g/yxl/cmd/main@0.7.0 extract existing.xlsx -o spec.yxl.yaml
 ```
 
 Every command and option is the same as `yxl`'s. `moonx` runs it as
