@@ -130,7 +130,7 @@ fn check_formula_ranges(
         }
       }
       for cell in sheet.cells {
-        guard !within(cell.pos, range.at) else {
+        guard !range.at.contains(cell.pos) else {
           raise schema_error(
             file~,
             "\{context} covers '\{cell.pos.to_a1()}', which the sheet also writes as a cell; split the range around it rather than letting one silently win",
@@ -139,13 +139,4 @@ fn check_formula_ranges(
       }
     }
   }
-}
-
-///|
-/// Whether a cell falls inside a range.
-fn within(cell : @units.CellRef, range : @model.CellRange) -> Bool {
-  cell.row >= range.top_left.row &&
-  cell.row <= range.bottom_right.row &&
-  cell.col >= range.top_left.col &&
-  cell.col <= range.bottom_right.col
 }

@@ -383,6 +383,18 @@ test "CellRange::parse is the inverse of to_a1, in either corner order" {
 }
 
 ///|
+test "CellRange::contains takes in its edges and nothing past them" {
+  let range = @model.CellRange::parse("B2:C4").unwrap()
+  let at = text => @units.CellRef::parse_a1(text).unwrap()
+  for inside in ["B2", "C4", "B4", "C2", "B3"] {
+    assert_true(range.contains(at(inside)))
+  }
+  for outside in ["A2", "D2", "B1", "B5"] {
+    assert_false(range.contains(at(outside)))
+  }
+}
+
+///|
 test "CellRange::parse refuses what is not two references around a colon" {
   for text in ["A1", "", ":", "A1:", ":B9", "A1:B9:C1", "1:9", "A0:B9", "x:y"] {
     assert_eq((text, @model.CellRange::parse(text)), (text, None))

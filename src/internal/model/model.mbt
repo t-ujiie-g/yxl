@@ -66,6 +66,15 @@ pub fn CellRange::to_a1(self : CellRange) -> String {
 }
 
 ///|
+/// Whether `cell` falls inside the range, its edges included.
+pub fn CellRange::contains(self : CellRange, cell : @units.CellRef) -> Bool {
+  cell.row >= self.top_left.row &&
+  cell.row <= self.bottom_right.row &&
+  cell.col >= self.top_left.col &&
+  cell.col <= self.bottom_right.col
+}
+
+///|
 /// Parse `TopLeft:BottomRight`, the inverse of `to_a1`; corners in either order
 /// come back canonical.
 pub fn CellRange::parse(text : String) -> CellRange? {

@@ -2185,6 +2185,29 @@ alternative, one range for all, would print a report without its group labels
 or its totals. `extract` writes print titles back as a row span: a workbook does
 not record that the rows were a layout's header.
 
+### ADR-032 — An override's look replaces the cell's own, and the bands stay under it
+
+**Status:** accepted 2026-10-19. Refines ADR-018's "per facet" rule.
+
+**Context:** An override's `style` or `format` was written as the cell's whole
+style, so it also hid the column and row bands: a filled column lost its fill
+on the overridden cell, where a `cells:` entry keeps it (#137). Replacing the
+cell's *own* look was not the defect: a `cells:` entry written after another
+construct does the same, as `docs/spec.md` §2 and §4 say.
+
+**Decision:** `style` and `format` are one facet, the cell's own look. An
+override that gives either replaces that look whole, the `cells:` entry's or
+the `formulas:` range's style included; one that gives neither keeps it. The
+bands are laid under the result exactly as under a `cells:` entry, and the look
+is drawn for the override's value, so a value that becomes text drops a band's
+number format as a text cell would.
+
+**Trade-offs / consequences:** an override cannot add one attribute to the
+cell's own look; it restates the look, or names it in `defs` and `extends` it
+(§6). Layering attribute by attribute was the other reading, and was declined:
+it would make an override the one later writer that merges rather than
+replaces. yxl-vscode draws overrides the same way.
+
 ## 8. Open questions
 
 - **Q1 — YAML parser.** ✅ **Decided (ADR-009), refined (ADR-010):** depend on
@@ -2737,6 +2760,24 @@ not record that the rows were a layout's header.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-10-19** — **0.7.1.** A patch release for #137: an override's
+  `style` or `format` keeps the column and row bands under it, as a `cells:`
+  entry does. A style or format override on a banded cell builds a different
+  look than in 0.7.0. The version moves to `0.7.1` in `moon.mod` and in
+  `yxl version`, and the READMEs' `moonx …@<version>` lines follow, ready for
+  the `v0.7.1` tag and its mooncakes publish (ADR-027).
+
+- **2026-10-19** — **Refactor before 0.7.1.** Whether a cell falls inside a
+  range is one `CellRange::contains` in `model`, where the loader's `within`
+  and the override emitter each kept their own copy.
+
+- **2026-10-19** — **An override keeps the bands under its look (#137).** An
+  override's `style` or `format` still replaces the cell's own look whole, as
+  a later `cells:` entry does, but the column and row bands now show through
+  it: an override on a filled column keeps the fill. A spec with a style or
+  format override on a banded cell builds a different look than in 0.7.0
+  (ADR-032).
 
 - **2026-10-18** — **0.7.0.** A release carrying the layout work below: what
   the probe of 0.6.2 found a layout could not say. `body_style`, a column's

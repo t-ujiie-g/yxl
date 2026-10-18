@@ -130,7 +130,7 @@ fn resolve_layout_cell(
     @units.CellRef(col=layout.columns[index].1, row~)
   }
   for merged in layout.merges {
-    guard !within(at, merged) || at == merged.top_left else {
+    guard !merged.contains(at) || at == merged.top_left else {
       raise schema_error(
         file~,
         "\{context} lands inside the merged cells '\{merged.to_a1()}'; name their first cell",
