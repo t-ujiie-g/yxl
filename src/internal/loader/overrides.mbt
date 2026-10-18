@@ -129,7 +129,7 @@ fn check_overrides(
     }
     let filled = sheet.formulas
       .iter()
-      .find_first(range => within(entry.at, range.at))
+      .find_first(range => range.at.contains(entry.at))
     if filled is Some(range) && range.at.top_left == entry.at {
       raise schema_error(
         file~,

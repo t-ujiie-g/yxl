@@ -2761,6 +2761,10 @@ replaces. yxl-vscode draws overrides the same way.
 
 Reverse-chronological. One entry per user-visible or structural change.
 
+- **2026-10-19** — **Refactor before 0.7.1.** Whether a cell falls inside a
+  range is one `CellRange::contains` in `model`, where the loader's `within`
+  and the override emitter each kept their own copy.
+
 - **2026-10-19** — **An override keeps the bands under its look (#137).** An
   override's `style` or `format` still replaces the cell's own look whole, as
   a later `cells:` entry does, but the column and row bands now show through

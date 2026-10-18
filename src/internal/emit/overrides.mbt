@@ -58,11 +58,7 @@ fn overridden_cell(
     return (cell.value, cell.style)
   }
   for range in sheet.formulas {
-    let { top_left, bottom_right, } = range.at
-    if at.col >= top_left.col &&
-      at.col <= bottom_right.col &&
-      at.row >= top_left.row &&
-      at.row <= bottom_right.row {
+    if range.at.contains(at) {
       return (Formula(formula=range.formula, cached=None), range.style)
     }
   }
