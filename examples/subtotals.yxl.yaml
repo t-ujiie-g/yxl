@@ -26,14 +26,14 @@ defs:
 
 sheets:
   - name: 店舗別
-    # Held and printed by the layout's name, so neither moves when the title
-    # above it grows a row: the header stays put, and repeats on every page.
+    # Held and printed by the layout's name, so neither moves when the layout
+    # does: the title and header stay put, and the header repeats on every page.
     freeze: { layout: 店舗 }
     print: { area: 店舗, titles: 店舗 }
-    cells:
-      A1: 2026年度 上期 店舗別実績
     layouts:
-      - at: A2
+      - at: A1
+        # Merged across the layout's six columns, however many it grows to.
+        title: { value: 2026年度 上期 店舗別実績, style: { font: { bold: true } } }
         # Naming the layout makes each column's body a defined name, `店舗.cy`
         # and so on, which a formula anywhere in the workbook can use.
         name: 店舗

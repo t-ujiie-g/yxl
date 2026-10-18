@@ -47,6 +47,7 @@ fn load_layout(
   let context = "layout '\{at.to_a1()}'"
   let mut rows = None
   let mut header_style_node = None
+  let mut title_node = None
   let mut header_merge_node = None
   let mut body_style_node = None
   let mut columns_node = None
@@ -59,6 +60,7 @@ fn load_layout(
       "at" => () // consumed above
       "rows" => rows = Some(expect_body_rows(value, file~, context~))
       "header_style" => header_style_node = Some(value)
+      "title" => title_node = Some(value)
       "header_merge" => header_merge_node = Some(value)
       "body_style" => body_style_node = Some(value)
       "columns" => columns_node = Some(value)
@@ -85,7 +87,7 @@ fn load_layout(
       _ =>
         raise schema_error(
           file~,
-          "unknown key '\{key}' in \{context} (expected 'at', 'name', 'rows', 'header_style', 'header_merge', 'body_style', 'columns', 'values', 'csv', 'json', or 'footer')",
+          "unknown key '\{key}' in \{context} (expected 'at', 'name', 'title', 'rows', 'header_style', 'header_merge', 'body_style', 'columns', 'values', 'csv', 'json', or 'footer')",
         )
     }
   }
@@ -123,11 +125,13 @@ fn load_layout(
     columns,
     header_style_node,
     header_merge_node,
+    has_title=title_node is Some(_),
     file~,
     defs~,
     context~,
   )
-  let body_first = at.row + header.depth
+  let header_first = if title_node is Some(_) { at.row + 1 } else { at.row }
+  let body_first = header_first + header.depth
   let body_last = body_first + rows - 1
   guard body_last <= max_sheet_row else {
     raise schema_error(
@@ -155,7 +159,19 @@ fn load_layout(
       ),
     )
   }
-  write_headers(sheet, header, at~)
+  if title_node is Some(node) {
+    write_title(
+      sheet,
+      node,
+      at~,
+      last_col=at.col + columns.length() - 1,
+      merge=header.merge,
+      file~,
+      defs~,
+      context~,
+    )
+  }
+  write_headers(sheet, header, at=@units.CellRef(col=at.col, row=header_first))
   let body_inputs = []
   for column in inputs {
     let body_style = body_style_of[column.name]
@@ -235,6 +251,7 @@ fn load_layout(
       input_of,
       data,
       first_row: at.row,
+      header_first,
       header_row: if header.depth > 0 {
         Some(body_first - 1)
       } else {

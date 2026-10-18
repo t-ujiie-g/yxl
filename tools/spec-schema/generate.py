@@ -1328,6 +1328,7 @@ def build(doc: Reference) -> dict:
         {
             "at": ref("anchor"),
             "name": ref("text"),
+            "title": ref("cell_value"),
             "rows": ref("integer"),
             "header_style": {"anyOf": [ref("style"), seq(ref("style"))]},
             "header_merge": ref("boolean"),

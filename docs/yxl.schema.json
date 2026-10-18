@@ -2349,8 +2349,17 @@
               "$ref": "#/definitions/anchor"
             }
           ],
-          "description": "**Required.** The top-left cell. The header rows start here when any column has a `header`; otherwise the body starts here.",
-          "markdownDescription": "**Required.** The top-left cell. The header rows start here when any column has a `header`; otherwise the body starts here."
+          "description": "**Required.** The top-left cell. The title sits here when there is one, and the header rows start below it; otherwise they start here, or the body does when no column has a `header`.",
+          "markdownDescription": "**Required.** The top-left cell. The title sits here when there is one, and the header rows start below it; otherwise they start here, or the body does when no column has a `header`."
+        },
+        "title": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/cell_value"
+            }
+          ],
+          "description": "A cell (§3) across the layout's width, in its first row. See below.",
+          "markdownDescription": "A cell (§3) across the layout's width, in its first row. See below."
         },
         "rows": {
           "allOf": [
@@ -2456,8 +2465,8 @@
               "$ref": "#/definitions/boolean"
             }
           ],
-          "description": "`false` writes the header without merged cells. Default `true`. Needs at least one `header`.",
-          "markdownDescription": "`false` writes the header without merged cells. Default `true`. Needs at least one `header`."
+          "description": "`false` writes the header, and the title, without merged cells. Default `true`. Needs a `header` or a `title`.",
+          "markdownDescription": "`false` writes the header, and the title, without merged cells. Default `true`. Needs a `header` or a `title`."
         },
         "body_style": {
           "allOf": [

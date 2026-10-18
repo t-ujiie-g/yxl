@@ -1244,7 +1244,14 @@ the first item changes what a spec looks like.
                   values, so the footer's `SUMIFS` still finds them; Excel
                   keeps such values, while LibreOffice's and Google Sheets'
                   handling of them is for the Tier-3 check to confirm.
-            - [ ] A title row merged across the layout's width.
+            - [x] A title row merged across the layout's width. **Shipped**
+                  (`docs/spec.md` §25, `examples/subtotals.yxl.yaml`).
+                  `title:` is a cell in the layout's first row, merged across
+                  every column; the header starts below it. `header_merge:
+                  false` covers it too, leaving the value in the first cell
+                  with inner border edges dropped. It belongs to the layout
+                  for `print.area` and `freeze`, not to its table, so `filter`
+                  and `print.titles` start below it.
             - [ ] Overrides on header and footer cells by meaning; `rows:`
                   bands, `comments` and `links` on a layout's rows and cells.
             - [ ] Row outlines and page breaks per footer group.
@@ -2710,6 +2717,12 @@ not record that the rows were a layout's header.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-10-18** — **A layout's `title`.** `title: 2026年度 上期 店舗別実績`
+  puts a heading in the layout's first row, merged across every column, so it
+  stays as wide as the table when a column is added. The header moves down a
+  row; the print area takes the title in, and the repeated print titles do
+  not.
 
 - **2026-10-18** — **`merge_equal`: a column's repeats shown once.** A layout
   column with `merge_equal: true` merges each run of equal values down the
