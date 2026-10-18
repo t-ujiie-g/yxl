@@ -2738,6 +2738,14 @@ not record that the rows were a layout's header.
 
 Reverse-chronological. One entry per user-visible or structural change.
 
+- **2026-10-18** — **Refactor before 0.7.0.** Finding a cell or rows of a
+  layout by meaning moves from `layout_names.mbt` (520 lines) to
+  `layout_targets.mbt`, with its tests. `freeze` and a row band share one
+  lookup for a named layout on the sheet, so the diagnostic for a name that is
+  not one reads the same: `row 'at' 'u' is not a named layout`. The READMEs'
+  `subtotals` row and both AI skills cover `page_break_on`, notes and links by
+  meaning, and row bands on a layout's parts.
+
 - **2026-10-18** — **`page_break_on`: each value on its own pages.** A layout
   with `page_break_on: branch` starts a printed page wherever 支店 changes
   down the body, so with `print.titles` each 支店 prints under its own

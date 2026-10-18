@@ -226,14 +226,13 @@ fn freeze_at_layout(
       "sheet 'freeze' must be a cell, or '{ layout: name }' to freeze above its body",
     )
   }
-  guard layout_here(name, defs~, sheet~, file~, what="freeze layout")
-    is Some(layout) else {
-    let known = defs.layouts.keys().map(name => "'\{name}'").collect()
-    raise schema_error(
-      file~,
-      "freeze layout '\{name}' is not a named layout (layouts: \{or_list(known)})",
-    )
-  }
+  let layout = required_layout_here(
+    name,
+    defs~,
+    sheet~,
+    file~,
+    what="freeze layout",
+  )
   guard columns <= layout.columns.length() else {
     raise schema_error(
       file~,
