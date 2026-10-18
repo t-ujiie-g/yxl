@@ -114,8 +114,10 @@ come from a file:
   `formula:` — it fills the body, whatever length next month's file has.
 - If it was an Excel table, `tables: [{ at: visitors, name: … }]` declares the
   layout one again. Widths are the columns' `width`; a frozen header row is
-  `freeze: { layout: visitors }`, and a print area or print titles name the
-  layout too.
+  `freeze: { layout: visitors }`, and a print area, print titles and row
+  heights (`rows: [{ at: { layout: visitors, part: header }, … }]`) name the
+  layout too. Manual page breaks where a column's value changes are
+  `page_break_on:`.
 - **Look for the same list in more than one sheet** before writing the CSVs:
   the store names, the account codes, the region list. A hand-maintained
   workbook copies them, and drift between the copies is usually one of the bugs
@@ -191,7 +193,9 @@ becomes a layout.
   Write the column or the parameter as the rule really is, then lift each
   holdout into a top-level override — by meaning inside a named layout,
   `{ at: { layout: sales, column: amount, where: { store: 渋谷 } }, …, reason: … }`,
-  so it stays on its row when rows move — with the reason you found in the
+  so it stays on its row when rows move; `header: n`, `footer: last` and
+  `title: true` reach the cells around the body, and notes and links take the
+  same `at:` in their list form — with the reason you found in the
   original workbook, or a note that you could not find one. That block is
   the migration's own decision list, and it stays legible after you have gone.
 - **Split the spec into the house layout (§8)**: `{ $include: path }` moves a

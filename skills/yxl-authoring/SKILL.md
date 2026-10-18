@@ -172,7 +172,9 @@ Reach for the rest of §25 as the shape demands:
 - **An Excel table** over a layout — `tables: [{ at: sales, name: SalesEntries }]`
   gives filter buttons and banding without repeating the range.
 - **Frozen and printed by name** — `freeze: { layout: sales, columns: 1 }`,
-  `filter: sales`, `print: { area: sales, titles: sales }`.
+  `filter: sales`, `print: { area: sales, titles: sales }`; a row height or an
+  outline group on `rows: [{ at: { layout: sales, part: header }, … }]`; a
+  page per 支店 with `page_break_on: branch`.
 
 Fall back to `cells:` for what is not a table — labels, a KPI box — and
 to `data:` / `formulas:` / bands only for an irregular grid a layout cannot
