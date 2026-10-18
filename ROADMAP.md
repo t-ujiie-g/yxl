@@ -2761,6 +2761,13 @@ replaces. yxl-vscode draws overrides the same way.
 
 Reverse-chronological. One entry per user-visible or structural change.
 
+- **2026-10-19** — **0.7.1.** A patch release for #137: an override's
+  `style` or `format` keeps the column and row bands under it, as a `cells:`
+  entry does. A style or format override on a banded cell builds a different
+  look than in 0.7.0. The version moves to `0.7.1` in `moon.mod` and in
+  `yxl version`, and the READMEs' `moonx …@<version>` lines follow, ready for
+  the `v0.7.1` tag and its mooncakes publish (ADR-027).
+
 - **2026-10-19** — **Refactor before 0.7.1.** Whether a cell falls inside a
   range is one `CellRange::contains` in `model`, where the loader's `within`
   and the override emitter each kept their own copy.
