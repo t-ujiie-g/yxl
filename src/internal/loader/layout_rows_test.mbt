@@ -352,3 +352,48 @@ test "merge_equal takes data, and no formula column" {
     ),
   )
 }
+
+///|
+test "page_break_on starts a page wherever the column's value changes" {
+  let sheet = load_ok(
+      layout_spec(
+        (
+          #|      - at: A1
+          #|        page_break_on: branch
+          #|        values: [[東京, 1], [東京, 2], [大阪, 3], [福岡, 4]]
+          #|        columns:
+          #|          - { name: branch, header: 支店 }
+          #|          - { name: amount, header: 金額 }
+          #|
+          #|    print: { breaks: [A20], orientation: landscape }
+        ),
+      ),
+    ).sheets[0]
+  guard sheet.page is Some(page) else { fail("no page setup") }
+  assert_eq(page.breaks.map(at => at.to_a1()), ["A4", "A5", "A20"])
+  assert_eq(page.orientation, Some(Landscape))
+}
+
+///|
+test "page_break_on names a column the data fills" {
+  assert_eq(
+    schema_message(
+      layout_spec(
+        "      - at: A1\n        page_break_on: twice\n        values: [[1]]\n        columns:\n          - { name: a }\n          - { name: twice, formula: \"{{a}}*2\" }\n",
+      ),
+    ),
+    Some(
+      "spec.yaml: layout 'A1' 'page_break_on' names 'twice', which is not a column the layout's data fills",
+    ),
+  )
+  assert_eq(
+    schema_message(
+      layout_spec(
+        "      - at: A1\n        page_break_on: a\n        rows: 2\n        columns: [{ name: a }]\n",
+      ),
+    ),
+    Some(
+      "spec.yaml: layout 'A1' has 'page_break_on' but reads no data to break on",
+    ),
+  )
+}

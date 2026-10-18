@@ -1221,7 +1221,7 @@ the first item changes what a spec looks like.
             The default date and duration formats apply only where the column
             sets no format of its own. `error` is left out: no export sends
             one. A golden test compiles a typed column as typed cells.
-      - [ ] **Slice 8 — the rest of the probe list.** Each is settled as
+      - [x] **Slice 8 — the rest of the probe list.** Each is settled as
             its own item when taken:
             - [x] A header without merges drawn with its groups' outer borders
                   only (#122). **Shipped** (`docs/spec.md` §25,
@@ -1266,9 +1266,15 @@ the first item changes what a spec looks like.
                   `examples/subtotals.yxl.yaml`). A rows band's `at` may be
                   `{ layout, part }`, so a header's height, or an outline
                   group over the whole body, follows the data's length.
-            - [ ] Row outlines and page breaks per footer group. The whole
-                  body can already be grouped with a `rows:` band on its
-                  `body`; what remains is a group's own rows.
+            - [x] Page breaks per value. **Shipped** (`docs/spec.md` §25,
+                  `examples/subtotals.yxl.yaml`). `page_break_on: branch`
+                  breaks the page above every body row whose value differs
+                  from the row above; the breaks join `print.breaks` whatever
+                  the key order. Outlines per value are **not taken**: Excel
+                  joins adjacent rows of one outline level into one group, so
+                  per-value groups need a separator row between them, which is
+                  the interleaved subtotal ADR-024 declined. The whole body is
+                  one group through a `rows:` band on its `body`.
 
       Open, to settle inside the slices: whether `yxl extract` should
       *propose* a block when it finds a repeated column group, which is a guess
@@ -2731,6 +2737,11 @@ not record that the rows were a layout's header.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-10-18** — **`page_break_on`: each value on its own pages.** A layout
+  with `page_break_on: branch` starts a printed page wherever 支店 changes
+  down the body, so with `print.titles` each 支店 prints under its own
+  header. The breaks join any written in `print.breaks`.
 
 - **2026-10-18** — **Row bands on a layout's parts.** A `rows:` band's `at`
   may be `{ layout: 店舗, part: header }`, or `title`, `body` or `footer`, so a

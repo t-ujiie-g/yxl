@@ -1709,6 +1709,7 @@ layouts:
 |---|---|
 | `at` | **Required.** The top-left cell. The title sits here when there is one, and the header rows start below it; otherwise they start here, or the body does when no column has a `header`. |
 | `title` | A cell (§3) across the layout's width, in its first row. See below. |
+| `page_break_on` | A column the data fills: a printed page starts wherever its value changes down the body. See below. |
 | `rows` | How many body rows, at least 1. With a source it defaults to the rows read, and may only reserve more. **Required** without one. |
 | `values` / `csv` / `json` | Where the body's rows come from, as in §9. **At most one.** They fill only the columns without a `formula`. |
 | `footer` | Rows placed straight after the body: totals, and totals per group. See below. |
@@ -1799,6 +1800,12 @@ layouts:
       - { name: item, header: 部門 }
       - { name: cy, header: 当年, body_style: { format: "#,##0" } }  # thin, and counted
 ```
+
+**`page_break_on: branch` prints each run of a value on its own pages.** A
+page break goes above every body row whose `branch` differs from the row
+above, so each 支店 starts a page, and `print.titles` repeats the header on
+each. The breaks join any `print.breaks`, in whichever order the keys are
+written. Order the rows so equal values sit together, as for `merge_equal`.
 
 **`merge_equal: true` merges a column's repeats**, as a report shows 支店 once
 beside its stores. A run of equal values down the body becomes one merged

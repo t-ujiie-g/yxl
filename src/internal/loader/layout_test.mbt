@@ -131,7 +131,7 @@ test "a layout's own keys are required and checked" {
       ),
     ),
     Some(
-      "spec.yaml: unknown key 'body' in layout 'A1' (expected 'at', 'name', 'title', 'rows', 'header_style', 'header_merge', 'body_style', 'columns', 'values', 'csv', 'json', or 'footer')",
+      "spec.yaml: unknown key 'body' in layout 'A1' (expected 'at', 'name', 'title', 'rows', 'page_break_on', 'header_style', 'header_merge', 'body_style', 'columns', 'values', 'csv', 'json', or 'footer')",
     ),
   )
 }

@@ -599,3 +599,20 @@ test "a workbook records the output path its spec names" {
   wb.set_output("out/report.xlsx")
   assert_eq(wb.output, Some("out/report.xlsx"))
 }
+
+///|
+test "a layout's row breaks survive a print setup set after them" {
+  let wb = @model.Workbook()
+  let sheet = wb.add_sheet("S")
+  sheet.add_row_break(5)
+  sheet.add_row_break(5)
+  sheet.set_page_setup({
+    ..@model.PageSetup::empty(),
+    breaks: [@units.CellRef(col=3, row=1)],
+  })
+  sheet.add_row_break(9)
+  assert_eq(
+    sheet.page.map(page => page.breaks.map(at => at.to_a1())),
+    Some(["A5", "C1", "A9"]),
+  )
+}

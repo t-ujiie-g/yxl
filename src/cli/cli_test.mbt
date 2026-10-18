@@ -806,6 +806,22 @@ test "golden: row bands naming a layout's parts compile as their numbers do" {
 }
 
 ///|
+test "golden: page_break_on compiles as the breaks written by hand do" {
+  let body =
+    #|        values: [[東京, 1], [東京, 2], [大阪, 3]]
+    #|        columns: [{ name: branch, header: 支店 }, { name: amount, header: 金額 }]
+    #|
+  let by_value = "sheets:\n  - name: S\n    layouts:\n      - at: A1\n        page_break_on: branch\n" +
+    body
+  let by_hand = "sheets:\n  - name: S\n    print: { breaks: [A4] }\n    layouts:\n      - at: A1\n" +
+    body
+  assert_eq(
+    @cli.compile(by_value, file="spec.yaml"),
+    @cli.compile(by_hand, file="spec.yaml"),
+  )
+}
+
+///|
 test "round trip: a header that does not merge reopens with no merged cells" {
   let source =
     #|sheets:

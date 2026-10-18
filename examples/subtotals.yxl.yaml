@@ -39,6 +39,8 @@ sheets:
       - at: A1
         # Merged across the layout's six columns, however many it grows to.
         title: { value: 2026年度 上期 店舗別実績, style: { font: { bold: true } } }
+        # Each 支店 prints on its own pages, under the repeated header.
+        page_break_on: branch
         # Naming the layout makes each column's body a defined name, `店舗.cy`
         # and so on, which a formula anywhere in the workbook can use.
         name: 店舗
