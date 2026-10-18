@@ -32,8 +32,8 @@ fn load_columns(
 }
 
 ///|
-/// Load a sheet's `rows:` sequence: each entry's `at` selects a row or row
-/// range (`1`, `2-4`) carrying that entry's band spec, whose size key is
+/// Load a sheet's `rows:` sequence: each entry's `at` selects a row, a row range
+/// (`1`, `2-4`) or a part of a named layout, and the band's size key is
 /// `height` (in points).
 fn load_rows(
   node : @yaml.Node,
@@ -42,15 +42,17 @@ fn load_rows(
   defs~ : Defs,
 ) -> Unit raise @diag.SchemaError {
   for entry in expect_seq(node, file~, context="'rows'") {
-    let (selector, spec) = split_band(entry, file~, axis="row")
-    let (first, last) = parse_row_selector(selector, file~)
-    let band = load_axis_spec(
-      spec,
-      file~,
-      defs~,
-      size_key="height",
-      context="row '\{selector}'",
-    )
+    let spec = expect_map(entry, file~, context="a row entry")
+    let (first, last, context) = match
+      required_at(spec, file~, subject="a row entry") {
+      @yaml.Map(target) => layout_rows(target, defs~, sheet=sheet.name, file~)
+      at => {
+        let selector = expect_selector(at, file~, axis="row")
+        let (first, last) = parse_row_selector(selector, file~)
+        (first, last, "row '\{selector}'")
+      }
+    }
+    let band = load_axis_spec(spec, file~, defs~, size_key="height", context~)
     if !band.is_empty() {
       sheet.set_row_band(
         first~,

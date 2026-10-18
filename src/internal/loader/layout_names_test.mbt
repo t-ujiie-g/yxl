@@ -629,3 +629,67 @@ test "a listed comment or link stays on its own sheet and keeps its own keys" {
     ),
   )
 }
+
+///|
+test "a row band may name a layout's header, body or footer rows" {
+  let sheet = load_ok(
+      sheet_keys_spec(
+        (
+          #|    rows:
+          #|      - { at: { layout: t, part: header }, height: 30 }
+          #|      - { at: { layout: t, part: body }, group: 1 }
+          #|      - { at: { layout: t, part: footer }, style: { font: { bold: true } } }
+          #|
+        ),
+      ),
+    ).sheets[0]
+  assert_eq(sheet.rows.map(band => (band.first, band.last, band.size)), [
+    (3, 4, Some(30.0)),
+    (5, 6, None),
+    (7, 7, None),
+  ])
+  assert_eq(sheet.rows[1].outline_level, Some(1))
+}
+
+///|
+test "a row band names a part the layout has, on this sheet" {
+  let refused = at => {
+    schema_message(
+      sheet_keys_spec("    rows:\n      - { at: " + at + ", height: 20 }\n"),
+    )
+  }
+  assert_eq(
+    refused("{ layout: t, part: title }"),
+    Some("spec.yaml: row 'at' names the title of layout 't', which has none"),
+  )
+  assert_eq(
+    refused("{ layout: t, part: totals }"),
+    Some(
+      "spec.yaml: unknown part 'totals' of layout 't' (expected 'title', 'header', 'body', or 'footer')",
+    ),
+  )
+  assert_eq(
+    refused("{ layout: t }"),
+    Some("spec.yaml: row 'at' given by layout needs 'layout' and 'part'"),
+  )
+  assert_eq(
+    refused("{ layout: u, part: body }"),
+    Some(
+      "spec.yaml: row 'at' names layout 'u', which is not a named layout (layouts: 't')",
+    ),
+  )
+  assert_eq(
+    schema_message(
+      sheet_keys_spec(
+        "  - name: O\n    rows:\n      - { at: { layout: t, part: body }, height: 20 }\n",
+      ),
+    ),
+    Some("spec.yaml: row 'at' 't' names a layout on sheet 'S', not this one"),
+  )
+  assert_eq(
+    refused("{ layout: t, part: body, gap: 1 }"),
+    Some(
+      "spec.yaml: unknown key 'gap' in row 'at' (expected 'layout' or 'part')",
+    ),
+  )
+}

@@ -644,8 +644,20 @@ def build(doc: Reference) -> dict:
         description="A span of columns and what it looks like (§4).",
         where="a columns band",
     )
+    define["layout_rows"] = obj(
+        {"layout": ref("text"), "part": enum(["title", "header", "body", "footer"])},
+        documented=["layout", "part"],
+        required=("layout", "part"),
+        description="The title, header, body or footer rows of a named layout (§25).",
+        where="a layout's rows",
+    )
     define["row_band"] = obj(
-        {key: band[key] for key in doc.column(bands, 0, 2)},
+        {
+            key: band[key]
+            if key != "at"
+            else {"anyOf": [band["at"], ref("layout_rows")]}
+            for key in doc.column(bands, 0, 2)
+        },
         documented=doc.column(bands, 0, 2),
         required=("at",),
         description="A span of rows and what it looks like (§4).",

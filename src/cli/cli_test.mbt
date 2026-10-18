@@ -771,6 +771,41 @@ test "golden: comments, links and overrides by a layout's meaning compile as the
 }
 
 ///|
+test "golden: row bands naming a layout's parts compile as their numbers do" {
+  let layout =
+    #|    layouts:
+    #|      - at: A1
+    #|        name: t
+    #|        title: 表
+    #|        values: [[a, 1], [b, 2]]
+    #|        columns: [{ name: key, header: キー }, { name: v, header: 値 }]
+    #|        footer: [{ row: { key: 計, v: { total: sum } } }]
+    #|
+  let by_part = "sheets:\n  - name: S\n" +
+    layout +
+    (
+      #|    rows:
+      #|      - { at: { layout: t, part: title }, height: 28 }
+      #|      - { at: { layout: t, part: body }, group: 1 }
+      #|      - { at: { layout: t, part: footer }, height: 20 }
+      #|
+    )
+  let by_number = "sheets:\n  - name: S\n" +
+    layout +
+    (
+      #|    rows:
+      #|      - { at: 1, height: 28 }
+      #|      - { at: 3-4, group: 1 }
+      #|      - { at: 5, height: 20 }
+      #|
+    )
+  assert_eq(
+    @cli.compile(by_part, file="spec.yaml"),
+    @cli.compile(by_number, file="spec.yaml"),
+  )
+}
+
+///|
 test "round trip: a header that does not merge reopens with no merged cells" {
   let source =
     #|sheets:

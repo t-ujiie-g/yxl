@@ -215,6 +215,63 @@ fn resolve_layout_cell(
 }
 
 ///|
+/// A row band's `at:` as a part of a named layout on `sheet`, `{ layout, part }`:
+/// its title, header, body or footer rows, and the band's name in diagnostics.
+fn layout_rows(
+  entries : Array[(String, @yaml.Node)],
+  defs~ : Defs,
+  sheet~ : String,
+  file~ : String,
+) -> (Int32, Int32, String) raise @diag.SchemaError {
+  let mut name = None
+  let mut part = None
+  for entry in entries {
+    match entry {
+      ("layout", node) =>
+        name = Some(expect_string(node, file~, context="row 'at' 'layout'"))
+      ("part", node) =>
+        part = Some(expect_string(node, file~, context="row 'at' 'part'"))
+      (key, _) =>
+        raise schema_error(
+          file~,
+          "unknown key '\{key}' in row 'at' (expected 'layout' or 'part')",
+        )
+    }
+  }
+  guard name is Some(name) && part is Some(part) else {
+    raise schema_error(
+      file~,
+      "row 'at' given by layout needs 'layout' and 'part'",
+    )
+  }
+  guard layout_here(name, defs~, sheet~, file~, what="row 'at'") is Some(layout) else {
+    let known = defs.layouts.keys().map(name => "'\{name}'").collect()
+    raise schema_error(
+      file~,
+      "row 'at' names layout '\{name}', which is not a named layout (layouts: \{or_list(known)})",
+    )
+  }
+  let (first, last) = match part {
+    "title" => (layout.first_row, layout.header_first - 1)
+    "header" => (layout.header_first, layout.body_first - 1)
+    "body" => (layout.body_first, layout.body_last)
+    "footer" => (layout.body_last + 1, layout.last_row)
+    other =>
+      raise schema_error(
+        file~,
+        "unknown part '\{other}' of layout '\{name}' (expected 'title', 'header', 'body', or 'footer')",
+      )
+  }
+  guard first <= last else {
+    raise schema_error(
+      file~,
+      "row 'at' names the \{part} of layout '\{name}', which has none",
+    )
+  }
+  (first, last, "the \{part} rows of layout '\{name}'")
+}
+
+///|
 /// A `row`, `header` or `footer` count: a whole number from 1 to `rows`.
 fn counted_row(
   node : @yaml.Node,

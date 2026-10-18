@@ -1261,8 +1261,14 @@ the first item changes what a spec looks like.
                   entries carry their own `at:`. A cell a merge covers is
                   refused, so a value or a note cannot land where nobody sees
                   it.
-            - [ ] `rows:` bands on a layout's title, header, body or footer.
-            - [ ] Row outlines and page breaks per footer group.
+            - [x] `rows:` bands on a layout's title, header, body or footer.
+                  **Shipped** (`docs/spec.md` §4, §25,
+                  `examples/subtotals.yxl.yaml`). A rows band's `at` may be
+                  `{ layout, part }`, so a header's height, or an outline
+                  group over the whole body, follows the data's length.
+            - [ ] Row outlines and page breaks per footer group. The whole
+                  body can already be grouped with a `rows:` band on its
+                  `body`; what remains is a group's own rows.
 
       Open, to settle inside the slices: whether `yxl extract` should
       *propose* a block when it finds a repeated column group, which is a guess
@@ -2725,6 +2731,11 @@ not record that the rows were a layout's header.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-10-18** — **Row bands on a layout's parts.** A `rows:` band's `at`
+  may be `{ layout: 店舗, part: header }`, or `title`, `body` or `footer`, so a
+  title's height, or an outline group over the whole body, stays on the right
+  rows when the data grows.
 
 - **2026-10-18** — **Header, footer and title cells by meaning; listed notes
   and links.** An override's layout cell takes `header: n`, `footer: n` or

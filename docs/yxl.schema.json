@@ -3040,6 +3040,49 @@
       "pattern": "^[A-Za-z_\\u0080-\\uFFFF][A-Za-z0-9_.\\u0080-\\uFFFF]*$",
       "description": "A named layout, or one of its columns (§25)."
     },
+    "layout_rows": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "The title, header, body or footer rows of a named layout (§25).",
+      "properties": {
+        "layout": {
+          "$ref": "#/definitions/text"
+        },
+        "part": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "title",
+                "header",
+                "body",
+                "footer"
+              ]
+            },
+            {
+              "$ref": "#/definitions/parameterized"
+            }
+          ]
+        },
+        "$include": {
+          "type": "string",
+          "description": "Another document, pasted in place of this node (§8)."
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "layout",
+            "part"
+          ]
+        },
+        {
+          "required": [
+            "$include"
+          ]
+        }
+      ]
+    },
     "link": {
       "anyOf": [
         {
@@ -4008,14 +4051,21 @@
         "at": {
           "anyOf": [
             {
-              "type": "string",
-              "pattern": "^([A-Za-z]{1,3}(-[A-Za-z]{1,3})?|[0-9]+(-[0-9]+)?)$"
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^([A-Za-z]{1,3}(-[A-Za-z]{1,3})?|[0-9]+(-[0-9]+)?)$"
+                },
+                {
+                  "type": "integer"
+                },
+                {
+                  "$ref": "#/definitions/parameterized"
+                }
+              ]
             },
             {
-              "type": "integer"
-            },
-            {
-              "$ref": "#/definitions/parameterized"
+              "$ref": "#/definitions/layout_rows"
             }
           ]
         },

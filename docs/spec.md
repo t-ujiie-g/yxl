@@ -295,6 +295,10 @@ rows:
 | `width` (character units) | ✔ | — |
 | `height` (points) | — | ✔ |
 
+A rows band's `at` may instead be `{ layout, part }`: the `title`, `header`,
+`body` or `footer` rows of a named layout on the sheet (§25), wherever its data
+has put them.
+
 A band that sets nothing contributes nothing. A column band that sets no
 `width` keeps Excel's standard width, 8.43 characters. `group` must be a whole number
 between 0 and 7; `0` means ungrouped, which is distinct from omitting the key.
@@ -1924,6 +1928,8 @@ print:
   filter column's `at` may then be a column's name.
 - `print.area` takes the whole layout; `print.titles` its header rows, so a
   layout with no header is refused there.
+- A `rows:` band takes `at: { layout: 店舗, part: header }`, or `title`, `body`
+  or `footer`, so a header's height or a body's outline group follows the data.
 
 **Anything anchored at a cell may follow a layout instead.** Write
 `at: { below: 店舗 }` for a chart, an image, a shape, a control, a slicer, a
