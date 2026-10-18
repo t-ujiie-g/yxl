@@ -275,8 +275,8 @@ Helix も VS Code と同じように読みます。ローカルのチェック�
 | [`shapes.yxl.yaml`](./examples/shapes.yxl.yaml) | 雲形のスタンプ、2 行のテキストを持つ山形矢印、固定配置の星 |
 | [`sparklines.yxl.yaml`](./examples/sparklines.yxl.yaml) | 行ごとのマーカー付き折れ線と、別シートを描く勝敗セル |
 | [`overrides.yxl.yaml`](./examples/overrides.yxl.yaml) | 例外を例外として書く個別の上書き: 列に展開される数式に従わない行、修正した値、スタイルだけの変更 — それぞれに理由付き |
-| [`columns.yxl.yaml`](./examples/columns.yxl.yaml) | 列を文字ではなく名前で扱う前年比レポート: 項目ごとに配置する `defs.blocks` グループを持つ `layouts:`、2 行の結合見出し、合計行、`{{name}}` 数式、列ごとの条件付き書式、入力列だけを埋める行 |
-| [`subtotals.yxl.yaml`](./examples/subtotals.yxl.yaml) | 店舗一覧とその下の小計 — 支店別、支店内のチャネル別、総計 — を固定順の生きた `SUMIFS` 数式で。別シートが名前で合計する名前付きレイアウト、一覧の下に置き名前で描くグラフ、それを元にした店舗ドロップダウン、データの値で行を見つける上書き |
+| [`columns.yxl.yaml`](./examples/columns.yxl.yaml) | 列を文字ではなく名前で扱う前年比レポート: 項目ごとに配置する `defs.blocks` グループを持つ `layouts:`、段ごとにスタイルを変えた 2 行の結合見出し、本体だけに引く格子罫線、合計行、`{{name}}` 数式、列ごとの条件付き書式、入力列だけを埋める行、グループごとの外枠を保った結合なしの同じ見出し |
+| [`subtotals.yxl.yaml`](./examples/subtotals.yxl.yaml) | 店舗一覧とその下の小計 — 支店別、支店内のチャネル別、総計 — を固定順の生きた `SUMIFS` 数式で。表の幅で結合したタイトル、店舗の横に一度だけ出す支店と区分、レイアウト名で固定・印刷する見出し、別シートが名前で合計する名前付きレイアウト、一覧の下に置き名前で描くグラフ、それを元にした店舗ドロップダウン、データの値で行を見つける上書き |
 | [`workbook.yxl.yaml`](./examples/workbook.yxl.yaml) | 実際のブックを保つためのレイアウト: 1 シート 1 ファイル、一度だけ名付けたスタイル、すべてのシートが参照する 1 つの店舗マスタ、`--set` で差し替える月次データ |
 
 ```bash

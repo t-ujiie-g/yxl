@@ -502,3 +502,100 @@ test "only a called function in the list is renamed, and never inside quotes" {
     "\"_xlfn.XLOOKUP(\"",
   )
 }
+
+///|
+/// `table` names each of `values` exactly once, and nothing else.
+fn[T : Eq] spells_each_once(
+  table : Array[(String, T)],
+  values : Array[T],
+) -> Unit raise {
+  assert_eq(table.length(), values.length())
+  for value in values {
+    let word = @model.spelling(table, value)
+    assert_eq(table.filter(entry => entry.0 == word).length(), 1)
+  }
+}
+
+///|
+test "every vocabulary table spells each value once, both ways" {
+  spells_each_once(@model.chart_kinds, [
+    Column,
+    ColumnStacked,
+    ColumnPercentStacked,
+    Bar,
+    BarStacked,
+    BarPercentStacked,
+    Line,
+    Area,
+    AreaStacked,
+    AreaPercentStacked,
+    Pie,
+    Doughnut,
+    Scatter,
+    Radar,
+  ])
+  spells_each_once(@model.legend_positions, [
+    Bottom,
+    Top,
+    Left,
+    Right,
+    TopRight,
+    NoLegend,
+  ])
+  spells_each_once(@model.form_control_kinds, [
+    Button,
+    CheckBox,
+    OptionButton,
+    ScrollBar,
+    SpinButton,
+    GroupBox,
+    Label,
+  ])
+  spells_each_once(@model.image_positionings, [Move, MoveAndSize, Fixed])
+  spells_each_once(@model.pivot_functions, [
+    Sum,
+    Count,
+    CountNumbers,
+    Average,
+    Max,
+    Min,
+    Product,
+    StdDev,
+    StdDevP,
+    Var,
+    VarP,
+  ])
+  spells_each_once(@model.sparkline_kinds, [Line, Column, WinLoss])
+  spells_each_once(@model.horizontal_alignments, [
+    Left,
+    Center,
+    Right,
+    Fill,
+    Justify,
+    Distributed,
+  ])
+  spells_each_once(@model.vertical_alignments, [
+    Top,
+    Middle,
+    Bottom,
+    Justify,
+    Distributed,
+  ])
+  spells_each_once(@model.border_styles, [
+    Thin,
+    Medium,
+    Thick,
+    Dashed,
+    Dotted,
+    Double,
+    Hair,
+  ])
+}
+
+///|
+test "a workbook records the output path its spec names" {
+  let wb = @model.Workbook()
+  assert_eq(wb.output, None)
+  wb.set_output("out/report.xlsx")
+  assert_eq(wb.output, Some("out/report.xlsx"))
+}

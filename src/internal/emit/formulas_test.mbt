@@ -24,10 +24,8 @@ test "a filled range stores the formula once, on the master cell" {
   let (wb, sheet) = calculation_sheet()
   sheet.add_formula({ at: range_of("C1", "C3"), formula: "A1*B1", style: None, })
   let reopened = reopen(wb)
-  // The master carries the text; the followers carry no formula text at all,
-  // only their membership of the master's range, so the range costs one stored
-  // formula however many rows it covers (ADR-004). Excel derives each
-  // follower's formula from the master when it opens the file.
+  // Followers carry no formula text, only their membership of the master's
+  // range, so the range costs one stored formula (ADR-004).
   assert_eq(reopened.get_cell_formula("S", "C1"), Some("A1*B1"))
   assert_eq(reopened.get_cell_formula("S", "C2"), None)
   assert_eq(reopened.get_cell_formula("S", "C3"), None)

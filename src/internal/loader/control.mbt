@@ -1,17 +1,4 @@
 ///|
-/// The seven kinds, as Excel's Forms toolbar names them. One table serves
-/// both the lookup and the diagnostic.
-let form_control_kinds : Array[(String, @model.FormControlKind)] = [
-  ("button", Button),
-  ("check_box", CheckBox),
-  ("option_button", OptionButton),
-  ("scroll_bar", ScrollBar),
-  ("spin_button", SpinButton),
-  ("group_box", GroupBox),
-  ("label", Label),
-]
-
-///|
 /// A sheet's `controls:` — a sequence of form controls.
 fn load_controls(
   node : @yaml.Node,
@@ -64,7 +51,7 @@ fn load_control(
         kind_written = expect_string(node, file~, context="\{context} 'kind'")
         kind = Some(
           named(
-            form_control_kinds,
+            @model.form_control_kinds,
             kind_written,
             file~,
             what="control kind",

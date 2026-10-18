@@ -1,8 +1,6 @@
 ///|
-/// One picture the spec will name, and the bytes it names: the sheet it belongs
-/// to, the cell it is anchored at — `None` for the one tiled behind the sheet,
-/// which is anchored nowhere — and the path the spec names it by, relative to
-/// the spec itself.
+/// One picture the spec will name: its sheet, its anchor cell (`None` for the
+/// one tiled behind the sheet), its bytes, and its path relative to the spec.
 pub(all) struct Picture {
   sheet : String
   at : @units.CellRef?

@@ -65,8 +65,8 @@ fn read_bands(
 
 ///|
 /// Give every written cell the `null`s its formatting implies: a `<col style>`
-/// reaches only unallocated cells (ECMA-376 §18.3.1.13), a spec band reaches all
-/// (#71).
+/// reaches only unallocated cells (ECMA-376 §18.3.1.13), a spec band reaches
+/// all (#71).
 fn record_band_deviations(sheet : @model.Sheet) -> Unit {
   for index, cell in sheet.cells {
     guard sheet.band_style_at(cell.pos) is Some(band) else { continue }
@@ -163,8 +163,9 @@ fn read_presentation(
       Freeze(@units.CellRef(col=panes.x_split + 1, row=panes.y_split + 1)),
     )
   } else if panes.x_split > 0 || panes.y_split > 0 {
-    // Not `panes.split`, which the backend never sets: a pane that is not frozen is
-    // split. Its position is in twips (§18.3.1.66), a freeze's in cells.
+    // Not `panes.split`, which the backend never sets: a pane that is not
+    // frozen is split. Its position is in twips (§18.3.1.66), a freeze's in
+    // cells.
     sheet.set_panes(
       Split(
         x=panes.x_split.to_double() / TWIPS_PER_POINT,
@@ -196,14 +197,12 @@ fn read_presentation(
 }
 
 ///|
-/// The backend indexes a sheet's views; `-1` addresses the last one. This has to
-/// match the index `emit` writes to — the two packages are the only ones that
-/// speak to the backend, and there is no third place for a constant they share.
+/// The backend indexes a sheet's views; `-1` is the last. `emit` holds the same
+/// constant: they are the two packages that speak to the backend.
 const LAST_SHEET_VIEW : Int32 = -1
 
 ///|
-/// Twips — 1/20 of a point — are the unit OOXML gives a split position in
-/// (ECMA-376 §18.3.1.66). The model speaks points, so this undoes what `emit`'s
-/// constant of the same name did, and for the same reason it lives in both
-/// packages: they are the only two that speak to the backend.
+/// Twips, 1/20 of a point, the unit of a split position (ECMA-376 §18.3.1.66).
+/// `emit` holds the same constant: they are the two packages that speak to the
+/// backend.
 const TWIPS_PER_POINT : Double = 20.0

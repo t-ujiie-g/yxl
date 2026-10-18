@@ -1,8 +1,6 @@
 ///|
-/// An elapsed time — `26:30:00` is twenty-six and a half hours, *not* a time
-/// of day, so the hours may exceed 23. Excel stores it as a fraction of a day
-/// under an elapsed format like `[h]:mm:ss`; `to_serial` renders that
-/// fraction. Kept as components so what the spec wrote stays inspectable.
+/// An elapsed time: `26:30:00` is twenty-six and a half hours, not a time of
+/// day. Excel stores it as a fraction of a day under a format like `[h]:mm:ss`.
 pub(all) struct Duration {
   hours : Int32
   minutes : Int32
@@ -10,10 +8,8 @@ pub(all) struct Duration {
 } derive(Eq, Debug)
 
 ///|
-/// Parse `H:MM` or `H:MM:SS` — hours unbounded, minutes and seconds 0–59.
-/// Returns `None` for anything else; the caller turns `None` into a
-/// diagnostic. A negative duration has no representation (Excel's 1900 date
-/// system cannot display one), so `-` is simply not part of the syntax.
+/// Parse `H:MM` or `H:MM:SS`, hours unbounded, minutes and seconds 0–59. No
+/// `-`: Excel's 1900 date system cannot display a negative duration.
 pub fn Duration::parse(text : String) -> Duration? {
   let parts = text.split(":").collect()
   guard parts.length() == 2 || parts.length() == 3 else { return None }

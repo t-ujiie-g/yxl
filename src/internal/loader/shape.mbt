@@ -70,7 +70,7 @@ fn load_shape(
         alt_text = Some(expect_string(value, file~, context="\{context} 'alt'"))
       "positioning" =>
         positioning = named(
-          image_positionings,
+          @model.image_positionings,
           expect_string(value, file~, context="\{context} 'positioning'"),
           file~,
           what="shape positioning",
@@ -101,10 +101,9 @@ fn load_shape(
 }
 
 ///|
-/// A shape's `text:` — one plain string, or a sequence of lines, each a plain
-/// string or a `{ text, font }` mapping like a cell's rich run. A sequence
-/// entry is its own *line*: the backend writes one paragraph per run, so one
-/// font covers one line.
+/// A shape's `text:`, a string or a sequence of lines, each a string or a `{
+/// text, font }` run. The backend writes a paragraph per run, so a font covers
+/// a line.
 fn load_shape_text(
   node : @yaml.Node,
   file~ : String,

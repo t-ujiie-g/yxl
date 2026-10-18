@@ -159,45 +159,13 @@ fn unknown_align_key(
 }
 
 ///|
-/// The alignment and border-style spellings, each as one table serving both the
-/// lookup and the diagnostic, so the two cannot drift apart.
-let horizontal_alignments : Array[(String, @model.HAlign)] = [
-  ("left", Left),
-  ("center", Center),
-  ("right", Right),
-  ("fill", Fill),
-  ("justify", Justify),
-  ("distributed", Distributed),
-]
-
-///|
-let vertical_alignments : Array[(String, @model.VAlign)] = [
-  ("top", Top),
-  ("middle", Middle),
-  ("bottom", Bottom),
-  ("justify", Justify),
-  ("distributed", Distributed),
-]
-
-///|
-let border_styles : Array[(String, @model.BorderStyle)] = [
-  ("thin", Thin),
-  ("medium", Medium),
-  ("thick", Thick),
-  ("dashed", Dashed),
-  ("dotted", Dotted),
-  ("double", Double),
-  ("hair", Hair),
-]
-
-///|
 fn load_halign(
   node : @yaml.Node,
   file~ : String,
   context~ : String,
 ) -> @model.HAlign raise @diag.SchemaError {
   named(
-    horizontal_alignments,
+    @model.horizontal_alignments,
     expect_string(node, file~, context="\{context} horizontal align"),
     file~,
     what="horizontal alignment",
@@ -212,7 +180,7 @@ fn load_valign(
   context~ : String,
 ) -> @model.VAlign raise @diag.SchemaError {
   named(
-    vertical_alignments,
+    @model.vertical_alignments,
     expect_string(node, file~, context="\{context} vertical align"),
     file~,
     what="vertical alignment",
@@ -303,7 +271,8 @@ fn unknown_border_key(
 }
 
 ///|
-/// One border edge: a line-style name shorthand or a `{ style, color }` mapping.
+/// One border edge: a line-style name shorthand or a `{ style, color }`
+/// mapping.
 fn load_border(
   node : @yaml.Node,
   file~ : String,
@@ -350,7 +319,7 @@ fn load_border_style(
   context~ : String,
 ) -> @model.BorderStyle raise @diag.SchemaError {
   named(
-    border_styles,
+    @model.border_styles,
     expect_string(node, file~, context="\{context} border style"),
     file~,
     what="border style",

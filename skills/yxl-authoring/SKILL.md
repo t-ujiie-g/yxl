@@ -106,9 +106,10 @@ line. An inline style mapping in a sheet is for a genuine one-off; anything
 that appears twice gets a name. This is not tidiness: a named style compiles to
 a *single* `cellXfs` id however many cells wear it (ADR-004).
 
-Formatting reaches a table through its layout columns' `style` / `format` and
-the layout's `header_style` (§25), and elsewhere through `columns:` / `rows:`
-bands (§4). Rows of data never carry styling, by design, so data and look stay
+Formatting reaches a table through the layout (§25): `header_style`, one style
+or one per header row; `body_style`, on the layout or a column, for the body
+alone; a column's `style` / `format`, which are its band and reach the whole
+sheet column. Elsewhere it comes through `columns:` / `rows:` bands (§4). Rows of data never carry styling, by design, so data and look stay
 separable.
 
 ### 4. Every table is a layout
@@ -145,7 +146,9 @@ Why it is the default:
 - **Data fills only the input columns**, by name for a CSV (it must start with a
   header row) or a JSON array of objects, by position for inline `values:`. A
   derived column needs no `null` placeholder, and a source that reorders or adds
-  fields breaks nothing. `field:` maps a column to a differently named field.
+  fields breaks nothing. `field:` maps a column to a differently named field,
+  and `type:` says what a field is where a guess would be wrong: `text` keeps a
+  code like `007`, `date` reads `2026-04-01` as a date.
 - **One definition per rule.** A column's `format`, `width`, `conditional` rules
   and `formula` live on the column, once.
 
@@ -153,7 +156,12 @@ Reach for the rest of §25 as the shape demands:
 
 - **Two-row headers** — `header: [売上, 当年]`; a shared parent merges across,
   a short column merges down, `null` leaves a blank. `header_merge: false`
-  keeps those cells without the merged ranges.
+  keeps those cells without the merged ranges, each group still outlined.
+- **A title** across the table — `title:`, merged over every column.
+- **A grid over the body** — `body_style: { border: thin }`; a column's `style`
+  would run to the sheet's last row.
+- **Repeats shown once** (支店 beside its stores) — `merge_equal: true` on the
+  column; covered cells keep their values for `SUMIFS` and filters.
 - **Totals and subtotals** — `footer:` rows straight after the body.
   `{ total: sum }` aggregates the column; a `by:` group repeats rows per value
   (nested for 支店 → 直営/FC), with `order:` fixed or sorted and labels like
@@ -163,8 +171,10 @@ Reach for the rest of §25 as the shape demands:
   `{ block: yoy, as: sales, header: 売上 }`.
 - **An Excel table** over a layout — `tables: [{ at: sales, name: SalesEntries }]`
   gives filter buttons and banding without repeating the range.
+- **Frozen and printed by name** — `freeze: { layout: sales, columns: 1 }`,
+  `filter: sales`, `print: { area: sales, titles: sales }`.
 
-Fall back to `cells:` for what is not a table — titles, labels, a KPI box — and
+Fall back to `cells:` for what is not a table — labels, a KPI box — and
 to `data:` / `formulas:` / bands only for an irregular grid a layout cannot
 describe. `examples/columns.yxl.yaml` and `examples/subtotals.yxl.yaml` are the
 worked cases.

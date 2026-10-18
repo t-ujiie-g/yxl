@@ -1,13 +1,4 @@
 ///|
-/// The three kinds, as Excel's "Sparklines" ribbon names them. One table
-/// serves both the lookup and the diagnostic.
-let sparkline_kinds : Array[(String, @model.SparklineKind)] = [
-  ("line", Line),
-  ("column", Column),
-  ("win_loss", WinLoss),
-]
-
-///|
 /// A sheet's `sparklines:` — a sequence of groups.
 fn load_sparklines(
   node : @yaml.Node,
@@ -80,7 +71,7 @@ fn load_sparkline_group(
       "type" => {
         let written = expect_string(value, file~, context="\{context} 'type'")
         kind = named(
-          sparkline_kinds,
+          @model.sparkline_kinds,
           written,
           file~,
           what="sparkline type",

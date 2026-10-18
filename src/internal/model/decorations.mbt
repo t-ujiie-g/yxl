@@ -135,9 +135,9 @@ pub(all) struct Validation {
 pub let max_validation_list_length : Int32 = 255
 
 ///|
-/// How a conditional format picks its cells (ECMA-376 §18.18.12). The last three
-/// draw their own appearance and take no style; a `Formula` is relative to the
-/// range's top-left.
+/// How a conditional format picks its cells (ECMA-376 §18.18.12). The last
+/// three draw their own appearance and take no style; a `Formula` is relative
+/// to the range's top-left.
 pub(all) enum ConditionalRule {
   /// The cell's value against a bound: `cellIs`.
   CellIs(Comparison)
@@ -178,10 +178,8 @@ pub let icon_set_styles : Array[String] = [
 ]
 
 ///|
-/// Icon sets Excel offers and the backend cannot write: added in Excel 2010,
-/// they live only in the `x14` extension schema, and the backend writes only
-/// the base `<iconSet>` attribute (ECMA-376 §18.18.42), so it refuses them
-/// (moonbitlang/office.mbt#403). Named here so the loader can say why.
+/// Excel 2010's icon sets, which live only in the `x14` extension the backend
+/// cannot write (moonbitlang/office.mbt#403); named so the loader can say why.
 pub let unwritable_icon_set_styles : Array[String] = [
   "3Stars", "3Triangles", "5Boxes",
 ]
@@ -224,10 +222,8 @@ pub(all) struct Comment {
 } derive(Eq, Debug)
 
 ///|
-/// A hyperlink on one cell, with an optional hover tooltip.
-///
-/// A link does not give the cell its text — Excel displays the cell's own value
-/// — so a linked cell is normally written in `cells:` as well.
+/// A hyperlink on one cell, with an optional hover tooltip. Excel shows the
+/// cell's own value, so a linked cell is normally written in `cells:` too.
 pub(all) struct Link {
   at : @units.CellRef
   target : LinkTarget

@@ -1,21 +1,4 @@
 ///|
-/// How a value field is aggregated, as Excel's "Summarize Values By" menu names
-/// each. One table serves both the lookup and the diagnostic.
-let pivot_functions : Array[(String, @model.PivotFunction)] = [
-  ("sum", Sum),
-  ("count", Count),
-  ("count_numbers", CountNumbers),
-  ("average", Average),
-  ("max", Max),
-  ("min", Min),
-  ("product", Product),
-  ("std_dev", StdDev),
-  ("std_dev_p", StdDevP),
-  ("var", Var),
-  ("var_p", VarP),
-]
-
-///|
 /// A sheet's `pivots:` — a sequence of pivot tables, each placed at a range.
 fn load_pivots(
   node : @yaml.Node,
@@ -194,7 +177,7 @@ fn load_pivot_values(
           field = Some(expect_string(value, file~, context="\{what} 'field'"))
         "function" =>
           function = named(
-            pivot_functions,
+            @model.pivot_functions,
             expect_string(value, file~, context="\{what} 'function'"),
             file~,
             what="pivot function",

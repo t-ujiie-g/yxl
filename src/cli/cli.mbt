@@ -16,10 +16,9 @@ pub let exit_usage : Int32 = 2
 pub let version : String = "0.6.2"
 
 ///|
-/// What the command line asked for. `params` carries the `--set name=value`
-/// overrides. An `input` of `None` means the one spec in the current directory
-/// (`find_spec`); an `output` of `None` means the one the spec names
-/// (`Compiled`). `Check` writes nothing, so it has no output path to carry.
+/// What the command line asked for. An `input` of `None` is the one spec in the
+/// current directory (`find_spec`); an `output` of `None` is the one the spec
+/// names.
 pub(all) enum Command {
   Build(input~ : String?, output~ : String?, params~ : Map[String, String])
   Check(input~ : String?, params~ : Map[String, String])
@@ -164,7 +163,7 @@ fn parse_build(args : ArrayView[String]) -> Command raise @diag.CliError {
 pub fn find_spec(names : ArrayView[String]) -> String raise @diag.CliError {
   let specs = names
     .iter()
-    .filter(name => name.has_suffix(".yxl.yaml") || name.has_suffix(".yxl.yml"))
+    .filter(name => spec_suffixes.iter().any(suffix => name.has_suffix(suffix)))
     .to_array()
   specs.sort()
   match specs {
@@ -325,8 +324,8 @@ pub fn build(
 }
 
 ///|
-/// Render a pipeline error as a message. With `source~`, a diagnostic that has a
-/// position quotes its line with a caret.
+/// Render a pipeline error as a message. With `source~`, a diagnostic that has
+/// a position quotes its line with a caret.
 pub fn error_message(err : Error, source? : String) -> String {
   let diagnostic = match err {
     @diag.YamlError(d)

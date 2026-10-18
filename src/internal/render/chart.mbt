@@ -82,33 +82,11 @@ fn chart_axis(axis : @model.ChartAxis) -> @yaml.Node {
 ///|
 /// The bareword the schema names a kind by.
 fn chart_type(kind : @model.ChartKind) -> String {
-  match kind {
-    Column => "column"
-    ColumnStacked => "column_stacked"
-    ColumnPercentStacked => "column_percent_stacked"
-    Bar => "bar"
-    BarStacked => "bar_stacked"
-    BarPercentStacked => "bar_percent_stacked"
-    Line => "line"
-    Area => "area"
-    AreaStacked => "area_stacked"
-    AreaPercentStacked => "area_percent_stacked"
-    Pie => "pie"
-    Doughnut => "doughnut"
-    Scatter => "scatter"
-    Radar => "radar"
-  }
+  @model.spelling(@model.chart_kinds, kind)
 }
 
 ///|
 /// Where the legend sits, as the schema spells it.
 fn legend_position(position : @model.LegendPosition) -> String {
-  match position {
-    Bottom => "bottom"
-    Top => "top"
-    Left => "left"
-    Right => "right"
-    TopRight => "top_right"
-    NoLegend => "none"
-  }
+  @model.spelling(@model.legend_positions, position)
 }

@@ -1,14 +1,13 @@
 ///|
-/// The emitter seam (ADR-002): turn a resolved `model` into `.xlsx` bytes. Every
-/// backend access lives behind this interface, so the pipeline never calls the
-/// Excel library directly and the backend stays swappable. Implementations
-/// report failures as `@diag.EmitError`, never as a backend-specific error.
+/// The emitter seam (ADR-002): a resolved `model` to `.xlsx` bytes, the only
+/// path to the backend, failing with `@diag.EmitError`.
 pub trait Emitter {
   fn emit(Self, @model.Workbook) -> Bytes raise @diag.EmitError
 }
 
 ///|
-/// The `moonbitlang/mbtexcel`-backed emitter — the single place `@xlsx` is touched.
+/// The `moonbitlang/mbtexcel`-backed emitter — the single place `@xlsx` is
+/// touched.
 pub struct MbtexcelEmitter {}
 
 ///|
@@ -135,7 +134,8 @@ fn deflate_archive(archive : @zip.Archive) -> Bytes raise {
 
 ///|
 /// Excel's standard column width — 8.43 characters of 11-point Calibri — as
-/// Excel itself stores it in a `<col>` (ECMA-376 §18.3.1.13 counts the padding).
+/// Excel itself stores it in a `<col>` (ECMA-376 §18.3.1.13 counts the
+/// padding).
 let standard_column_width : Double = 9.140625
 
 ///|
@@ -365,10 +365,9 @@ fn refers_to(
 }
 
 ///|
-/// The backend indexes a sheet's views; `-1` addresses the last (and, for a
-/// workbook we build ourselves, only) one. `read` reads the same index back and
-/// keeps its own copy — the two packages are the only ones that speak to the
-/// backend, and there is no third place for a constant they share.
+/// The backend indexes a sheet's views; `-1` is the last, and here the only
+/// one. `read` holds the same constant: they are the two packages that speak to
+/// the backend.
 const LAST_SHEET_VIEW : Int32 = -1
 
 ///|
@@ -378,10 +377,8 @@ const LAST_SHEET_VIEW : Int32 = -1
 const TWIPS_PER_POINT : Double = 20.0
 
 ///|
-/// A model pane configuration as the backend's `Panes`. Freezing at a cell
-/// splits off the columns to its left and the rows above it — Excel counts those
-/// as the split, and the frozen corner cell becomes the scrolling pane's
-/// top-left. A split is positioned in twips instead.
+/// A model pane configuration as the backend's `Panes`. A freeze splits off the
+/// columns left of and rows above its cell; a split is placed in twips.
 fn build_panes(panes : @model.Panes) -> @xlsx.Panes {
   match panes {
     Freeze(cell) => {

@@ -50,22 +50,18 @@ fn read_value(
   let reference = at.to_a1()
   if backend.get_cell_formula(sheet_name, reference) is Some(formula) &&
     !formula.is_empty() {
-    // The cached result is left behind: Excel recomputes it on open, so carrying
-    // it would put a stale number in the spec that reads like an assertion about
-    // the formula's answer.
+    // The cached result is left behind: Excel recomputes it on open, so
+    // carrying it would put a stale number in the spec that reads like an
+    // assertion about the formula's answer.
     return Some(Formula(formula=@model.from_file_formula(formula), cached=None))
   }
-  // A shared formula's followers store no text of their own: the file says only
-  // which master they follow, and the formula is that master's with its relative
-  // references shifted. Leaving them out turned a calculated cell into the stale
-  // number cached beside it (#52).
+  // A shared formula's followers store no text, only the master they follow;
+  // leaving them out turned a calculation into its stale cached number (#52).
   if shared_follower_formula(source, at, notes) is Some(formula) {
     return Some(Formula(formula=@model.from_file_formula(formula), cached=None))
   }
-  // The backend answers `get_cell_rich_text` for *every* shared string, since a
-  // plain one is a single run with no font. Recovering that as `rich:` would
-  // turn every piece of text in the workbook into a three-line block saying
-  // nothing; only a cell that genuinely mixes fonts needs the long form.
+  // The backend reports every shared string as rich text, a plain one as a
+  // single run; only a cell that really mixes fonts needs `rich:`.
   if backend.get_cell_rich_text(sheet_name, reference) is Some(runs) &&
     is_mixed(runs) {
     return Some(RichText(runs.map(run => read_run(backend, run, notes))))
@@ -74,8 +70,8 @@ fn read_value(
 }
 
 ///|
-/// Whether a run list says anything a plain string could not: more than one run,
-/// or one that carries a font of its own.
+/// Whether a run list says anything a plain string could not: more than one
+/// run, or one that carries a font of its own.
 fn is_mixed(runs : Array[@xlsx.RichTextRun]) -> Bool {
   runs.length() > 1 || (runs.length() == 1 && runs[0].font is Some(_))
 }

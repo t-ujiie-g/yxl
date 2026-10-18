@@ -12,8 +12,8 @@ pub(all) struct DateTime {
 } derive(Eq, Debug)
 
 ///|
-/// Excel's two epochs. The 1900 system (the default) numbers 1900-01-01 as 1 and
-/// carries Excel's historical bug of treating 1900 as a leap year; the 1904
+/// Excel's two epochs. The 1900 system (the default) numbers 1900-01-01 as 1
+/// and carries Excel's historical bug of treating 1900 as a leap year; the 1904
 /// system numbers 1904-01-01 as 0.
 pub(all) enum DateSystem {
   Date1900
@@ -28,10 +28,8 @@ pub fn DateTime::has_time(self : DateTime) -> Bool {
 }
 
 ///|
-/// Parse `YYYY-MM-DD`, optionally followed by ` HH:MM[:SS]` or `THH:MM[:SS]`.
-/// Returns `None` for anything malformed or for an impossible date (bad month,
-/// or a day out of range for the month, including 1900-02-29). The caller turns
-/// `None` into a diagnostic.
+/// Parse `YYYY-MM-DD`, optionally with ` HH:MM[:SS]` or `THH:MM[:SS]`. `None`
+/// for anything malformed or impossible, 1900-02-29 included.
 pub fn DateTime::parse(text : String) -> DateTime? {
   let (date_part, time_part) = split_once_either(text, ' ', 'T')
   let fields = date_part.to_owned().split("-").collect()
@@ -154,7 +152,8 @@ fn civil_from_days(days : Int32) -> (Int32, Int32, Int32) {
 
 ///|
 /// Days since 1970-01-01 in the proleptic Gregorian calendar (Howard Hinnant's
-/// algorithm). Only *differences* are used here, so the choice of epoch cancels.
+/// algorithm). Only *differences* are used here, so the choice of epoch
+/// cancels.
 fn days_from_civil(year : Int32, month : Int32, day : Int32) -> Int32 {
   let year = if month <= 2 { year - 1 } else { year }
   let era = (if year >= 0 { year } else { year - 399 }) / 400
@@ -186,8 +185,8 @@ fn days_in_month(year : Int32, month : Int32) -> Int32 {
 }
 
 ///|
-/// Parse a non-empty run of ASCII digits into a non-negative integer; `None` for
-/// empty or non-digit input. Shared by date parsing and the loader's row
+/// Parse a non-empty run of ASCII digits into a non-negative integer; `None`
+/// for empty or non-digit input. Shared by date parsing and the loader's row
 /// selectors.
 pub fn parse_uint(text : StringView) -> Int32? {
   guard !text.is_empty() else { return None }

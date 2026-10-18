@@ -15,10 +15,9 @@ let scaling_factor : Int32 = 16
 let max_scaling_ratio : Double = 26.0
 
 ///|
-/// How many times each size is compiled. Only the fastest run counts: noise on a
-/// shared machine can only ever *add* time, so the minimum is the closest thing
-/// to the cost without it, and taking it is what makes a single unlucky sample
-/// harmless rather than a failed build.
+/// How many times each size is compiled. Only the fastest run counts: noise on
+/// a shared machine only adds time, so one unlucky sample cannot fail the
+/// build.
 let scaling_runs : Int32 = 3
 
 ///|

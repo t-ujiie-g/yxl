@@ -66,10 +66,8 @@ const EXCEL_RESERVED_NAME_PREFIX : String = "_xlnm."
 const WORKBOOK_SCOPE : String = "Workbook"
 
 ///|
-/// What a defined name refers to, read from the formula literal it is stored as
-/// — the inverse of the emitter's `refers_to`. A quoted string is text (Excel
-/// doubles an inner quote), `TRUE`/`FALSE` a boolean, a bare number a number,
-/// and anything else a formula, which is what a reference to cells is.
+/// What a defined name refers to, the inverse of the emitter's `refers_to`: a
+/// quoted string, `TRUE`/`FALSE`, a number, or else a formula.
 fn defined_value(refers_to : String) -> @model.CellValue {
   if refers_to.has_prefix("\"") &&
     refers_to.has_suffix("\"") &&
@@ -183,9 +181,8 @@ fn read_calc(
 }
 
 ///|
-/// The author, unless it is the writing library signing its own work. Every file
-/// the backend produces is stamped `mbtexcel` as its creator, so keeping that
-/// would put a name on every extracted spec that names nobody who wrote it.
+/// The author, unless it is the backend's own `mbtexcel` stamp, which would
+/// name nobody who wrote the workbook.
 fn authored_by(creator : String) -> String? {
   if creator == BACKEND_SIGNATURE {
     None

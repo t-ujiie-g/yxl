@@ -14,10 +14,8 @@ pub fn CellRef::CellRef(col~ : Int32, row~ : Int32) -> CellRef {
 }
 
 ///|
-/// Parse an A1-style reference: `A1` -> (1, 1), `AA10` -> (27, 10). Returns
-/// `None` for anything that is not `<letters><digits>` with both parts present
-/// and the row `>= 1` (e.g. `A0`, `1A`, `A`, `""`). The caller turns `None` into
-/// a domain diagnostic. The inverse of `to_a1`.
+/// Parse an A1 reference, `AA10` -> (27, 10); `None` unless it is letters then
+/// a row of 1 or more. The inverse of `to_a1`.
 pub fn CellRef::parse_a1(text : String) -> CellRef? {
   // Split into the leading column letters and the trailing row digits, then
   // reuse the column/uint parsers rather than re-implementing base-26 / digits.

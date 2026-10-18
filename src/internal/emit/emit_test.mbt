@@ -1,7 +1,7 @@
 ///|
-/// Golden / round-trip test at the compile boundary: a model compiles to `.xlsx`
-/// bytes, and re-opening those bytes with the backend's reader yields the cells
-/// the model declared.
+/// Golden / round-trip test at the compile boundary: a model compiles to
+/// `.xlsx` bytes, and re-opening those bytes with the backend's reader yields
+/// the cells the model declared.
 test "to_bytes round-trips a model through real .xlsx bytes" {
   let wb = @model.Workbook()
   let sheet = wb.add_sheet("Sheet1")
@@ -43,10 +43,8 @@ test "a blank cell is written for its style alone" {
 
 ///|
 test "a sheet tab colour is written as four bytes" {
-  // `<tabColor rgb="…">` is `ST_UnsignedIntHex` (ECMA-376 §18.18.86) — four
-  // bytes — and the backend writes this attribute through verbatim, where it
-  // widens the style colours itself. Six digits is a schema violation, and a
-  // schema violation is Excel's repair dialog.
+  // `<tabColor rgb>` is four bytes (ECMA-376 §18.18.86) and the backend writes
+  // it verbatim, so six digits would be Excel's repair dialog.
   let wb = @model.Workbook()
   let sheet = wb.add_sheet("S")
   sheet.set(@units.CellRef(col=1, row=1), Text("a"))
@@ -73,10 +71,8 @@ test "a tab colour that carries its own alpha keeps it" {
 
 ///|
 test "every part of the package is deflated" {
-  // The backend stores each part uncompressed, which made a real workbook ten
-  // times the size Excel writes for it (#46). Asserted on the archive rather
-  // than on a byte count, so it fails for the reason it exists rather than
-  // because some part happened to compress well.
+  // The backend stored parts uncompressed, ten times Excel's size (#46).
+  // Asserted on the archive, so it fails for that reason and no other.
   let wb = @model.Workbook()
   let sheet = wb.add_sheet("S")
   for row in 1..<200 {
@@ -282,8 +278,8 @@ test "a split pane converts its point position to twips" {
   wb.add_sheet("Wide").set_panes(Split(x=120.0, y=0.0))
   let reopened = reopen(wb)
   let panes = reopened.get_panes("Wide")
-  // A split pane carries no `state` attribute (ECMA-376 §18.18.52 defaults it to
-  // "split"), and the backend's reader only recognizes the frozen state — so
+  // A split pane carries no `state` attribute (ECMA-376 §18.18.52 defaults it
+  // to "split"), and the backend's reader only recognizes the frozen state — so
   // `split` reads back false while the position and active pane survive.
   assert_false(panes.freeze)
   assert_eq(panes.x_split, 2400)

@@ -37,9 +37,8 @@ fn read_control(
       return None
     }
   }
-  // Excel's own "Format Control" dialog shows a different set of fields per
-  // kind and the schema follows it, so each is kept only where it means
-  // something. What is kept is what the loader would accept, not what the file
+  // Excel's "Format Control" dialog shows different fields per kind, and so
+  // does the schema: keep what the loader would accept, not what the file
   // holds.
   let on = control.control_type
   let ranged = kind is (ScrollBar | SpinButton)
@@ -193,8 +192,8 @@ fn slicer_caches(backend : @xlsx.Workbook) -> @set.Set[String] {
 let default_slicer_size : Int32 = 200
 
 ///|
-/// A size worth writing down, both dimensions or neither, as the schema takes it:
-/// dropped only when both equal the backend's default.
+/// A size worth writing down, both dimensions or neither, as the schema takes
+/// it: dropped only when both equal the backend's default.
 fn both_or_neither(
   width : Int32,
   height : Int32,
@@ -327,10 +326,8 @@ fn preset_spelling(token : String) -> String? {
 }
 
 ///|
-/// The sparkline groups on a sheet.
-///
-/// `qualified_ranges` says whether a data range could have named another sheet
-/// — false for a one-sheet workbook, where nothing can have been lost.
+/// The sparkline groups on a sheet. `qualified_ranges` says whether a data
+/// range could have named another sheet, false in a one-sheet workbook.
 fn read_sparklines(
   backend : @xlsx.Workbook,
   sheet : @model.Sheet,
@@ -367,10 +364,8 @@ fn read_sparkline_group(
   }
   guard !cells.is_empty() else { return None }
   if qualified_ranges {
-    // The file writes `'Data'!B2:E2`, and the backend's reader keeps only what
-    // follows the `!`. A sparkline that plotted another sheet is therefore
-    // indistinguishable from one that plotted this one, and would come back
-    // pointing at whatever happens to sit at those cells here.
+    // The backend's reader keeps only what follows the `!` of `'Data'!B2:E2`,
+    // so a sparkline of another sheet would come back plotting this one.
     notes.drop(
       "the sheet a sparkline plots from, which the Excel backend strips off the range it reads back — a sparkline that plotted another sheet comes back plotting this one",
     )
@@ -422,7 +417,8 @@ fn read_sparkline_group(
 
 ///|
 /// A sparkline colour only where the file names one outright: theme references
-/// are Excel's defaults on every group, and resolving them would spell those out.
+/// are Excel's defaults on every group, and resolving them would spell those
+/// out.
 fn sparkline_color(
   color : @xlsx.SparklineColor?,
   notes : Notes,

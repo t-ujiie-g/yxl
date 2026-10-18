@@ -7,9 +7,7 @@ fn schema_error(file~ : String, message : String) -> @diag.SchemaError {
 
 ///|
 /// The spellings a diagnostic offers, in the house form: `'a'`, `'a' or 'b'`,
-/// `'a', 'b', or 'c'`. Every "you wrote something that is not one of these"
-/// message renders its list through here, so an author meets one shape of
-/// suggestion whatever they misspelt.
+/// `'a', 'b', or 'c'`.
 fn or_list(items : Array[String]) -> String {
   match items {
     [] => ""
@@ -20,10 +18,8 @@ fn or_list(items : Array[String]) -> String {
 }
 
 ///|
-/// A value from a spelling table, or a diagnostic listing every spelling the
-/// table holds. `what` names the kind being spelled ("horizontal alignment"),
-/// `context` its owner — the same pair every unknown-key diagnostic uses, so a
-/// misspelt *value* reads like a misspelt *key*.
+/// A value from a spelling table, or a diagnostic listing every spelling,
+/// worded like an unknown key: `what` is the kind spelled, `context` its owner.
 fn[T] named(
   table : Array[(String, T)],
   written : String,
@@ -203,10 +199,8 @@ fn parse_range(
 }
 
 ///|
-/// The `at:` that anchors a chart, image, shape, slicer, control, or `data:`
-/// table to one cell. `subject` names the construct before its address is known
-/// ("a chart", "an image"), `noun` after — which is all that separates the
-/// dozen constructs that open this way.
+/// The `at:` that anchors a construct to one cell. `subject` names it before
+/// its address is known ("a chart"), `noun` after.
 fn anchor_cell(
   entries : Array[(String, @yaml.Node)],
   file~ : String,
@@ -226,8 +220,8 @@ fn anchor_cell(
 }
 
 ///|
-/// The `at:` that anchors a table, pivot, validation, or conditional format to a
-/// *region*. The range counterpart of `anchor_cell`; `noun` names the range's
+/// The `at:` that anchors a table, pivot, validation, or conditional format to
+/// a *region*. The range counterpart of `anchor_cell`; `noun` names the range's
 /// role in the diagnostics ("table range").
 fn anchor_range(
   entries : Array[(String, @yaml.Node)],
@@ -255,10 +249,8 @@ fn anchor_range(
 }
 
 ///|
-/// The `at:` node itself, or the diagnostic for its absence. Split out so the
-/// one construct that reads its anchor differently — a band selector, which is a
-/// column letter or a row number rather than a cell — words the omission the
-/// same way as the rest.
+/// The `at:` node itself, or the diagnostic for its absence, worded the same
+/// for a band selector as for every other anchor.
 fn required_at(
   entries : Array[(String, @yaml.Node)],
   file~ : String,
@@ -272,8 +264,8 @@ fn required_at(
 
 ///|
 /// A scalar node, or a diagnostic: text, a number, or a boolean, never a
-/// structure. `scalar_value` turns the result into a cell value; parameters keep
-/// it as a node.
+/// structure. `scalar_value` turns the result into a cell value; parameters
+/// keep it as a node.
 fn expect_scalar(
   node : @yaml.Node,
   file~ : String,
@@ -316,10 +308,8 @@ fn not_scalar(file~ : String, context~ : String) -> @diag.SchemaError {
 }
 
 ///|
-/// Untyped text as the scalar it looks like. Shared by `--set` values, which
-/// arrive from a command line, and CSV fields, which carry no types either — so
-/// both read `0.08` as a number and `true` as a boolean, and a spreadsheet built
-/// from either holds the same kinds of cell.
+/// Untyped text as the scalar it looks like, for `--set` values and CSV fields
+/// alike, so both read `0.08` as a number and `true` as a boolean.
 fn infer_scalar(text : String) -> @yaml.Node {
   match text {
     "true" => @yaml.Bool(true)

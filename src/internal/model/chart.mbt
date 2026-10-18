@@ -76,3 +76,34 @@ pub(all) struct ChartAxis {
   min : Double?
   max : Double?
 } derive(Eq, Debug)
+
+///|
+/// The chart kinds a spec may name. The loader reads them from here and
+/// `yxl extract` spells them from here, so the two cannot drift apart.
+pub let chart_kinds : Array[(String, ChartKind)] = [
+  ("column", Column),
+  ("column_stacked", ColumnStacked),
+  ("column_percent_stacked", ColumnPercentStacked),
+  ("bar", Bar),
+  ("bar_stacked", BarStacked),
+  ("bar_percent_stacked", BarPercentStacked),
+  ("line", Line),
+  ("area", Area),
+  ("area_stacked", AreaStacked),
+  ("area_percent_stacked", AreaPercentStacked),
+  ("pie", Pie),
+  ("doughnut", Doughnut),
+  ("scatter", Scatter),
+  ("radar", Radar),
+]
+
+///|
+/// Where a legend may sit. `none` leaves the chart without one.
+pub let legend_positions : Array[(String, LegendPosition)] = [
+  ("bottom", Bottom),
+  ("top", Top),
+  ("left", Left),
+  ("right", Right),
+  ("top_right", TopRight),
+  ("none", NoLegend),
+]

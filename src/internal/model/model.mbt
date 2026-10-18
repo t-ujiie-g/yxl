@@ -23,10 +23,8 @@ pub(all) struct RichRun {
 } derive(Eq, Hash, Debug)
 
 ///|
-/// A single populated cell: where it sits, what it holds, and an optional style
-/// (font, fill, borders, alignment, number format). `None` means the default
-/// (General) style. Equal styles compile to a single shared `cellXfs` id
-/// (ADR-004).
+/// A single populated cell: where it sits, what it holds, and its style, `None`
+/// for General. Equal styles share one `cellXfs` id (ADR-004).
 pub(all) struct Cell {
   pos : @units.CellRef
   value : CellValue
@@ -40,7 +38,8 @@ pub let max_outline_level : Int32 = 7
 
 ///|
 /// One band of columns or rows: an inclusive 1-based span and what the spec set
-/// on it; `None` keeps Excel's default. The holding `Sheet` list fixes the axis.
+/// on it; `None` keeps Excel's default. The holding `Sheet` list fixes the
+/// axis.
 pub(all) struct AxisBand {
   first : Int32
   last : Int32
@@ -81,7 +80,8 @@ pub fn CellRange::parse(text : String) -> CellRange? {
 
 ///|
 /// The same, accepting a single cell as the one-cell range it stands for —
-/// which is how Excel writes a validation or a conditional format over one cell.
+/// which is how Excel writes a validation or a conditional format over one
+/// cell.
 pub fn CellRange::parse_loose(text : String) -> CellRange? {
   match CellRange::parse(text) {
     Some(range) => Some(range)
@@ -94,10 +94,8 @@ pub fn CellRange::parse_loose(text : String) -> CellRange? {
 }
 
 ///|
-/// How Excel shows a sheet in the tab bar (ECMA-376 §18.18.68,
-/// `ST_SheetState`): visible; hidden, which the user can undo from the tab
-/// context menu; or very hidden, which only VBA can undo. A workbook must keep
-/// at least one visible sheet.
+/// How Excel shows a sheet in the tab bar (ECMA-376 §18.18.68): very hidden can
+/// be undone only from VBA. A workbook keeps at least one sheet visible.
 pub(all) enum SheetVisibility {
   Visible
   Hidden
@@ -126,3 +124,15 @@ pub(all) struct FormulaRange {
 /// The most cells one `formulas:` range may cover: one full column
 /// (ECMA-376 §18.3.1.99). Beyond that the range is a typo.
 pub let max_formula_range_cells : Int32 = 1048576
+
+///|
+/// The spec's word for `value` in one of the vocabulary tables, the inverse of
+/// the loader's lookup. Every table lists each value once (`model_test.mbt`).
+pub fn[T : Eq] spelling(table : Array[(String, T)], value : T) -> String {
+  for entry in table {
+    if entry.1 == value {
+      return entry.0
+    }
+  }
+  abort("a vocabulary table is missing a value")
+}

@@ -1,8 +1,6 @@
 ///|
-/// A sheet's `print:` block — how it goes onto paper. Every key is optional:
-/// `area` (a range or a layout), `orientation`, `margins`, `scale` or `fit`
-/// (Excel offers one or the other, never both), `header` / `footer`, `breaks`,
-/// and `titles`.
+/// A sheet's `print:` block. Every key is optional; `scale` and `fit` are
+/// Excel's two exclusive halves of one control.
 fn load_page_setup(
   node : @yaml.Node,
   file~ : String,

@@ -67,10 +67,8 @@ fn read_style(
 }
 
 ///|
-/// A font, narrowed to what the schema holds. Underline is a *style* in Excel
-/// (`single`, `double`, `singleAccounting`, …) and a plain flag here, so
-/// anything but `single` is recorded as narrowed rather than silently squared
-/// off.
+/// A font, narrowed to what the schema holds. Excel's underline has styles; the
+/// schema has a flag, so anything but `single` is reported as narrowed.
 fn read_font(
   backend : @xlsx.Workbook,
   font : @xlsx.Font?,
@@ -126,8 +124,8 @@ fn read_underline(underline : String?, notes : Notes) -> Bool? {
 }
 
 ///|
-/// A hex colour, with a fully opaque alpha byte dropped since a spec need not say
-/// it; a partial alpha is kept.
+/// A hex colour, with a fully opaque alpha byte dropped since a spec need not
+/// say it; a partial alpha is kept.
 fn read_color(color : String?, notes : Notes) -> @units.Color? {
   guard color is Some(text) && !text.is_empty() else { return None }
   match @units.Color::parse(text) {
@@ -145,9 +143,9 @@ fn read_color(color : String?, notes : Notes) -> @units.Color? {
 }
 
 ///|
-/// A colour resolved to RGB from an RGB value, a theme index or a palette index,
-/// with its `tint` applied (ECMA-376 §18.3.1.15). `what` names the wearer for
-/// the note left when even the theme cannot say.
+/// A colour resolved to RGB from an RGB value, a theme index or a palette
+/// index, with its `tint` applied (ECMA-376 §18.3.1.15). `what` names the
+/// wearer for the note left when even the theme cannot say.
 fn resolve_color(
   backend : @xlsx.Workbook,
   color : String?,
@@ -364,9 +362,8 @@ fn read_number_format(style : @xlsx.Style, notes : Notes) -> String? {
 
 ///|
 /// Excel's built-in number formats by id (ECMA-376 §18.8.30). Id 0 is General,
-/// which is the absence of a format rather than one to write down. The gaps in
-/// the table are ids Excel reserves and leaves locale-defined; there is no fixed
-/// code to write for them, so they are reported instead of guessed at.
+/// no format at all; the gaps are locale-defined ids, reported rather than
+/// guessed.
 fn builtin_number_format(id : Int32, notes : Notes) -> String? {
   guard id != 0 else { return None }
   for entry in builtin_number_formats {

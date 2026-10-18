@@ -153,9 +153,8 @@ fn load_sheet(
 }
 
 ///|
-/// A sheet's `visibility:` — `visible` (the default), `hidden`, or `very_hidden`
-/// (unhideable from Excel's UI). A bareword, not a boolean, because Excel has
-/// three states, unlike a column or row band's two-state `hidden:`.
+/// A sheet's `visibility:`, a bareword because Excel has three states:
+/// `visible`, `hidden`, and `very_hidden`, which Excel's UI cannot undo.
 fn load_visibility(
   node : @yaml.Node,
   file~ : String,
@@ -173,10 +172,8 @@ fn load_visibility(
 }
 
 ///|
-/// A sheet's `freeze: <cell>` — the rows above and columns left of that cell
-/// stay put while the rest scrolls — or `{ layout, columns }`, above a layout's
-/// body and through its first `columns`. Freezing nothing is a mistake worth
-/// reporting rather than a no-op.
+/// A sheet's `freeze:` at a cell, or `{ layout, columns }` above a layout's
+/// body and through its first `columns`. Freezing nothing is refused.
 fn load_freeze(
   node : @yaml.Node,
   file~ : String,
@@ -254,9 +251,9 @@ fn freeze_at_layout(
 }
 
 ///|
-/// A sheet's `split: { x, y }` — a draggable splitter, each axis given in points
-/// from the top-left corner and defaulting to `0` (that axis unsplit). Splitting
-/// on neither axis is a mistake worth reporting.
+/// A sheet's `split: { x, y }` — a draggable splitter, each axis given in
+/// points from the top-left corner and defaulting to `0` (that axis unsplit).
+/// Splitting on neither axis is a mistake worth reporting.
 fn load_split(
   node : @yaml.Node,
   file~ : String,

@@ -5,8 +5,8 @@ pub(all) suberror YamlError {
 } derive(Eq, Debug)
 
 ///|
-/// A failure in the `loader` stage: the document parsed as YAML but violates the
-/// `yxl` schema (unknown key, wrong type, missing required field).
+/// A failure in the `loader` stage: the document parsed as YAML but violates
+/// the `yxl` schema (unknown key, wrong type, missing required field).
 pub(all) suberror SchemaError {
   SchemaError(Diagnostic)
 } derive(Eq, Debug)
@@ -25,10 +25,9 @@ pub(all) suberror EmitError {
 } derive(Eq, Debug)
 
 ///|
-/// A failure in the `read` stage: an existing `.xlsx` could not be turned back
-/// into a model — it is not a workbook, or it holds something the reader cannot
-/// make sense of. The mirror of `EmitError`, for the direction `yxl extract`
-/// travels (ADR-017).
+/// A failure in the `read` stage: an `.xlsx` is not a workbook, or holds
+/// something the reader cannot make sense of. The mirror of `EmitError`
+/// (ADR-017).
 pub(all) suberror ReadError {
   ReadError(Diagnostic)
 } derive(Eq, Debug)

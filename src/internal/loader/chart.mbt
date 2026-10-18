@@ -1,35 +1,4 @@
 ///|
-/// The chart kinds a spec may name, and what each means. One table serves both
-/// the lookup and the diagnostic, so the two cannot drift apart.
-let chart_kinds : Array[(String, @model.ChartKind)] = [
-  ("column", Column),
-  ("column_stacked", ColumnStacked),
-  ("column_percent_stacked", ColumnPercentStacked),
-  ("bar", Bar),
-  ("bar_stacked", BarStacked),
-  ("bar_percent_stacked", BarPercentStacked),
-  ("line", Line),
-  ("area", Area),
-  ("area_stacked", AreaStacked),
-  ("area_percent_stacked", AreaPercentStacked),
-  ("pie", Pie),
-  ("doughnut", Doughnut),
-  ("scatter", Scatter),
-  ("radar", Radar),
-]
-
-///|
-/// Where a legend may sit. `none` leaves the chart without one.
-let legend_positions : Array[(String, @model.LegendPosition)] = [
-  ("bottom", Bottom),
-  ("top", Top),
-  ("left", Left),
-  ("right", Right),
-  ("top_right", TopRight),
-  ("none", NoLegend),
-]
-
-///|
 /// A sheet's `charts:` — a sequence of charts, each anchored at a cell.
 fn load_charts(
   node : @yaml.Node,
@@ -75,7 +44,7 @@ fn load_chart(
       "type" =>
         kind = Some(
           named(
-            chart_kinds,
+            @model.chart_kinds,
             expect_string(value, file~, context="\{context} 'type'"),
             file~,
             what="chart type",
@@ -88,7 +57,7 @@ fn load_chart(
       "legend" =>
         legend = Some(
           named(
-            legend_positions,
+            @model.legend_positions,
             expect_string(value, file~, context="\{context} 'legend'"),
             file~,
             what="legend position",

@@ -132,10 +132,8 @@ fn load_validation_list(
 }
 
 ///|
-/// One endpoint, read as the rule's kind demands: a date rule takes a date
-/// string, every other kind takes a number. A whole-number rule additionally
-/// refuses a fractional bound, which Excel would compare against but no whole
-/// number could ever equal.
+/// One endpoint: a date for a date rule, a number otherwise. A whole-number
+/// rule refuses a fraction, which no whole number could ever equal.
 fn expect_bound(
   node : @yaml.Node,
   file~ : String,

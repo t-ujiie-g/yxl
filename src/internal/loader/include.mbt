@@ -7,15 +7,14 @@ using @include {
 }
 
 ///|
-/// The mapping key that marks an include. `$` marks it as a directive rather
-/// than spec data, matching `$ref` (ADR-012); a YAML `!include` tag is not an
-/// option, because the parser drops unknown tags silently, which would turn a
-/// typo into a plain string instead of a diagnostic (ADR-010, ADR-014).
+/// The key that marks an include, a `$` directive like `$ref` (ADR-012). Not a
+/// YAML `!include` tag: the parser drops unknown tags silently (ADR-010,
+/// ADR-014).
 const INCLUDE_KEY : String = "$include"
 
 ///|
-/// The resolver a caller that cannot read files gets. Reaching it means the spec
-/// used `$include` in a context with no way to load one.
+/// The resolver a caller that cannot read files gets. Reaching it means the
+/// spec used `$include` in a context with no way to load one.
 fn no_includes(from : String, path : String) -> Included raise {
   raise schema_error(
     file=from,
@@ -50,8 +49,8 @@ fn expand_includes(
       guard !chain.contains(included.name) else {
         raise cycle_error(chain, included.name, kind="include", file~)
       }
-      // The included text is parsed here, not by the resolver, so a syntax error
-      // in it is reported against the file it came from.
+      // The included text is parsed here, not by the resolver, so a syntax
+      // error in it is reported against the file it came from.
       let document = @yaml.parse(included.source, file=included.name)
       expand_includes(
         document,

@@ -13,10 +13,9 @@ fn read_conditional_formats(
         continue
       }
       let style = read_conditional_style(backend, options.format, notes)
-      // The loader takes a style on a highlighting rule and refuses one on a
-      // scale, a bar, or an icon set. A file can violate either half — a dxf
-      // holding only what the schema cannot say recovers as no style at all —
-      // and writing the violation out would make a spec that will not load.
+      // The loader takes a style only on a highlighting rule, so a file that
+      // breaks either half recovers as what the schema can say, or the spec
+      // would not load.
       if draws_itself(rule) {
         if style is Some(_) {
           notes.drop(

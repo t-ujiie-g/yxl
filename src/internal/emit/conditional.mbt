@@ -1,8 +1,6 @@
 ///|
-/// Attach one conditional format. Its style, if it has one, is interned into
-/// Excel's *differential* format table (`dxfs`) — a table of its own, separate
-/// from the `cellXfs` ids cells wear, but interned the same way so a look shared
-/// by several rules is registered once (ADR-004).
+/// Attach one conditional format. Its style is interned into Excel's `dxfs`
+/// table, apart from `cellXfs` but shared the same way (ADR-004).
 fn apply_conditional_format(
   backend : @xlsx.Workbook,
   sheet_name : String,

@@ -32,9 +32,9 @@ fn load_columns(
 }
 
 ///|
-/// Load a sheet's `rows:` sequence: each entry's `at` selects a row or row range
-/// (`1`, `2-4`) carrying that entry's band spec, whose size key is `height` (in
-/// points).
+/// Load a sheet's `rows:` sequence: each entry's `at` selects a row or row
+/// range (`1`, `2-4`) carrying that entry's band spec, whose size key is
+/// `height` (in points).
 fn load_rows(
   node : @yaml.Node,
   sheet : @model.Sheet,
@@ -65,10 +65,8 @@ fn load_rows(
 }
 
 ///|
-/// Read the required `at` selector off a band entry, returning it alongside the
-/// entry's full key list (`load_axis_spec` reads the remaining `style`/`format`
-/// keys and skips `at`). A row `at` may be an integer; a column `at` is a label.
-/// A missing `at` is a diagnostic.
+/// Read the required `at` selector off a band entry, alongside the entry's keys
+/// for `load_axis_spec`. A row `at` may be an integer.
 fn split_band(
   node : @yaml.Node,
   file~ : String,
@@ -99,9 +97,9 @@ fn expect_selector(
 }
 
 ///|
-/// What a band entry sets, before the selector is resolved to a span: the folded
-/// style, the size (a `width` or a `height`), the hidden flag, and the outline
-/// level. Each is `None` when the entry leaves it out.
+/// What a band entry sets, before the selector is resolved to a span: the
+/// folded style, the size (a `width` or a `height`), the hidden flag, and the
+/// outline level. Each is `None` when the entry leaves it out.
 priv struct AxisSpec {
   style : @model.Style?
   size : Double?
@@ -110,8 +108,8 @@ priv struct AxisSpec {
 }
 
 ///|
-/// Whether the entry set nothing at all (`- at: B` on its own), in which case it
-/// contributes no band rather than an all-defaults one.
+/// Whether the entry set nothing at all (`- at: B` on its own), in which case
+/// it contributes no band rather than an all-defaults one.
 fn AxisSpec::is_empty(self : AxisSpec) -> Bool {
   self.style is None &&
   self.size is None &&
@@ -181,9 +179,9 @@ fn load_axis_spec(
 }
 
 ///|
-/// A `group:` outline level: a whole number Excel accepts (0, ungrouped, through
-/// `@model.max_outline_level`). Anything else is a diagnostic rather than a
-/// backend failure at emit time (ADR-006).
+/// A `group:` outline level: a whole number Excel accepts (0, ungrouped,
+/// through `@model.max_outline_level`). Anything else is a diagnostic rather
+/// than a backend failure at emit time (ADR-006).
 fn expect_outline_level(
   node : @yaml.Node,
   file~ : String,
@@ -260,8 +258,8 @@ fn split_range(selector : String) -> (StringView, StringView?) {
 }
 
 ///|
-/// Parse a run of ASCII digits as a 1-based row index (`>= 1`), or `None`. A row
-/// number is a positive integer, so `0` is rejected.
+/// Parse a run of ASCII digits as a 1-based row index (`>= 1`), or `None`. A
+/// row number is a positive integer, so `0` is rejected.
 fn parse_row_index(text : StringView) -> Int32? {
   match @units.parse_uint(text) {
     Some(value) if value >= 1 => Some(value)

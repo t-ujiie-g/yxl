@@ -50,10 +50,9 @@ test "the reader seam works through the trait, not only the shorthand" {
 
 ///|
 test "a backend failure carries what it said, not just which case it raised" {
-  // `Show` on the backend's error renders the constructor alone, so every
-  // unreadable workbook reported `…XlsxError.InvalidPackage` and left the
-  // reader to guess which part was at fault. `XlsxError` derives `Debug`, and
-  // the `msg~` is where it keeps the answer.
+  // `Show` renders only the constructor, so every failure read
+  // `InvalidPackage`; the `msg~` that `Debug` shows says which part was at
+  // fault.
   let caught = try {
     @read.from_bytes(b"this is not a workbook") |> ignore
     None
@@ -83,9 +82,9 @@ test "the values a cell can hold come back as themselves" {
 test "a formula comes back without its cached result" {
   let (wb, sheet) = fixture()
   sheet.set(at("A1"), Formula(formula="SUM(B1:B9)", cached=Some(Number(42.0))))
-  // The cache is a display value Excel recomputes on open, and the backend hands
-  // it back as text whatever it was; carrying it would put a stale number in the
-  // spec that reads like a claim about the formula's answer.
+  // The cache is a display value Excel recomputes on open, and the backend
+  // hands it back as text whatever it was; carrying it would put a stale number
+  // in the spec that reads like a claim about the formula's answer.
   assert_eq(
     cell_at(only_sheet(wb), "A1"),
     Some(Formula(formula="SUM(B1:B9)", cached=None)),
@@ -96,9 +95,9 @@ test "a formula comes back without its cached result" {
 test "plain text does not come back as a one-run rich text" {
   let (wb, sheet) = fixture()
   sheet.set(at("A1"), Text("Region"))
-  // The backend answers `get_cell_rich_text` for every shared string, so this is
-  // the difference between a readable spec and one where every label is three
-  // lines of `rich:`.
+  // The backend answers `get_cell_rich_text` for every shared string, so this
+  // is the difference between a readable spec and one where every label is
+  // three lines of `rich:`.
   assert_eq(cell_at(only_sheet(wb), "A1"), Some(Text("Region")))
 }
 
@@ -178,10 +177,8 @@ test "a built-in number format id comes back as the code Excel writes for it" {
 
 ///|
 test "a theme or palette colour resolves to the RGB it stands for" {
-  // A real workbook's headings are almost all theme colours, so leaving these
-  // as a loss made an extracted spec compile to a differently-coloured workbook
-  // (#50). The theme and the palette both live in the file being read, so the
-  // resolution is a lookup, not a guess.
+  // Real headings are mostly theme colours; losing them recoloured the workbook
+  // (#50). The theme and palette are in the file, so this is a lookup.
   let backend = @xlsx.Workbook::new()
   let _ = backend.new_sheet("S")
   for reference in ["A1", "A2", "A3"] {
@@ -219,10 +216,8 @@ test "a theme or palette colour resolves to the RGB it stands for" {
 
 ///|
 test "a theme index the workbook does not define is named, not guessed at" {
-  // The theme in the file runs `lt1, dk1, lt2, dk2, accent1..6`; the hyperlink
-  // pair sits past the end of it. A colour there is a real loss and the
-  // extract-to-spec checklist tells a reader to act on the note, so the note
-  // has to be there.
+  // The hyperlink pair sits past the end of the file's theme, so it is a real
+  // loss, and extract-to-spec tells the reader to act on the note.
   let backend = @xlsx.Workbook::new()
   let _ = backend.new_sheet("S")
   backend.set_cell_str("S", "A1", "linked")
@@ -261,10 +256,8 @@ test "a shared formula comes back as the range that declared it" {
 
 ///|
 test "a shared formula's followers are translated where the range cannot fold" {
-  // A `formulas:` range carries no styling, so a styled calculation column has
-  // to come back cell by cell. Each follower stores no text of its own; before
-  // it was translated, the cell simply vanished from the spec and its
-  // calculation with it (#52).
+  // A styled calculation column comes back cell by cell. Its followers store no
+  // text; before they were translated they vanished from the spec (#52).
   let (wb, sheet) = fixture()
   sheet.set(at("B2"), Number(2.0))
   sheet.set(at("B3"), Number(3.0))
@@ -371,8 +364,8 @@ test "frozen panes, gridlines, and the tab colour come back" {
 }
 
 ///|
-/// The backend's reader never sets `split`, so this pinned a pane that came back
-/// as nothing.
+/// The backend's reader never sets `split`, so this pinned a pane that came
+/// back as nothing.
 test "a split pane comes back a split pane, not nothing" {
   let (wb, sheet) = fixture()
   sheet.set(at("A1"), Text("x"))

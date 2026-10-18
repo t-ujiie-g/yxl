@@ -273,10 +273,8 @@ fn read_legend(
 }
 
 ///|
-/// The category and value axes, matched to the chart group by the ids it lists
-/// rather than by their order in the plot area — a chart with a secondary axis
-/// has four of them, and position says nothing about which pair is this
-/// group's. A pie lists none, and gets none.
+/// The category and value axes, matched to the chart group by the ids it lists:
+/// a chart with a secondary axis has four, in no telling order. A pie has none.
 fn read_axes(
   group : XmlElement,
   plot : XmlElement,
@@ -302,10 +300,8 @@ fn read_axes(
 }
 
 ///|
-/// One axis, or `None` when it says nothing the spec can carry. The schema
-/// wants at least one of title, min and max on an `x_axis:`, so an axis with
-/// none of them must not be written at all — an empty mapping is a spec the
-/// loader refuses.
+/// One axis, or `None` when it has no title, min or max: the loader refuses an
+/// `x_axis:` with none of them.
 fn read_axis(element : XmlElement) -> @model.ChartAxis? {
   let title = match element.child(CHART_NS, "title") {
     Some(node) => text_of(node)

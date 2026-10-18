@@ -9,10 +9,9 @@ pub let min_csv_rows : Int32 = 8
 pub let min_csv_columns : Int32 = 2
 
 ///|
-/// A region of a sheet that will be written as a CSV file rather than as cells:
-/// the sheet it belongs to, the cell its top-left field lands on, the `path`
-/// the spec will name relative to itself, the file's contents, and the
-/// addresses it `covered`, so the `cells:` block can leave them out.
+/// A region written as a CSV file rather than as cells: where it lands, the
+/// path the spec names, the contents, and the addresses `covered`, left out of
+/// `cells:`.
 pub(all) struct DataTable {
   sheet : String
   at : @units.CellRef
@@ -22,8 +21,8 @@ pub(all) struct DataTable {
 }
 
 ///|
-/// The tables worth extracting, and the cells they claim: at most one per sheet,
-/// the largest literal rectangle anchored where the sheet's data starts.
+/// The tables worth extracting, and the cells they claim: at most one per
+/// sheet, the largest literal rectangle anchored where the sheet's data starts.
 pub fn data_tables(wb : @model.Workbook) -> Array[DataTable] {
   companion_tables(wb, Names())
 }
@@ -42,13 +41,13 @@ fn companion_tables(wb : @model.Workbook, names : Names) -> Array[DataTable] {
 }
 
 ///|
-/// The rectangle of a sheet's literal data — unstyled, formula-free values, since
-/// `data:` carries no formatting — or `None`.
+/// The rectangle of a sheet's literal data — unstyled, formula-free values,
+/// since `data:` carries no formatting — or `None`.
 fn literal_region(sheet : @model.Sheet) -> @model.CellRange? {
   guard bounds(sheet) is Some(bounds) else { return None }
-  // The candidate is the whole used rectangle; it survives only if every cell in
-  // it is a plain literal, which is the check that makes this safe rather than
-  // clever.
+  // The candidate is the whole used rectangle; it survives only if every cell
+  // in it is a plain literal, which is the check that makes this safe rather
+  // than clever.
   let width = bounds.bottom_right.col - bounds.top_left.col + 1
   let height = bounds.bottom_right.row - bounds.top_left.row + 1
   guard height >= min_csv_rows && width >= min_csv_columns else { return None }

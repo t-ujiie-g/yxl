@@ -1,8 +1,6 @@
 ///|
-/// Fold a `style:` mapping and a `format:` number-format shorthand into one
-/// model style. The `format:` code sets the style's number format. An entirely
-/// empty result becomes `None`, leaving the owner on the default style. Shared
-/// by cell, column, and row styles (`context` names the owner in diagnostics).
+/// Fold a `style:` and a `format:` shorthand into one style, or `None` when the
+/// result is empty. `context` names the owner in diagnostics.
 fn combine_style(
   style_node : @yaml.Node?,
   number_format : String?,
@@ -152,8 +150,8 @@ fn load_style(
 }
 
 ///|
-/// One group of a `style:` mapping: what it sets, and what it clears — the whole
-/// group written `null` clearing every attribute in it. A group that sets
+/// One group of a `style:` mapping: what it sets, and what it clears — the
+/// whole group written `null` clearing every attribute in it. A group that sets
 /// nothing is dropped rather than kept as an empty mapping.
 fn[T : Eq] load_group(
   node : @yaml.Node,
@@ -167,8 +165,8 @@ fn[T : Eq] load_group(
 }
 
 ///|
-/// What each group of the `style:` mapping holds, for the `null` that clears the
-/// group at once.
+/// What each group of the `style:` mapping holds, for the `null` that clears
+/// the group at once.
 let font_attrs : @model.StyleAttrs = @model.StyleAttrs::of([
   FontBold,
   FontItalic,

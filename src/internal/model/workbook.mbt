@@ -1,8 +1,6 @@
 ///|
-/// A workbook-level named definition (ADR-012): a name and what it refers to — a
-/// constant (`Text`/`Number`/`Bool`/`Date`) or a formula (`Formula`, whose
-/// `cached` is unused here). It compiles to an Excel *defined name* the whole
-/// workbook shares; a cell references it with the formula `=name` (ADR-013).
+/// A workbook-level named definition (ADR-012): a constant or a formula,
+/// compiled to an Excel defined name a cell references as `=name` (ADR-013).
 pub(all) struct DefinedName {
   name : String
   refers_to : CellValue
@@ -26,8 +24,8 @@ pub(all) struct Override {
 
 ///|
 /// A workbook: the whole input to the emitter seam (ADR-002). Lists keep
-/// declaration order; an unset optional keeps Excel's default; `output` is never
-/// read by the emitter.
+/// declaration order; an unset optional keeps Excel's default; `output` is
+/// never read by the emitter.
 pub(all) struct Workbook {
   sheets : Array[Sheet]
   date_system : @units.DateSystem
@@ -270,8 +268,8 @@ pub fn Sheet::add_conditional_format(
 }
 
 ///|
-/// Declare a region of the sheet an Excel table. The cells it covers are written
-/// as usual; this only says what the region is.
+/// Declare a region of the sheet an Excel table. The cells it covers are
+/// written as usual; this only says what the region is.
 pub fn Sheet::add_table(self : Sheet, table : Table) -> Unit {
   self.tables.push(table)
 }
@@ -393,8 +391,8 @@ pub fn Sheet::set_row_band(
 }
 
 ///|
-/// Merge a rectangular block of cells, given its two corners (any opposite pair;
-/// stored canonically as top-left / bottom-right).
+/// Merge a rectangular block of cells, given its two corners (any opposite
+/// pair; stored canonically as top-left / bottom-right).
 pub fn Sheet::merge(
   self : Sheet,
   corner1 : @units.CellRef,
@@ -405,8 +403,8 @@ pub fn Sheet::merge(
 }
 
 ///|
-/// Append a value at `at`. `format=` fills the number format only where `style=`
-/// leaves it unset; an empty resulting style is dropped.
+/// Append a value at `at`. `format=` fills the number format only where
+/// `style=` leaves it unset; an empty resulting style is dropped.
 pub fn Sheet::set(
   self : Sheet,
   pos : @units.CellRef,

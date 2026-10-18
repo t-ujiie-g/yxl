@@ -22,9 +22,8 @@ test "every example survives being written back out as YAML" {
 
 ///|
 test "a rewritten example still compiles to the same workbook" {
-  // The stronger claim: the written form is not merely re-readable, it means the
-  // same thing all the way to the bytes. `modular` and `parameters` are left out
-  // — they reach for files and parameters that a bare re-parse does not carry.
+  // The written form means the same thing all the way to the bytes. `modular`
+  // and `parameters` reach for files and parameters a bare re-parse lacks.
   for
     name in [
       "quickstart.yxl.yaml", "styling.yxl.yaml", "charts.yxl.yaml", "pivots.yxl.yaml",
@@ -51,10 +50,9 @@ test "a rewritten example still compiles to the same workbook" {
 
 ///|
 test "every example extracts back into a spec that checks out" {
-  // The corpus is the only place `extract` meets specs a person wrote rather
-  // than ones a test built to suit it. The assertion is on the *self-check*: a
-  // warning means the extracted spec does not rebuild what it was read from,
-  // which is the one thing `extract` promises (ADR-017).
+  // The corpus is where `extract` meets specs a person wrote. A self-check
+  // warning means the extracted spec does not rebuild its source, its one
+  // promise (ADR-017).
   for
     name in [
       "quickstart.yxl.yaml", "styling.yxl.yaml", "layout.yxl.yaml", "charts.yxl.yaml",

@@ -112,10 +112,8 @@ test "keys that look like other types survive as keys" {
 
 ///|
 test "an empty key is outside the seam's alphabet, in both directions" {
-  // `write` is the inverse of `parse` for every node `parse` can produce, and an
-  // empty key is not one of them: the parser refuses `"": 1` on the way in too
-  // ("doesn't support non-string key"), so there is no such `Node` to write.
-  // Recorded here so a parser swap (ADR-010) notices the limit lifting.
+  // The parser refuses an empty key, so `write` meets one only here. Kept so a
+  // parser swap (ADR-010) notices the limit lifting.
   let written = @yaml.write(@yaml.Map([("", @yaml.Int(1))]))
   assert_eq(written, "\"\": 1\n")
   let read = try {

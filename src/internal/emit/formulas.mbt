@@ -1,7 +1,7 @@
 ///|
 /// Write one formula across a region as a shared formula (ECMA-376 §18.3.1.40),
-/// then style its cells from the bands: the backend creates them, so `emit_sheet`
-/// never sees them, and an unstyled cell is style 0 (§18.3.1.13).
+/// then style its cells from the bands: the backend creates them, so
+/// `emit_sheet` never sees them, and an unstyled cell is style 0 (§18.3.1.13).
 fn apply_formula_range(
   backend : @xlsx.Workbook,
   sheet_name : String,
@@ -24,10 +24,8 @@ fn apply_formula_range(
   for row in range.at.top_left.row..<=range.at.bottom_right.row {
     for col in range.at.top_left.col..<=range.at.bottom_right.col {
       let at = @units.CellRef(col~, row~)
-      // The text-cell exemption that `effective_style` applies does not arise:
-      // a formula's result has no type until Excel computes it, and the cell is
-      // written as a numeric one, so an inherited number format is exactly what
-      // a calculation column wants.
+      // No text-cell exemption here, unlike `effective_style`: a formula cell
+      // is written as a number, so an inherited number format applies.
       if settle(@model.Style::layer(sheet.band_style_at(at), range.style))
         is Some(style) {
         backend.set_cell_style(

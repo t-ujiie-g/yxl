@@ -7,11 +7,23 @@ import {
 }
 
 // Values
+pub let border_styles : Array[(String, BorderStyle)]
+
+pub let chart_kinds : Array[(String, ChartKind)]
+
+pub let form_control_kinds : Array[(String, FormControlKind)]
+
 pub fn from_file_formula(String) -> String
+
+pub let horizontal_alignments : Array[(String, HAlign)]
 
 pub let icon_set_styles : Array[String]
 
 pub let image_formats : Array[String]
+
+pub let image_positionings : Array[(String, ImagePositioning)]
+
+pub let legend_positions : Array[(String, LegendPosition)]
 
 pub let max_defined_name_length : Int
 
@@ -35,6 +47,8 @@ pub let max_validation_list_length : Int
 
 pub let min_page_scale : Int
 
+pub let pivot_functions : Array[(String, PivotFunction)]
+
 pub let pivot_style_families : Array[(String, Int)]
 
 pub let print_area_name : String
@@ -43,6 +57,10 @@ pub let print_titles_name : String
 
 pub let shape_presets : Array[(String, String)]
 
+pub let sparkline_kinds : Array[(String, SparklineKind)]
+
+pub fn[T : Eq] spelling(Array[(String, T)], T) -> String
+
 pub fn split_sheet_prefix(String) -> (String?, String)?
 
 pub let table_style_families : Array[(String, Int)]
@@ -50,6 +68,8 @@ pub let table_style_families : Array[(String, Int)]
 pub fn to_file_formula(String) -> String
 
 pub let unwritable_icon_set_styles : Array[String]
+
+pub let vertical_alignments : Array[(String, VAlign)]
 
 // Errors
 

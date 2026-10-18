@@ -50,8 +50,8 @@ pub fn Style::is_empty(self : Style) -> Bool {
 }
 
 ///|
-/// Lay `self` over `base`: what it sets wins, what it clears goes, the rest shows
-/// through. Fonts, alignments and border edges merge per attribute.
+/// Lay `self` over `base`: what it sets wins, what it clears goes, the rest
+/// shows through. Fonts, alignments and border edges merge per attribute.
 pub fn Style::over(self : Style, base : Style) -> Style {
   (
     {
@@ -130,9 +130,9 @@ fn[T] pick(base : T?, over : T?, cleared : Bool) -> T? {
 }
 
 ///|
-/// A font laid over another, attribute by attribute, with the overriding style's
-/// cleared attributes taken away — as for the alignment, borders, and protection
-/// below.
+/// A font laid over another, attribute by attribute, with the overriding
+/// style's cleared attributes taken away — as for the alignment, borders, and
+/// protection below.
 fn merge_font(base : Font?, over : Font?, cleared : StyleAttrs) -> Font? {
   let base = base.unwrap_or(Font::empty())
   let over = over.unwrap_or(Font::empty())
@@ -350,3 +350,37 @@ pub(all) enum BorderStyle {
   Double
   Hair
 } derive(Eq, Hash, Debug)
+
+///|
+/// The horizontal alignments a spec may name; read by the loader and spelled by
+/// `yxl extract`.
+pub let horizontal_alignments : Array[(String, HAlign)] = [
+  ("left", Left),
+  ("center", Center),
+  ("right", Right),
+  ("fill", Fill),
+  ("justify", Justify),
+  ("distributed", Distributed),
+]
+
+///|
+/// The vertical alignments, likewise.
+pub let vertical_alignments : Array[(String, VAlign)] = [
+  ("top", Top),
+  ("middle", Middle),
+  ("bottom", Bottom),
+  ("justify", Justify),
+  ("distributed", Distributed),
+]
+
+///|
+/// The border line styles, likewise.
+pub let border_styles : Array[(String, BorderStyle)] = [
+  ("thin", Thin),
+  ("medium", Medium),
+  ("thick", Thick),
+  ("dashed", Dashed),
+  ("dotted", Dotted),
+  ("double", Double),
+  ("hair", Hair),
+]

@@ -15,7 +15,8 @@ pub trait Reader {
 }
 
 ///|
-/// The `moonbitlang/mbtexcel`-backed reader — the one place `@xlsx` is read from.
+/// The `moonbitlang/mbtexcel`-backed reader — the one place `@xlsx` is read
+/// from.
 pub struct MbtexcelReader {}
 
 ///|
@@ -68,18 +69,14 @@ fn recover(bytes : Bytes) -> Recovered raise {
   let styles = StyleTable()
   read_workbook_keys(backend, workbook, notes)
   let sheet_names = backend.get_sheet_list()
-  // `get_sheet_list` names a chart sheet alongside the worksheets while every
-  // per-sheet accessor answers `SheetNotFound` for it. It is skipped and said
-  // aloud rather than recovered as an empty sheet, which would claim a data tab
-  // the workbook does not have.
+  // `get_sheet_list` names a chart sheet that no per-sheet accessor will answer
+  // for; it is reported rather than recovered as an empty data tab.
   let worksheets = sheet_names.filter(name => {
     if backend.sheet(name) is Some(_) {
       true
     } else {
-      // Which kind it is comes off the backend rather than off the assumption
-      // that a non-worksheet must be a chart sheet: Excel also has dialog and
-      // macro sheets, and calling one of those a chart would be a confident
-      // wrong answer where "not a grid" is a true one.
+      // The kind comes off the backend: Excel also has dialog and macro sheets,
+      // and calling one a chart would be confidently wrong.
       notes.drop(
         if backend.chart_sheet(name) is Some(_) {
           "the sheet '\{name}', which is a chart sheet rather than a grid — the spec has no way to declare one, and the chart on it is raw XML besides"
@@ -116,9 +113,9 @@ fn recover(bytes : Bytes) -> Recovered raise {
     read_sheet_protection(backend, sheet, notes)
     read_page_setup(backend, sheet, notes)
   }
-  // The tab Excel opens on. Index 0 is the default, and saying so adds nothing —
-  // and a chart sheet that was skipped above is no longer a tab this spec has,
-  // so naming it would produce one the loader refuses.
+  // The tab Excel opens on. Index 0 is the default, and saying so adds nothing
+  // — and a chart sheet that was skipped above is no longer a tab this spec
+  // has, so naming it would produce one the loader refuses.
   let active = backend.get_active_sheet_index()
   if active > 0 &&
     backend.get_sheet_name(active) is Some(name) &&
