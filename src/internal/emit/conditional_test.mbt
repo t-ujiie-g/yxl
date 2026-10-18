@@ -37,10 +37,8 @@ fn highlight() -> @model.Style {
 }
 
 ///|
-/// The reader reports a criteria in its own human vocabulary rather than the
-/// OOXML operator the file holds — `notBetween` comes back as `not between`.
-/// The mapping is one-to-one, so these still pin each comparison to a distinct
-/// operator; what reaches the file was read out of the XML directly.
+/// The reader names a criterion in words (`not between` for `notBetween`); the
+/// mapping is one-to-one, so each comparison still pins a distinct operator.
 test "each comparison round-trips as its conditional criteria" {
   let expected = [
     (@model.Comparison::Between(Number(1.0), Number(10.0)), "between"),

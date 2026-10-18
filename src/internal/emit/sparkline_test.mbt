@@ -108,10 +108,8 @@ test "a group of several cells lands one sparkline per cell, in order" {
   assert_eq(group.sparklines.length(), 2)
   assert_eq(group.sparklines[0].location, "F2")
   assert_eq(group.sparklines[1].location, "F3")
-  // Both read back bare: the backend's reader strips any sheet prefix off the
-  // stored reference, the cross-sheet one included. The emitted XML does keep
-  // `'Data'!B3:E3` — verified against the written part, since this accessor
-  // cannot show it.
+  // The backend's reader strips any sheet prefix, so both read back bare; the
+  // written XML keeps `'Data'!B3:E3`, checked against the part itself.
   assert_eq(group.sparklines[0].range_ref, "B2:E2")
   assert_eq(group.sparklines[1].range_ref, "B3:E3")
 }

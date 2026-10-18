@@ -40,10 +40,8 @@ fn read_image(
   if !picture.print_object {
     notes.drop("a picture marked not to print, which the spec cannot say")
   }
-  // The scale is baked into an absolute size when the file is written and the
-  // backend reports it back as 1 whatever it was, so every picture comes back
-  // at its natural size. Recovering the factor would mean reading the image's
-  // own header for its pixel dimensions, per format.
+  // The backend reports every scale as 1, the size baked in when written; the
+  // factor would need each image format's own header to recover.
   notes.drop(
     "a picture's display size, which the file records as absolute dimensions rather than a scale — pictures come back at their natural size",
   )
@@ -69,8 +67,8 @@ fn read_image(
 }
 
 ///|
-/// An extension as the schema spells a format: lower case, no dot, and one Excel
-/// actually stores.
+/// An extension as the schema spells a format: lower case, no dot, and one
+/// Excel actually stores.
 fn image_format(extension : String, notes : Notes) -> String? {
   let bare = if extension.has_prefix(".") {
     extension[1:].to_owned()

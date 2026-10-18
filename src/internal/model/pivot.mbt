@@ -1,7 +1,7 @@
 ///|
-/// A pivot table. `at` is a corner Excel grows from; `source`'s header row names
-/// the fields the axes refer to. `None` keeps Excel's name and the backend's
-/// `PivotStyleLight16`.
+/// A pivot table. `at` is a corner Excel grows from; `source`'s header row
+/// names the fields the axes refer to. `None` keeps Excel's name and the
+/// backend's `PivotStyleLight16`.
 pub(all) struct Pivot {
   at : CellRange
   source : SheetRange
@@ -16,8 +16,8 @@ pub(all) struct Pivot {
 } derive(Eq, Debug)
 
 ///|
-/// A field on one of the grouping axes: which source column, and what to call it
-/// in the pivot if not by its own name.
+/// A field on one of the grouping axes: which source column, and what to call
+/// it in the pivot if not by its own name.
 pub(all) struct PivotField {
   field : String
   name : String?
@@ -33,9 +33,9 @@ pub(all) struct PivotValue {
 } derive(Eq, Debug)
 
 ///|
-/// How a value field is aggregated (ECMA-376 §18.18.17, `ST_DataConsolidateFunction`).
-/// Excel's full list is longer; these are the ones its own "Summarize Values By"
-/// menu offers.
+/// How a value field is aggregated (ECMA-376 §18.18.17,
+/// `ST_DataConsolidateFunction`). Excel's full list is longer; these are the
+/// ones its own "Summarize Values By" menu offers.
 pub(all) enum PivotFunction {
   Sum
   Count
@@ -58,4 +58,21 @@ pub let pivot_style_families : Array[(String, Int32)] = [
   ("PivotStyleLight", 28),
   ("PivotStyleMedium", 28),
   ("PivotStyleDark", 28),
+]
+
+///|
+/// How a value field is aggregated, as Excel's "Summarize Values By" menu names
+/// each; read by the loader and spelled by `yxl extract`.
+pub let pivot_functions : Array[(String, PivotFunction)] = [
+  ("sum", Sum),
+  ("count", Count),
+  ("count_numbers", CountNumbers),
+  ("average", Average),
+  ("max", Max),
+  ("min", Min),
+  ("product", Product),
+  ("std_dev", StdDev),
+  ("std_dev_p", StdDevP),
+  ("var", Var),
+  ("var_p", VarP),
 ]

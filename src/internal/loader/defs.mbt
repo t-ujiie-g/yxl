@@ -1,8 +1,6 @@
 ///|
-/// The named definitions in scope while loading a workbook, one namespace per
-/// kind: a reference's kind is fixed by where it appears (`style:` a style,
-/// `value:` a value, `formula:` a formula), so the same name may exist in more
-/// than one namespace without ambiguity.
+/// The named definitions in scope, one namespace per kind. Where a reference
+/// appears fixes its kind, so one name may live in several namespaces.
 priv struct Defs {
   styles : Map[String, @model.Style]
   values : Map[String, @model.CellValue]
@@ -65,10 +63,8 @@ fn load_style_defs(
 }
 
 ///|
-/// Resolve one style definition, following `extends:` first. `chain` is the
-/// names being resolved, outermost first: it both detects a cycle and renders
-/// it. A resolved style is memoized in `defs.styles`, so a shared base is
-/// parsed once however many styles extend it.
+/// Resolve one style definition, `extends:` first. `chain`, outermost first,
+/// detects and renders a cycle; a resolved style is memoized in `defs.styles`.
 fn resolve_style_def(
   name : String,
   declared : Array[(String, @yaml.Node)],
@@ -144,8 +140,9 @@ const REF_KEY : String = "$ref"
 const DEFS_KEY : String = "defs"
 
 ///|
-/// A `{ $ref: name }` node yields the referenced name; any other node is `None`.
-/// The mapping must have exactly the single `$ref` key with a string value.
+/// A `{ $ref: name }` node yields the referenced name; any other node is
+/// `None`. The mapping must have exactly the single `$ref` key with a string
+/// value.
 fn as_ref(node : @yaml.Node) -> String? {
   guard node is @yaml.Map([(key, @yaml.Str(name))]) && key == REF_KEY else {
     return None
@@ -174,10 +171,8 @@ fn resolve_value_ref(
 }
 
 ///|
-/// Resolve a cell's `formula:` node to the formula body the cell emits. A
-/// `{ $ref: name }` compiles to `=name` (the referencing name is the body, and
-/// the workbook defined name carries the actual formula — ADR-013); a string is
-/// an inline formula. Either way the caller strips a leading `=`.
+/// A cell's `formula:` as the body it emits: `{ $ref: name }` is `=name`, the
+/// defined name holding the formula (ADR-013); a string is inline.
 fn resolve_formula(
   node : @yaml.Node,
   file~ : String,

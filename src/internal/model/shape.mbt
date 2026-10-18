@@ -1,7 +1,7 @@
 ///|
 /// A preset-geometry drawing. `preset` is an `ST_ShapeType` token (ECMA-376
-/// §20.1.10.56) from `shape_presets`; sizes are pixels, `line_width` points, and
-/// `None` keeps the default.
+/// §20.1.10.56) from `shape_presets`; sizes are pixels, `line_width` points,
+/// and `None` keeps the default.
 pub(all) struct Shape {
   at : @units.CellRef
   preset : String
@@ -25,10 +25,9 @@ pub(all) enum ShapeText {
 } derive(Eq, Debug)
 
 ///|
-/// The preset geometries a spec may name, as (spec spelling, DrawingML `prst`
-/// token). A deliberate subset of `ST_ShapeType`'s ~180 (ECMA-376
-/// §20.1.10.56): the backend writes the token into `prst=` unchecked, so an
-/// unknown one makes Excel repair the file.
+/// The preset geometries a spec may name, as (spelling, DrawingML `prst`): a
+/// subset of ECMA-376 §20.1.10.56, since an unknown token makes Excel repair
+/// the file.
 pub let shape_presets : Array[(String, String)] = [
   ("rectangle", "rect"),
   ("ellipse", "ellipse"),

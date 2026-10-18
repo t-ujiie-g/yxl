@@ -36,10 +36,8 @@ fn apply_background(
 }
 
 ///|
-/// The backend's anchor kind for a model positioning. OOXML has three anchors
-/// (ECMA-376 §20.5.2.1): a two-cell one, whose second corner moves the drawing's
-/// far edge with the cells; a one-cell one, which keeps the size; and an
-/// absolute one, pinned to the sheet.
+/// The backend's anchor for a positioning (ECMA-376 §20.5.2.1): two-cell moves
+/// and sizes with the cells, one-cell keeps the size, absolute stays put.
 fn positioning(
   positioning : @model.ImagePositioning,
 ) -> @xlsx.PicturePositioning {

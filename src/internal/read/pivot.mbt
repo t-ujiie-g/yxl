@@ -20,10 +20,8 @@ fn read_pivots(
 }
 
 ///|
-/// One pivot, or `None` with the reason already reported.
-///
-/// The two parts are read together: `table_xml` refers to its fields by index,
-/// and the names those indices stand for live in `cache_definition_xml`.
+/// One pivot, or `None` with the reason already reported. `table_xml` refers to
+/// fields by index; the names live in `cache_definition_xml`.
 fn read_pivot(
   pivot : @xlsx.PivotTable,
   sheet_name : String,

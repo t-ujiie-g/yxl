@@ -16,8 +16,8 @@ fn load_cell(
 }
 
 ///|
-/// The keys the expanded form of a cell takes. An `overrides:` entry carries the
-/// same grammar, so it reads them from here rather than repeating the list.
+/// The keys the expanded form of a cell takes. An `overrides:` entry carries
+/// the same grammar, so it reads them from here rather than repeating the list.
 let cell_keys : Array[String] = [
   "value", "formula", "rich", "type", "format", "style",
 ]
@@ -109,10 +109,8 @@ fn load_expanded_cell(
       }
       None => {
         guard value_node is Some(value_node) else {
-          // A cell with a look and nothing in it: a shaded box, the ruled edge
-          // of a table, the blank half of a merged heading. It stays blank to
-          // `ISBLANK` and to `COUNTA` — the styling is all that is being asked
-          // for, and `value: ""` would be a different cell.
+          // A cell with a look and nothing in it: a shaded box, a table's ruled
+          // edge, the blank half of a merged heading (`docs/spec.md` §3).
           guard style_node is Some(_) ||
             format is Some(_) ||
             !format_cleared.is_empty() else {
@@ -281,7 +279,8 @@ fn load_rich_run(
 }
 
 ///|
-/// Excel stores formulas without the leading `=`; accept a spec that writes one.
+/// Excel stores formulas without the leading `=`; accept a spec that writes
+/// one.
 fn strip_leading_equals(formula : String) -> String {
   if formula.has_prefix("=") {
     formula[1:].to_owned()
@@ -291,8 +290,8 @@ fn strip_leading_equals(formula : String) -> String {
 }
 
 ///|
-/// Interpret a scalar node as a cell value. A non-scalar here (a nested sequence
-/// or mapping in a `value:`) is an error.
+/// Interpret a scalar node as a cell value. A non-scalar here (a nested
+/// sequence or mapping in a `value:`) is an error.
 fn scalar_value(
   node : @yaml.Node,
   file~ : String,

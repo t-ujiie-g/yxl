@@ -39,10 +39,8 @@ fn band_style_id(
 }
 
 ///|
-/// Register a style the first time it is seen and reuse its id thereafter
-/// (ADR-004): equal styles always map to the same `cellXfs` id, so a look
-/// declared many times is not copied N ways. The cache keys on the model style,
-/// which compares and hashes structurally.
+/// The `cellXfs` id for a style, registered the first time it is seen
+/// (ADR-004). The cache keys on the model style, which compares structurally.
 fn intern_style(
   backend : @xlsx.Workbook,
   cache : Map[@model.Style, Int32],
@@ -60,10 +58,8 @@ fn intern_style(
 }
 
 ///|
-/// The interned *differential* format id for a conditional format's style
-/// (ADR-004, in Excel's `dxfs` table rather than `cellXfs`). Kept in its own
-/// cache because the two tables are indexed separately: an id from one means
-/// nothing in the other.
+/// The `dxfs` id for a conditional format's style (ADR-004), cached apart from
+/// `cellXfs` because an id from one table means nothing in the other.
 fn intern_conditional_style(
   backend : @xlsx.Workbook,
   cache : Map[@model.Style, Int32],

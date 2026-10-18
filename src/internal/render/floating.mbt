@@ -83,10 +83,10 @@ fn sparklines(sheet : @model.Sheet) -> @yaml.Node {
       }
     }
     // A line is the schema's default kind.
-    match group.kind {
-      Line => ()
-      Column => entries.push(("type", @yaml.Str("column")))
-      WinLoss => entries.push(("type", @yaml.Str("win_loss")))
+    if group.kind != Line {
+      entries.push(
+        ("type", @yaml.Str(@model.spelling(@model.sparkline_kinds, group.kind))),
+      )
     }
     for
       flag in [
@@ -141,17 +141,7 @@ fn controls(sheet : @model.Sheet) -> @yaml.Node {
       ("at", @yaml.Str(control.at.to_a1())),
       (
         "kind",
-        @yaml.Str(
-          match control.kind {
-            Button => "button"
-            CheckBox => "check_box"
-            OptionButton => "option_button"
-            ScrollBar => "scroll_bar"
-            SpinButton => "spin_button"
-            GroupBox => "group_box"
-            Label => "label"
-          },
-        ),
+        @yaml.Str(@model.spelling(@model.form_control_kinds, control.kind)),
       ),
     ]
     if control.text is Some(text) {
@@ -228,9 +218,12 @@ fn positioning(
   positioning : @model.ImagePositioning,
   entries : Array[(String, @yaml.Node)],
 ) -> Unit {
-  match positioning {
-    Move => ()
-    MoveAndSize => entries.push(("positioning", @yaml.Str("move_and_size")))
-    Fixed => entries.push(("positioning", @yaml.Str("fixed")))
+  if positioning != Move {
+    entries.push(
+      (
+        "positioning",
+        @yaml.Str(@model.spelling(@model.image_positionings, positioning)),
+      ),
+    )
   }
 }

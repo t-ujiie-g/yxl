@@ -88,8 +88,8 @@ fn StyleNames::reference(self : StyleNames, style : @model.Style) -> @yaml.Node 
 }
 
 ///|
-/// A cell's style split into `style:` and `format:` (`docs/spec.md` §3); only an
-/// inline style hands its format out.
+/// A cell's style split into `style:` and `format:` (`docs/spec.md` §3); only
+/// an inline style hands its format out.
 fn StyleNames::split(
   self : StyleNames,
   style : @model.Style?,
@@ -332,15 +332,7 @@ fn borders_node(
 
 ///|
 fn border_style_name(style : @model.BorderStyle) -> String {
-  match style {
-    Thin => "thin"
-    Medium => "medium"
-    Thick => "thick"
-    Dashed => "dashed"
-    Dotted => "dotted"
-    Double => "double"
-    Hair => "hair"
-  }
+  @model.spelling(@model.border_styles, style)
 }
 
 ///|
@@ -360,16 +352,7 @@ fn align_node(
     entries.push(
       (
         "horizontal",
-        @yaml.Str(
-          match horizontal {
-            Left => "left"
-            Center => "center"
-            Right => "right"
-            Fill => "fill"
-            Justify => "justify"
-            Distributed => "distributed"
-          },
-        ),
+        @yaml.Str(@model.spelling(@model.horizontal_alignments, horizontal)),
       ),
     )
   }
@@ -377,15 +360,7 @@ fn align_node(
     entries.push(
       (
         "vertical",
-        @yaml.Str(
-          match vertical {
-            Top => "top"
-            Middle => "middle"
-            Bottom => "bottom"
-            Justify => "justify"
-            Distributed => "distributed"
-          },
-        ),
+        @yaml.Str(@model.spelling(@model.vertical_alignments, vertical)),
       ),
     )
   }

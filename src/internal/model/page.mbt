@@ -6,9 +6,9 @@ pub(all) enum Orientation {
 } derive(Eq, Debug)
 
 ///|
-/// Printed margins, in inches — Excel's own unit here. `header`/`footer` are the
-/// distance from the paper edge to the header/footer text, not extra margin.
-/// Each is `None` when the spec leaves it to Excel's default.
+/// Printed margins, in inches — Excel's own unit here. `header`/`footer` are
+/// the distance from the paper edge to the header/footer text, not extra
+/// margin. Each is `None` when the spec leaves it to Excel's default.
 pub(all) struct PageMargins {
   top : Double?
   bottom : Double?
@@ -19,10 +19,9 @@ pub(all) struct PageMargins {
 } derive(Eq, Debug)
 
 ///|
-/// How the sheet is sized onto the paper — the two mutually exclusive halves of
-/// Excel's scaling control. A `Percent` lies within
-/// `min_page_scale`..`max_page_scale`; a `Fit` shrinks the sheet onto that many
-/// pages across and down, where `0` on an axis leaves it unconstrained.
+/// How the sheet is sized onto paper, Excel's two exclusive halves of one
+/// control: a percentage, or a fit onto pages across and down, `0` leaving an
+/// axis free.
 pub(all) enum PageScale {
   Percent(Int32)
   Fit(width~ : Int32, height~ : Int32)

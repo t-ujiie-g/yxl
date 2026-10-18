@@ -41,10 +41,8 @@ pub(all) struct CustomProperty {
 } derive(Eq, Debug)
 
 ///|
-/// What a custom property may hold. Excel also has a date type here, which the
-/// spec does not expose: it wants a full timestamp with a zone, and a date
-/// written without one would have to be guessed at (ADR-006). Write a date as
-/// text until that is settled.
+/// What a custom property may hold. Excel's date type wants a zoned timestamp
+/// the spec would have to guess (ADR-006), so a date is written as text.
 pub(all) enum PropertyValue {
   Number(Double)
   Bool(Bool)
@@ -72,8 +70,8 @@ pub(all) struct CalcSettings {
 } derive(Eq, Debug)
 
 ///|
-/// What a reader of a protected sheet may still do — the "Protect Sheet" dialog's
-/// boxes, with its defaults. `password` is not encryption.
+/// What a reader of a protected sheet may still do — the "Protect Sheet"
+/// dialog's boxes, with its defaults. `password` is not encryption.
 pub(all) struct SheetProtection {
   password : String?
   select_locked_cells : Bool

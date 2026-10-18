@@ -107,10 +107,8 @@ test "a control's size does not survive, and says so" {
 
 ///|
 test "a control field the schema forbids on that kind is dropped" {
-  // The loader refuses `checked` on a button and `page` on a spin button, so a
-  // file that holds them must not become a spec that carries them: it would not
-  // compile. Nothing but a hand-built model can put them there, which is why
-  // this goes through the model rather than through a spec.
+  // The loader refuses `checked` on a button and `page` on a spin button, so
+  // the reader must not write them. Only a hand-built model can hold them.
   let (wb, sheet) = fixture()
   sheet.set(at("A1"), Text("x"))
   sheet.add_control({
@@ -214,10 +212,8 @@ test "a slicer at the backend's own size says nothing about it" {
 
 ///|
 test "a slicer's own defined name is not recovered as a definition" {
-  // The backend writes `Slicer_Region` as a workbook-wide defined name when it
-  // places the slicer. Recovering it *and* the slicer would make the spec
-  // declare the name and then place something that declares it again, which the
-  // backend refuses with DefinedNameDuplicate — so the spec would not compile.
+  // The backend writes `Slicer_Region` when it places the slicer; recovering
+  // both would make the spec declare it twice, which the backend refuses.
   let wb = @model.Workbook()
   let sheet = with_table(wb)
   sheet.add_slicer({
@@ -486,10 +482,8 @@ test "markers on a sparkline that is not a line are dropped" {
 
 ///|
 test "the sheet a sparkline plots from is lost, and only said where it can be" {
-  // The backend's reader keeps only what follows the `!`, so a group that
-  // plotted `Data!B1:B3` comes back plotting this sheet's `B1:B3` — the same
-  // shape of answer, the wrong numbers. Nothing at the seam can tell the two
-  // apart, which is why this is reported rather than worked around.
+  // The backend's reader keeps only what follows the `!`, so `Data!B1:B3` comes
+  // back as this sheet's `B1:B3`. The seam cannot tell, so it is reported.
   let wb = @model.Workbook()
   let _ = with_series(wb, "Data")
   let sheet = wb.add_sheet("S")

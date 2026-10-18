@@ -26,9 +26,9 @@ pub(all) enum ImagePositioning {
 } derive(Eq, Debug)
 
 ///|
-/// The image formats Excel stores, by the extension that names each. Listed here
-/// so an unsupported file is a diagnostic against the spec rather than an error
-/// from inside the emitter (ADR-006); checked against the backend by a test.
+/// The image formats Excel stores, by extension, so an unsupported file is a
+/// diagnostic rather than an emitter error (ADR-006). A test checks the
+/// backend.
 pub let image_formats : Array[String] = [
   "bmp", "emf", "emz", "gif", "ico", "jpeg", "jpg", "png", "svg", "tif", "tiff",
   "wmf", "wmz",
@@ -52,8 +52,8 @@ pub fn Sheet::set_background(
 }
 
 ///|
-/// A ceiling on a drawing's size or offset in pixels — charts and images alike —
-/// well past any usable value: it exists so an absurd number is a diagnostic
+/// A ceiling on a drawing's size or offset in pixels — charts and images alike
+/// — well past any usable value: it exists so an absurd number is a diagnostic
 /// rather than a drawing Excel cannot place.
 pub let max_drawing_pixels : Int32 = 20000
 
@@ -61,3 +61,12 @@ pub let max_drawing_pixels : Int32 = 20000
 /// The largest image scale a spec may ask for. Excel's own dialog stops here,
 /// and past it an image is bigger than any sheet it could sit on.
 pub let max_image_scale : Double = 100.0
+
+///|
+/// How an image behaves when the cells beneath it change, spelled as Excel's
+/// "Size and Properties" pane spells it.
+pub let image_positionings : Array[(String, ImagePositioning)] = [
+  ("move", Move),
+  ("move_and_size", MoveAndSize),
+  ("fixed", Fixed),
+]

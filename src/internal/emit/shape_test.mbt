@@ -93,10 +93,8 @@ test "a shape's text lines each round-trip as their own paragraph" {
 
 ///|
 test "a shape's colours are written as three bytes" {
-  // A shape is DrawingML, whose `ST_HexColorRGB` (ECMA-376 §20.1.10.42) is
-  // three bytes, and the backend writes the string through verbatim. An alpha
-  // byte — which a spec may perfectly well carry, and which every other colour
-  // in the schema accepts — would reach the file one byte too long.
+  // DrawingML's `ST_HexColorRGB` is three bytes (ECMA-376 §20.1.10.42) and the
+  // backend writes it verbatim, so a spec's alpha byte must not reach it.
   let (wb, sheet) = fixture()
   sheet.add_shape({
     at: @units.CellRef(col=3, row=3),

@@ -91,10 +91,8 @@ fn load_table(
 }
 
 ///|
-/// A table name, checked against Excel's rules for one: it is a defined name, so
-/// it starts with a letter or an underscore, carries no spaces, and cannot be
-/// mistaken for a cell reference. Excel refuses to open a workbook that breaks
-/// them, so the spec is refused first, by name (ADR-006).
+/// A table name, checked against Excel's rules for a defined name, since Excel
+/// refuses to open a workbook that breaks them (ADR-006).
 fn check_table_name(
   name : String,
   file~ : String,
@@ -143,10 +141,8 @@ fn is_name_start(ch : Char) -> Bool {
 }
 
 ///|
-/// A style from one of Excel's numbered built-in families, checked against them
-/// — Excel silently falls back to its default for a name it does not know,
-/// which would leave a misspelt style looking like a backend bug. Shared by
-/// tables and pivot tables, whose styles are named the same way.
+/// A style from one of Excel's numbered built-in families, for tables and
+/// pivots. Excel silently falls back on a name it does not know.
 fn check_numbered_style(
   style : String,
   families : Array[(String, Int32)],
@@ -184,8 +180,8 @@ fn check_tables(
   workbook : @model.Workbook,
   file~ : String,
 ) -> Unit raise @diag.SchemaError {
-  // Table names share one namespace across the workbook, and Excel compares them
-  // without case.
+  // Table names share one namespace across the workbook, and Excel compares
+  // them without case.
   let names : Map[String, String] = Map([])
   for sheet in workbook.sheets {
     for index, table in sheet.tables {

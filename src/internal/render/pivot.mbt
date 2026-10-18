@@ -60,8 +60,8 @@ fn pivot_fields(fields : Array[@model.PivotField]) -> @yaml.Node {
 }
 
 ///|
-/// The fields aggregated in the body. A bare name means `sum`, which is what the
-/// schema reads one as.
+/// The fields aggregated in the body. A bare name means `sum`, which is what
+/// the schema reads one as.
 fn pivot_values(values : Array[@model.PivotValue]) -> @yaml.Node {
   let rendered = []
   for value in values {
@@ -84,17 +84,5 @@ fn pivot_values(values : Array[@model.PivotValue]) -> @yaml.Node {
 ///|
 /// The schema's word for an aggregation, the inverse of the loader's table.
 fn pivot_function(function : @model.PivotFunction) -> String {
-  match function {
-    Sum => "sum"
-    Count => "count"
-    CountNumbers => "count_numbers"
-    Average => "average"
-    Max => "max"
-    Min => "min"
-    Product => "product"
-    StdDev => "std_dev"
-    StdDevP => "std_dev_p"
-    Var => "var"
-    VarP => "var_p"
-  }
+  @model.spelling(@model.pivot_functions, function)
 }

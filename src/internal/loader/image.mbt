@@ -1,13 +1,4 @@
 ///|
-/// How an image behaves when the cells beneath it change, spelled as Excel's
-/// "Size and Properties" pane spells it.
-let image_positionings : Array[(String, @model.ImagePositioning)] = [
-  ("move", Move),
-  ("move_and_size", MoveAndSize),
-  ("fixed", Fixed),
-]
-
-///|
 /// A sheet's `images:` — a sequence of pictures, each anchored at a cell.
 fn load_images(
   node : @yaml.Node,
@@ -69,7 +60,7 @@ fn load_image(
       }
       "positioning" =>
         positioning = named(
-          image_positionings,
+          @model.image_positionings,
           expect_string(value, file~, context="\{context} 'positioning'"),
           file~,
           what="image positioning",
@@ -124,10 +115,8 @@ fn load_background(
 }
 
 ///|
-/// An image's format, taken from its file name. Excel decides how to decode the
-/// bytes by this and never inspects them, so a `.png` holding a JPEG is a file
-/// Excel will not draw — a mislabelled file is beyond what can be checked here,
-/// but an unknown extension is not.
+/// An image's format, from its file name, which is all Excel decodes by. An
+/// unknown extension is refused; a mislabelled file is beyond checking.
 fn image_format(
   path : String,
   file~ : String,

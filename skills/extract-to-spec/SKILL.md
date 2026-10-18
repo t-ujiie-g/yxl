@@ -107,13 +107,15 @@ come from a file:
   line — or better, take the source system's own export, which is what will
   refresh it next month. The columns match its fields by name, so a column the
   export orders differently needs only a `field:`.
-- CSV fields are typed by what they look like; quote text that would read as a
-  number or boolean (`"007"`). A handful of rows can stay inline as `values:`.
+- CSV fields are typed by what they look like. Give a column `type:` where that
+  guess is wrong: `text` for a code like `007`, `date` for a date the export
+  writes as text. A handful of rows can stay inline as `values:`.
 - A data sheet with a derived column keeps it as a layout column with a
   `formula:` — it fills the body, whatever length next month's file has.
 - If it was an Excel table, `tables: [{ at: visitors, name: … }]` declares the
-  layout one again. Widths and a frozen header row are the columns' `width` and
-  the sheet's `freeze:`.
+  layout one again. Widths are the columns' `width`; a frozen header row is
+  `freeze: { layout: visitors }`, and a print area or print titles name the
+  layout too.
 - **Look for the same list in more than one sheet** before writing the CSVs:
   the store names, the account codes, the region list. A hand-maintained
   workbook copies them, and drift between the copies is usually one of the bugs
@@ -137,7 +139,13 @@ becomes a layout.
 - **Merged header rows become header levels.** `header: [売上, 当年]` on each
   column rebuilds a two-row header, merges included; `null` keeps a deliberate
   blank. If the original header has no merged cells, add `header_merge: false`
-  so the spec does not add merges the original never had.
+  so the spec does not add merges the original never had. Header rows styled
+  differently are `header_style: [group, sub]`; a title above the table is the
+  layout's `title:`.
+- **A body's grid and repeats.** Borders or fills that every body cell
+  repeats become `body_style`, on the layout or a column, rather than per-cell
+  styles. A column whose equal values were merged down (支店) gets
+  `merge_equal: true`.
 - **Columns that repeat per item become a block.** 当年 / 前年 / 前年比 written
   out for 売上, then 粗利, then 営業利益 is one `defs.blocks` entry placed three
   times. Check the copies really are identical first — a difference between
@@ -155,8 +163,8 @@ becomes a layout.
   the sheet's design actually means (`kpi_good`, `section_title`) — renaming
   means updating every reference, so do it before the spec grows. Delete
   entries nothing references.
-- **What is not a table stays as it is.** Titles, a KPI box, scattered labels
-  are `cells:`; a genuinely irregular grid keeps `formulas:` ranges and
+- **What is not a table stays as it is.** A KPI box and scattered labels are
+  `cells:`; a genuinely irregular grid keeps `formulas:` ranges and
   `columns:` / `rows:` bands (§3, §4). One thing to trim there: a `width:`
   extract wrote for a column the original left at Excel's default (§22).
 - **Keep the decorations declarative.** Conditional formats, validations,

@@ -3,10 +3,9 @@
 /// POSIX (`/etc/x`), Windows drive paths (`C:\x`, `C:/x`), and UNC shares
 /// (`\\server\share`).
 fn is_absolute(path : String) -> Bool {
-  // A drive letter is one ASCII letter, a colon, then a separator: `C:\x`. A
-  // bare `C:x` is relative to that drive's current directory — a distinction
-  // yxl has no way to honour, so it is treated as relative here too. Only the
-  // first three characters decide either case, so only those are taken.
+  // A drive letter, a colon, then a separator: `C:\x`. A bare `C:x` is relative
+  // to that drive's current directory, which yxl cannot honour, so it counts as
+  // relative.
   match path.iter().take(3).to_array() {
     [first, ..] if is_separator(first) => true
     [drive, ':', third] => is_drive_letter(drive) && is_separator(third)
@@ -58,14 +57,18 @@ pub fn directory_of(from : String) -> String? {
 }
 
 ///|
-/// The workbook a spec builds to when nothing names another:
-/// `report.yxl.yaml` -> `report.xlsx`. A name carrying none of the spellings yxl
-/// uses for a spec keeps what it has and gains `.xlsx`.
+/// The workbook a spec builds to when nothing names another: `report.yxl.yaml`
+/// -> `report.xlsx`. A name carrying none of the spellings yxl uses for a spec
+/// keeps what it has and gains `.xlsx`.
 fn workbook_name(spec : String) -> String {
-  for suffix in [".yxl.yaml", ".yxl.yml", ".yaml", ".yml"] {
+  for suffix in [..spec_suffixes, ".yaml", ".yml"] {
     if spec.has_suffix(suffix) {
       return spec[:spec.length() - suffix.length()].to_owned() + ".xlsx"
     }
   }
   spec + ".xlsx"
 }
+
+///|
+/// The endings that mark a file as a yxl spec.
+let spec_suffixes : Array[String] = [".yxl.yaml", ".yxl.yml"]

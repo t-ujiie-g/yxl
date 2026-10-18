@@ -74,8 +74,8 @@ test "a style two cells share is declared once and referenced by name" {
       #|
     ),
   )
-  // The name is invented — the file kept the sharing and lost the word — but the
-  // *sharing* is the part that has to survive (ADR-004).
+  // The name is invented — the file kept the sharing and lost the word — but
+  // the *sharing* is the part that has to survive (ADR-004).
   assert_true(result.spec.contains("defs:"))
   assert_true(result.spec.contains("style: header"))
   assert_eq(result.warnings, [])
@@ -354,9 +354,8 @@ test "filter criteria survive extraction and rebuild the same workbook" {
 ///|
 test "a slicer does not bring its own defined name back with it" {
   // The backend writes `Slicer_Region` as a defined name when it places a
-  // slicer. Recovering that name *and* the slicer would make the spec ask for
-  // it twice, and the second attempt is a hard error from the backend — so this
-  // failing looks like `DefinedNameDuplicate`, not like a cosmetic extra key.
+  // slicer; recovering both would ask for it twice, a `DefinedNameDuplicate`
+  // from the backend.
   let result = extracted(floating_spec())
   assert_true(!result.spec.contains("Slicer_"))
   @cli.compile(result.spec, file="out.yaml") |> ignore
@@ -364,10 +363,8 @@ test "a slicer does not bring its own defined name back with it" {
 
 ///|
 test "extracting twice gives the same spec" {
-  // Compiling what came out and extracting *that* is the sharpest check of the
-  // whole loop: anything the reader invents rather than recovers — an order,
-  // a name, a default written down as if it were asked for — shows up as drift
-  // on the second pass even when the first pass verified.
+  // Extracting what the first extract compiles to shows anything the reader
+  // invents rather than recovers, even when the first pass verified.
   let once = extracted(floating_spec())
   let twice = @cli.extract(
     @cli.compile(once.spec, file="out.yaml"),

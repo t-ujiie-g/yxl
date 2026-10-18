@@ -2718,6 +2718,17 @@ not record that the rows were a layout's header.
 
 Reverse-chronological. One entry per user-visible or structural change.
 
+- **2026-10-18** — **Whole-tree refactor.** The nine spellings tables the
+  loader reads (chart kinds, legend positions, form controls, image
+  positioning, pivot functions, sparkline kinds, alignments, border styles) now
+  live in `model`, and `yxl extract` spells from the same tables through
+  `@model.spelling`, so a word cannot be renamed on one side only; a test
+  checks each table names every value once. The CLI's spec suffixes are one
+  constant. Every comment that ran to four lines is cut to three or fewer, and
+  one that claimed a style-only cell stays blank now says what it is. The
+  READMEs' cookbook rows and both AI skills catch up with the layout keys of
+  the last few changes.
+
 - **2026-10-18** — **A layout's `title`.** `title: 2026年度 上期 店舗別実績`
   puts a heading in the layout's first row, merged across every column, so it
   stays as wide as the table when a column is added. The header moves down a

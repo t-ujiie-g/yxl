@@ -1,7 +1,7 @@
 ///|
 /// A form control. The loader admits only the field combinations Excel's
-/// "Format Control" dialog offers per kind; `link` is same-sheet only, and `None`
-/// keeps the backend's default.
+/// "Format Control" dialog offers per kind; `link` is same-sheet only, and
+/// `None` keeps the backend's default.
 pub(all) struct FormControl {
   at : @units.CellRef
   kind : FormControlKind
@@ -41,3 +41,16 @@ pub let max_form_control_value : Int32 = 30000
 pub fn Sheet::add_control(self : Sheet, control : FormControl) -> Unit {
   self.controls.push(control)
 }
+
+///|
+/// The seven kinds, as Excel's Forms toolbar names them. The loader reads them
+/// from here and `yxl extract` spells them from here.
+pub let form_control_kinds : Array[(String, FormControlKind)] = [
+  ("button", Button),
+  ("check_box", CheckBox),
+  ("option_button", OptionButton),
+  ("scroll_bar", ScrollBar),
+  ("spin_button", SpinButton),
+  ("group_box", GroupBox),
+  ("label", Label),
+]

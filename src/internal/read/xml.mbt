@@ -48,10 +48,9 @@ fn XmlElement::children_named(
 }
 
 ///|
-/// Every element anywhere beneath this one with this namespace and local name,
-/// in document order. The `<a:t>` runs of a title are reached this way: how
-/// deeply DrawingML wraps them in paragraphs and runs is not something to
-/// hard-code.
+/// Every element beneath this one with this namespace and local name, in
+/// document order; how deeply DrawingML wraps a title's `<a:t>` runs is not
+/// fixed.
 fn XmlElement::descendants(
   self : XmlElement,
   ns : String,
@@ -282,10 +281,8 @@ fn XmlScanner::read_quoted(self : XmlScanner) -> String? {
 }
 
 ///|
-/// The characters in `[start, end)` with the five predefined entities and
-/// numeric character references resolved. An entity this does not know is left
-/// as written: a chart part holds none, and mangling one would be worse than
-/// carrying it through.
+/// The characters in `[start, end)` with the predefined entities and numeric
+/// references resolved. An unknown entity is carried through as written.
 fn XmlScanner::decode(self : XmlScanner, start : Int32, end : Int32) -> String {
   let out = StringBuilder()
   let mut index = start

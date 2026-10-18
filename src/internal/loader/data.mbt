@@ -28,9 +28,9 @@ fn load_data(
 }
 
 ///|
-/// One `data:` entry: `at` (the anchor), one source — `values:` for rows written
-/// in the spec, `csv:` or `json:` for a path — and, for a JSON array of objects,
-/// `columns:` naming the fields to take and their order.
+/// One `data:` entry: `at` (the anchor), one source — `values:` for rows
+/// written in the spec, `csv:` or `json:` for a path — and, for a JSON array of
+/// objects, `columns:` naming the fields to take and their order.
 fn load_data_entry(
   node : @yaml.Node,
   sheet : @model.Sheet,
@@ -196,10 +196,8 @@ fn write_rows(
 }
 
 ///|
-/// Parse CSV (RFC 4180): fields separated by commas, records by newlines, a
-/// field quoted with `"` may contain either and doubles an inner quote. `\r` is
-/// tolerated so CRLF files load. A trailing newline ends the last record rather
-/// than starting an empty one.
+/// Parse CSV (RFC 4180). `\r` is tolerated so CRLF files load, and a trailing
+/// newline ends the last record rather than starting an empty one.
 fn parse_csv(source : String, file~ : String) -> Rows raise @diag.SchemaError {
   parse_csv_fields(source, file~).map(row => {
     row.map(field => csv_field(field.0, field.1))
@@ -221,8 +219,8 @@ fn parse_csv_fields(
   // Whether this field was quoted — a quoted field stays text, so a CSV can
   // carry "007" or "true" verbatim, mirroring YAML's quoting rule.
   let mut quoted = false
-  // Whether anything (even a bare comma) has started the current record; without
-  // it a trailing newline would add an empty row.
+  // Whether anything (even a bare comma) has started the current record;
+  // without it a trailing newline would add an empty row.
   let mut started = false
   fn end_field() -> Unit {
     row.push((field.to_string(), quoted))
@@ -283,10 +281,8 @@ fn parse_csv_fields(
 }
 
 ///|
-/// A CSV field as a cell value. A *quoted* field is always text; a bare one is
-/// read as a number or boolean when it looks like one, and text otherwise —
-/// CSV carries no types of its own, and this is the reading Excel gives an
-/// imported file. A bare empty field is a blank cell.
+/// A CSV field as a cell value: quoted is text; bare is a number or boolean
+/// when it looks like one, as Excel reads an import; bare and empty is a blank.
 fn csv_field(text : String, quoted : Bool) -> @model.CellValue? {
   if quoted {
     return Some(@model.Text(text))
@@ -305,10 +301,8 @@ fn csv_field(text : String, quoted : Bool) -> @model.CellValue? {
 }
 
 ///|
-/// Parse a JSON table: an array of rows, each an array of values, or an object
-/// whose fields `columns` names and orders. JSON objects have no dependable key
-/// order, so taking the fields in file order would make the layout depend on
-/// something the format does not promise — hence `columns` is required there.
+/// Parse a JSON table: an array of arrays, or of objects whose fields `columns`
+/// names and orders, since JSON promises no key order.
 fn parse_json_table(
   source : String,
   file~ : String,

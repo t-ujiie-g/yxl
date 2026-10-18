@@ -41,3 +41,12 @@ pub(all) enum SparklineKind {
 pub fn Sheet::add_sparkline_group(self : Sheet, group : SparklineGroup) -> Unit {
   self.sparklines.push(group)
 }
+
+///|
+/// The three kinds, as Excel's "Sparklines" ribbon names them; read by the
+/// loader and spelled by `yxl extract`.
+pub let sparkline_kinds : Array[(String, SparklineKind)] = [
+  ("line", Line),
+  ("column", Column),
+  ("win_loss", WinLoss),
+]
