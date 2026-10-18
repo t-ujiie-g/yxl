@@ -215,9 +215,19 @@ pub fn Sheet::Sheet(
 }
 
 ///|
-/// Set how the sheet prints.
+/// Set how the sheet prints, keeping any page break a layout has already added.
 pub fn Sheet::set_page_setup(self : Sheet, page : PageSetup) -> Unit {
-  self.page = Some(page)
+  let added = self.page.map(earlier => earlier.breaks).unwrap_or([])
+  self.page = Some({ ..page, breaks: [..added, ..page.breaks], })
+}
+
+///|
+/// Start a new printed page above `row`, unless a break is already there.
+pub fn Sheet::add_row_break(self : Sheet, row : Int32) -> Unit {
+  let page = self.page.unwrap_or(PageSetup::empty())
+  let at = @units.CellRef(col=1, row~)
+  guard !page.breaks.contains(at) else { return }
+  self.page = Some({ ..page, breaks: [..page.breaks, at], })
 }
 
 ///|

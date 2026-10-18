@@ -2361,6 +2361,15 @@
           "description": "A cell (§3) across the layout's width, in its first row. See below.",
           "markdownDescription": "A cell (§3) across the layout's width, in its first row. See below."
         },
+        "page_break_on": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/text"
+            }
+          ],
+          "description": "A column the data fills: a printed page starts wherever its value changes down the body. See below.",
+          "markdownDescription": "A column the data fills: a printed page starts wherever its value changes down the body. See below."
+        },
         "rows": {
           "allOf": [
             {

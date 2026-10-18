@@ -48,6 +48,7 @@ fn load_layout(
   let mut rows = None
   let mut header_style_node = None
   let mut title_node = None
+  let mut page_break_on = None
   let mut header_merge_node = None
   let mut body_style_node = None
   let mut columns_node = None
@@ -61,6 +62,10 @@ fn load_layout(
       "rows" => rows = Some(expect_body_rows(value, file~, context~))
       "header_style" => header_style_node = Some(value)
       "title" => title_node = Some(value)
+      "page_break_on" =>
+        page_break_on = Some(
+          expect_string(value, file~, context="\{context} 'page_break_on'"),
+        )
       "header_merge" => header_merge_node = Some(value)
       "body_style" => body_style_node = Some(value)
       "columns" => columns_node = Some(value)
@@ -87,7 +92,7 @@ fn load_layout(
       _ =>
         raise schema_error(
           file~,
-          "unknown key '\{key}' in \{context} (expected 'at', 'name', 'title', 'rows', 'header_style', 'header_merge', 'body_style', 'columns', 'values', 'csv', 'json', or 'footer')",
+          "unknown key '\{key}' in \{context} (expected 'at', 'name', 'title', 'rows', 'page_break_on', 'header_style', 'header_merge', 'body_style', 'columns', 'values', 'csv', 'json', or 'footer')",
         )
     }
   }
@@ -198,6 +203,9 @@ fn load_layout(
   }
   write_body_rows(sheet, data, body_inputs, body_first~, rows~)
   merge_equal_runs(sheet, data, inputs, body_first~, file~, context~)
+  if page_break_on is Some(column) {
+    break_pages_on(sheet, data, inputs, column~, body_first~, file~, context~)
+  }
   for column in columns {
     write_layout_column(
       column,

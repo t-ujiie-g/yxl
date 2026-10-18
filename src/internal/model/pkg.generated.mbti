@@ -530,6 +530,7 @@ pub fn Sheet::add_formula(Self, FormulaRange) -> Unit
 pub fn Sheet::add_image(Self, Image) -> Unit
 pub fn Sheet::add_link(Self, @units.CellRef, LinkTarget, tip? : String) -> Unit
 pub fn Sheet::add_pivot(Self, Pivot) -> Unit
+pub fn Sheet::add_row_break(Self, Int) -> Unit
 pub fn Sheet::add_shape(Self, Shape) -> Unit
 pub fn Sheet::add_slicer(Self, Slicer) -> Unit
 pub fn Sheet::add_sparkline_group(Self, SparklineGroup) -> Unit

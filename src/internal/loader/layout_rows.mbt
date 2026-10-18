@@ -252,3 +252,35 @@ fn merge_equal_runs(
     outer.push(field)
   }
 }
+
+///|
+/// A page break above every body row whose `column` differs from the row
+/// above it, so each run of one value starts a printed page.
+fn break_pages_on(
+  sheet : @model.Sheet,
+  data : Rows,
+  inputs : Array[LayoutColumn],
+  column~ : String,
+  body_first~ : Int32,
+  file~ : String,
+  context~ : String,
+) -> Unit raise @diag.SchemaError {
+  guard inputs.search_by(input => input.name == column) is Some(field) else {
+    raise schema_error(
+      file~,
+      "\{context} 'page_break_on' names '\{column}', which is not a column the layout's data fills",
+    )
+  }
+  guard !data.is_empty() else {
+    raise schema_error(
+      file~,
+      "\{context} has 'page_break_on' but reads no data to break on",
+    )
+  }
+  let value = (row : Int32) => data[row].get(field).unwrap_or(None)
+  for row in 1..<data.length() {
+    if value(row) != value(row - 1) {
+      sheet.add_row_break(body_first + row)
+    }
+  }
+}
