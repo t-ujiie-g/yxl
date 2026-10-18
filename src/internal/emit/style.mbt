@@ -3,12 +3,24 @@
 /// here because `<col style>` reaches only unallocated cells (ECMA-376
 /// §18.3.1.13), and every written cell is allocated.
 fn effective_style(sheet : @model.Sheet, cell : @model.Cell) -> @model.Style? {
+  drawn_style(sheet, cell.pos, cell.value, cell.style)
+}
+
+///|
+/// The style a cell at `at` holding `value` is drawn in, `own` laid over the
+/// bands it sits in.
+fn drawn_style(
+  sheet : @model.Sheet,
+  at : @units.CellRef,
+  value : @model.CellValue,
+  own : @model.Style?,
+) -> @model.Style? {
   // Innermost wins: the cell over its row, the row over its column.
-  let inherited = match sheet.band_style_at(cell.pos) {
-    Some(style) => Some(style.inherited_by(cell.value))
+  let inherited = match sheet.band_style_at(at) {
+    Some(style) => Some(style.inherited_by(value))
     None => None
   }
-  settle(@model.Style::layer(inherited, cell.style))
+  settle(@model.Style::layer(inherited, own))
 }
 
 ///|

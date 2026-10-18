@@ -218,7 +218,7 @@ fn emit_sheet(
   // the spec declared them in (ADR-018) — and before everything that *reads*
   // one, so a table takes its column names from the header the override left.
   for entry in overrides {
-    apply_override(backend, sheet.name, entry, style_ids, date_system)
+    apply_override(backend, sheet, entry, style_ids, date_system)
   }
   // Merge after the cells are written so the top-left keeps its value.
   for merge in sheet.merges {

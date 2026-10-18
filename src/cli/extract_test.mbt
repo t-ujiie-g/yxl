@@ -451,3 +451,77 @@ test "a newer function is stored with _xlfn and extracted without it" {
   assert_true(!spec.contains("_xlfn"))
   assert_true(spec.contains("MAXIFS(A1:A2,A1:A2,\">0\")"))
 }
+
+///|
+test "an override's style and format are laid over the cell's look (#137)" {
+  let result = extracted(
+    (
+      #|sheets:
+      #|  - name: S
+      #|    columns:
+      #|      - { at: A, style: { fill: "FFFF00" } }
+      #|    cells:
+      #|      A1: { value: 1, style: { font: { bold: true } } }
+      #|      A2: { value: 2, style: { font: { bold: true } } }
+      #|      A3: { value: 3, style: { font: { bold: true } } }
+      #|      B1: { value: 4, style: { font: { bold: true } }, format: "0.00" }
+      #|overrides:
+      #|  - { at: S!A1, format: "0.0" }
+      #|  - { at: S!A2, value: 9 }
+      #|  - { at: S!A3, style: { font: { italic: true } } }
+      #|  - { at: S!B1, format: null }
+      #|
+    ),
+  )
+  inspect(
+    result.spec,
+    content=(
+      #|sheets:
+      #|  - name: S
+      #|    cells:
+      #|      A1:
+      #|        value: 1
+      #|        style:
+      #|          font:
+      #|            bold: true
+      #|            size: 11
+      #|            name: Calibri
+      #|            color: "000000"
+      #|          fill: FFFF00
+      #|          format: "0.0"
+      #|      B1:
+      #|        value: 4
+      #|        style:
+      #|          font:
+      #|            bold: true
+      #|            size: 11
+      #|            name: Calibri
+      #|            color: "000000"
+      #|      A2:
+      #|        value: 9
+      #|        style:
+      #|          font:
+      #|            bold: true
+      #|            size: 11
+      #|            name: Calibri
+      #|            color: "000000"
+      #|          fill: FFFF00
+      #|      A3:
+      #|        value: 3
+      #|        style:
+      #|          font:
+      #|            bold: true
+      #|            italic: true
+      #|            size: 11
+      #|            name: Calibri
+      #|            color: "000000"
+      #|          fill: FFFF00
+      #|    columns:
+      #|      - at: A
+      #|        width: 9.140625
+      #|        style:
+      #|          fill: FFFF00
+      #|
+    ),
+  )
+}
