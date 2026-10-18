@@ -2429,13 +2429,26 @@
           "markdownDescription": "Makes each column's body a workbook defined name, `name.column`, and lets an override find a cell by meaning. See below."
         },
         "header_style": {
-          "allOf": [
+          "anyOf": [
             {
               "$ref": "#/definitions/style"
+            },
+            {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/style"
+                  }
+                },
+                {
+                  "$ref": "#/definitions/include"
+                }
+              ]
             }
           ],
-          "description": "A style (bareword or inline) for every header cell. Needs at least one `header`.",
-          "markdownDescription": "A style (bareword or inline) for every header cell. Needs at least one `header`."
+          "description": "A style (bareword or inline) for every header cell, or a list of them, one per header row. Needs at least one `header`.",
+          "markdownDescription": "A style (bareword or inline) for every header cell, or a list of them, one per header row. Needs at least one `header`."
         },
         "header_merge": {
           "allOf": [

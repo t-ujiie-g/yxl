@@ -1,15 +1,27 @@
 ///|
 /// A layout's header: each column's levels, how many rows they take, the style
-/// they wear, and whether equal neighbours merge.
+/// each row wears (the last one for every row past the list), and whether
+/// equal neighbours merge.
 priv struct LayoutHeader {
   columns : Array[Array[HeaderCell?]]
   depth : Int32
-  style : @model.Style?
+  styles : Array[@model.Style?]
   merge : Bool
 }
 
 ///|
-/// A `header_style` or `header_merge` with no header to apply to is refused.
+/// The style the header's `row` wears.
+fn LayoutHeader::style_at(self : LayoutHeader, row : Int32) -> @model.Style? {
+  match self.styles {
+    [] => None
+    styles =>
+      styles[if row < styles.length() { row } else { styles.length() - 1 }]
+  }
+}
+
+///|
+/// A `header_style` or `header_merge` with no header to apply to is refused, as
+/// is a `header_style` list longer than the header is deep.
 fn load_layout_header(
   columns : Array[LayoutColumn],
   style_node : @yaml.Node?,
@@ -37,19 +49,37 @@ fn load_layout_header(
       deepest
     }
   })
-  let style = combine_style(
-    style_node,
-    None,
-    file~,
-    defs~,
-    context="\{context} header_style",
-  )
-  guard !(style is Some(_) && depth == 0) else {
+  let style_nodes = match style_node {
+    Some(@yaml.Seq(items)) => {
+      guard !items.is_empty() else {
+        raise schema_error(file~, "\{context} 'header_style' is an empty list")
+      }
+      items
+    }
+    Some(node) => [node]
+    None => []
+  }
+  guard style_nodes.is_empty() || depth > 0 else {
     raise schema_error(
       file~,
       "\{context} has a 'header_style' but no column has a 'header' to wear it",
     )
   }
+  guard style_nodes.length() <= depth else {
+    raise schema_error(
+      file~,
+      "\{context} 'header_style' lists \{style_nodes.length()} styles, but the header is \{depth} rows deep",
+    )
+  }
+  let styles = style_nodes.map(node => {
+    combine_style(
+      Some(node),
+      None,
+      file~,
+      defs~,
+      context="\{context} header_style",
+    )
+  })
   let merge = match merge_node {
     Some(node) => {
       guard depth > 0 else {
@@ -62,7 +92,7 @@ fn load_layout_header(
     }
     None => true
   }
-  { columns: levels_of, depth, style, merge, }
+  { columns: levels_of, depth, styles, merge, }
 }
 
 ///|
@@ -111,7 +141,7 @@ fn write_headers(
   header : LayoutHeader,
   at~ : @units.CellRef,
 ) -> Unit {
-  let { columns, depth, style: header_style, merge, } = header
+  let { columns, depth, merge, .. } = header
   fn place(col : Int32, row : Int32) -> @units.CellRef {
     @units.CellRef(col=at.col + col, row=at.row + row)
   }
@@ -179,12 +209,12 @@ fn write_headers(
       guard levels[row] is Some(cell) else {
         let below = if stretches(col, row) { depth - 1 } else { row }
         for blank_row in row..<=below {
-          blank(col, blank_row, header_style)
+          blank(col, blank_row, header.style_at(row))
         }
         col += 1
         continue
       }
-      let style = @model.Style::layer(header_style, cell.style)
+      let style = @model.Style::layer(header.style_at(row), cell.style)
       if stretches(col, row) {
         span(cell, style, col, row, col, depth - 1)
         col += 1

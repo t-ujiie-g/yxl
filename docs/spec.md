@@ -1696,7 +1696,7 @@ layouts:
 | `values` / `csv` / `json` | Where the body's rows come from, as in §9. **At most one.** They fill only the columns without a `formula`. |
 | `footer` | Rows placed straight after the body: totals, and totals per group. See below. |
 | `name` | Makes each column's body a workbook defined name, `name.column`, and lets an override find a cell by meaning. See below. |
-| `header_style` | A style (bareword or inline) for every header cell. Needs at least one `header`. |
+| `header_style` | A style (bareword or inline) for every header cell, or a list of them, one per header row. Needs at least one `header`. |
 | `header_merge` | `false` writes the header without merged cells. Default `true`. Needs at least one `header`. |
 | `body_style` | A style for every body cell, and for nothing outside the body. See below. |
 | `columns` | **Required.** The columns, left to right from `at`. At least one. |
@@ -1734,7 +1734,10 @@ columns:
   in the bottom row, and `[売上, 当年]` beside `[null, 前年]` leaves the cell
   above `前年` blank rather than merging `売上` over it.
 - Every header cell wears `header_style`, the blanks inside a merge and the
-  `null`s included, so a fill or a border runs unbroken. A header written in
+  `null`s included, so a fill or a border runs unbroken. A list styles the
+  header row by row, top first; rows past its end wear its last style, and a
+  list longer than the header is deep is an error. A cell that stretches down
+  wears the style of the row it starts in. A header written in
   the expanded form (`{ value: 部門, style: key }`) lays its own style over it.
 - `header_merge: false` keeps every cell above, the blanks a merge would cover
   included, and drops only the merged ranges. The value sits in the first

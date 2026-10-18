@@ -1328,7 +1328,7 @@ def build(doc: Reference) -> dict:
             "at": ref("anchor"),
             "name": ref("text"),
             "rows": ref("integer"),
-            "header_style": ref("style"),
+            "header_style": {"anyOf": [ref("style"), seq(ref("style"))]},
             "header_merge": ref("boolean"),
             "body_style": ref("style"),
             "columns": seq(
