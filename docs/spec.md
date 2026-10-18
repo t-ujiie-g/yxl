@@ -1572,10 +1572,10 @@ cell's styling alone; one that gives only a `style` or a `format` leaves its
 value alone. A cell's value and its formatting come from different places in a
 spec, and overriding one should not quietly discard the other.
 
-**A `style` or `format` is laid over the cell's look**, the band's and the
-cell's own (or its `formulas:` range's), as a `cells:` entry is laid over its
-band (§4). `format: "0.0"` changes the format and keeps the bold and the fill;
-`null` takes away one attribute (§6).
+**A `style` or `format` replaces the cell's own look whole**, as a later
+`cells:` entry's does (§2): `format: "0.0"` on a bold cell leaves it unbolded,
+in `0.0`. The column and row bands still lie underneath, as they do under any
+cell (§4), so a band's fill stays unless the override clears it with `null`.
 
 **An override must have something to override.** If no `cells:`, `data:`, or
 `formulas:` entry writes that cell, the spec is refused and says so: an

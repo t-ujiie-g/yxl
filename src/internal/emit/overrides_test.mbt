@@ -122,18 +122,18 @@ test "a table takes its column name from the override, not what it displaced" {
 }
 
 ///|
-test "a format-only override keeps the cell's own style and its band" {
+test "a format-only override replaces the cell's own look, band kept" {
   let (wb, sheet) = fixture()
   sheet.set_column_band(first=1, last=1, style=filled("FFFF00"))
   sheet.set(@units.CellRef(col=1, row=1), Number(1.0), style=bold())
   wb.add_override(override_at("A1", style=formatted("0.0")))
   assert_eq(cell_format(wb, "A1"), Some("0.0"))
-  assert_true(cell_is_bold(wb, "A1"))
+  assert_false(cell_is_bold(wb, "A1"))
   assert_eq(cell_fill(wb, "A1"), Some("FFFF00"))
 }
 
 ///|
-test "a style override is laid over the cell's look, not in place of it" {
+test "a style override replaces the cell's own look, band kept" {
   let (wb, sheet) = fixture()
   sheet.set_column_band(first=1, last=1, style=filled("FFFF00"))
   sheet.set(@units.CellRef(col=1, row=1), Number(1.0), style=bold())
@@ -145,21 +145,23 @@ test "a style override is laid over the cell's look, not in place of it" {
   )
   let reopened = reopen(wb)
   let font = reopened.get_style(reopened.get_cell_style("S", "A1").unwrap()).font.unwrap()
-  assert_eq(font.bold, Some(true))
+  assert_eq(font.bold, None)
   assert_eq(font.italic, Some(true))
   assert_eq(cell_fill(wb, "A1"), Some("FFFF00"))
 }
 
 ///|
-test "a cleared format in an override takes away only the format" {
+test "a cleared format in an override still clears what the band sets" {
   let (wb, sheet) = fixture()
-  sheet.set(@units.CellRef(col=2, row=1), Number(4.0), style={
-    ..bold(),
+  sheet.set_column_band(first=1, last=1, style={
+    ..filled("FFFF00"),
     number_format: Some("0.00"),
   })
-  wb.add_override(override_at("B1", style=clears([NumberFormat])))
-  assert_eq(cell_format(wb, "B1"), None)
-  assert_true(cell_is_bold(wb, "B1"))
+  sheet.set(@units.CellRef(col=1, row=1), Number(1.0), style=bold())
+  wb.add_override(override_at("A1", style=clears([NumberFormat])))
+  assert_eq(cell_format(wb, "A1"), None)
+  assert_false(cell_is_bold(wb, "A1"))
+  assert_eq(cell_fill(wb, "A1"), Some("FFFF00"))
 }
 
 ///|
@@ -171,19 +173,30 @@ test "an override clearing a cell's only style leaves it on the default" {
 }
 
 ///|
+test "a value-only override keeps both the cell's own look and its band" {
+  let (wb, sheet) = fixture()
+  sheet.set_column_band(first=1, last=1, style=filled("FFFF00"))
+  sheet.set(@units.CellRef(col=1, row=1), Number(1.0), style=bold())
+  wb.add_override(override_at("A1", value=Number(9.0)))
+  assert_true(cell_is_bold(wb, "A1"))
+  assert_eq(cell_fill(wb, "A1"), Some("FFFF00"))
+}
+
+///|
 test "an override with both facets keeps the band under its style" {
   let (wb, sheet) = fixture()
   sheet.set_column_band(first=1, last=1, style=filled("FFFF00"))
   sheet.set(@units.CellRef(col=1, row=1), Number(1.0), style=bold())
   wb.add_override(override_at("A1", value=Number(0.5), style=formatted("0%")))
   assert_eq(cell_format(wb, "A1"), Some("0%"))
-  assert_true(cell_is_bold(wb, "A1"))
+  assert_false(cell_is_bold(wb, "A1"))
   assert_eq(cell_fill(wb, "A1"), Some("FFFF00"))
 }
 
 ///|
-test "a style override inside a filled range keeps the range's style" {
+test "a style override inside a filled range replaces the range's style" {
   let (wb, sheet) = calculation_sheet()
+  sheet.set_column_band(first=3, last=3, style=filled("FFFF00"))
   sheet.add_formula({
     at: range_of("C1", "C3"),
     formula: "A1*B1",
@@ -191,7 +204,9 @@ test "a style override inside a filled range keeps the range's style" {
   })
   wb.add_override(override_at("C2", style=formatted("0.0")))
   assert_eq(cell_format(wb, "C2"), Some("0.0"))
-  assert_true(cell_is_bold(wb, "C2"))
+  assert_false(cell_is_bold(wb, "C2"))
+  assert_eq(cell_fill(wb, "C2"), Some("FFFF00"))
+  assert_true(cell_is_bold(wb, "C3"))
 }
 
 ///|

@@ -11,13 +11,17 @@ fn apply_override(
 ) -> Unit raise {
   let (written, own) = overridden_cell(sheet, entry.at)
   let value = entry.value.unwrap_or(written)
-  // Re-drawn even for a value alone: a new kind of value may change what the
-  // bands pass it (`Style::inherited_by`).
+  // The override's look replaces the cell's own whole, as a later `cells:`
+  // entry's does; the bands still lie under it (ADR-032). Re-drawn even for a
+  // value alone: a new kind of value may change what the bands pass it.
   let style = drawn_style(
     sheet,
     entry.at,
     value,
-    @model.Style::layer(own, entry.style),
+    match entry.style {
+      Some(_) => entry.style
+      None => own
+    },
   )
   if entry.value is Some(value) {
     emit_cell(

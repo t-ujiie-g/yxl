@@ -453,7 +453,7 @@ test "a newer function is stored with _xlfn and extracted without it" {
 }
 
 ///|
-test "an override's style and format are laid over the cell's look (#137)" {
+test "an override's look replaces the cell's own, over the band (#137)" {
   let result = extracted(
     (
       #|sheets:
@@ -482,21 +482,9 @@ test "an override's style and format are laid over the cell's look (#137)" {
       #|      A1:
       #|        value: 1
       #|        style:
-      #|          font:
-      #|            bold: true
-      #|            size: 11
-      #|            name: Calibri
-      #|            color: "000000"
       #|          fill: FFFF00
       #|          format: "0.0"
-      #|      B1:
-      #|        value: 4
-      #|        style:
-      #|          font:
-      #|            bold: true
-      #|            size: 11
-      #|            name: Calibri
-      #|            color: "000000"
+      #|      B1: 4
       #|      A2:
       #|        value: 9
       #|        style:
@@ -510,7 +498,6 @@ test "an override's style and format are laid over the cell's look (#137)" {
       #|        value: 3
       #|        style:
       #|          font:
-      #|            bold: true
       #|            italic: true
       #|            size: 11
       #|            name: Calibri
