@@ -2738,6 +2738,18 @@ not record that the rows were a layout's header.
 
 Reverse-chronological. One entry per user-visible or structural change.
 
+- **2026-10-18** — **0.7.0.** A release carrying the layout work below: what
+  the probe of 0.6.2 found a layout could not say. `body_style`, a column's
+  `type`, `title`, `merge_equal`, `page_break_on` and a per-row
+  `header_style`; `freeze`, `filter`, `print.area`, the new `print.titles` and
+  `rows:` bands by a layout's name; overrides, notes and links on header,
+  footer and title cells by meaning; and an unmerged header keeps its groups'
+  outline. Two outputs change for an unchanged spec: a bordered header with
+  `header_merge: false` loses the edges inside its groups, and a cell's `type`
+  diagnostics are reworded. The version moves to `0.7.0` in `moon.mod` and in
+  `yxl version`, and the READMEs' `moonx …@<version>` lines follow, ready for
+  the `v0.7.0` tag and its mooncakes publish (ADR-027).
+
 - **2026-10-18** — **Refactor before 0.7.0.** Finding a cell or rows of a
   layout by meaning moves from `layout_names.mbt` (520 lines) to
   `layout_targets.mbt`, with its tests. `freeze` and a row band share one
