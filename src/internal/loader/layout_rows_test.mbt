@@ -293,3 +293,62 @@ test "a field its column's type cannot read is refused with its row and column" 
     ),
   )
 }
+
+///|
+test "merge_equal merges equal runs down, cut where a column left of it changes" {
+  let sheet = load_ok(
+      layout_spec(
+        (
+          #|      - at: A1
+          #|        values:
+          #|          - [東京, 直営, 1]
+          #|          - [東京, 直営, 2]
+          #|          - [東京, FC, 3]
+          #|          - [大阪, FC, 4]
+          #|          - [大阪, null, 5]
+          #|          - [大阪, null, 6]
+          #|          - [福岡, 直営, 7]
+          #|        columns:
+          #|          - { name: branch, header: 支店, merge_equal: true }
+          #|          - { name: channel, header: 区分, merge_equal: true }
+          #|          - { name: amount, header: 金額 }
+        ),
+      ),
+    ).sheets[0]
+  assert_eq(merged(sheet), ["A2:A4", "A5:A7", "B2:B3"])
+  assert_eq(written(sheet).get("A3"), Some((Text("東京"), false)))
+}
+
+///|
+test "merge_equal takes data, and no formula column" {
+  assert_eq(
+    schema_message(
+      layout_spec(
+        "      - at: A1\n        rows: 2\n        columns:\n          - { name: a, merge_equal: true }\n",
+      ),
+    ),
+    Some(
+      "spec.yaml: layout 'A1' column 'a' has 'merge_equal' but the layout reads no data to merge",
+    ),
+  )
+  assert_eq(
+    schema_message(
+      layout_spec(
+        "      - at: A1\n        values: [[1]]\n        columns:\n          - { name: a }\n          - { name: b, formula: \"{{a}}\", merge_equal: true }\n",
+      ),
+    ),
+    Some(
+      "spec.yaml: layout 'A1' column 'b' has both 'merge_equal' and a 'formula'; only data merges",
+    ),
+  )
+  assert_eq(
+    schema_message(
+      layout_spec(
+        "      - at: A1\n        values: [[1]]\n        columns:\n          - { name: a, merge_equal: 1 }\n",
+      ),
+    ),
+    Some(
+      "spec.yaml: layout 'A1' column 'a' 'merge_equal' must be true or false",
+    ),
+  )
+}

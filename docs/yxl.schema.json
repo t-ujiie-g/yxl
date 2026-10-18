@@ -2916,6 +2916,15 @@
           "description": "A style for this column's body cells, laid over the layout's `body_style`.",
           "markdownDescription": "A style for this column's body cells, laid over the layout's `body_style`."
         },
+        "merge_equal": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/boolean"
+            }
+          ],
+          "description": "`true` merges runs of equal values down the body. See below. Only for a column the data fills.",
+          "markdownDescription": "`true` merges runs of equal values down the body. See below. Only for a column the data fills."
+        },
         "width": {
           "allOf": [
             {

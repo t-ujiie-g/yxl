@@ -180,6 +180,7 @@ fn load_layout(
     })
   }
   write_body_rows(sheet, data, body_inputs, body_first~, rows~)
+  merge_equal_runs(sheet, data, inputs, body_first~, file~, context~)
   for column in columns {
     write_layout_column(
       column,

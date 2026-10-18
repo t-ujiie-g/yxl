@@ -1712,6 +1712,7 @@ Each column:
 | `formula` | Filled down the body as a formula range (§3), written for the body's first row. |
 | `conditional` | Conditional formats (§10) over the body, written without `at`. |
 | `body_style` | A style for this column's body cells, laid over the layout's `body_style`. |
+| `merge_equal` | `true` merges runs of equal values down the body. See below. Only for a column the data fills. |
 | `width`, `style`, `format`, `hidden`, `group` | The column's band, exactly as in §4. |
 
 **A header may have levels.** Written as a list, a column's header takes one
@@ -1773,6 +1774,14 @@ layouts:
       - { name: item, header: 部門 }
       - { name: cy, header: 当年, body_style: { format: "#,##0" } }  # thin, and counted
 ```
+
+**`merge_equal: true` merges a column's repeats**, as a report shows 支店 once
+beside its stores. A run of equal values down the body becomes one merged
+cell, and a run is cut wherever a `merge_equal` column left of it changes, so
+`直営` under 東京 never merges into `直営` under 大阪. Blanks never merge.
+Every covered cell still holds its value, so a footer's `SUMIFS`, a filter or
+a sort over the column still sees it. Order the rows so equal values sit
+together: the data is merged as it comes.
 
 A sheet may hold several layouts. Two layouts may not both give one sheet
 column a band. Layouts stacked with `below:` that format one column apart say

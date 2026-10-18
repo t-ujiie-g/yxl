@@ -1264,6 +1264,7 @@ def build(doc: Reference) -> dict:
                 )
             ),
             "body_style": ref("style"),
+            "merge_equal": ref("boolean"),
             **{key: band[key] for key in ("width", "style", "format", "hidden", "group")},
         },
         documented=doc.keys(layouts, table=1),
