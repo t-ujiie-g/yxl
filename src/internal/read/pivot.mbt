@@ -76,7 +76,7 @@ fn read_pivot(
         )
         return None
       }
-      let recovered : @model.PivotField = {
+      let recovered = @model.PivotField::{
         field: cache_fields[index],
         name: relabel(display, index, cache_fields[index]),
       }

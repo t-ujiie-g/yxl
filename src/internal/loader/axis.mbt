@@ -255,7 +255,7 @@ fn parse_selector(
 fn split_range(selector : String) -> (StringView, StringView?) {
   match selector.find("-") {
     Some(index) => (selector[0:index], Some(selector[index + 1:]))
-    None => (selector[:], None)
+    None => (selector, None)
   }
 }
 

@@ -19,14 +19,14 @@ fn range(top_left : String, bottom_right : String) -> @model.CellRange {
 /// Compile the model and re-open the bytes with the backend reader — the
 /// round-trip every emit test performs.
 fn reopen(wb : @model.Workbook) -> @xlsx.Workbook raise {
-  @xlsx.read(@emit.to_bytes(wb)[:])
+  @xlsx.read(@emit.to_bytes(wb))
 }
 
 ///|
 /// One part of the compiled package, as text — for claims about the file that
 /// the reader's normalization would hide.
 fn part(wb : @model.Workbook, name : String) -> String raise {
-  let archive = @zip.read(@emit.to_bytes(wb)[:])
+  let archive = @zip.read(@emit.to_bytes(wb))
   guard archive.get(name) is Some(bytes) else {
     fail("the package has no \{name}")
   }

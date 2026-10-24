@@ -211,7 +211,7 @@ fn split_once_either(
     None =>
       match text.split_once(second.to_string()) {
         Some((before, after)) => (before, Some(after))
-        None => (text[:], None)
+        None => (text, None)
       }
   }
 }

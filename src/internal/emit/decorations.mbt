@@ -97,7 +97,7 @@ fn apply_validation(
   let dv = @xlsx.DataValidation::new(validation.allow_blank)
   dv.set_sqref(validation.at.to_a1())
   match validation.rule {
-    List(choices) => dv.set_drop_list(choices[:])
+    List(choices) => dv.set_drop_list(choices)
     ListFrom(source) =>
       // Despite the name, this sets the *source* of a drop-down; the cells it
       // applies to were set by `set_sqref` above.

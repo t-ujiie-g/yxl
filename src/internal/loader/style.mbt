@@ -132,7 +132,7 @@ fn load_style(
         )
     }
   }
-  let written : @model.Style = {
+  let written = @model.Style::{
     font,
     fill,
     borders,

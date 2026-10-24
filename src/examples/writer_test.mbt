@@ -78,7 +78,7 @@ test "every example extracts back into a spec that checks out" {
       resolve=(_from, wanted) => {
         name: wanted,
         source: match files.get(wanted) {
-          Some(content) => @utf8.decode_lossy(content[:])
+          Some(content) => @utf8.decode_lossy(content)
           None => ""
         },
       },

@@ -88,7 +88,7 @@ test "build writes beside the spec unless its output says otherwise" {
     "/tmp/a.xlsx",
   )
   let built = @cli.build(named, file="q3.yxl.yaml")
-  assert_eq(@xlsx.read(built.bytes[:]).get_sheet_list(), ["S"])
+  assert_eq(@xlsx.read(built.bytes).get_sheet_list(), ["S"])
 }
 
 ///|
@@ -166,14 +166,14 @@ test "golden: --set overrides a declared parameter" {
     #|      A1: "Tax for ${region}"
     #|      B1: "${rate}"
     #|
-  let default_build = @xlsx.read(@cli.compile(source, file="spec.yaml")[:])
+  let default_build = @xlsx.read(@cli.compile(source, file="spec.yaml"))
   assert_eq(default_build.get_cell("APAC", "A1"), Some("Tax for APAC"))
   assert_eq(default_build.get_cell("APAC", "B1"), Some("0.08"))
   let overridden = @xlsx.read(
     @cli.compile(source, file="spec.yaml", params={
       "region": "EMEA",
       "rate": "0.2",
-    })[:],
+    }),
   )
   assert_eq(overridden.get_cell("EMEA", "A1"), Some("Tax for EMEA"))
   assert_true(overridden.get_cell_value_raw("EMEA", "B1") is Some(Numeric(0.2)))
@@ -234,7 +234,7 @@ test "golden: a spec round-trips through .xlsx to the declared cells" {
     #|    cells:
     #|      A1: 3.5
     #|
-  let reopened = @xlsx.read(@cli.compile(source, file="spec.yaml")[:])
+  let reopened = @xlsx.read(@cli.compile(source, file="spec.yaml"))
   assert_eq(reopened.get_cell("Sales", "A1"), Some("Region"))
   assert_eq(reopened.get_cell("Sales", "B1"), Some("42"))
   assert_eq(reopened.get_cell("Sales", "C1"), Some("1")) // boolean -> "1"
@@ -250,7 +250,7 @@ test "golden: an expanded cell's number format survives to the workbook" {
     #|    cells:
     #|      A1: { value: 0.5, format: "0.00%" }
     #|
-  let reopened = @xlsx.read(@cli.compile(source, file="spec.yaml")[:])
+  let reopened = @xlsx.read(@cli.compile(source, file="spec.yaml"))
   assert_eq(reopened.get_cell_value("S", "A1", raw=false), Some("50.00%"))
 }
 
@@ -262,7 +262,7 @@ test "golden: a typed date compiles to an Excel serial with a date format" {
     #|    cells:
     #|      A1: { value: "2000-01-01", type: date }
     #|
-  let reopened = @xlsx.read(@cli.compile(source, file="spec.yaml")[:])
+  let reopened = @xlsx.read(@cli.compile(source, file="spec.yaml"))
   // The raw value is the 1900-system serial for 2000-01-01.
   assert_eq(reopened.get_cell_value("S", "A1", raw=true), Some("36526"))
   assert_eq(reopened.get_cell_value("S", "A1", raw=false), Some("2000-01-01"))
@@ -276,7 +276,7 @@ test "golden: a typed duration compiles to a day fraction wearing an elapsed for
     #|    cells:
     #|      A1: { value: "36:00:00", type: duration }
     #|
-  let reopened = @xlsx.read(@cli.compile(source, file="spec.yaml")[:])
+  let reopened = @xlsx.read(@cli.compile(source, file="spec.yaml"))
   // A day and a half — a duration is a plain number in the file.
   assert_eq(reopened.get_cell_value("S", "A1", raw=true), Some("1.5"))
   // The `[h]` format keeps counting past 24 instead of rolling into days.
@@ -293,7 +293,7 @@ test "golden: a formula cell round-trips as an <f> with its cached value" {
     #|      B1: 4
     #|      C1: { formula: "=A1+B1", value: 7 }
     #|
-  let reopened = @xlsx.read(@cli.compile(source, file="spec.yaml")[:])
+  let reopened = @xlsx.read(@cli.compile(source, file="spec.yaml"))
   assert_eq(reopened.get_cell_formula("S", "C1"), Some("A1+B1"))
   assert_eq(reopened.get_cell_value("S", "C1", raw=true), Some("7"))
 }
@@ -308,7 +308,7 @@ test "golden: explicit typing coerces the stored type, and errors survive" {
     #|      A2: { value: "42", type: number }
     #|      A3: { value: "#N/A", type: error }
     #|
-  let reopened = @xlsx.read(@cli.compile(source, file="spec.yaml")[:])
+  let reopened = @xlsx.read(@cli.compile(source, file="spec.yaml"))
   assert_true(reopened.get_cell_value_raw("S", "A1") is Some(String("42")))
   assert_true(reopened.get_cell_value_raw("S", "A2") is Some(Numeric(42.0)))
   assert_eq(reopened.get_cell_value("S", "A3", raw=true), Some("#N/A"))
@@ -337,7 +337,7 @@ test "golden: an included data file compiles into the same workbook" {
       None => raise @diag.SchemaError(@diag.Diagnostic("missing \{path}"))
     }
   })
-  let reopened = @xlsx.read(bytes[:])
+  let reopened = @xlsx.read(bytes)
   assert_eq(reopened.get_cell("S", "A1"), Some("Region"))
   assert_eq(reopened.get_cell("S", "B1"), Some("2400000"))
   let style = reopened.get_cell_style("S", "A1")
@@ -547,7 +547,7 @@ test "the starter spec compiles to a workbook holding one empty sheet" {
   let bytes = @cli.compile(source, file="sheet.yxl.yaml")
   // A starter that does not build is the one failure this command cannot have:
   // it is the first thing a reader runs.
-  let reopened = @xlsx.read(bytes[:])
+  let reopened = @xlsx.read(bytes)
   assert_eq(reopened.get_sheet_list(), ["Sheet1"])
   assert_eq(reopened.get_cell("Sheet1", "A1"), None)
 }
@@ -645,7 +645,7 @@ test "round trip: a body style reaches the body and no row beyond it" {
     #|          - { name: qty, header: Qty }
     #|          - { name: twice, header: Twice, formula: "{{qty}}*2" }
     #|
-  let reopened = @xlsx.read(@cli.compile(source, file="spec.yaml")[:])
+  let reopened = @xlsx.read(@cli.compile(source, file="spec.yaml"))
   let style_of = reference => reopened.get_cell_style("S", reference)
   assert_true(style_of("A2") is Some(_))
   assert_eq(style_of("A3"), style_of("A2"))
@@ -731,7 +731,7 @@ test "round trip: merge_equal merges a run and keeps every covered value" {
     #|          - by: branch
     #|            rows: [{ row: { branch: "{{branch}} 計", amount: { total: sum } } }]
     #|
-  let reopened = @xlsx.read(@cli.compile(source, file="spec.yaml")[:])
+  let reopened = @xlsx.read(@cli.compile(source, file="spec.yaml"))
   assert_eq(reopened.get_merge_cells("S"), ["A2:A3"])
   assert_eq(reopened.get_cell("S", "A3"), Some("東京"))
 }
@@ -836,7 +836,7 @@ test "round trip: a header that does not merge reopens with no merged cells" {
     #|          - { name: cy, header: [売上, 当年] }
     #|          - { name: py, header: [売上, 前年] }
     #|
-  let reopened = @xlsx.read(@cli.compile(source, file="spec.yaml")[:])
+  let reopened = @xlsx.read(@cli.compile(source, file="spec.yaml"))
   assert_eq(reopened.get_merge_cells("S"), [])
   assert_eq(reopened.get_cell("S", "B1"), Some("売上"))
   assert_eq(reopened.get_cell("S", "A2"), Some(""))

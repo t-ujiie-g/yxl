@@ -119,7 +119,7 @@ test "every example compiles and holds what it promises" {
       read_bytes=included_bytes,
       params=promise.params,
     )
-    let workbook = @xlsx.read(bytes[:])
+    let workbook = @xlsx.read(bytes)
     assert_eq(
       workbook.get_cell(promise.sheet, promise.cell),
       Some(promise.value),
@@ -158,7 +158,7 @@ test "the interactive example decorates the cells it says it does" {
       file=path,
       resolve=included,
       read_bytes=included_bytes,
-    )[:],
+    ),
   )
   guard workbook.get_auto_filter("Orders") is Some(filter) else {
     fail("expected an auto filter over the orders")
@@ -231,7 +231,7 @@ test "the charts example draws what its comments describe" {
       file=path,
       resolve=included,
       read_bytes=included_bytes,
-    )[:],
+    ),
   )
   guard workbook.sheet("Figures") is Some(figures) else {
     fail("expected the Figures sheet")
@@ -266,7 +266,7 @@ test "the pivots example summarizes what its comments describe" {
       file=path,
       resolve=included,
       read_bytes=included_bytes,
-    )[:],
+    ),
   )
   let pivots = workbook.get_pivot_tables("Summary")
   assert_eq(pivots.length(), 2)
@@ -313,7 +313,7 @@ test "the modular example declares its data region a table" {
       file=path,
       resolve=included,
       read_bytes=included_bytes,
-    )[:],
+    ),
   )
   let tables = workbook.get_tables("Sales")
   assert_eq(tables.length(), 1)
@@ -335,7 +335,7 @@ test "the layout example carries its document properties and calc mode" {
       file=path,
       resolve=included,
       read_bytes=included_bytes,
-    )[:],
+    ),
   )
   let core = workbook.get_doc_props()
   assert_eq(core.title, "Regional summary")
@@ -377,7 +377,7 @@ test "the styling example's conditional formats share their declared looks" {
       file=path,
       resolve=included,
       read_bytes=included_bytes,
-    )[:],
+    ),
   )
   let formats = workbook.get_conditional_formats("Report")
   guard formats.get("B2:B3") is Some(over_revenue) else {
@@ -407,7 +407,7 @@ test "the styling example's nulls clear what would otherwise be inherited" {
       file=path,
       resolve=included,
       read_bytes=included_bytes,
-    )[:],
+    ),
   )
   fn style_of(reference : String) -> @xlsx.Style? raise {
     match workbook.get_cell_style("Report", reference) {
@@ -435,7 +435,7 @@ test "the modular example slices the table it declares" {
       file=path,
       resolve=included,
       read_bytes=included_bytes,
-    )[:],
+    ),
   )
   let slicers = workbook.get_slicers("Sales")
   assert_eq(slicers.length(), 1)
@@ -457,7 +457,7 @@ test "the layout example carries its background" {
       file=path,
       resolve=included,
       read_bytes=included_bytes,
-    )[:],
+    ),
   )
   guard workbook.sheet("Summary") is Some(summary) else {
     fail("expected the Summary sheet")
@@ -480,7 +480,7 @@ test "the sparklines example draws its two groups" {
       file=path,
       resolve=included,
       read_bytes=included_bytes,
-    )[:],
+    ),
   )
   guard workbook.sheet("Dashboard") is Some(dashboard) else {
     fail("expected the Dashboard sheet")
@@ -507,7 +507,7 @@ test "the shapes example floats what its comments describe" {
       file=path,
       resolve=included,
       read_bytes=included_bytes,
-    )[:],
+    ),
   )
   guard workbook.sheet("Board") is Some(board) else {
     fail("expected the Board sheet")
@@ -541,7 +541,7 @@ test "the workbook example holds its master once and points at it" {
       file=path,
       resolve=included,
       read_bytes=included_bytes,
-    )[:],
+    ),
   )
   assert_false(workbook.get_sheet_visible("Masters"))
   // The master's columns are names, and the other sheets read them by name.

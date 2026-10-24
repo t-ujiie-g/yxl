@@ -54,7 +54,7 @@ pub fn from_bytes(bytes : Bytes) -> Recovered raise @diag.ReadError {
 /// Walk the backend's workbook into ours. Raises the backend's own error, which
 /// the seam boundary wraps.
 fn recover(bytes : Bytes) -> Recovered raise {
-  let backend = @xlsx.read(bytes[:])
+  let backend = @xlsx.read(bytes)
   let notes = Notes()
   let dates : @units.DateSystem = if backend.get_workbook_props().date_1904
     is Some(true) {

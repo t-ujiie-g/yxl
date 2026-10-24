@@ -133,7 +133,7 @@ fn read_properties(
       None => ()
     }
   }
-  let properties : @model.DocumentProperties = {
+  let properties = @model.DocumentProperties::{
     title: non_empty(core.title),
     subject: non_empty(core.subject),
     author: authored_by(core.creator),
@@ -174,7 +174,7 @@ fn read_calc(
   } else {
     None
   }
-  let calc : @model.CalcSettings = { mode, on_load, }
+  let calc = @model.CalcSettings::{ mode, on_load, }
   if calc != ({ mode: None, on_load: None, } : @model.CalcSettings) {
     workbook.set_calc(calc)
   }

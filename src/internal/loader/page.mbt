@@ -180,7 +180,7 @@ fn load_margins(
   node : @yaml.Node,
   file~ : String,
 ) -> @model.PageMargins raise @diag.SchemaError {
-  let mut margins : @model.PageMargins = {
+  let mut margins = @model.PageMargins::{
     top: None,
     bottom: None,
     left: None,

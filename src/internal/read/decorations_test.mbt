@@ -66,7 +66,7 @@ test "a comparing validation comes back with its bounds and its messages" {
 test "a date validation's bounds come back as dates, not as serials" {
   let (wb, sheet) = fixture()
   sheet.set(at("A1"), Text("x"))
-  let start : @units.DateTime = {
+  let start = @units.DateTime::{
     year: 2026,
     month: 1,
     day: 1,

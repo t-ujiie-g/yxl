@@ -330,7 +330,7 @@ fn emit_cell(
       backend.set_cell_rich_text(
         sheet_name,
         reference,
-        runs.map(build_rich_run)[:],
+        runs.map(build_rich_run),
       )
     // The style below is the whole cell; the backend still stores it as empty
     // text (`docs/spec.md` §3).

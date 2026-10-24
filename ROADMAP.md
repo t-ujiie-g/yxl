@@ -2761,6 +2761,16 @@ replaces. yxl-vscode draws overrides the same way.
 
 Reverse-chronological. One entry per user-visible or structural change.
 
+- **2026-10-25** — **Toolchain catch-up: `mbtexcel@0.3.1`, and two current
+  idioms.** The backend moves to `0.3.1`, whose only source change saturates
+  file sizes past `Int32` in the reader's limit checks; it brings
+  `moonbitlang/x@0.5.6` and `moonbit-community/flate@0.10.0`, and `moon.mod`
+  pins those too. The October toolchain prints `Int` as `Int32` in `.mbti`, so
+  every generated interface is regenerated with no API change. Two of its
+  opt-in lints are applied: no `[:]` where the expected type is already a view,
+  and a `let` bound struct literal names its type (`let x = T::{ … }`) rather
+  than annotating the binding. No behaviour change (§8.8).
+
 - **2026-10-19** — **0.7.1.** A patch release for #137: an override's
   `style` or `format` keeps the column and row bands under it, as a `cells:`
   entry does. A style or format override on a banded cell builds a different

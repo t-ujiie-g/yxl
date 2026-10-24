@@ -13,7 +13,7 @@ test "sheet finds a declared sheet by name and misses an undeclared one" {
 
 ///|
 test "to_a1 writes a range as its unqualified corners" {
-  let range : @model.CellRange = {
+  let range = @model.CellRange::{
     top_left: @units.CellRef(col=1, row=1),
     bottom_right: @units.CellRef(col=4, row=10),
   }
@@ -275,7 +275,7 @@ test "merge canonicalizes its corners whichever pair is given" {
   let sheet = @model.Sheet("S")
   sheet.merge(@units.CellRef(col=3, row=3), @units.CellRef(col=1, row=1))
   sheet.merge(@units.CellRef(col=3, row=1), @units.CellRef(col=1, row=3))
-  let expected : @model.CellRange = {
+  let expected = @model.CellRange::{
     top_left: @units.CellRef(col=1, row=1),
     bottom_right: @units.CellRef(col=3, row=3),
   }

@@ -257,7 +257,7 @@ fn inner_edges_dropped(
       side
     }
   }
-  let kept : @model.Borders = {
+  let kept = @model.Borders::{
     left: edge(borders.left, left, BorderLeft),
     right: edge(borders.right, right, BorderRight),
     top: edge(borders.top, top, BorderTop),

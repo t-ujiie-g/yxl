@@ -15,7 +15,7 @@ fn apply_sparkline_group(
       None => cell.data.range.to_a1()
     }
   })
-  let options = @xlsx.SparklineOptions::new(locations[:], ranges[:])
+  let options = @xlsx.SparklineOptions::new(locations, ranges)
   options.set_type(
     match group.kind {
       Line => Line

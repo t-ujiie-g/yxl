@@ -112,15 +112,15 @@ test "bytes that are not a workbook fail as a diagnostic" {
 ///|
 test "extract parses its own command line" {
   assert_eq(
-    @cli.parse_args(["extract", "book.xlsx", "-o", "spec.yaml"][:]),
+    @cli.parse_args(["extract", "book.xlsx", "-o", "spec.yaml"]),
     Extract(input="book.xlsx", output="spec.yaml", flat=false),
   )
   assert_eq(
-    @cli.parse_args(["extract", "book.xlsx", "--output", "spec.yaml"][:]),
+    @cli.parse_args(["extract", "book.xlsx", "--output", "spec.yaml"]),
     Extract(input="book.xlsx", output="spec.yaml", flat=false),
   )
   assert_eq(
-    @cli.parse_args(["extract", "book.xlsx", "-o", "spec.yaml", "--flat"][:]),
+    @cli.parse_args(["extract", "book.xlsx", "-o", "spec.yaml", "--flat"]),
     Extract(input="book.xlsx", output="spec.yaml", flat=true),
   )
 }
@@ -138,7 +138,7 @@ test "extract refuses a command line that could not do anything useful" {
       ["extract", "book.xlsx", "--set", "a=b", "-o", "spec.yaml"],
     ] {
     let outcome = try {
-      @cli.parse_args(args[:]) |> ignore
+      @cli.parse_args(args) |> ignore
       None
     } catch {
       @diag.CliError(d) => Some(d.render())
@@ -437,7 +437,7 @@ test "a newer function is stored with _xlfn and extracted without it" {
     #|      - { at: C1:C2, formula: "MAXIFS(A1:A2,A1:A2,\">0\")" }
     #|
   let bytes = @cli.compile(source, file="in.yaml")
-  let reopened = @xlsx.read(bytes[:])
+  let reopened = @xlsx.read(bytes)
   assert_eq(
     reopened.get_cell_formula("S", "B1"),
     Some("_xlfn.XLOOKUP(1,A1:A2,A1:A2)"),
