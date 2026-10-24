@@ -13,7 +13,7 @@ priv struct XmlElement {
 /// The document's root element, or `None` if the text is not XML this reader
 /// can make sense of.
 fn parse_xml(source : String) -> XmlElement? {
-  let scanner : XmlScanner = {
+  let scanner = XmlScanner::{
     chars: source.iter().collect(),
     at: 0,
     scopes: [],

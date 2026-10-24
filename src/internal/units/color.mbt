@@ -9,7 +9,7 @@ pub struct Color(String) derive(Eq, Hash, Debug)
 /// (`AARRGGBB`) hex digits, case-insensitive. Returns `None` otherwise; the
 /// caller turns that into a domain diagnostic.
 pub fn Color::parse(text : String) -> Color? {
-  let body = if text.has_prefix("#") { text[1:] } else { text[:] }
+  let body = if text.has_prefix("#") { text[1:] } else { text }
   guard body.length() is (6 | 8) else { return None }
   let out = StringBuilder()
   for ch in body {

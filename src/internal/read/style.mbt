@@ -75,7 +75,7 @@ fn read_font(
   notes : Notes,
 ) -> @model.Font? {
   guard font is Some(font) else { return None }
-  let recovered : @model.Font = {
+  let recovered = @model.Font::{
     bold: font.bold,
     italic: font.italic,
     underline: read_underline(font.underline, notes),

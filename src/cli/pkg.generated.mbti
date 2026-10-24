@@ -16,11 +16,11 @@ pub fn directory_of(String) -> String?
 
 pub fn error_message(Error, source? : String) -> String
 
-pub let exit_error : Int
+pub let exit_error : Int32
 
-pub let exit_ok : Int
+pub let exit_ok : Int32
 
-pub let exit_usage : Int
+pub let exit_usage : Int32
 
 pub fn extract(Bytes, file~ : String, flat? : Bool) -> Extracted raise
 

@@ -7,7 +7,7 @@ fn read_page_setup(
   notes : Notes,
 ) -> Unit {
   guard backend.sheet(sheet.name) is Some(source) else { return }
-  let page : @model.PageSetup = {
+  let page = @model.PageSetup::{
     area: print_area(backend, sheet.name, notes),
     orientation: source.page_layout.bind(layout => orientation(layout, notes)),
     margins: source.page_margins.bind(margins => page_margins(margins, notes)),
@@ -135,7 +135,7 @@ fn page_margins(
   let unless = (value : Double?, default : Double) => {
     value.filter(v => v != default)
   }
-  let recovered : @model.PageMargins = {
+  let recovered = @model.PageMargins::{
     top: unless(margins.top, 0.75),
     bottom: unless(margins.bottom, 0.75),
     left: unless(margins.left, 0.7),

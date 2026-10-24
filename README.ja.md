@@ -132,8 +132,8 @@ yxl は [mooncakes](https://mooncakes.io/docs/t-ujiie-g/yxl) で公開してい�
 インストールせずに実行できます:
 
 ```bash
-moonx t-ujiie-g/yxl/cmd/main@0.7.1 build report.yxl.yaml
-moonx t-ujiie-g/yxl/cmd/main@0.7.1 extract existing.xlsx -o spec.yxl.yaml
+moonx t-ujiie-g/yxl/cmd/main@0.7.2 build report.yxl.yaml
+moonx t-ujiie-g/yxl/cmd/main@0.7.2 extract existing.xlsx -o spec.yxl.yaml
 ```
 
 コマンドもオプションも `yxl` と同じです。`moonx` は WebAssembly として実行し、

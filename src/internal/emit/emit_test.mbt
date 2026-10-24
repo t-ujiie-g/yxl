@@ -16,7 +16,7 @@ test "to_bytes round-trips a model through real .xlsx bytes" {
   assert_eq(bytes[0], b'P')
   assert_eq(bytes[1], b'K')
 
-  let reopened = @xlsx.read(bytes[:])
+  let reopened = @xlsx.read(bytes)
   assert_eq(reopened.get_cell("Sheet1", "A1"), Some("yxl"))
   assert_eq(reopened.get_cell("Sheet1", "B1"), Some("42"))
   // The backend reads a boolean cell back as "1"/"0".
@@ -32,7 +32,7 @@ test "a blank cell is written for its style alone" {
     ..@model.Style::empty(),
     fill: Some({ color: @units.Color::parse("FFFF0000").unwrap(), }),
   })
-  let reopened = @xlsx.read(@emit.to_bytes(wb)[:])
+  let reopened = @xlsx.read(@emit.to_bytes(wb))
   // The cell exists and wears the fill; the backend cannot yet leave it without
   // a value, so it holds the empty string (docs/spec.md §3).
   assert_true(reopened.get_cell_style("S", "B2") is Some(_))
@@ -79,14 +79,14 @@ test "every part of the package is deflated" {
     sheet.set(@units.CellRef(col=1, row~), Text("a repetitive value"))
   }
   let bytes = @emit.to_bytes(wb)
-  let archive = @zip.read(bytes[:])
+  let archive = @zip.read(bytes)
   assert_true(archive.entries().length() > 0)
   for entry in archive.entries() {
     assert_true(entry.compression() is Deflate)
   }
   // Reading the package back is what proves the compressed bytes are sound;
   // an inflater that disagreed with our deflater would show up here.
-  let reopened = @xlsx.read(bytes[:])
+  let reopened = @xlsx.read(bytes)
   assert_eq(reopened.get_cell("S", "A1"), Some("a repetitive value"))
 }
 
@@ -96,7 +96,7 @@ test "MbtexcelEmitter emits every sheet in order" {
   wb.add_sheet("First").set(@units.CellRef(col=1, row=1), Text("a"))
   wb.add_sheet("Second").set(@units.CellRef(col=1, row=1), Text("b"))
   let bytes = @emit.Emitter::emit(@emit.MbtexcelEmitter(), wb)
-  let reopened = @xlsx.read(bytes[:])
+  let reopened = @xlsx.read(bytes)
   assert_eq(reopened.get_cell("First", "A1"), Some("a"))
   assert_eq(reopened.get_cell("Second", "A1"), Some("b"))
   assert_eq(reopened.sheet_index("First"), 0)

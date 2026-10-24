@@ -226,7 +226,7 @@ fn load_layout(
   )
   let mut last_row = body_last
   if footer_node is Some(footer_node) {
-    let scope : FooterScope = {
+    let scope = FooterScope::{
       sheet,
       columns: placed,
       col_of,
@@ -313,7 +313,7 @@ fn write_layout_column(
   context~ : String,
 ) -> Unit raise @diag.SchemaError {
   let where_ = "\{context} column '\{column.name}'"
-  let body : @model.CellRange = {
+  let body = @model.CellRange::{
     top_left: @units.CellRef(col=column.col, row=body_first),
     bottom_right: @units.CellRef(col=column.col, row=body_last),
   }

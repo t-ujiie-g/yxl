@@ -74,7 +74,7 @@ fn verify(
     {
       name: path,
       source: match by_path.get(path) {
-        Some(content) => @utf8.decode_lossy(content[:])
+        Some(content) => @utf8.decode_lossy(content)
         None => ""
       },
     }

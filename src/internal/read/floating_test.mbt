@@ -522,7 +522,7 @@ test "a one-sheet workbook says nothing about a sparkline's sheet" {
 test "one styled line of shape text keeps its font" {
   let (wb, sheet) = fixture()
   sheet.set(at("A1"), Text("x"))
-  let line : @model.RichRun = {
+  let line = @model.RichRun::{
     text: "Approved",
     font: Some({
       name: None,

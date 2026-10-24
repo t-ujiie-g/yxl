@@ -13,7 +13,7 @@ pub let exit_usage : Int32 = 2
 ///|
 /// The version this binary reports. Kept in step with `moon.mod`'s `version`;
 /// CI fails the build if the two drift.
-pub let version : String = "0.7.1"
+pub let version : String = "0.7.2"
 
 ///|
 /// What the command line asked for. An `input` of `None` is the one spec in the

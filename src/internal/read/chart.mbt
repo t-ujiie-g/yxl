@@ -168,7 +168,7 @@ fn read_series(
         }
       None => None
     }
-    let entry : @model.ChartSeries = {
+    let entry = @model.ChartSeries::{
       values,
       categories,
       name: series_name(series, notes),

@@ -6,20 +6,20 @@ import {
 }
 
 // Values
-pub fn column_letters(Int) -> String
+pub fn column_letters(Int32) -> String
 
-pub fn parse_column(StringView) -> Int?
+pub fn parse_column(StringView) -> Int32?
 
-pub fn parse_uint(StringView) -> Int?
+pub fn parse_uint(StringView) -> Int32?
 
 // Errors
 
 // Types and methods
 pub struct CellRef {
-  col : Int
-  row : Int
+  col : Int32
+  row : Int32
 } derive(Eq, @debug.Debug)
-pub fn CellRef::CellRef(col~ : Int, row~ : Int) -> Self
+pub fn CellRef::CellRef(col~ : Int32, row~ : Int32) -> Self
 pub fn CellRef::parse_a1(String) -> Self?
 pub fn CellRef::rect(Self, Self) -> (Self, Self)
 pub fn CellRef::to_a1(Self) -> String
@@ -37,12 +37,12 @@ pub(all) enum DateSystem {
 } derive(Eq, @debug.Debug)
 
 pub(all) struct DateTime {
-  year : Int
-  month : Int
-  day : Int
-  hour : Int
-  minute : Int
-  second : Int
+  year : Int32
+  month : Int32
+  day : Int32
+  hour : Int32
+  minute : Int32
+  second : Int32
 } derive(Eq, @debug.Debug)
 pub fn DateTime::from_serial(Double, DateSystem) -> Self?
 pub fn DateTime::has_time(Self) -> Bool
@@ -50,9 +50,9 @@ pub fn DateTime::parse(String) -> Self?
 pub fn DateTime::to_serial(Self, DateSystem) -> Double
 
 pub(all) struct Duration {
-  hours : Int
-  minutes : Int
-  seconds : Int
+  hours : Int32
+  minutes : Int32
+  seconds : Int32
 } derive(Eq, @debug.Debug)
 pub fn Duration::parse(String) -> Self?
 pub fn Duration::to_serial(Self) -> Double

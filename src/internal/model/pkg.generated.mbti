@@ -25,31 +25,31 @@ pub let image_positionings : Array[(String, ImagePositioning)]
 
 pub let legend_positions : Array[(String, LegendPosition)]
 
-pub let max_defined_name_length : Int
+pub let max_defined_name_length : Int32
 
-pub let max_drawing_pixels : Int
+pub let max_drawing_pixels : Int32
 
-pub let max_form_control_value : Int
+pub let max_form_control_value : Int32
 
-pub let max_formula_range_cells : Int
+pub let max_formula_range_cells : Int32
 
 pub let max_image_scale : Double
 
-pub let max_outline_level : Int
+pub let max_outline_level : Int32
 
-pub let max_page_scale : Int
+pub let max_page_scale : Int32
 
-pub let max_rank_count : Int
+pub let max_rank_count : Int32
 
-pub let max_rank_percent : Int
+pub let max_rank_percent : Int32
 
-pub let max_validation_list_length : Int
+pub let max_validation_list_length : Int32
 
-pub let min_page_scale : Int
+pub let min_page_scale : Int32
 
 pub let pivot_functions : Array[(String, PivotFunction)]
 
-pub let pivot_style_families : Array[(String, Int)]
+pub let pivot_style_families : Array[(String, Int32)]
 
 pub let print_area_name : String
 
@@ -63,7 +63,7 @@ pub fn[T : Eq] spelling(Array[(String, T)], T) -> String
 
 pub fn split_sheet_prefix(String) -> (String?, String)?
 
-pub let table_style_families : Array[(String, Int)]
+pub let table_style_families : Array[(String, Int32)]
 
 pub fn to_file_formula(String) -> String
 
@@ -87,12 +87,12 @@ pub(all) struct AutoFilter {
 } derive(Eq, @debug.Debug)
 
 pub(all) struct AxisBand {
-  first : Int
-  last : Int
+  first : Int32
+  last : Int32
   style : Style?
   size : Double?
   hidden : Bool?
-  outline_level : Int?
+  outline_level : Int32?
 } derive(Eq, @debug.Debug)
 
 pub(all) struct Border {
@@ -208,8 +208,8 @@ pub(all) struct ChartSeries {
 } derive(Eq, @debug.Debug)
 
 pub(all) struct ChartSize {
-  width : Int
-  height : Int
+  width : Int32
+  height : Int32
 } derive(Eq, @debug.Debug)
 
 pub(all) struct Comment {
@@ -240,7 +240,7 @@ pub(all) enum ConditionalRule {
   CellIs(Comparison)
   Formula(String)
   Text(match_~ : TextMatch, value~ : String)
-  Rank(count~ : Int, bottom~ : Bool, percent~ : Bool)
+  Rank(count~ : Int32, bottom~ : Bool, percent~ : Bool)
   Duplicate
   Unique
   ColorScale(low~ : @units.Color, middle~ : @units.Color?, high~ : @units.Color)
@@ -278,7 +278,7 @@ pub(all) struct Fill {
 } derive(Eq, Hash, @debug.Debug)
 
 pub(all) struct FilterColumn {
-  column : Int
+  column : Int32
   criterion : FilterCriterion
 } derive(Eq, @debug.Debug)
 
@@ -305,13 +305,13 @@ pub(all) struct FormControl {
   text : String?
   checked : Bool?
   link : @units.CellRef?
-  width : Int?
-  height : Int?
-  min : Int?
-  max : Int?
-  step : Int?
-  page : Int?
-  value : Int?
+  width : Int32?
+  height : Int32?
+  min : Int32?
+  max : Int32?
+  step : Int32?
+  page : Int32?
+  value : Int32?
   horizontal : Bool?
 } derive(Eq, @debug.Debug)
 
@@ -347,8 +347,8 @@ pub(all) struct Image {
   alt_text : String?
   scale_x : Double
   scale_y : Double
-  offset_x : Int
-  offset_y : Int
+  offset_x : Int32
+  offset_y : Int32
   positioning : ImagePositioning
 } derive(Eq, @debug.Debug)
 
@@ -401,8 +401,8 @@ pub(all) struct PageMargins {
 } derive(Eq, @debug.Debug)
 
 pub(all) enum PageScale {
-  Percent(Int)
-  Fit(width~ : Int, height~ : Int)
+  Percent(Int32)
+  Fit(width~ : Int32, height~ : Int32)
 } derive(Eq, @debug.Debug)
 
 pub(all) struct PageSetup {
@@ -480,8 +480,8 @@ pub(all) struct Shape {
   at : @units.CellRef
   preset : String
   text : ShapeText?
-  width : Int?
-  height : Int?
+  width : Int32?
+  height : Int32?
   fill : @units.Color?
   line_color : @units.Color?
   line_width : Double?
@@ -531,7 +531,7 @@ pub fn Sheet::add_formula(Self, FormulaRange) -> Unit
 pub fn Sheet::add_image(Self, Image) -> Unit
 pub fn Sheet::add_link(Self, @units.CellRef, LinkTarget, tip? : String) -> Unit
 pub fn Sheet::add_pivot(Self, Pivot) -> Unit
-pub fn Sheet::add_row_break(Self, Int) -> Unit
+pub fn Sheet::add_row_break(Self, Int32) -> Unit
 pub fn Sheet::add_shape(Self, Shape) -> Unit
 pub fn Sheet::add_slicer(Self, Slicer) -> Unit
 pub fn Sheet::add_sparkline_group(Self, SparklineGroup) -> Unit
@@ -541,13 +541,13 @@ pub fn Sheet::band_style_at(Self, @units.CellRef) -> Style?
 pub fn Sheet::merge(Self, @units.CellRef, @units.CellRef) -> Unit
 pub fn Sheet::set(Self, @units.CellRef, CellValue, format? : String, style? : Style) -> Unit
 pub fn Sheet::set_background(Self, SheetBackground) -> Unit
-pub fn Sheet::set_column_band(Self, first~ : Int, last~ : Int, style? : Style, width? : Double, hidden? : Bool, outline_level? : Int) -> Unit
+pub fn Sheet::set_column_band(Self, first~ : Int32, last~ : Int32, style? : Style, width? : Double, hidden? : Bool, outline_level? : Int32) -> Unit
 pub fn Sheet::set_filter(Self, CellRange, columns? : Array[FilterColumn]) -> Unit
 pub fn Sheet::set_gridlines(Self, Bool) -> Unit
 pub fn Sheet::set_page_setup(Self, PageSetup) -> Unit
 pub fn Sheet::set_panes(Self, Panes) -> Unit
 pub fn Sheet::set_protection(Self, SheetProtection) -> Unit
-pub fn Sheet::set_row_band(Self, first~ : Int, last~ : Int, style? : Style, height? : Double, hidden? : Bool, outline_level? : Int) -> Unit
+pub fn Sheet::set_row_band(Self, first~ : Int32, last~ : Int32, style? : Style, height? : Double, hidden? : Bool, outline_level? : Int32) -> Unit
 pub fn Sheet::set_tab_color(Self, @units.Color) -> Unit
 
 pub(all) struct SheetBackground {
@@ -591,8 +591,8 @@ pub(all) struct Slicer {
   table : String
   column : String
   caption : String?
-  width : Int?
-  height : Int?
+  width : Int32?
+  height : Int32?
   header : Bool?
 } derive(Eq, @debug.Debug)
 
@@ -607,8 +607,8 @@ pub(all) struct SparklineGroup {
   markers : Bool
   high : Bool
   low : Bool
-  min : Int?
-  max : Int?
+  min : Int32?
+  max : Int32?
   weight : Double?
   color : @units.Color?
   markers_color : @units.Color?
@@ -663,7 +663,7 @@ pub(all) enum StyleAttr {
   ProtectionHidden
 } derive(Eq, Hash, @debug.Debug)
 
-pub struct StyleAttrs(UInt) derive(Eq, Hash, @debug.Debug)
+pub struct StyleAttrs(UInt32) derive(Eq, Hash, @debug.Debug)
 pub fn StyleAttrs::adding(Self, StyleAttr) -> Self
 pub fn StyleAttrs::except(Self, Self) -> Self
 pub fn StyleAttrs::has(Self, StyleAttr) -> Bool
@@ -690,8 +690,8 @@ pub(all) enum TextMatch {
 } derive(Eq, @debug.Debug)
 
 pub(all) struct TitleRows {
-  first : Int
-  last : Int
+  first : Int32
+  last : Int32
 } derive(Eq, @debug.Debug)
 
 pub(all) enum VAlign {
