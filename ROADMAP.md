@@ -2761,6 +2761,12 @@ replaces. yxl-vscode draws overrides the same way.
 
 Reverse-chronological. One entry per user-visible or structural change.
 
+- **2026-10-25** — **0.7.2.** A patch release carrying the toolchain catch-up
+  below: the backend is `mbtexcel@0.3.1`. A spec builds the same workbook as
+  in 0.7.1. The version moves to `0.7.2` in `moon.mod` and in `yxl version`,
+  and the READMEs' `moonx …@<version>` lines follow, ready for the `v0.7.2`
+  tag and its mooncakes publish (ADR-027).
+
 - **2026-10-25** — **Toolchain catch-up: `mbtexcel@0.3.1`, and two current
   idioms.** The backend moves to `0.3.1`, whose only source change saturates
   file sizes past `Int32` in the reader's limit checks; it brings
