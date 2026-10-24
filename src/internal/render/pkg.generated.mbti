@@ -11,9 +11,9 @@ import {
 // Values
 pub fn data_tables(@model.Workbook) -> Array[DataTable]
 
-pub let min_csv_columns : Int
+pub let min_csv_columns : Int32
 
-pub let min_csv_rows : Int
+pub let min_csv_rows : Int32
 
 pub fn pictures(@model.Workbook) -> Array[Picture]
 

@@ -42,10 +42,10 @@ pub fn Diagnostic::render(Self) -> String
 pub fn Diagnostic::render_in(Self, String) -> String
 
 pub struct Pos {
-  line : Int
-  col : Int
+  line : Int32
+  col : Int32
 } derive(Eq, @debug.Debug)
-pub fn Pos::Pos(Int, Int) -> Self
+pub fn Pos::Pos(Int32, Int32) -> Self
 
 pub struct Span {
   file : String
