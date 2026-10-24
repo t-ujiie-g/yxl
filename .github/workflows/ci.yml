@@ -75,7 +75,7 @@ jobs:
       # every corpus otherwise. Linux alone: the bytes do not differ by runner.
       - name: Install Python (for the schema generator)
         if: runner.os == 'Linux'
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: '3.12'
 
