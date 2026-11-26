@@ -180,7 +180,7 @@ fn slicer_caches(backend : @xlsx.Workbook) -> @set.Set[String] {
     }
     for slicer in slicers {
       if !slicer.cache.is_empty() {
-        caches.add(slicer.cache)
+        caches.insert(slicer.cache)
       }
     }
   }

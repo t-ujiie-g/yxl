@@ -1,6 +1,7 @@
 ///|
 /// One leaf of a style — every attribute a spec can set, at the granularity
 /// layering works on (`docs/spec.md` §6).
+#derive(Eq, Hash, Debug)
 pub(all) enum StyleAttr {
   Fill
   NumberFormat
@@ -20,13 +21,14 @@ pub(all) enum StyleAttr {
   BorderBottom
   ProtectionLocked
   ProtectionHidden
-} derive(Eq, Hash, Debug)
+}
 
 ///|
 /// A set of style attributes, as a bitmask. A bitmask rather than a collection
 /// so a `Style` carrying one still compares and hashes structurally, which is
 /// what lets the emitter intern styles (ADR-004).
-pub struct StyleAttrs(UInt32) derive(Eq, Hash, Debug)
+#derive(Eq, Hash, Debug)
+pub struct StyleAttrs(UInt32)
 
 ///|
 fn StyleAttr::bit(self : StyleAttr) -> UInt32 {

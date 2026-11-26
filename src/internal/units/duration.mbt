@@ -1,11 +1,12 @@
 ///|
 /// An elapsed time: `26:30:00` is twenty-six and a half hours, not a time of
 /// day. Excel stores it as a fraction of a day under a format like `[h]:mm:ss`.
+#derive(Eq, Debug)
 pub(all) struct Duration {
   hours : Int32
   minutes : Int32
   seconds : Int32
-} derive(Eq, Debug)
+}
 
 ///|
 /// Parse `H:MM` or `H:MM:SS`, hours unbounded, minutes and seconds 0–59. No

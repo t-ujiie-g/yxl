@@ -8,50 +8,59 @@ import {
 // Values
 
 // Errors
+#derive(Eq, @debug.Debug)
 pub(all) suberror CliError {
   CliError(Diagnostic)
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, @debug.Debug)
 pub(all) suberror EmitError {
   EmitError(Diagnostic)
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, @debug.Debug)
 pub(all) suberror ReadError {
   ReadError(Diagnostic)
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, @debug.Debug)
 pub(all) suberror ResolveError {
   ResolveError(Diagnostic)
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, @debug.Debug)
 pub(all) suberror SchemaError {
   SchemaError(Diagnostic)
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, @debug.Debug)
 pub(all) suberror YamlError {
   YamlError(Diagnostic)
-} derive(Eq, @debug.Debug)
+}
 
 // Types and methods
+#derive(Eq, @debug.Debug)
 pub struct Diagnostic {
   message : String
   span : Span?
-} derive(Eq, @debug.Debug)
+}
 pub fn Diagnostic::Diagnostic(String, span? : Span) -> Self
 pub fn Diagnostic::render(Self) -> String
 pub fn Diagnostic::render_in(Self, String) -> String
 
+#derive(Eq, @debug.Debug)
 pub struct Pos {
   line : Int32
   col : Int32
-} derive(Eq, @debug.Debug)
+}
 pub fn Pos::Pos(Int32, Int32) -> Self
 
+#derive(Eq, @debug.Debug)
 pub struct Span {
   file : String
   start : Pos
   end : Pos
-} derive(Eq, @debug.Debug)
+}
 pub fn Span::Span(String, Pos, Pos) -> Self
 pub fn Span::point(String, Pos) -> Self
 pub fn Span::render(Self) -> String

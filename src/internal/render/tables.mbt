@@ -54,7 +54,7 @@ fn literal_region(sheet : @model.Sheet) -> @model.CellRange? {
   let filled : @set.Set[String] = Set([])
   for cell in sheet.cells {
     guard is_literal(cell) else { return None }
-    filled.add(cell.pos.to_a1())
+    filled.insert(cell.pos.to_a1())
   }
   // Every cell the sheet has must lie inside the rectangle, and the rectangle
   // must be full: a ragged region would need blank fields the CSV cannot tell
@@ -116,7 +116,7 @@ fn region_table(
   let covered : @set.Set[String] = Set([])
   for cell in sheet.cells {
     values[cell.pos.to_a1()] = cell.value
-    covered.add(cell.pos.to_a1())
+    covered.insert(cell.pos.to_a1())
   }
   let out = StringBuilder()
   for row in region.top_left.row..<=region.bottom_right.row {

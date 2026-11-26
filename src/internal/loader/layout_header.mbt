@@ -100,10 +100,11 @@ fn load_layout_header(
 ///|
 /// One header cell as written: its value and its own style. `None` in a level
 /// list is a `null`, a cell deliberately left blank.
+#derive(Eq)
 priv struct HeaderCell {
   value : @model.CellValue
   style : @model.Style?
-} derive(Eq)
+}
 
 ///|
 /// A column's `header:` as its levels, top first: a single cell is one level, a

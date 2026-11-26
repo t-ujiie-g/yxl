@@ -156,7 +156,7 @@ fn emit_sheet(
   for band in sheet.columns {
     let style_id = band_style_id(backend, style_ids, band)
     for col in band.first..<=band.last {
-      unsized.add(col)
+      unsized.insert(col)
       if style_id is Some(id) {
         backend.set_col_style(sheet.name, col, id)
       }

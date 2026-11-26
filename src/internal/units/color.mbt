@@ -2,7 +2,8 @@
 /// An RGB(A) colour as canonical uppercase hex, `RRGGBB` or `AARRGGBB`. Writers
 /// ask for `argb` (SpreadsheetML) or `rgb` (DrawingML) by name, since the wrong
 /// width is invalid; `hex` is for people.
-pub struct Color(String) derive(Eq, Hash, Debug)
+#derive(Eq, Hash, Debug)
+pub struct Color(String)
 
 ///|
 /// Parse a hex color: an optional leading `#`, then exactly 6 (`RRGGBB`) or 8

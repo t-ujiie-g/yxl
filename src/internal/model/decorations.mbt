@@ -1,10 +1,11 @@
 ///|
 /// A range that may name another sheet (`Lists!A1:A9`), as a validation list
 /// sourced from a lookup sheet does. `sheet` is `None` for the writing sheet.
+#derive(Eq, Debug)
 pub(all) struct SheetRange {
   sheet : String?
   range : CellRange
-} derive(Eq, Debug)
+}
 
 ///|
 /// Split `Sheet!A1:B9` on Excel's quoting rules, where `''` inside `'...'` is
@@ -50,36 +51,40 @@ pub fn split_sheet_prefix(text : String) -> (String?, String)? {
 ///|
 /// What a data validation accepts. Excel calls this the "Allow" setting. A
 /// `List`'s choices are offered in the order given.
+#derive(Eq, Debug)
 pub(all) enum ValidationRule {
   List(Array[String])
   ListFrom(SheetRange)
   Compare(kind~ : ValidationKind, check~ : Comparison)
-} derive(Eq, Debug)
+}
 
 ///|
 /// The kind of value a comparing validation measures: a whole number, any
 /// number, the *length* of the text, or a date (ECMA-376 §18.18.20,
 /// `ST_DataValidationType`).
+#derive(Eq, Debug)
 pub(all) enum ValidationKind {
   Whole
   Decimal
   TextLength
   DateValue
-} derive(Eq, Debug)
+}
 
 ///|
 /// One endpoint of a comparison. A date stays a `DateTime` because its serial
 /// depends on the workbook's epoch, which only the emitter knows.
+#derive(Eq, Debug)
 pub(all) enum Bound {
   Number(Double)
   Date(@units.DateTime)
   Text(String)
-} derive(Eq, Debug)
+}
 
 ///|
 /// The test a value must pass (ECMA-376 §18.18.15, `ST_DataValidationOperator`;
 /// the same eight serve a conditional format's `cellIs` rule). The two-endpoint
 /// forms take their bounds in the order written.
+#derive(Eq, Debug)
 pub(all) enum Comparison {
   Between(Bound, Bound)
   NotBetween(Bound, Bound)
@@ -89,44 +94,48 @@ pub(all) enum Comparison {
   AtMost(Bound)
   GreaterThan(Bound)
   LessThan(Bound)
-} derive(Eq, Debug)
+}
 
 ///|
 /// The pop-up Excel shows when the cell is selected: a title and a body.
+#derive(Eq, Debug)
 pub(all) struct ValidationPrompt {
   title : String
   body : String
-} derive(Eq, Debug)
+}
 
 ///|
 /// What Excel does about a value the rule rejects: which dialog to show, and
 /// what it says. Without one, Excel accepts the value silently.
+#derive(Eq, Debug)
 pub(all) struct ValidationError {
   title : String
   body : String
   style : ValidationErrorStyle
-} derive(Eq, Debug)
+}
 
 ///|
 /// How hard Excel pushes back on a rejected value (ECMA-376 §18.18.18): `Stop`
 /// refuses it, `Warning` and `Information` let the user keep it.
+#derive(Eq, Debug)
 pub(all) enum ValidationErrorStyle {
   Stop
   Warning
   Information
-} derive(Eq, Debug)
+}
 
 ///|
 /// A data validation over a range: what it accepts, whether an empty cell is
 /// allowed (Excel's "Ignore blank"), and the messages shown on selection and on
 /// rejection.
+#derive(Eq, Debug)
 pub(all) struct Validation {
   at : CellRange
   rule : ValidationRule
   allow_blank : Bool
   prompt : ValidationPrompt?
   error : ValidationError?
-} derive(Eq, Debug)
+}
 
 ///|
 /// Excel's limit on a validation formula, which for an inline drop-down is the
@@ -138,6 +147,7 @@ pub let max_validation_list_length : Int32 = 255
 /// How a conditional format picks its cells (ECMA-376 §18.18.12). The last
 /// three draw their own appearance and take no style; a `Formula` is relative
 /// to the range's top-left.
+#derive(Eq, Debug)
 pub(all) enum ConditionalRule {
   /// The cell's value against a bound: `cellIs`.
   CellIs(Comparison)
@@ -157,16 +167,17 @@ pub(all) enum ConditionalRule {
   DataBar(color~ : @units.Color, bar_only~ : Bool)
   /// An icon per cell, chosen by which band its value falls in: `iconSet`.
   IconSet(style~ : String, reverse~ : Bool, icons_only~ : Bool)
-} derive(Eq, Debug)
+}
 
 ///|
 /// Which part of the cell's text a `Text` rule looks at.
+#derive(Eq, Debug)
 pub(all) enum TextMatch {
   Contains
   NotContains
   BeginsWith
   EndsWith
-} derive(Eq, Debug)
+}
 
 ///|
 /// The seventeen icon sets the base `ST_IconSetType` admits (ECMA-376
@@ -195,61 +206,68 @@ pub let max_rank_percent : Int32 = 100
 ///|
 /// A conditional format over a range. Its `style` goes to `dxfs` and overrides
 /// only what it sets; `stop_if_true` skips later rules on a matched cell.
+#derive(Eq, Debug)
 pub(all) struct ConditionalFormat {
   at : CellRange
   rule : ConditionalRule
   style : Style?
   stop_if_true : Bool
-} derive(Eq, Debug)
+}
 
 ///|
 /// Where a hyperlink goes. A `Location` stays text because Excel accepts a
 /// defined name there as readily as `Summary!A1`.
+#derive(Eq, Debug)
 pub(all) enum LinkTarget {
   /// Somewhere outside the workbook — a URL, or a `mailto:`/`file:` target.
   Url(String)
   /// Somewhere inside the workbook: `Summary!A1`, or a defined name.
   Location(String)
-} derive(Eq, Debug)
+}
 
 ///|
 /// A note on a cell (formerly a comment). An author is always written, so
 /// `None` leaves the backend's default rather than omitting it.
+#derive(Eq, Debug)
 pub(all) struct Comment {
   at : @units.CellRef
   text : String
   author : String?
-} derive(Eq, Debug)
+}
 
 ///|
 /// A hyperlink on one cell, with an optional hover tooltip. Excel shows the
 /// cell's own value, so a linked cell is normally written in `cells:` too.
+#derive(Eq, Debug)
 pub(all) struct Link {
   at : @units.CellRef
   target : LinkTarget
   tip : String?
-} derive(Eq, Debug)
+}
 
 ///|
 /// A sheet's auto filter: the range whose top row carries the dropdowns, and
 /// the criteria saved on its columns, at most one per column.
+#derive(Eq, Debug)
 pub(all) struct AutoFilter {
   at : CellRange
   columns : Array[FilterColumn]
-} derive(Eq, Debug)
+}
 
 ///|
 /// The criterion saved on one filter column; `column` is the sheet's 1-based
 /// column, inside the filter's range.
+#derive(Eq, Debug)
 pub(all) struct FilterColumn {
   column : Int32
   criterion : FilterCriterion
-} derive(Eq, Debug)
+}
 
 ///|
 /// What a filter column keeps: Excel's checkbox list of displayed values, or
 /// one comparison ("Custom Filter").
+#derive(Eq, Debug)
 pub(all) enum FilterCriterion {
   Values(Array[String])
   Compare(Comparison)
-} derive(Eq, Debug)
+}

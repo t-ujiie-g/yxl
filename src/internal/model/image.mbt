@@ -1,6 +1,7 @@
 ///|
 /// A picture floating over `at`; offsets are pixels, scales relative to natural
 /// size. Excel decodes by `format`, a lower-case extension without the dot.
+#derive(Eq, Debug)
 pub(all) struct Image {
   at : @units.CellRef
   data : Bytes
@@ -11,11 +12,12 @@ pub(all) struct Image {
   offset_x : Int32
   offset_y : Int32
   positioning : ImagePositioning
-} derive(Eq, Debug)
+}
 
 ///|
 /// What Excel does with an image when the cells beneath it change, spelled as
 /// its "Size and Properties" pane spells it.
+#derive(Eq, Debug)
 pub(all) enum ImagePositioning {
   /// "Move but don't size with cells" — Excel's default for a pasted image.
   Move
@@ -23,7 +25,7 @@ pub(all) enum ImagePositioning {
   MoveAndSize
   /// "Don't move or size with cells".
   Fixed
-} derive(Eq, Debug)
+}
 
 ///|
 /// The image formats Excel stores, by extension, so an unsupported file is a
@@ -37,10 +39,11 @@ pub let image_formats : Array[String] = [
 ///|
 /// A sheet's background, tiled behind the cells and never printed; `format` as
 /// for `Image`.
+#derive(Eq, Debug)
 pub(all) struct SheetBackground {
   data : Bytes
   format : String
-} derive(Eq, Debug)
+}
 
 ///|
 /// Tile an image behind the sheet's cells.

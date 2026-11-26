@@ -46,7 +46,7 @@ fn StyleNames::of(wb : @model.Workbook) -> StyleNames {
     if style is Some(style) &&
       counts.get(style).unwrap_or(0) >= SHARED_AT_LEAST &&
       !seen.contains(style) {
-      seen.add(style)
+      seen.insert(style)
       ordered.push(style)
     }
   }
@@ -70,7 +70,7 @@ fn StyleNames::of(wb : @model.Workbook) -> StyleNames {
   let by_style : Map[@model.Style, String] = Map([])
   for style in ordered {
     let name = unique(describe(style), taken)
-    taken.add(name)
+    taken.insert(name)
     declared.push((name, style))
     by_style[style] = name
   }
@@ -223,7 +223,7 @@ fn group_node(
   let entries = []
   let written : @set.Set[String] = Set([])
   for entry in set {
-    written.add(entry.0)
+    written.insert(entry.0)
     entries.push(entry)
   }
   for key in keys {

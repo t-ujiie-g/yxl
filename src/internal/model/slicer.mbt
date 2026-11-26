@@ -2,6 +2,7 @@
 /// A slicer over a declared table, found by name in the workbook-wide table
 /// namespace; `column` is one of its headers. `None` keeps Excel's or the
 /// backend's default.
+#derive(Eq, Debug)
 pub(all) struct Slicer {
   at : @units.CellRef
   table : String
@@ -10,7 +11,7 @@ pub(all) struct Slicer {
   width : Int32?
   height : Int32?
   header : Bool?
-} derive(Eq, Debug)
+}
 
 ///|
 /// Place a slicer on the sheet.

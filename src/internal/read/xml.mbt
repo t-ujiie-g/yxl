@@ -336,7 +336,7 @@ fn character_reference(body : String) -> Char? {
     (body[1:], 10)
   }
   guard !digits.is_empty() else { return None }
-  let code = @string.parse_int(digits.to_owned(), base~) catch {
+  let code = @string.parse_int(digits.to_owned(), radix=base) catch {
     _ => return None
   }
   guard code > 0 && code <= 0x10FFFF else { return None }

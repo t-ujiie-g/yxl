@@ -2,6 +2,7 @@
 /// A calendar date, optionally with a time of day (all-zero time = a plain
 /// date). Kept as civil components, not a serial number, so the model stays
 /// independent of the workbook's date system; `to_serial` renders it.
+#derive(Eq, Debug)
 pub(all) struct DateTime {
   year : Int32
   month : Int32
@@ -9,16 +10,17 @@ pub(all) struct DateTime {
   hour : Int32
   minute : Int32
   second : Int32
-} derive(Eq, Debug)
+}
 
 ///|
 /// Excel's two epochs. The 1900 system (the default) numbers 1900-01-01 as 1
 /// and carries Excel's historical bug of treating 1900 as a leap year; the 1904
 /// system numbers 1904-01-01 as 0.
+#derive(Eq, Debug)
 pub(all) enum DateSystem {
   Date1900
   Date1904
-} derive(Eq, Debug)
+}
 
 ///|
 /// Whether a time of day is present (any of hour/minute/second is non-zero) —
@@ -132,29 +134,50 @@ pub fn DateTime::from_serial(serial : Double, system : DateSystem) -> DateTime? 
 
 ///|
 /// The civil date a day count stands for — the inverse of `days_from_civil`,
-/// and the same algorithm run backwards.
-fn civil_from_days(days : Int32) -> (Int32, Int32, Int32) {
-  let days = days + 719468
-  let era = (if days >= 0 { days } else { days - 146096 }) / 146097
-  let day_of_era = days - era * 146097
+/// which `moon prove` checks over the range a serial can reach (ADR-033).
+fn civil_from_days(
+  days : Int32,
+) -> (Int32, Int32, Int32) where {
+  proof_require: -719468 <= days && days <= 3000000,
+  proof_ensure: result => civil_of_days(result, days),
+} {
+  let shifted = days + 719468
+  let era = (if shifted >= 0 { shifted } else { shifted - 146096 }) / 146097
+  let day_of_era = shifted - era * 146097
+  proof_assert 0 <= day_of_era && day_of_era <= 146096
   let year_of_era = (
       day_of_era - day_of_era / 1460 + day_of_era / 36524 - day_of_era / 146096
     ) /
     365
+  proof_assert 0 <= year_of_era && year_of_era <= 399
   let year = year_of_era + era * 400
   let day_of_year = day_of_era -
     (365 * year_of_era + year_of_era / 4 - year_of_era / 100)
+  proof_assert 0 <= day_of_year && day_of_year <= 365
   let month_prime = (5 * day_of_year + 2) / 153
+  proof_assert 0 <= month_prime && month_prime <= 11
   let day = day_of_year - (153 * month_prime + 2) / 5 + 1
+  proof_assert 1 <= day && day <= 31
   let month = if month_prime < 10 { month_prime + 3 } else { month_prime - 9 }
-  (if month <= 2 { year + 1 } else { year }, month, day)
+  let civil_year = if month <= 2 { year + 1 } else { year }
+  proof_assert march_year(civil_year, month) == year
+  proof_assert era_of(year) == era
+  proof_assert day_of_march_year(month, day) == day_of_year
+  proof_assert day_number(civil_year, month, day) == days
+  (civil_year, month, day)
 }
 
 ///|
 /// Days since 1970-01-01 in the proleptic Gregorian calendar (Howard Hinnant's
 /// algorithm). Only *differences* are used here, so the choice of epoch
 /// cancels.
-fn days_from_civil(year : Int32, month : Int32, day : Int32) -> Int32 {
+fn days_from_civil(
+  year : Int32,
+  month : Int32,
+  day : Int32,
+) -> Int32 where {
+  proof_ensure: result => result == day_number(year, month, day),
+} {
   let year = if month <= 2 { year - 1 } else { year }
   let era = (if year >= 0 { year } else { year - 399 }) / 400
   let year_of_era = year - era * 400

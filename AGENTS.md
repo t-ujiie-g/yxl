@@ -119,6 +119,7 @@ moon test               # run tests
 moon fmt                # format
 moon info               # regenerate .mbti
 moon build --target native   # the CLI must build native (ADR-003)
+moon prove              # discharge the contracts (ADR-033); needs `z3` on PATH
 ```
 A `.mbti` diff means the public API surface changed — review it and reflect it
 in `ROADMAP.md` if it affects a roadmap item.
@@ -144,6 +145,8 @@ teach it the shape in `tools/spec-schema/generate.py` and commit both files.
 | Update snapshots | `moon test --update` |
 | Format | `moon fmt` |
 | Regenerate `.mbti` | `moon info` |
+| Prove the contracts | `moon prove` (one package: `moon prove src/internal/units`) |
+| Apply compiler-suggested fixes | `moon fix` (`--diff` to preview) |
 | Benchmark the pipeline | `moon bench src/cli` |
 | Coverage | `moon test --enable-coverage && moon coverage report` |
 | Add dependency | `moon add <user>/<module>` |
@@ -164,6 +167,11 @@ teach it the shape in `tools/spec-schema/generate.py` and commit both files.
   over snapshots for stable results. For structured debug output, derive `Debug`
   and use `debug_inspect` rather than deriving `Show`. `moon test --update`
   refreshes snapshots when outputs legitimately change.
+- **A contract is not a test and does not replace one at a seam the prover
+  cannot cross.** `moon prove` covers integer code only (ADR-033): logic-side
+  definitions go in `*.mbtp`, and a contracted function's callers in `String`
+  or `Double` code still need their tests. After touching a contract, break
+  the code on purpose once and watch the proof fail.
 - A test that only re-runs the type checker (`let _ = …`) duplicates
   `moon check` — delete it.
 - Keep example specs runnable: `examples/*.yxl.yaml` should compile in an
@@ -299,6 +307,7 @@ moon test
 moon fmt
 moon info                    # commit any .mbti diffs alongside code
 moon build --target native   # the CLI still builds
+moon prove                   # the contracts still hold (ADR-033)
 ```
 Push only when all are clean.
 
@@ -306,10 +315,12 @@ Push only when all are clean.
 The toolchain evolves fast; stale idioms accrue debt (ADR-007). During any
 refactor, also:
 - **Clear deprecation warnings.** Anything the compiler flags deprecated gets
-  migrated to the current construct; don't suppress it. Keep migrated-away
+  migrated to the current construct; don't suppress it. `moon fix` applies the
+  fixes the compiler proposes and `moon fmt` migrates deprecated syntax — run
+  both before editing by hand. Keep migrated-away
   blocks in `deprecated.mbt` only while callers still need them.
 - **A new derived type needs an `extends.mbt` entry.** Trait-method promotion
-  is declined per type, per trait (ADR-022), so `derive(Eq, Debug)` on a public
+  is declined per type, per trait (ADR-022), so `#derive(Eq, Debug)` on a public
   type warns until the package's `extends.mbt` says so. Copy a neighbouring
   entry; the compiler names the trait and the methods.
 - **Verify against ground truth, not memory.** Use `moon ide doc`, the

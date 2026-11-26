@@ -15,27 +15,31 @@ pub fn parse_uint(StringView) -> Int32?
 // Errors
 
 // Types and methods
+#derive(Eq, @debug.Debug)
 pub struct CellRef {
   col : Int32
   row : Int32
-} derive(Eq, @debug.Debug)
+}
 pub fn CellRef::CellRef(col~ : Int32, row~ : Int32) -> Self
 pub fn CellRef::parse_a1(String) -> Self?
 pub fn CellRef::rect(Self, Self) -> (Self, Self)
 pub fn CellRef::to_a1(Self) -> String
 pub fn CellRef::to_absolute_a1(Self) -> String
 
-pub struct Color(String) derive(Eq, Hash, @debug.Debug)
+#derive(Eq, Hash, @debug.Debug)
+pub struct Color(String)
 pub fn Color::argb(Self) -> String
 pub fn Color::hex(Self) -> String
 pub fn Color::parse(String) -> Self?
 pub fn Color::rgb(Self) -> String
 
+#derive(Eq, @debug.Debug)
 pub(all) enum DateSystem {
   Date1900
   Date1904
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, @debug.Debug)
 pub(all) struct DateTime {
   year : Int32
   month : Int32
@@ -43,17 +47,18 @@ pub(all) struct DateTime {
   hour : Int32
   minute : Int32
   second : Int32
-} derive(Eq, @debug.Debug)
+}
 pub fn DateTime::from_serial(Double, DateSystem) -> Self?
 pub fn DateTime::has_time(Self) -> Bool
 pub fn DateTime::parse(String) -> Self?
 pub fn DateTime::to_serial(Self, DateSystem) -> Double
 
+#derive(Eq, @debug.Debug)
 pub(all) struct Duration {
   hours : Int32
   minutes : Int32
   seconds : Int32
-} derive(Eq, @debug.Debug)
+}
 pub fn Duration::parse(String) -> Self?
 pub fn Duration::to_serial(Self) -> Double
 

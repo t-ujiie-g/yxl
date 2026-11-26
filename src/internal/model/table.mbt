@@ -1,6 +1,7 @@
 ///|
 /// A table over a range whose top row is the header, so at least two rows.
 /// `None` keeps Excel's `TableN` name and the backend's `TableStyleMedium9`.
+#derive(Eq, Debug)
 pub(all) struct Table {
   at : CellRange
   name : String?
@@ -9,7 +10,7 @@ pub(all) struct Table {
   banded_columns : Bool
   first_column : Bool
   last_column : Bool
-} derive(Eq, Debug)
+}
 
 ///|
 /// Excel's built-in table styles as (family, count). Anything else is refused,

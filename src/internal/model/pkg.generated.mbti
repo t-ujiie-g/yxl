@@ -74,18 +74,21 @@ pub let vertical_alignments : Array[(String, VAlign)]
 // Errors
 
 // Types and methods
+#derive(Eq, Hash, @debug.Debug)
 pub(all) struct Alignment {
   horizontal : HAlign?
   vertical : VAlign?
   wrap : Bool?
-} derive(Eq, Hash, @debug.Debug)
+}
 pub fn Alignment::empty() -> Self
 
+#derive(Eq, @debug.Debug)
 pub(all) struct AutoFilter {
   at : CellRange
   columns : Array[FilterColumn]
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, @debug.Debug)
 pub(all) struct AxisBand {
   first : Int32
   last : Int32
@@ -93,13 +96,15 @@ pub(all) struct AxisBand {
   size : Double?
   hidden : Bool?
   outline_level : Int32?
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, Hash, @debug.Debug)
 pub(all) struct Border {
   style : BorderStyle
   color : @units.Color?
-} derive(Eq, Hash, @debug.Debug)
+}
 
+#derive(Eq, Hash, @debug.Debug)
 pub(all) enum BorderStyle {
   Thin
   Medium
@@ -108,54 +113,62 @@ pub(all) enum BorderStyle {
   Dotted
   Double
   Hair
-} derive(Eq, Hash, @debug.Debug)
+}
 
+#derive(Eq, Hash, @debug.Debug)
 pub(all) struct Borders {
   left : Border?
   right : Border?
   top : Border?
   bottom : Border?
-} derive(Eq, Hash, @debug.Debug)
+}
 pub fn Borders::empty() -> Self
 
+#derive(Eq, @debug.Debug)
 pub(all) enum Bound {
   Number(Double)
   Date(@units.DateTime)
   Text(String)
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, @debug.Debug)
 pub(all) enum CalcMode {
   Automatic
   AutomaticNoTables
   Manual
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, @debug.Debug)
 pub(all) struct CalcSettings {
   mode : CalcMode?
   on_load : Bool?
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, @debug.Debug)
 pub(all) struct Cell {
   pos : @units.CellRef
   value : CellValue
   style : Style?
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, Hash, @debug.Debug)
 pub(all) struct CellProtection {
   locked : Bool?
   hidden : Bool?
-} derive(Eq, Hash, @debug.Debug)
+}
 pub fn CellProtection::empty() -> Self
 
+#derive(Eq, @debug.Debug)
 pub(all) struct CellRange {
   top_left : @units.CellRef
   bottom_right : @units.CellRef
-} derive(Eq, @debug.Debug)
+}
 pub fn CellRange::contains(Self, @units.CellRef) -> Bool
 pub fn CellRange::parse(String) -> Self?
 pub fn CellRange::parse_loose(String) -> Self?
 pub fn CellRange::to_a1(Self) -> String
 
+#derive(Eq, @debug.Debug)
 pub(all) enum CellValue {
   Text(String)
   Number(Double)
@@ -165,8 +178,9 @@ pub(all) enum CellValue {
   Formula(formula~ : String, cached~ : CellValue?)
   RichText(Array[RichRun])
   Blank
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, @debug.Debug)
 pub(all) struct Chart {
   at : @units.CellRef
   kind : ChartKind
@@ -176,14 +190,16 @@ pub(all) struct Chart {
   size : ChartSize?
   x_axis : ChartAxis?
   y_axis : ChartAxis?
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, @debug.Debug)
 pub(all) struct ChartAxis {
   title : String?
   min : Double?
   max : Double?
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, @debug.Debug)
 pub(all) enum ChartKind {
   Column
   ColumnStacked
@@ -199,25 +215,29 @@ pub(all) enum ChartKind {
   Doughnut
   Scatter
   Radar
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, @debug.Debug)
 pub(all) struct ChartSeries {
   values : SheetRange
   categories : SheetRange?
   name : SeriesName?
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, @debug.Debug)
 pub(all) struct ChartSize {
   width : Int32
   height : Int32
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, @debug.Debug)
 pub(all) struct Comment {
   at : @units.CellRef
   text : String
   author : String?
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, @debug.Debug)
 pub(all) enum Comparison {
   Between(Bound, Bound)
   NotBetween(Bound, Bound)
@@ -227,15 +247,17 @@ pub(all) enum Comparison {
   AtMost(Bound)
   GreaterThan(Bound)
   LessThan(Bound)
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, @debug.Debug)
 pub(all) struct ConditionalFormat {
   at : CellRange
   rule : ConditionalRule
   style : Style?
   stop_if_true : Bool
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, @debug.Debug)
 pub(all) enum ConditionalRule {
   CellIs(Comparison)
   Formula(String)
@@ -246,18 +268,21 @@ pub(all) enum ConditionalRule {
   ColorScale(low~ : @units.Color, middle~ : @units.Color?, high~ : @units.Color)
   DataBar(color~ : @units.Color, bar_only~ : Bool)
   IconSet(style~ : String, reverse~ : Bool, icons_only~ : Bool)
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, @debug.Debug)
 pub(all) struct CustomProperty {
   name : String
   value : PropertyValue
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, @debug.Debug)
 pub(all) struct DefinedName {
   name : String
   refers_to : CellValue
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, @debug.Debug)
 pub(all) struct DocumentProperties {
   title : String?
   subject : String?
@@ -270,23 +295,27 @@ pub(all) struct DocumentProperties {
   version : String?
   company : String?
   custom : Array[CustomProperty]
-} derive(Eq, @debug.Debug)
+}
 pub fn DocumentProperties::empty() -> Self
 
+#derive(Eq, Hash, @debug.Debug)
 pub(all) struct Fill {
   color : @units.Color
-} derive(Eq, Hash, @debug.Debug)
+}
 
+#derive(Eq, @debug.Debug)
 pub(all) struct FilterColumn {
   column : Int32
   criterion : FilterCriterion
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, @debug.Debug)
 pub(all) enum FilterCriterion {
   Values(Array[String])
   Compare(Comparison)
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, Hash, @debug.Debug)
 pub(all) struct Font {
   bold : Bool?
   italic : Bool?
@@ -295,10 +324,11 @@ pub(all) struct Font {
   size : Double?
   name : String?
   color : @units.Color?
-} derive(Eq, Hash, @debug.Debug)
+}
 pub fn Font::empty() -> Self
 pub fn Font::is_empty(Self) -> Bool
 
+#derive(Eq, @debug.Debug)
 pub(all) struct FormControl {
   at : @units.CellRef
   kind : FormControlKind
@@ -313,8 +343,9 @@ pub(all) struct FormControl {
   page : Int32?
   value : Int32?
   horizontal : Bool?
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, @debug.Debug)
 pub(all) enum FormControlKind {
   Button
   CheckBox
@@ -323,14 +354,16 @@ pub(all) enum FormControlKind {
   SpinButton
   GroupBox
   Label
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, @debug.Debug)
 pub(all) struct FormulaRange {
   at : CellRange
   formula : String
   style : Style?
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, Hash, @debug.Debug)
 pub(all) enum HAlign {
   Left
   Center
@@ -338,8 +371,9 @@ pub(all) enum HAlign {
   Fill
   Justify
   Distributed
-} derive(Eq, Hash, @debug.Debug)
+}
 
+#derive(Eq, @debug.Debug)
 pub(all) struct Image {
   at : @units.CellRef
   data : Bytes
@@ -350,14 +384,16 @@ pub(all) struct Image {
   offset_x : Int32
   offset_y : Int32
   positioning : ImagePositioning
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, @debug.Debug)
 pub(all) enum ImagePositioning {
   Move
   MoveAndSize
   Fixed
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, @debug.Debug)
 pub(all) enum LegendPosition {
   Bottom
   Top
@@ -365,32 +401,37 @@ pub(all) enum LegendPosition {
   Right
   TopRight
   NoLegend
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, @debug.Debug)
 pub(all) struct Link {
   at : @units.CellRef
   target : LinkTarget
   tip : String?
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, @debug.Debug)
 pub(all) enum LinkTarget {
   Url(String)
   Location(String)
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, @debug.Debug)
 pub(all) enum Orientation {
   Portrait
   Landscape
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, @debug.Debug)
 pub(all) struct Override {
   sheet : String
   at : @units.CellRef
   value : CellValue?
   style : Style?
   reason : String?
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, @debug.Debug)
 pub(all) struct PageMargins {
   top : Double?
   bottom : Double?
@@ -398,13 +439,15 @@ pub(all) struct PageMargins {
   right : Double?
   header : Double?
   footer : Double?
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, @debug.Debug)
 pub(all) enum PageScale {
   Percent(Int32)
   Fit(width~ : Int32, height~ : Int32)
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, @debug.Debug)
 pub(all) struct PageSetup {
   area : CellRange?
   orientation : Orientation?
@@ -414,14 +457,16 @@ pub(all) struct PageSetup {
   footer : String?
   breaks : Array[@units.CellRef]
   title_rows : TitleRows?
-} derive(Eq, @debug.Debug)
+}
 pub fn PageSetup::empty() -> Self
 
+#derive(Eq, @debug.Debug)
 pub(all) enum Panes {
   Freeze(@units.CellRef)
   Split(x~ : Double, y~ : Double)
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, @debug.Debug)
 pub(all) struct Pivot {
   at : CellRange
   source : SheetRange
@@ -433,13 +478,15 @@ pub(all) struct Pivot {
   style : String?
   row_grand_totals : Bool
   column_grand_totals : Bool
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, @debug.Debug)
 pub(all) struct PivotField {
   field : String
   name : String?
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, @debug.Debug)
 pub(all) enum PivotFunction {
   Sum
   Count
@@ -452,30 +499,35 @@ pub(all) enum PivotFunction {
   StdDevP
   Var
   VarP
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, @debug.Debug)
 pub(all) struct PivotValue {
   field : String
   function : PivotFunction
   name : String?
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, @debug.Debug)
 pub(all) enum PropertyValue {
   Number(Double)
   Bool(Bool)
   Text(String)
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, Hash, @debug.Debug)
 pub(all) struct RichRun {
   text : String
   font : Font?
-} derive(Eq, Hash, @debug.Debug)
+}
 
+#derive(Eq, @debug.Debug)
 pub(all) enum SeriesName {
   Literal(String)
   FromCell(sheet~ : String?, at~ : @units.CellRef)
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, @debug.Debug)
 pub(all) struct Shape {
   at : @units.CellRef
   preset : String
@@ -487,13 +539,15 @@ pub(all) struct Shape {
   line_width : Double?
   alt_text : String?
   positioning : ImagePositioning
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, @debug.Debug)
 pub(all) enum ShapeText {
   Plain(String)
   Lines(Array[RichRun])
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, @debug.Debug)
 pub(all) struct Sheet {
   name : String
   cells : Array[Cell]
@@ -521,7 +575,7 @@ pub(all) struct Sheet {
   pivots : Array[Pivot]
   formulas : Array[FormulaRange]
   mut protection : SheetProtection?
-} derive(Eq, @debug.Debug)
+}
 pub fn Sheet::Sheet(String, visibility? : SheetVisibility) -> Self
 pub fn Sheet::add_chart(Self, Chart) -> Unit
 pub fn Sheet::add_comment(Self, @units.CellRef, String, author? : String) -> Unit
@@ -550,11 +604,13 @@ pub fn Sheet::set_protection(Self, SheetProtection) -> Unit
 pub fn Sheet::set_row_band(Self, first~ : Int32, last~ : Int32, style? : Style, height? : Double, hidden? : Bool, outline_level? : Int32) -> Unit
 pub fn Sheet::set_tab_color(Self, @units.Color) -> Unit
 
+#derive(Eq, @debug.Debug)
 pub(all) struct SheetBackground {
   data : Bytes
   format : String
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, @debug.Debug)
 pub(all) struct SheetProtection {
   password : String?
   select_locked_cells : Bool
@@ -572,20 +628,23 @@ pub(all) struct SheetProtection {
   pivot_tables : Bool
   edit_objects : Bool
   edit_scenarios : Bool
-} derive(Eq, @debug.Debug)
+}
 pub fn SheetProtection::SheetProtection() -> Self
 
+#derive(Eq, @debug.Debug)
 pub(all) struct SheetRange {
   sheet : String?
   range : CellRange
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, @debug.Debug)
 pub(all) enum SheetVisibility {
   Visible
   Hidden
   VeryHidden
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, @debug.Debug)
 pub(all) struct Slicer {
   at : @units.CellRef
   table : String
@@ -594,13 +653,15 @@ pub(all) struct Slicer {
   width : Int32?
   height : Int32?
   header : Bool?
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, @debug.Debug)
 pub(all) struct SparklineCell {
   at : @units.CellRef
   data : SheetRange
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, @debug.Debug)
 pub(all) struct SparklineGroup {
   kind : SparklineKind
   cells : Array[SparklineCell]
@@ -615,14 +676,16 @@ pub(all) struct SparklineGroup {
   high_color : @units.Color?
   low_color : @units.Color?
   axis : Bool
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, @debug.Debug)
 pub(all) enum SparklineKind {
   Line
   Column
   WinLoss
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, Hash, @debug.Debug)
 pub(all) struct Style {
   font : Font?
   fill : Fill?
@@ -631,7 +694,7 @@ pub(all) struct Style {
   number_format : String?
   protection : CellProtection?
   cleared : StyleAttrs
-} derive(Eq, Hash, @debug.Debug)
+}
 pub fn Style::assigned(Self) -> StyleAttrs
 pub fn Style::clearing(Self, StyleAttrs) -> Self
 pub fn Style::empty() -> Self
@@ -642,6 +705,7 @@ pub fn Style::number_format(String) -> Self
 pub fn Style::over(Self, Self) -> Self
 pub fn Style::settled(Self) -> Self
 
+#derive(Eq, Hash, @debug.Debug)
 pub(all) enum StyleAttr {
   Fill
   NumberFormat
@@ -661,9 +725,10 @@ pub(all) enum StyleAttr {
   BorderBottom
   ProtectionLocked
   ProtectionHidden
-} derive(Eq, Hash, @debug.Debug)
+}
 
-pub struct StyleAttrs(UInt32) derive(Eq, Hash, @debug.Debug)
+#derive(Eq, Hash, @debug.Debug)
+pub struct StyleAttrs(UInt32)
 pub fn StyleAttrs::adding(Self, StyleAttr) -> Self
 pub fn StyleAttrs::except(Self, Self) -> Self
 pub fn StyleAttrs::has(Self, StyleAttr) -> Bool
@@ -672,6 +737,7 @@ pub fn StyleAttrs::none() -> Self
 pub fn StyleAttrs::of(Array[StyleAttr]) -> Self
 pub fn StyleAttrs::union(Self, Self) -> Self
 
+#derive(Eq, @debug.Debug)
 pub(all) struct Table {
   at : CellRange
   name : String?
@@ -680,66 +746,76 @@ pub(all) struct Table {
   banded_columns : Bool
   first_column : Bool
   last_column : Bool
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, @debug.Debug)
 pub(all) enum TextMatch {
   Contains
   NotContains
   BeginsWith
   EndsWith
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, @debug.Debug)
 pub(all) struct TitleRows {
   first : Int32
   last : Int32
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, Hash, @debug.Debug)
 pub(all) enum VAlign {
   Top
   Middle
   Bottom
   Justify
   Distributed
-} derive(Eq, Hash, @debug.Debug)
+}
 
+#derive(Eq, @debug.Debug)
 pub(all) struct Validation {
   at : CellRange
   rule : ValidationRule
   allow_blank : Bool
   prompt : ValidationPrompt?
   error : ValidationError?
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, @debug.Debug)
 pub(all) struct ValidationError {
   title : String
   body : String
   style : ValidationErrorStyle
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, @debug.Debug)
 pub(all) enum ValidationErrorStyle {
   Stop
   Warning
   Information
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, @debug.Debug)
 pub(all) enum ValidationKind {
   Whole
   Decimal
   TextLength
   DateValue
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, @debug.Debug)
 pub(all) struct ValidationPrompt {
   title : String
   body : String
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, @debug.Debug)
 pub(all) enum ValidationRule {
   List(Array[String])
   ListFrom(SheetRange)
   Compare(kind~ : ValidationKind, check~ : Comparison)
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, @debug.Debug)
 pub(all) struct Workbook {
   sheets : Array[Sheet]
   date_system : @units.DateSystem
@@ -751,7 +827,7 @@ pub(all) struct Workbook {
   mut calc : CalcSettings?
   mut protection : WorkbookProtection?
   mut output : String?
-} derive(Eq, @debug.Debug)
+}
 pub fn Workbook::Workbook(date_system? : @units.DateSystem, default_font? : String) -> Self
 pub fn Workbook::add_defined_name(Self, String, CellValue) -> Unit
 pub fn Workbook::add_override(Self, Override) -> Unit
@@ -764,11 +840,12 @@ pub fn Workbook::set_protection(Self, WorkbookProtection) -> Unit
 pub fn Workbook::sheet(Self, String) -> Sheet?
 pub fn Workbook::sheet_overrides(Self, String) -> Array[Override]
 
+#derive(Eq, @debug.Debug)
 pub(all) struct WorkbookProtection {
   structure : Bool
   windows : Bool
   password : String?
-} derive(Eq, @debug.Debug)
+}
 
 // Type aliases
 

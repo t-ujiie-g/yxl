@@ -1,0 +1,47 @@
+///|
+/// The year a date counts under once the year is made to start in March, so
+/// that a leap day is the last day of its year.
+fn march_year(year : Int32, month : Int32) -> Int32 {
+  if month <= 2 { year - 1 } else { year }
+}
+
+///|
+/// The 400-year cycle a March-based year falls in, flooring for years before 0.
+fn era_of(year : Int32) -> Int32 {
+  if year >= 0 { year / 400 } else { (year - 399) / 400 }
+}
+
+///|
+/// A date's 0-based position in its March-based year.
+fn day_of_march_year(month : Int32, day : Int32) -> Int32 {
+  if month > 2 {
+    (153 * (month - 3) + 2) / 5 + day - 1
+  } else {
+    (153 * (month + 9) + 2) / 5 + day - 1
+  }
+}
+
+///|
+/// Days since 1970-01-01 in the proleptic Gregorian calendar: the meaning
+/// `days_from_civil` computes and `civil_from_days` inverts.
+fn day_number(year : Int32, month : Int32, day : Int32) -> Int32 {
+  era_of(march_year(year, month)) * 146097 +
+  (march_year(year, month) - era_of(march_year(year, month)) * 400) * 365 +
+  (march_year(year, month) - era_of(march_year(year, month)) * 400) / 4 -
+  (march_year(year, month) - era_of(march_year(year, month)) * 400) / 100 +
+  day_of_march_year(month, day) -
+  719468
+}
+
+///|
+/// `date` is a month of 1..12 and a day of 1..31 whose day number is `days`.
+predicate civil_of_days(date : (Int32, Int32, Int32), days : Int32) {
+  match date {
+    (year, month, day) =>
+      1 <= month &&
+      month <= 12 &&
+      1 <= day &&
+      day <= 31 &&
+      day_number(year, month, day) == days
+  }
+}
