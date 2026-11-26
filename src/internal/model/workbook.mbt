@@ -1,10 +1,11 @@
 ///|
 /// A workbook-level named definition (ADR-012): a constant or a formula,
 /// compiled to an Excel defined name a cell references as `=name` (ADR-013).
+#derive(Eq, Debug)
 pub(all) struct DefinedName {
   name : String
   refers_to : CellValue
-} derive(Eq, Debug)
+}
 
 ///|
 /// The longest name Excel accepts for a defined name — and for a table name,
@@ -14,18 +15,20 @@ pub let max_defined_name_length : Int32 = 255
 ///|
 /// One cell held apart from the rules that produced it (ADR-018). `value` and
 /// `style` are independent and at least one is set; `reason` is never read.
+#derive(Eq, Debug)
 pub(all) struct Override {
   sheet : String
   at : @units.CellRef
   value : CellValue?
   style : Style?
   reason : String?
-} derive(Eq, Debug)
+}
 
 ///|
 /// A workbook: the whole input to the emitter seam (ADR-002). Lists keep
 /// declaration order; an unset optional keeps Excel's default; `output` is
 /// never read by the emitter.
+#derive(Eq, Debug)
 pub(all) struct Workbook {
   sheets : Array[Sheet]
   date_system : @units.DateSystem
@@ -37,7 +40,7 @@ pub(all) struct Workbook {
   mut calc : CalcSettings?
   mut protection : WorkbookProtection?
   mut output : String?
-} derive(Eq, Debug)
+}
 
 ///|
 /// The sheet declared under `name`, or `None` — the lookup every construct
@@ -149,6 +152,7 @@ pub fn Workbook::add_sheet(
 /// One worksheet. Lists keep declaration order, which for `conditional_formats`
 /// is priority order; `tables` and `formulas` may not overlap (the loader
 /// checks). An unset optional keeps Excel's default.
+#derive(Eq, Debug)
 pub(all) struct Sheet {
   name : String
   cells : Array[Cell]
@@ -176,7 +180,7 @@ pub(all) struct Sheet {
   pivots : Array[Pivot]
   formulas : Array[FormulaRange]
   mut protection : SheetProtection?
-} derive(Eq, Debug)
+}
 
 ///|
 /// A new, empty sheet with the given name, visible unless told otherwise.

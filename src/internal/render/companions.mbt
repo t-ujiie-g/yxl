@@ -33,7 +33,7 @@ fn Names::claim(
     path = "\{directory}/\{base}_\{suffix}.\{extension}"
     suffix += 1
   }
-  self.taken.add(path)
+  self.taken.insert(path)
   path
 }
 

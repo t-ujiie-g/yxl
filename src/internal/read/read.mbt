@@ -184,7 +184,7 @@ fn Notes::Notes() -> Notes {
 ///|
 /// Record that something was dropped. Repeats are folded together.
 fn Notes::drop(self : Notes, note : String) -> Unit {
-  if self.seen.add_and_check(note) {
+  if self.seen.insert_and_check(note) {
     self.order.push(note)
   }
 }

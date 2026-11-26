@@ -39,6 +39,7 @@ pub let version : String
 // Errors
 
 // Types and methods
+#derive(Eq, @debug.Debug)
 pub(all) enum Command {
   Build(input~ : String?, output~ : String?, params~ : Map[String, String])
   Check(input~ : String?, params~ : Map[String, String])
@@ -46,7 +47,7 @@ pub(all) enum Command {
   Init(output~ : String, force~ : Bool)
   Version
   Help
-} derive(Eq, @debug.Debug)
+}
 
 pub struct Companion {
   path : String

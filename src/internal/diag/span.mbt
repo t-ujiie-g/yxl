@@ -2,10 +2,11 @@
 /// A 1-based line/column position within a source file. Line 1, column 1 is the
 /// first character; this matches how editors and the ECMA-376 tooling report
 /// locations, so a `yxl` diagnostic can be clicked straight to the source.
+#derive(Eq, Debug)
 pub struct Pos {
   line : Int32
   col : Int32
-} derive(Eq, Debug)
+}
 
 ///|
 /// Build a position from a 1-based line and column.
@@ -17,11 +18,12 @@ pub fn Pos::Pos(line : Int32, col : Int32) -> Pos {
 /// A source span: a file path plus the start and end positions of a region.
 /// `start == end` marks a single point (a zero-width span). Higher packages
 /// attach a `Span` to every diagnostic they raise (ADR-006).
+#derive(Eq, Debug)
 pub struct Span {
   file : String
   start : Pos
   end : Pos
-} derive(Eq, Debug)
+}
 
 ///|
 /// Build a span covering `start`..`end` within `file`.

@@ -19,6 +19,7 @@ pub let version : String = "0.7.2"
 /// What the command line asked for. An `input` of `None` is the one spec in the
 /// current directory (`find_spec`); an `output` of `None` is the one the spec
 /// names.
+#derive(Eq, Debug)
 pub(all) enum Command {
   Build(input~ : String?, output~ : String?, params~ : Map[String, String])
   Check(input~ : String?, params~ : Map[String, String])
@@ -28,7 +29,7 @@ pub(all) enum Command {
   Init(output~ : String, force~ : Bool)
   Version
   Help
-} derive(Eq, Debug)
+}
 
 ///|
 /// The spec `yxl init` writes: one empty sheet, not a worked example the reader

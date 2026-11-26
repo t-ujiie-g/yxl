@@ -7,3 +7,7 @@ import {
   // `extends.mbt` names `@debug.Debug` to decline its promotion.
   "moonbitlang/core/debug",
 }
+
+// `moon prove` checks the contracts in `date.mbt` and `cell_ref.mbt` (ADR-033).
+
+proof_enabled = true

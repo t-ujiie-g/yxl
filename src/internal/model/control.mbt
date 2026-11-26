@@ -2,6 +2,7 @@
 /// A form control. The loader admits only the field combinations Excel's
 /// "Format Control" dialog offers per kind; `link` is same-sheet only, and
 /// `None` keeps the backend's default.
+#derive(Eq, Debug)
 pub(all) struct FormControl {
   at : @units.CellRef
   kind : FormControlKind
@@ -16,11 +17,12 @@ pub(all) struct FormControl {
   page : Int32?
   value : Int32?
   horizontal : Bool?
-} derive(Eq, Debug)
+}
 
 ///|
 /// The seven controls Excel's Forms toolbar offers (list and combo boxes are
 /// the backend's to grow).
+#derive(Eq, Debug)
 pub(all) enum FormControlKind {
   Button
   CheckBox
@@ -29,7 +31,7 @@ pub(all) enum FormControlKind {
   SpinButton
   GroupBox
   Label
-} derive(Eq, Debug)
+}
 
 ///|
 /// The largest value, bound, step, or page a control accepts — the limit

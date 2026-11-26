@@ -1,6 +1,7 @@
 ///|
 /// A workbook's document properties, named as Excel's info pane names them. An
 /// unset one is omitted rather than written empty; `custom` names are unique.
+#derive(Eq, Debug)
 pub(all) struct DocumentProperties {
   title : String?
   subject : String?
@@ -13,7 +14,7 @@ pub(all) struct DocumentProperties {
   version : String?
   company : String?
   custom : Array[CustomProperty]
-} derive(Eq, Debug)
+}
 
 ///|
 /// Document properties that say nothing.
@@ -35,22 +36,25 @@ pub fn DocumentProperties::empty() -> DocumentProperties {
 
 ///|
 /// One property of the author's own devising: a name, and a typed value.
+#derive(Eq, Debug)
 pub(all) struct CustomProperty {
   name : String
   value : PropertyValue
-} derive(Eq, Debug)
+}
 
 ///|
 /// What a custom property may hold. Excel's date type wants a zoned timestamp
 /// the spec would have to guess (ADR-006), so a date is written as text.
+#derive(Eq, Debug)
 pub(all) enum PropertyValue {
   Number(Double)
   Bool(Bool)
   Text(String)
-} derive(Eq, Debug)
+}
 
 ///|
 /// When Excel recalculates formulas (ECMA-376 §18.18.10).
+#derive(Eq, Debug)
 pub(all) enum CalcMode {
   /// Recalculate as values change (Excel's default).
   Automatic
@@ -58,20 +62,22 @@ pub(all) enum CalcMode {
   AutomaticNoTables
   /// Recalculate only when asked.
   Manual
-} derive(Eq, Debug)
+}
 
 ///|
 /// How the workbook calculates. Each field is optional; unset leaves Excel's
 /// default. `on_load` forces a full recalculation the moment the workbook
 /// opens, whatever the mode — useful where the spec supplied no cached values.
+#derive(Eq, Debug)
 pub(all) struct CalcSettings {
   mode : CalcMode?
   on_load : Bool?
-} derive(Eq, Debug)
+}
 
 ///|
 /// What a reader of a protected sheet may still do — the "Protect Sheet"
 /// dialog's boxes, with its defaults. `password` is not encryption.
+#derive(Eq, Debug)
 pub(all) struct SheetProtection {
   password : String?
   select_locked_cells : Bool
@@ -89,7 +95,7 @@ pub(all) struct SheetProtection {
   pivot_tables : Bool
   edit_objects : Bool
   edit_scenarios : Bool
-} derive(Eq, Debug)
+}
 
 ///|
 /// Sheet protection as Excel's dialog opens it: the sheet is locked, but a
@@ -118,8 +124,9 @@ pub fn SheetProtection::SheetProtection() -> SheetProtection {
 ///|
 /// What a reader may not do to the workbook; at least one of the two is set.
 /// `password` is not encryption.
+#derive(Eq, Debug)
 pub(all) struct WorkbookProtection {
   structure : Bool
   windows : Bool
   password : String?
-} derive(Eq, Debug)
+}

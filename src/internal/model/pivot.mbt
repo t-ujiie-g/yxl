@@ -2,6 +2,7 @@
 /// A pivot table. `at` is a corner Excel grows from; `source`'s header row
 /// names the fields the axes refer to. `None` keeps Excel's name and the
 /// backend's `PivotStyleLight16`.
+#derive(Eq, Debug)
 pub(all) struct Pivot {
   at : CellRange
   source : SheetRange
@@ -13,29 +14,32 @@ pub(all) struct Pivot {
   style : String?
   row_grand_totals : Bool
   column_grand_totals : Bool
-} derive(Eq, Debug)
+}
 
 ///|
 /// A field on one of the grouping axes: which source column, and what to call
 /// it in the pivot if not by its own name.
+#derive(Eq, Debug)
 pub(all) struct PivotField {
   field : String
   name : String?
-} derive(Eq, Debug)
+}
 
 ///|
 /// A field in the body: which source column, how to aggregate it, and what to
 /// call the result. `None` leaves Excel's own wording — "Sum of Revenue".
+#derive(Eq, Debug)
 pub(all) struct PivotValue {
   field : String
   function : PivotFunction
   name : String?
-} derive(Eq, Debug)
+}
 
 ///|
 /// How a value field is aggregated (ECMA-376 §18.18.17,
 /// `ST_DataConsolidateFunction`). Excel's full list is longer; these are the
 /// ones its own "Summarize Values By" menu offers.
+#derive(Eq, Debug)
 pub(all) enum PivotFunction {
   Sum
   Count
@@ -48,7 +52,7 @@ pub(all) enum PivotFunction {
   StdDevP
   Var
   VarP
-} derive(Eq, Debug)
+}
 
 ///|
 /// Excel's built-in pivot styles, in the same shape as the table ones: three

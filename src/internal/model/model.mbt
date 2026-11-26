@@ -2,6 +2,7 @@
 /// A cell's value. `Formula` omits the leading `=` and caches what Excel shows
 /// before recomputing; `Blank` exists only to wear a style and stays blank to
 /// `ISBLANK`.
+#derive(Eq, Debug)
 pub(all) enum CellValue {
   Text(String)
   Number(Double)
@@ -12,24 +13,26 @@ pub(all) enum CellValue {
   Formula(formula~ : String, cached~ : CellValue?)
   RichText(Array[RichRun])
   Blank
-} derive(Eq, Debug)
+}
 
 ///|
 /// One run of rich text: a piece of text and the font it is drawn in (`None`
 /// inherits the cell's font). Runs concatenate into the cell's string.
+#derive(Eq, Hash, Debug)
 pub(all) struct RichRun {
   text : String
   font : Font?
-} derive(Eq, Hash, Debug)
+}
 
 ///|
 /// A single populated cell: where it sits, what it holds, and its style, `None`
 /// for General. Equal styles share one `cellXfs` id (ADR-004).
+#derive(Eq, Debug)
 pub(all) struct Cell {
   pos : @units.CellRef
   value : CellValue
   style : Style?
-} derive(Eq, Debug)
+}
 
 ///|
 /// The deepest outline (grouping) level Excel accepts on a column or row;
@@ -40,6 +43,7 @@ pub let max_outline_level : Int32 = 7
 /// One band of columns or rows: an inclusive 1-based span and what the spec set
 /// on it; `None` keeps Excel's default. The holding `Sheet` list fixes the
 /// axis.
+#derive(Eq, Debug)
 pub(all) struct AxisBand {
   first : Int32
   last : Int32
@@ -47,16 +51,17 @@ pub(all) struct AxisBand {
   size : Double?
   hidden : Bool?
   outline_level : Int32?
-} derive(Eq, Debug)
+}
 
 ///|
 /// A rectangular block of cells, addressed by its top-left and bottom-right
 /// corners (canonical: `top_left` is at or above-left of `bottom_right`). Used
 /// wherever the spec names a region — a merge, a print area.
+#derive(Eq, Debug)
 pub(all) struct CellRange {
   top_left : @units.CellRef
   bottom_right : @units.CellRef
-} derive(Eq, Debug)
+}
 
 ///|
 /// The range in A1 notation (`A1:B9`), unqualified and relative — the form the
@@ -105,29 +110,32 @@ pub fn CellRange::parse_loose(text : String) -> CellRange? {
 ///|
 /// How Excel shows a sheet in the tab bar (ECMA-376 §18.18.68): very hidden can
 /// be undone only from VBA. A workbook keeps at least one sheet visible.
+#derive(Eq, Debug)
 pub(all) enum SheetVisibility {
   Visible
   Hidden
   VeryHidden
-} derive(Eq, Debug)
+}
 
 ///|
 /// How a sheet's viewport is divided (ECMA-376 §18.3.1.66). A `Split` is in
 /// points from the top-left, `0` leaving that axis unsplit.
+#derive(Eq, Debug)
 pub(all) enum Panes {
   Freeze(@units.CellRef)
   Split(x~ : Double, y~ : Double)
-} derive(Eq, Debug)
+}
 
 ///|
 /// One formula filled across a region, written as it applies at the top-left;
 /// it compiles to a shared formula (ECMA-376 §18.3.1.40, ADR-004). `style` is
 /// every cell's own style, laid over the bands as a cell's is.
+#derive(Eq, Debug)
 pub(all) struct FormulaRange {
   at : CellRange
   formula : String
   style : Style?
-} derive(Eq, Debug)
+}
 
 ///|
 /// The most cells one `formulas:` range may cover: one full column

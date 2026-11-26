@@ -1,6 +1,7 @@
 ///|
 /// A YAML node — our type, not the parser library's, so the parser can be
 /// swapped (ADR-010). Scalars arrive classified: bare `1` is `Int`, `"1"` `Str`.
+#derive(Eq, Debug)
 pub(all) enum Node {
   Str(String)
   Int(Int64)
@@ -9,4 +10,4 @@ pub(all) enum Node {
   Null
   Seq(Array[Node])
   Map(Array[(String, Node)])
-} derive(Eq, Debug)
+}

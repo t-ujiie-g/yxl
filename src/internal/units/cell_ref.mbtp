@@ -1,0 +1,9 @@
+///|
+/// The corners are in reading order: no column or row of the first exceeds the
+/// second's.
+predicate rect_ordered(corners : (CellRef, CellRef)) {
+  match corners {
+    (top_left, bottom_right) =>
+      top_left.col <= bottom_right.col && top_left.row <= bottom_right.row
+  }
+}

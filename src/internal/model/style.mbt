@@ -2,6 +2,7 @@
 /// A cell's style, compared structurally so equal looks intern to one `cellXfs`
 /// id (ADR-004). `cleared` holds attributes explicitly unset (ADR-020), never
 /// also set.
+#derive(Eq, Hash, Debug)
 pub(all) struct Style {
   font : Font?
   fill : Fill?
@@ -10,15 +11,16 @@ pub(all) struct Style {
   number_format : String?
   protection : CellProtection?
   cleared : StyleAttrs
-} derive(Eq, Hash, Debug)
+}
 
 ///|
 /// A cell's half of sheet protection (Format Cells → Protection); inert until
 /// the sheet is protected.
+#derive(Eq, Hash, Debug)
 pub(all) struct CellProtection {
   locked : Bool?
   hidden : Bool?
-} derive(Eq, Hash, Debug)
+}
 
 ///|
 /// The empty style — every attribute defaulted. Equal to a `Style` with all
@@ -237,6 +239,7 @@ fn normalize_protection(protection : CellProtection) -> CellProtection? {
 ///|
 /// A font: bold/italic/underline/strike toggles, a point size, a face name, and
 /// a color. Each is optional; an unset attribute inherits the workbook default.
+#derive(Eq, Hash, Debug)
 pub(all) struct Font {
   bold : Bool?
   italic : Bool?
@@ -245,7 +248,7 @@ pub(all) struct Font {
   size : Double?
   name : String?
   color : @units.Color?
-} derive(Eq, Hash, Debug)
+}
 
 ///|
 /// The empty font — every attribute defaulted, so it inherits everything from
@@ -271,17 +274,19 @@ pub fn Font::is_empty(self : Font) -> Bool {
 
 ///|
 /// A solid cell fill in a single color.
+#derive(Eq, Hash, Debug)
 pub(all) struct Fill {
   color : @units.Color
-} derive(Eq, Hash, Debug)
+}
 
 ///|
 /// Cell alignment: horizontal and vertical placement, plus text wrapping.
+#derive(Eq, Hash, Debug)
 pub(all) struct Alignment {
   horizontal : HAlign?
   vertical : VAlign?
   wrap : Bool?
-} derive(Eq, Hash, Debug)
+}
 
 ///|
 /// The empty alignment — Excel's own placement.
@@ -291,6 +296,7 @@ pub fn Alignment::empty() -> Alignment {
 
 ///|
 /// Horizontal text alignment within a cell.
+#derive(Eq, Hash, Debug)
 pub(all) enum HAlign {
   Left
   Center
@@ -298,27 +304,29 @@ pub(all) enum HAlign {
   Fill
   Justify
   Distributed
-} derive(Eq, Hash, Debug)
+}
 
 ///|
 /// Vertical text alignment within a cell.
+#derive(Eq, Hash, Debug)
 pub(all) enum VAlign {
   Top
   Middle
   Bottom
   Justify
   Distributed
-} derive(Eq, Hash, Debug)
+}
 
 ///|
 /// The four cell borders, each optionally styled. `None` for a side means no
 /// border on that side.
+#derive(Eq, Hash, Debug)
 pub(all) struct Borders {
   left : Border?
   right : Border?
   top : Border?
   bottom : Border?
-} derive(Eq, Hash, Debug)
+}
 
 ///|
 /// No border on any side.
@@ -334,13 +342,15 @@ pub fn CellProtection::empty() -> CellProtection {
 
 ///|
 /// One border edge: a line style and an optional color (black by default).
+#derive(Eq, Hash, Debug)
 pub(all) struct Border {
   style : BorderStyle
   color : @units.Color?
-} derive(Eq, Hash, Debug)
+}
 
 ///|
 /// A border line style — the subset of Excel's line styles worth naming.
+#derive(Eq, Hash, Debug)
 pub(all) enum BorderStyle {
   Thin
   Medium
@@ -349,7 +359,7 @@ pub(all) enum BorderStyle {
   Dotted
   Double
   Hair
-} derive(Eq, Hash, Debug)
+}
 
 ///|
 /// The horizontal alignments a spec may name; read by the loader and spelled by

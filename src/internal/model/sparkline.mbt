@@ -2,6 +2,7 @@
 /// A group of sparklines, scaled and styled as a unit. `markers` and `weight`
 /// apply to lines only; `min`/`max` are whole numbers, as the backend takes;
 /// unset colours keep the style's.
+#derive(Eq, Debug)
 pub(all) struct SparklineGroup {
   kind : SparklineKind
   cells : Array[SparklineCell]
@@ -16,25 +17,27 @@ pub(all) struct SparklineGroup {
   high_color : @units.Color?
   low_color : @units.Color?
   axis : Bool
-} derive(Eq, Debug)
+}
 
 ///|
 /// One sparkline of a group: the cell it sits in, and the cells it plots —
 /// possibly on another sheet.
+#derive(Eq, Debug)
 pub(all) struct SparklineCell {
   at : @units.CellRef
   data : SheetRange
-} derive(Eq, Debug)
+}
 
 ///|
 /// The three shapes Excel draws in a cell (ECMA-376 Part 4 §2.9, `x14`):
 /// a line, a column per point, or win/loss — every point the same size,
 /// above or below the axis by its sign.
+#derive(Eq, Debug)
 pub(all) enum SparklineKind {
   Line
   Column
   WinLoss
-} derive(Eq, Debug)
+}
 
 ///|
 /// Place a sparkline group on the sheet.

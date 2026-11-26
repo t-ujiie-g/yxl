@@ -2,6 +2,7 @@
 /// A preset-geometry drawing. `preset` is an `ST_ShapeType` token (ECMA-376
 /// §20.1.10.56) from `shape_presets`; sizes are pixels, `line_width` points,
 /// and `None` keeps the default.
+#derive(Eq, Debug)
 pub(all) struct Shape {
   at : @units.CellRef
   preset : String
@@ -13,16 +14,17 @@ pub(all) struct Shape {
   line_width : Double?
   alt_text : String?
   positioning : ImagePositioning
-} derive(Eq, Debug)
+}
 
 ///|
 /// A shape's text: one plain string, or a list of lines. Each line is a
 /// `RichRun` — its own text in its own font — because that is how the Excel
 /// backend lays shape text out: one run per paragraph, so one font per line.
+#derive(Eq, Debug)
 pub(all) enum ShapeText {
   Plain(String)
   Lines(Array[RichRun])
-} derive(Eq, Debug)
+}
 
 ///|
 /// The preset geometries a spec may name, as (spelling, DrawingML `prst`): a

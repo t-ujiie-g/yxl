@@ -113,6 +113,8 @@ them; only `cli`, `include` and `cmd/main` are public (ADR-028).
 - **Tier 1 — In-repo MoonBit tests** (native). Unit + golden + round-trip tests.
   The bar for every phase. The compiler core is I/O-free so it tests on strings
   and bytes.
+  Where a property is integer-valued and total, a contract proved by
+  `moon prove` replaces sampling it (ADR-033).
 - **Tier 2 — Example specs** (CI). The `examples/` corpus is the cookbook, and
   it is tested twice over. `src/examples` compiles every `examples/*.yxl.yaml`
   in-process, re-opens the workbook, and asserts named cells hold what the
@@ -2208,6 +2210,41 @@ cell's own look; it restates the look, or names it in `defs` and `extends` it
 it would make an override the one later writer that merges rather than
 replaces. yxl-vscode draws overrides the same way.
 
+### ADR-033 — Integer invariants are proved with `moon prove`, in `units` first
+**Status:** Accepted. An instance of ADR-007; experimental upstream.
+**Context:** MoonBit 1.0 ships `moon prove`: a function carries a contract
+(`where { proof_require, proof_ensure }`), the package is lowered to Why3, and
+an SMT solver discharges every verification condition. The date arithmetic in
+`units` is the one place in `yxl` where a wrong constant is silent — a serial
+a day off is still a valid date — and its tests can only sample it.
+**Decision:** `src/internal/units` is `proof_enabled`. Three contracts hold, and
+CI proves them on Linux with a pinned Z3 (`z3-solver==5.3.3.0`; Why3 comes with
+the toolchain):
+- `days_from_civil` computes `day_number`, a let-free logic model in
+  `date.mbtp`.
+- `civil_from_days` is its inverse for every day count from 0000-03-01 to
+  3 000 000 days past 1970 — wider than any serial `from_serial` accepts — and
+  returns a month of 1..12 and a day of 1..31.
+- `CellRef::rect` returns its corners in reading order.
+
+Logic-side definitions live in `*.mbtp`, executable code and its
+`proof_assert` steps in `*.mbt`. A contract is added where a property is
+integer-valued and total; nothing is restructured to suit the prover beyond
+naming an intermediate.
+**Trade-offs / consequences:** the prover reasons over mathematical integers,
+so overflow is *not* modelled, and it cannot see through `String`, `Double` or
+`Array` code: `from_serial` itself is unverified, and so is the fact that it
+calls `civil_from_days` inside the proved range — that stays a test's job
+(`from_serial_test.mbt`). A `#proof_pure` function is opaque to the solver,
+which is why the model is restated in `date.mbtp` rather than read off
+`days_from_civil`. Tuple projection, literal patterns and `let` are not
+accepted in logic bodies today, hence the predicates that destructure and the
+`if`-at-the-top shape of the model. A broken proof reports a timeout, not a
+counterexample; the three single-token mutations tried (`- 9` → `- 8`,
+`/ 1460` → `/ 1461`, `-` → `+`) each failed within 20 s. The feature is
+experimental: if its syntax moves, the contracts move with it, and removing
+them costs nothing at run time.
+
 ## 8. Open questions
 
 - **Q1 — YAML parser.** ✅ **Decided (ADR-009), refined (ADR-010):** depend on
@@ -2760,6 +2797,20 @@ replaces. yxl-vscode draws overrides the same way.
 ## 11. Living changelog
 
 Reverse-chronological. One entry per user-visible or structural change.
+
+- **2026-11-26** — **MoonBit 1.0 RC: the toolchain catch-up, and the first
+  proofs.** The 1.0 release candidate turned three things in `main` red, and
+  this clears them. `moonbit-community/yaml@0.0.6` no longer compiles — it
+  calls `to_json` and `to_repr` in method position, which 1.0 refuses — so the
+  parser moves to `0.0.10`; the backend moves to `mbtexcel@0.3.2`, a release of
+  the same migration with no change a spec can see. `derive(…)` after a type
+  is deprecated for `#derive(…)` before it: 77 declarations move, by
+  `moon fmt`, and every `.mbti` is regenerated to match with no API change.
+  `Set::add` / `add_and_check` and `parse_int(base~)` are deprecated for
+  `insert` / `insert_and_check` and `radix=`; `moon fix` applied those. A spec
+  builds the same workbook as before. New: `moon prove` checks the date
+  arithmetic's round trip and `CellRef::rect`'s corner order (ADR-033), and CI
+  runs it.
 
 - **2026-10-25** — **0.7.2.** A patch release carrying the toolchain catch-up
   below: the backend is `mbtexcel@0.3.1`. A spec builds the same workbook as

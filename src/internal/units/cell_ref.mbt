@@ -1,9 +1,10 @@
 ///|
 /// A 1-based cell reference, (1, 1) being `A1`; `to_a1` renders it.
+#derive(Eq, Debug)
 pub struct CellRef {
   col : Int32
   row : Int32
-} derive(Eq, Debug)
+}
 
 ///|
 /// Build a reference from a 1-based column and row. Both are expected to be
@@ -48,7 +49,12 @@ pub fn parse_column(text : StringView) -> Int32? {
 /// The top-left and bottom-right corners of the rectangle spanned by two cells,
 /// given in any corner order: `top_left` takes the smaller column and row,
 /// `bottom_right` the larger. Used to canonicalize a merge range.
-pub fn CellRef::rect(a : CellRef, b : CellRef) -> (CellRef, CellRef) {
+pub fn CellRef::rect(
+  a : CellRef,
+  b : CellRef,
+) -> (CellRef, CellRef) where {
+  proof_ensure: result => rect_ordered(result),
+} {
   let min_col = if a.col < b.col { a.col } else { b.col }
   let max_col = if a.col > b.col { a.col } else { b.col }
   let min_row = if a.row < b.row { a.row } else { b.row }
